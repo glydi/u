@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 28 Dynamical Systems and Control</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','28')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">28</div><h1>Dynamical Systems and Control</h1><p class="lede">Systems that evolve, and how to steer them.</p>
+   <div class="meta"><span class="chip">25 topics</span><span class="chip">needs: chapters 8, 10, 11, 15</span><span class="chip">feeds: chapters 29, 31, 34</span></div>
+  </div>
+
+<section class="topic" id="dynamical-systems">
+ <h2>Dynamical systems</h2>
+ <p>A dynamical system is anything with a state and a rule for how the state changes: a pendulum, a population, an economy, the activations of a recurrent network, an agent's beliefs. Fix the rule, choose a starting point, and the whole future unrolls. The subject's central move is geometric: stop reading time series and start watching the state travel through its space.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>dynamical system</em> is a state space $\mathcal X$ plus an evolution rule: discrete time $x_{t+1} = f(x_t)$, or continuous time $\dot x = f(x)$. The sequence/curve $\{x_t\}$ from an initial condition $x_0$ is a <em>trajectory</em> (orbit). The system is <em>autonomous</em> if $f$ doesn't depend on $t$, and becomes a <em>controlled</em> system when $f(x, u)$ takes an input $u$ we choose — the subject of the chapter's second half.</div>
+ <div class="box ex"><span class="label">Worked example</span> Compound interest as a dynamical system: $x_{t+1} = 1.05\,x_t$, $x_0 = 100$. Trajectory: $100, 105, 110.25, \dots, x_t = 100(1.05)^t$. One rule, all futures. Change the rule's constant to 0.95 and every trajectory decays to 0 instead — the fate of all initial conditions flipped by one parameter crossing 1. Most of this chapter is that observation, generalized.</div>
+ <div class="box link"><span class="label">Where this goes</span> Gradient descent is the dynamical system $x_{t+1} = x_t - \alpha\nabla L(x_t)$ (Ch 15); an RNN is $h_{t+1} = f(h_t, u_t)$ (Ch 21); a world model learns $f$ from data (Ch 29); training dynamics of networks are trajectories in weight space. The vocabulary built here — fixed points, stability, chaos — transfers to all of them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Identify state, rule and trajectory for a bouncing ball tracked by (height, velocity).<details class="sol"><summary>Solution</summary><div>State $x = (h, v) \in \mathbb R^2$; rule: $\dot h = v$, $\dot v = -g$ between bounces, with the reset map $v \mapsto -0.8v$ at $h = 0$ (a hybrid system); trajectory: the sequence of parabolic arcs of decaying height.</div></details></li>
+  <li><span class="lvl m">MED</span> Convert the second-order ODE $\ddot\theta = -\sin\theta$ (pendulum) into a first-order system. Why is this always possible?<details class="sol"><summary>Solution</summary><div>Let $x_1 = \theta$, $x_2 = \dot\theta$: then $\dot x_1 = x_2$, $\dot x_2 = -\sin x_1$. Any $n$-th order ODE becomes $n$ first-order equations by naming the derivatives as extra state variables — which is why "state space" theory only ever needs first-order rules, and why the pendulum's state space is a plane.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two trajectories of a well-posed autonomous ODE ($f$ Lipschitz) can never cross in state space. Prove it, and explain what this forbids in 2D.<details class="sol"><summary>Solution</summary><div>Suppose trajectories through distinct starting points reach the same state $x^*$ at times $t_1, t_2$. Autonomy lets us time-shift: both are solutions passing through $x^*$ at time 0. By Picard–Lindelöf (Ch 10), the solution through $x^*$ is unique — so the two trajectories coincide thereafter <em>and before</em> (uniqueness runs backwards too): they were the same orbit all along. Hence orbits partition the state space. In 2D this is severe: a trajectory confined to a bounded region it can't leave, containing no fixed point... orbits can't cross, so by Jordan-curve arguments the only possible long-run behaviors are fixed points and closed loops (Poincaré–Bendixson) — no chaos in two continuous dimensions. Chaos needs 3D flows (or 1D maps, where crossing isn't a constraint).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="state-space-representation">
+ <h2>State-space representation</h2>
+ <p>The state is the system's memory: the minimal bundle of numbers that, together with future inputs, determines the future completely. Writing a system in state-space form — a first-order vector equation for the state, plus a readout equation for what you can measure — is the lingua franca of control: every tool that follows (stability tests, controllability, Kalman filters, LQR) operates on this format.</p>
+ <div class="box def"><span class="label">Definition</span> Continuous LTI (linear time-invariant) form: $$\dot x = Ax + Bu, \qquad y = Cx + Du,$$ with state $x \in \mathbb R^n$, input $u \in \mathbb R^m$, measurement $y \in \mathbb R^p$. Discrete: $x_{t+1} = Ax_t + Bu_t$, $y_t = Cx_t$. Nonlinear general form: $\dot x = f(x, u)$, $y = h(x)$. The state's defining property is the Markov property of Ch 25, in deterministic dress.</div>
+ <div class="box ex"><span class="label">Worked example</span> Mass–spring–damper: $m\ddot p + c\dot p + kp = F$. State $x = (p, \dot p)$: $$\dot x = \begin{pmatrix} 0 & 1\\ -k/m & -c/m\end{pmatrix} x + \begin{pmatrix} 0 \\ 1/m \end{pmatrix} u, \qquad y = (1\ \ 0)\,x$$ with $u = F$, measuring position only. With $m = 1, k = 4, c = 0.5$: $A = \begin{pmatrix}0 & 1\\ -4 & -0.5\end{pmatrix}$. Everything about this system — its ringing frequency ($\approx\sqrt{4}$ rad/s), decay rate, response to pushes — is now encoded in two matrices.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The state is not unique: any invertible change of coordinates $z = Tx$ gives an equally valid representation $(TAT^{-1}, TB, CT^{-1})$ with identical input–output behavior. Physical interpretability of states is a modeling choice, not a mathematical fact — which is precisely what licenses learned latent states (Ch 29) that match dynamics without matching physics.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Put $\dot T = -0.1(T - T_{\text{env}}) + 0.5u$ (heater) in state-space form with $y = T$, treating $T_{\text{env}} = 20$ as a constant disturbance.<details class="sol"><summary>Solution</summary><div>$\dot x = -0.1x + 0.5u + 2$ with $x = T$, $y = x$ — scalar $A = -0.1$, $B = 0.5$, plus the constant offset (or absorb it: let $\tilde x = T - 20$, then $\dot{\tilde x} = -0.1\tilde x + 0.5u$).</div></details></li>
+  <li><span class="lvl m">MED</span> Discretize $\dot x = ax + bu$ exactly over a step $\Delta$ with $u$ held constant (zero-order hold).<details class="sol"><summary>Solution</summary><div>Solve the linear ODE over one step: $x_{t+\Delta} = e^{a\Delta}x_t + \int_0^{\Delta} e^{a s}b\,ds\; u = e^{a\Delta}x_t + \frac{b}{a}(e^{a\Delta} - 1)u$. So $A_d = e^{a\Delta}$, $B_d = \frac ba(e^{a\Delta}-1)$; for matrices, $A_d = e^{A\Delta}$, $B_d = \int_0^\Delta e^{As}ds\,B$ — the matrix exponential of Ch 10 doing the work. Note $A_d \approx I + A\Delta$ (Euler) only for small $\Delta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A system's measured output is $y_t$ and you propose "state = last $k$ outputs." When is this a valid state, and what classical result says so for linear systems?<details class="sol"><summary>Solution</summary><div>It is valid iff the pair of the underlying realization is observable (soon) with observability index $\le k$: the last $k$ outputs (and inputs) then determine the internal state uniquely, so their evolution is Markov. For linear systems this is the content of realization theory (Ho–Kalman): from input–output data one can construct a minimal state-space model whose state is a linear function of a finite window of past I/O. It fails when hidden modes don't show in $y$ (unobservable dynamics) — then no finite window suffices. This is the linear ancestor of frame-stacking in RL (Ch 26's partial-observability drill).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="discrete-time-systems">
+ <h2>Discrete-time systems</h2>
+ <p>When time ticks — iterations of an algorithm, daily populations, sampled sensors — the system is a map applied over and over: $x_{t+1} = f(x_t)$. Discrete time is what computers natively do, what learned dynamics models predict, and where surprisingly rich behavior lives: the innocuous-looking logistic map holds fixed points, cycles and full-blown chaos in one quadratic formula.</p>
+ <div class="box def"><span class="label">Definition</span> A discrete-time system iterates a map: $x_{t+1} = f(x_t)$, trajectory $x_t = f^{(t)}(x_0)$ ($t$-fold composition). Linear case $x_{t+1} = Ax_t$: solution $x_t = A^t x_0$; behavior governed by eigenvalues — stable iff all $|\lambda_i| &lt; 1$ (inside the unit circle). Compare continuous time's Re$\,\lambda &lt; 0$ (left half-plane).</div>
+ <div class="box ex"><span class="label">Worked example</span> Logistic map $x_{t+1} = r\,x_t(1 - x_t)$ on $[0,1]$, population as fraction of capacity. $r = 2.8$: from $x_0 = 0.2$: $0.448, 0.692, 0.596, 0.674, 0.615, \dots \to 0.643 = 1 - 1/r$ — a stable equilibrium. $r = 3.2$: settles into a 2-cycle alternating $\approx 0.513, 0.799$. $r = 4$: no pattern ever; two starts differing by $10^{-9}$ decorrelate within ~30 steps. Same formula, three universes, chosen by $r$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Discretizing a continuous system can create dynamics the original never had: Euler's method on $\dot x = -x$ with step $\Delta > 2$ gives $x_{t+1} = (1 - \Delta)x_t$ with $|1-\Delta| > 1$ — the discretization <em>diverges</em> while the true system decays. Stability is a property of the pair (system, step size); Ch 10's stiff-equation warnings are this fact wearing work clothes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $x_{t+1} = 0.5 x_t + 4$: compute the fixed point and $x_3$ from $x_0 = 0$.<details class="sol"><summary>Solution</summary><div>Fixed point: $x^* = 0.5x^* + 4 \Rightarrow x^* = 8$. Iterates: $4, 6, 7$ — halving the distance to 8 each step.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the fixed points of the logistic map for general $r$ and the range of $r$ where the nonzero one is stable.<details class="sol"><summary>Solution</summary><div>$x = rx(1-x) \Rightarrow x = 0$ or $x^* = 1 - 1/r$. Stability: $|f'(x^*)| &lt; 1$ with $f'(x) = r(1-2x)$, so $f'(x^*) = r(1 - 2 + 2/r) = 2 - r$. Need $|2 - r| &lt; 1 \Rightarrow 1 &lt; r &lt; 3$. At $r = 3$ it loses stability and the 2-cycle is born — the first rung of the period-doubling ladder.</div></details></li>
+  <li><span class="lvl h">HARD</span> For linear $x_{t+1} = Ax_t$ with $A = \begin{pmatrix}0.5 & 1\\ 0 & 0.9\end{pmatrix}$: eigenvalues, long-run behavior, and why the transient can grow before decaying.<details class="sol"><summary>Solution</summary><div>Triangular: $\lambda = 0.5, 0.9$, both inside the unit circle → asymptotically stable, $x_t \to 0$ with rate dominated by $0.9^t$. Transient growth: $A$ is non-normal (the off-diagonal 1 couples modes); e.g. $x_0 = (0, 1)$: $x_1 = (1, 0.9)$, $\|x_1\| = 1.345 > 1$. Non-normal stable systems can amplify before decaying — the size of $\|A^t\|$ peaks above 1 even though it eventually $\to 0$. This matters everywhere from fluid instability to exploding-then-vanishing RNN gradients: eigenvalues tell the ending, not the journey.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="continuous-time-systems">
+ <h2>Continuous-time systems</h2>
+ <p>When change is smooth — circuits, vehicles, chemical concentrations — the rule is a differential equation: $\dot x = f(x)$, a vector field assigning every point in state space a velocity arrow. Trajectories flow along the arrows. Chapter 10 built the solution machinery; here we care about the geometry: where the flow stalls, circles, converges, escapes.</p>
+ <div class="box def"><span class="label">Definition</span> $\dot x = f(x)$, $f: \mathbb R^n \to \mathbb R^n$ a <em>vector field</em>; the <em>flow</em> $\phi_t(x_0)$ maps each start to its state after time $t$, with $\phi_0 = \text{id}$ and $\phi_{t+s} = \phi_t \circ \phi_s$. Linear case $\dot x = Ax$: $\phi_t(x_0) = e^{At}x_0$; stable iff all eigenvalues have $\text{Re}\,\lambda &lt; 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\dot x = Ax$ with $A = \begin{pmatrix} 0 & 1 \\ -1 & 0\end{pmatrix}$: eigenvalues $\pm i$. Then $e^{At} = \begin{pmatrix}\cos t & \sin t\\ -\sin t & \cos t\end{pmatrix}$ — pure rotation: every trajectory is a circle around the origin, period $2\pi$. Add damping, $A = \begin{pmatrix}0 & 1\\ -1 & -0.2\end{pmatrix}$: eigenvalues $-0.1 \pm 0.995 i$ — the circles become inward spirals, decaying like $e^{-0.1t}$ while rotating. Real part = growth/decay; imaginary part = rotation. That decomposition is the whole qualitative theory of linear flows.</div>
+ <div class="box think"><span class="label">Think first</span> The discrete stability region is $|\lambda| &lt; 1$; the continuous one is $\text{Re}\,\lambda &lt; 0$. What map connects them, and why does it make the two conditions consistent?<details class="sol"><summary>Reveal</summary><div>Sampling: the exact discretization of $\dot x = Ax$ over step $\Delta$ is $x_{t+1} = e^{A\Delta}x_t$, whose eigenvalues are $e^{\lambda_i\Delta}$. And $|e^{\lambda\Delta}| = e^{\text{Re}(\lambda)\Delta} &lt; 1 \iff \text{Re}\,\lambda &lt; 0$: the exponential maps the left half-plane exactly onto the unit disc. The two stability criteria are one criterion seen through the exponential map.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify $\dot x = -3x$: solution, behavior, time constant.<details class="sol"><summary>Solution</summary><div>$x(t) = x_0 e^{-3t}$: exponential decay to 0; time constant $1/3$ (drops to $e^{-1} \approx 37\%$ in $1/3$ time units).</div></details></li>
+  <li><span class="lvl m">MED</span> For $\dot x = Ax$ with $A = \begin{pmatrix}-1 & 0 \\ 0 & 2\end{pmatrix}$: describe the flow near the origin and sketch its skeleton.<details class="sol"><summary>Solution</summary><div>A saddle: trajectories contract along the $x_1$-axis (eigenvalue −1: the stable manifold) and expand along the $x_2$-axis (+2: unstable manifold). Generic starts approach the $x_2$-axis while sliding away to infinity: hyperbola-like curves. Almost no initial condition reaches the origin — only the stable axis itself.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the origin of $\dot x = Ax$ is stable-with-oscillation (a spiral) iff $A$ (2×2) has complex eigenvalues with negative real part, in terms of trace and determinant.<details class="sol"><summary>Solution</summary><div>Characteristic polynomial $\lambda^2 - \tau\lambda + \delta$ with $\tau = \text{tr}A$, $\delta = \det A$. Complex roots iff discriminant $\tau^2 - 4\delta &lt; 0$ (forces $\delta > 0$); their real part is $\tau/2$, negative iff $\tau &lt; 0$. So: spiral sink $\iff \tau &lt; 0$ and $\tau^2 &lt; 4\delta$. The full trace–determinant plane classifies every 2D linear flow: $\delta &lt; 0$ saddles; $\delta > 0, \tau &lt; 0$ sinks (node or spiral by the discriminant); $\tau > 0$ mirror-image sources; the axes are the degenerate boundaries. One diagram, all local behaviors — and the local model for every nonlinear fixed point via linearization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fixed-points">
+ <h2>Fixed points</h2>
+ <p>Fixed points are where the dynamics stall: states the rule maps to themselves. They are the candidate destinies of a system — resting states, equilibria of markets, converged weights of training, attractor memories. Find them by algebra; then the decisive question (next topic) is whether nearby states fall in or flee.</p>
+ <div class="box def"><span class="label">Definition</span> Continuous: $x^*$ with $f(x^*) = 0$ (the vector field vanishes). Discrete: $f(x^*) = x^*$. <em>Linearization</em>: near $x^*$, $\dot{\delta} \approx J\delta$ where $J = Df(x^*)$ is the Jacobian (Ch 9); for hyperbolic fixed points (no eigenvalue on the boundary), the linearization faithfully describes local behavior (Hartman–Grobman).</div>
+ <div class="box ex"><span class="label">Worked example</span> Pendulum $\dot\theta = \omega$, $\dot\omega = -\sin\theta - 0.2\,\omega$. Fixed points: $\omega = 0$ and $\sin\theta = 0$: $(0, 0)$ (hanging down) and $(\pi, 0)$ (balanced upright). Jacobian $J = \begin{pmatrix}0 & 1\\ -\cos\theta & -0.2\end{pmatrix}$. At $(0,0)$: $\begin{pmatrix}0&1\\-1&-0.2\end{pmatrix}$, eigenvalues $-0.1 \pm 0.995i$: spiral sink — small swings die out. At $(\pi, 0)$: $\begin{pmatrix}0&1\\1&-0.2\end{pmatrix}$, eigenvalues $\approx 0.905, -1.105$: saddle — the upright position is a genuine equilibrium that almost no trajectory stays near. Both facts match every pendulum you've met.</div>
+ <div class="box link"><span class="label">Where this goes</span> Critical points of a loss are fixed points of gradient flow $\dot\theta = -\nabla L$ — minima are sinks, saddles are saddles (Ch 15's escape problem); RNN attractors implement memories; equilibria of games are fixed points of learning dynamics (Ch 24); and balancing the pendulum's saddle is the control problem solved at LQR.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find all fixed points of $\dot x = x(1 - x)$ (logistic growth).<details class="sol"><summary>Solution</summary><div>$x(1-x) = 0$: $x^* = 0$ (extinction) and $x^* = 1$ (carrying capacity).</div></details></li>
+  <li><span class="lvl m">MED</span> Classify both fixed points of $\dot x = x(1-x)$ by linearization.<details class="sol"><summary>Solution</summary><div>$f'(x) = 1 - 2x$. At $x^* = 0$: $f' = 1 > 0$ — unstable (small populations grow away from extinction). At $x^* = 1$: $f' = -1 &lt; 0$ — stable (the population returns to capacity after perturbations). The 1D rule: sign of $f'$ decides.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gradient descent $x_{t+1} = x_t - \alpha\nabla L(x_t)$ has fixed points exactly at critical points of $L$. Derive the step-size condition for a local minimum with Hessian eigenvalues $0 &lt; \mu \le \lambda_i \le L_{\max}$ to be a stable fixed point of the map.<details class="sol"><summary>Solution</summary><div>Near $x^*$, the map linearizes to $\delta_{t+1} = (I - \alpha H)\delta_t$ with $H$ the Hessian. Stability of the discrete map needs all eigenvalues of $I - \alpha H$ inside the unit circle: $|1 - \alpha\lambda_i| &lt; 1$ for all $i$, i.e. $0 &lt; \alpha\lambda_i &lt; 2$, i.e. $\alpha &lt; 2/L_{\max}$. At $\alpha > 2/L_{\max}$ the sharpest direction oscillates divergently — gradient descent's classical step-size ceiling (Ch 15) is a discrete-dynamics stability criterion, and "edge of stability" training runs sit exactly at $\alpha \approx 2/L_{\max}$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="stability">
+ <h2>Stability</h2>
+ <p>Stability asks: after a small shove, does the system return, linger nearby, or leave? It is <em>the</em> engineering question — bridges, autopilots, power grids, feedback-trained models all live or die by it — and it comes in precise grades: staying close (Lyapunov stability), coming back (asymptotic), coming back exponentially fast, from anywhere (global).</p>
+ <div class="box def"><span class="label">Definition</span> $x^*$ is <em>Lyapunov stable</em> if for every $\varepsilon > 0$ there is $\delta > 0$: $\|x_0 - x^*\| &lt; \delta \Rightarrow \|x(t) - x^*\| &lt; \varepsilon$ for all $t \ge 0$. <em>Asymptotically stable</em>: stable and $x(t) \to x^*$ for nearby starts. <em>Exponentially stable</em>: $\|x(t) - x^*\| \le M e^{-ct}\|x_0 - x^*\|$. Linear test: $\dot x = Ax$ asymptotically stable $\iff$ all $\text{Re}\,\lambda_i(A) &lt; 0$; then stability is automatically global and exponential.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three flavors on one line. (a) $\dot x = -x$: asymptotically (indeed exponentially) stable. (b) $\dot x = 0$... take the undamped oscillator $\ddot\theta = -\theta$: trajectories circle at fixed radius — Lyapunov stable (never leaves a neighborhood) but <em>not</em> asymptotically stable (never returns to rest). (c) $\dot x = x^3$: unstable, and worse — solutions $x(t) = x_0/\sqrt{1 - 2x_0^2 t}$ blow up in <em>finite</em> time $t = 1/(2x_0^2)$. Stability distinctions are not pedantry; each grade licenses different guarantees.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Linearization can lie on the boundary: $\dot x = -x^3$ and $\dot x = +x^3$ both linearize to $\dot\delta = 0$ (eigenvalue exactly 0) at the origin, yet one is asymptotically stable and the other unstable. When the linearization is not hyperbolic, you must go nonlinear — which is what Lyapunov functions (next) are for.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\dot x = -2(x - 5)$ stable, and about what point?<details class="sol"><summary>Solution</summary><div>Fixed point $x^* = 5$; deviation obeys $\dot\delta = -2\delta$: exponentially stable, time constant 0.5.</div></details></li>
+  <li><span class="lvl m">MED</span> The discrete system $x_{t+1} = Ax_t$ with $A$'s spectral radius $\rho(A) = 1$ exactly (e.g. a rotation). Which stability grades can hold?<details class="sol"><summary>Solution</summary><div>Asymptotic stability is impossible ($\|A^t x_0\|$ doesn't shrink along the unit-modulus modes). Lyapunov stability may still hold if the unit-circle eigenvalues have full sets of eigenvectors (diagonalizable on those modes — rotations: yes), but fails with a Jordan block ($A = \begin{pmatrix}1&1\\0&1\end{pmatrix}$: $x_t$ grows linearly). The boundary is where structure, not just spectrum, decides.</div></details></li>
+  <li><span class="lvl h">HARD</span> A system is stable for parameters $a$ and $b$ separately but switching between them can destabilize: exhibit the phenomenon with $A_1 = \begin{pmatrix}-0.1 & 2 \\ 0 & -0.1\end{pmatrix}$... explain the mechanism with two stable non-commuting matrices, and why it matters for switched/adaptive controllers.<details class="sol"><summary>Solution</summary><div>Take two stable systems whose transient growth directions feed each other: e.g. $A_1$ amplifies $x_2 \to x_1$ transiently (non-normal, as in the earlier drill) while decaying slowly, and $A_2$ its mirror amplifying $x_1 \to x_2$. Each alone: eigenvalues in the left half-plane, transients bounded. Switching at the right rhythm hands the state back and forth so each phase's transient <em>amplification</em> (up to factor $M > 1$) compounds: growth $\sim M^k$ beats decay $e^{-ct}$ when switching is fast enough, and $\|x\| \to \infty$. Formally, stability of all convex combinations/products requires a <em>common Lyapunov function</em>, which non-commuting stable matrices need not share. Consequence: gain-scheduled or adaptive controllers proven stable at each operating point can oscillate themselves to death by switching — stability must be proven for the switched system, not the pieces. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lyapunov-functions">
+ <h2>Lyapunov functions</h2>
+ <p>Lyapunov's insight: to prove trajectories go home, you don't need to solve the system — find an "energy" that is positive away from the equilibrium and strictly decreasing along every trajectory. Water always finds the drain if the basin has no other low point and every path flows downhill. The method turns stability proofs into a search for one scalar function, and powers everything from control certificates to convergence proofs in optimization and RL.</p>
+ <div class="box def"><span class="label">Definition</span> $V: \mathbb R^n \to \mathbb R$ is a <em>Lyapunov function</em> for $x^*$ if $V(x^*) = 0$, $V(x) > 0$ nearby, and $\dot V(x) = \nabla V(x)^\top f(x) \le 0$ along the flow. Then $x^*$ is stable; if $\dot V &lt; 0$ strictly (away from $x^*$), asymptotically stable; if additionally $V$ is radially unbounded, globally. Linear systems: $V = x^\top P x$ works with $P \succ 0$ solving the <em>Lyapunov equation</em> $A^\top P + PA = -Q$ for any $Q \succ 0$ — solvable iff $A$ is stable.</div>
+ <div class="box ex"><span class="label">Worked example</span> Damped pendulum, $\dot\theta = \omega$, $\dot\omega = -\sin\theta - c\,\omega$ ($c > 0$). Try physical energy $V = \tfrac12\omega^2 + (1 - \cos\theta)$: $V \ge 0$, zero only at the rest state. $$\dot V = \omega\dot\omega + \sin\theta\,\dot\theta = \omega(-\sin\theta - c\omega) + \omega\sin\theta = -c\,\omega^2 \le 0.$$ Energy never increases and is burned exactly by friction. ($\dot V = 0$ on the whole line $\omega = 0$, not just the origin — LaSalle's invariance principle closes the gap: the only trajectory staying in $\{\omega = 0\}$ is the equilibrium itself, so trajectories converge to it.)</div>
+ <div class="box link"><span class="label">Where this goes</span> Lyapunov arguments prove convergence of gradient descent ($V = L(x) - L^*$), of TD learning, of MCMC mixing (Ch 12 drift conditions); learned neural Lyapunov functions certify safety regions for learned controllers; and "safety shields" in Ch 34 are Lyapunov-style invariants enforced at runtime.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify $V = x^2$ proves global asymptotic stability of $\dot x = -x^3$.<details class="sol"><summary>Solution</summary><div>$V > 0$ for $x \ne 0$, radially unbounded; $\dot V = 2x(-x^3) = -2x^4 &lt; 0$ off the origin. Stable — where linearization (eigenvalue 0) was silent.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve the Lyapunov equation for $\dot x = ax$ ($a &lt; 0$), $Q = 1$: find $P$ and interpret.<details class="sol"><summary>Solution</summary><div>Scalar: $2aP = -1 \Rightarrow P = -1/(2a) > 0$. $V = Px^2$ decreases at rate $x^2$. Interpretation: $V(x_0) = \int_0^\infty x(t)^2 dt$ — the Lyapunov solution measures total future "energy" of the transient; this integral view is exactly how LQR costs connect to Lyapunov equations.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show gradient flow $\dot x = -\nabla L(x)$ on a $\mu$-strongly-convex $L$ converges exponentially, using $V = L(x) - L(x^*)$.<details class="sol"><summary>Solution</summary><div>$\dot V = \nabla L^\top \dot x = -\|\nabla L(x)\|^2$. Strong convexity gives the Polyak–Łojasiewicz inequality $\|\nabla L\|^2 \ge 2\mu\,(L - L^*)$ (from $L^* \ge L(x) - \frac{1}{2\mu}\|\nabla L(x)\|^2$, minimizing the quadratic lower model). Hence $\dot V \le -2\mu V$, so $V(t) \le V(0)e^{-2\mu t}$: exponential convergence of loss, and via strong convexity, of the iterate too. The optimization convergence proof <em>is</em> a Lyapunov proof — one function, one differential inequality, Grönwall to finish. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="phase-space">
+ <h2>Phase space</h2>
+ <p>Phase space is the state space seen as a landscape of flow: plot every state as a point, draw the velocity arrows, and trajectories become curves you can read at a glance — sinks pulling spirals in, saddles routing traffic, cycles closing loops. A phase portrait compresses infinitely many solutions into one picture; for 2D systems it is essentially a complete theory.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>phase portrait</em> of $\dot x = f(x)$ is the partition of state space into orbits, typically drawn with representative trajectories, fixed points (classified), <em>nullclines</em> (curves where one component of $f$ vanishes — where flow is purely vertical/horizontal), and <em>limit cycles</em> (isolated closed orbits). Poincaré–Bendixson (2D): a bounded trajectory that avoids fixed points must approach a limit cycle.</div>
+ <div class="box ex"><span class="label">Worked example</span> Van der Pol oscillator $\dot x = y$, $\dot y = \mu(1 - x^2)y - x$ ($\mu = 1$): the origin is an unstable spiral (linearization $\begin{pmatrix}0&1\\-1&1\end{pmatrix}$, trace 1 > 0), yet large orbits lose energy (the $(1 - x^2)$ term damps when $|x| > 1$). Squeezed between outward spiraling inside and inward flow outside, trajectories from (almost) anywhere converge onto one closed loop — a limit cycle, the mathematical model of a heartbeat, a violin string, an oscillator circuit: self-sustaining rhythm with a preferred amplitude.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Phase portrait of the 2D linear system $\dot x = Ax$. Slide the trace and determinant of $A$ and watch the portrait morph: saddle → node → spiral → center. Streamlines are integrated live; the readout names the type.</p>
+  <canvas id="cv-phase"></canvas>
+  <div class="ctl">
+   <label>trace <input type="range" id="ph-tr" min="-3" max="3" step="0.1" value="-1"></label>
+   <label>det <input type="range" id="ph-det" min="-2" max="4" step="0.1" value="1"></label>
+  </div>
+  <div class="out" id="ph-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> On the pendulum's phase plane $(\theta, \omega)$, what do closed curves around the origin represent physically?<details class="sol"><summary>Solution</summary><div>Undamped swinging: periodic oscillation back and forth with conserved energy — each loop is one amplitude of swing. (With damping they become inward spirals.)</div></details></li>
+  <li><span class="lvl m">MED</span> Find the nullclines of the predator–prey system $\dot x = x(1 - y)$, $\dot y = y(x - 1)$ and use them to sketch the rotation.<details class="sol"><summary>Solution</summary><div>$\dot x = 0$ on $x = 0$ and $y = 1$; $\dot y = 0$ on $y = 0$ and $x = 1$. Interior fixed point $(1,1)$. In the region $x > 1, y &lt; 1$: $\dot x > 0, \dot y > 0$... check: $\dot x = x(1-y) > 0$, $\dot y = y(x-1) > 0$ — moving up-right; crossing $y = 1$: $\dot x$ flips negative — up-left; then $x &lt; 1$: $\dot y$ flips — down-left; then down-right: counterclockwise rotation around $(1,1)$. (This Lotka–Volterra system in fact has closed orbits: populations cycle forever.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Use Poincaré–Bendixson to prove the Van der Pol oscillator has a periodic orbit (sketch the trapping region argument).<details class="sol"><summary>Solution</summary><div>Two ingredients. (1) The only fixed point, the origin, is an unstable spiral: a small disc around it is exited outward, so flow on that small circle points out. (2) Far away, energy $E = \tfrac12(x^2 + y^2)$ has $\dot E = \mu(1 - x^2)y^2$, negative wherever $|x| > 1$; a careful large closed curve (constructed piecewise) can be shown to have inward-pointing flow overall. The annulus between the small and large curves is then a compact <em>trapping region</em> containing no fixed point. Poincaré–Bendixson: any trajectory entering it must approach a closed orbit — a limit cycle exists. (Uniqueness/stability of the cycle takes more work — Liénard's theorem.) ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bifurcations">
+ <h2>Bifurcations</h2>
+ <p>Turn a knob — a growth rate, a load, a coupling strength — and usually the portrait deforms smoothly. But at special values the portrait changes <em>kind</em>: equilibria collide and annihilate, stability flips, cycles are born. These are bifurcations: qualitative change from quantitative variation. They are why systems that behaved forever suddenly don't — tipping points with mathematics attached.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>bifurcation</em> occurs at parameter value $\mu^*$ where the phase portrait of $\dot x = f(x; \mu)$ is not structurally stable — arbitrarily small changes of $\mu$ alter the topology of orbits. Canonical 1D forms: <em>saddle-node</em> $\dot x = \mu + x^2$ (two equilibria merge and vanish); <em>transcritical</em> $\dot x = \mu x - x^2$ (two equilibria swap stability); <em>pitchfork</em> $\dot x = \mu x - x^3$ (one splits into three); and in 2D the <em>Hopf</em> bifurcation (a spiral's real part crosses 0: a limit cycle is born). Maps add the <em>period-doubling</em> bifurcation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Saddle-node $\dot x = \mu + x^2$. For $\mu &lt; 0$: equilibria at $\pm\sqrt{-\mu}$; $f'(x) = 2x$, so $-\sqrt{-\mu}$ is stable, $+\sqrt{-\mu}$ unstable — a valley and a ridge. As $\mu \uparrow 0$ they slide together, kiss at $x = 0$ ($\mu = 0$), and for $\mu > 0$ <em>no equilibrium exists</em>: every trajectory escapes to $+\infty$. A system resting happily at $-\sqrt{-\mu}$ shows almost no warning as $\mu$ creeps up — then the resting place ceases to exist. This is the standard model of tipping (fold catastrophe): fisheries collapse, neuron firing onset, voltage collapse.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>The logistic map's bifurcation diagram: for each $r$, the long-run values of $x$ are plotted. Slide the zoom window: fixed point → period 2, 4, 8… → chaos, with windows of order inside. The cascade's geometry repeats at every scale.</p>
+  <canvas id="cv-bif"></canvas>
+  <div class="ctl">
+   <label>r range start <input type="range" id="bf-lo" min="2.4" max="3.99" step="0.01" value="2.4"></label>
+   <label>zoom <input type="range" id="bf-zoom" min="0" max="0.95" step="0.05" value="0"></label>
+  </div>
+  <div class="out" id="bf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the pitchfork $\dot x = \mu x - x^3$: list the equilibria for $\mu &lt; 0$ and $\mu > 0$.<details class="sol"><summary>Solution</summary><div>$\mu &lt; 0$: only $x^* = 0$ (stable). $\mu > 0$: $x^* = 0$ (now unstable) and $x^* = \pm\sqrt\mu$ (both stable) — a symmetric choice appears where none existed: spontaneous symmetry breaking.</div></details></li>
+  <li><span class="lvl m">MED</span> The logistic map's fixed point loses stability at $r = 3$ with $f'(x^*) = -1$. Why does an eigenvalue passing through $-1$ (rather than $+1$) create a 2-cycle?<details class="sol"><summary>Solution</summary><div>Slope $-1$ means perturbations flip sign each step with unit magnitude: $\delta, -\delta, \delta, \dots$ — the linearization is already trying to alternate. Just past the threshold, the alternation grows until nonlinearity saturates it into a stable period-2 orbit: a fixed point of $f\circ f$ that isn't one of $f$. ($+1$ crossings instead create/destroy fixed points — saddle-node/transcritical.) Each subsequent doubling is the same event for $f^{(2)}, f^{(4)}, \dots$, accumulating geometrically (Feigenbaum ratio $\delta \approx 4.669$) at $r_\infty \approx 3.5699$ — the gateway to chaos.</div></details></li>
+  <li><span class="lvl h">HARD</span> Hopf bifurcation: for $\dot r = \mu r - r^3$, $\dot\phi = 1$ (polar coordinates), show a stable limit cycle of radius $\sqrt\mu$ is born as $\mu$ crosses 0.<details class="sol"><summary>Solution</summary><div>The radial equation is a pitchfork on $r \ge 0$: for $\mu \le 0$, $r = 0$ is the only equilibrium and $\dot r &lt; 0$ for $r > 0$ — all spirals decay: stable focus. For $\mu > 0$: $r = 0$ unstable, $r^* = \sqrt\mu$ stable ($\frac{d}{dr}(\mu r - r^3) = \mu - 3r^2 = -2\mu &lt; 0$ there). With $\dot\phi = 1$, the circle $r = \sqrt\mu$ is an attracting periodic orbit of period $2\pi$, radius growing as $\sqrt\mu$. This is the supercritical Hopf normal form: rest state → small oscillation, amplitude $\propto \sqrt{\mu - \mu^*}$ — the signature by which oscillation onset (flutter, neural rhythms, ML training oscillations) is diagnosed. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="chaos">
+ <h2>Chaos</h2>
+ <p>Deterministic yet unpredictable: chaotic systems obey exact rules but amplify microscopic state differences exponentially, so any measurement error, however small, swallows the forecast after a horizon. The butterfly effect is a theorem, not a metaphor. Chaos is generic in nonlinear systems of dimension ≥ 3 (or 1D maps) — weather, three bodies, hearts, and some learned dynamics all live with it.</p>
+ <div class="box def"><span class="label">Definition</span> A system is <em>chaotic</em> on an invariant set if it has (i) sensitive dependence on initial conditions — nearby states diverge as $\|\delta(t)\| \approx e^{\lambda t}\|\delta(0)\|$ with top <em>Lyapunov exponent</em> $\lambda > 0$; (ii) topological mixing; (iii) dense periodic orbits (Devaney's definition). The predictability horizon scales as $T \sim \frac{1}{\lambda}\ln\frac{\text{tolerance}}{\text{initial error}}$ — logarithmic in precision: tenfold better measurement buys only $\ln 10/\lambda$ more forecast.</div>
+ <div class="box ex"><span class="label">Worked example</span> Logistic map at $r = 4$: exactly solvable via $x_t = \sin^2(2^t \theta_0 \pi)$... substitute $x_t = \sin^2(\pi\theta_t)$: the dynamics become $\theta_{t+1} = 2\theta_t \bmod 1$ — the doubling map. Each step shifts the binary expansion of $\theta_0$ left by one digit: the trajectory literally reads out the initial condition's bits, one per step. Two starts equal to 30 bits diverge at step ~30; Lyapunov exponent $\lambda = \ln 2$ per step. Determinism and unpredictability, reconciled in one line: prediction is just decompression of initial-condition information, and there are only finitely many bits in any measurement.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Chaos ≠ randomness, and chaos ≠ instability. Chaotic trajectories are often confined to a bounded <em>strange attractor</em> (Lorenz's butterfly): the system is Lagrange-stable (bounded) and its <em>statistics</em> (the attractor's invariant measure) are perfectly predictable even though its <em>path</em> is not. Forecast distributions, not trajectories — the philosophy of ensemble weather prediction, and of expecting learned world models (Ch 29) to be calibrated rather than exact over long horizons.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A system has $\lambda = 0.5$/day and you know today's state to $10^{-6}$ relative error. Roughly when does the error reach order 1?<details class="sol"><summary>Solution</summary><div>$T = \frac{1}{0.5}\ln(10^6) \approx 2 \times 13.8 \approx 27.6$ days. Halving the error adds only $\ln 2 / 0.5 \approx 1.4$ days.</div></details></li>
+  <li><span class="lvl m">MED</span> Estimate the doubling map's Lyapunov exponent directly from its derivative.<details class="sol"><summary>Solution</summary><div>$|f'(\theta)| = 2$ everywhere, so any infinitesimal error exactly doubles per step: $\lambda = \ln 2 \approx 0.693$ per iteration. In general $\lambda = \lim \frac1T\sum_t \ln|f'(x_t)|$ — the average log-stretch along the trajectory.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can't a continuous 2D flow be chaotic, while the 2D <em>Hénon map</em> and 3D Lorenz flow can?<details class="sol"><summary>Solution</summary><div>Continuous 2D: orbits can't cross (uniqueness), so a bounded trajectory's long-run options are exhausted by Poincaré–Bendixson — fixed points and limit cycles; no room for the stretch-and-fold that mixing requires without self-intersection. Discrete 2D maps aren't constrained by non-crossing (the state jumps), so the Hénon map can stretch and fold the plane like dough each step. 3D flows escape the constraint through the extra dimension: trajectories weave over/under each other, letting the flow stretch (positive exponent), contract (negative), and fold back into a bounded set — the Smale-horseshoe mechanism inside the Lorenz attractor. Dimension counts: chaos needs at least one expanding direction plus room to fold, i.e. flow dimension ≥ 3 or map dimension ≥ 1. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="feedback-systems">
+ <h2>Feedback systems</h2>
+ <p>Feedback closes the loop: measure the output, compare to what you wanted, feed the difference back into the input. It is the single most powerful idea in engineering — it tames unstable systems, cancels disturbances you never modeled, and makes sloppy components behave precisely. It is also dangerous: feedback with the wrong sign or too much delay manufactures oscillation and instability out of nothing.</p>
+ <div class="box def"><span class="label">Definition</span> Open loop: $u$ chosen blind; output inherits every model error and disturbance. Closed loop with error feedback $u = K(r - y)$ (reference $r$): for the scalar plant $\dot x = ax + bu$, $y = x$, the closed loop is $\dot x = (a - bK)x + bKr$ — feedback <em>moves the pole</em> from $a$ to $a - bK$. High gain shrinks sensitivity to plant error: the closed-loop DC response is $\frac{bK}{bK - a} \to 1$ as $K \to \infty$, nearly independent of $a, b$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Unstable plant $\dot x = 2x + u$ (a system that doubles its deviation, like an inverted broomstick's linearization). Open loop: any tiny $x_0$ grows as $e^{2t}$ — hopeless. Feedback $u = -5x$: closed loop $\dot x = -3x$ — exponentially stable. The controller needs no plan, no prediction, no model of where disturbances come from; it just pushes against error, harder than the instability pulls. Now add actuator delay $\tau$: $u(t) = -5x(t - \tau)$. For small $\tau$ still stable; past $\tau \approx 0.4$ the loop overcorrects into oscillation and diverges — delayed feedback is the universal destabilizer (shower-temperature dynamics).</div>
+ <div class="box think"><span class="label">Think first</span> Why does feedback reduce sensitivity to the plant model, while open-loop (feedforward) control inherits model error one-for-one?<details class="sol"><summary>Reveal</summary><div>Feedforward computes $u$ from the model: output error ≈ model error, directly. Feedback computes $u$ from the <em>measured</em> error, so the loop keeps pushing until the actual (not modeled) output approaches $r$; plant error only changes how hard it pushes, attenuated by loop gain (sensitivity $S = 1/(1 + \text{loop gain})$). You trade model accuracy for measurement + stability margins. Every trained-with-feedback system — thermostats, RLHF'd models, biological homeostasis — is exploiting this same exchange.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Plant $\dot x = x + u$, feedback $u = -Kx$. For which $K$ is the closed loop stable?<details class="sol"><summary>Solution</summary><div>Closed loop $\dot x = (1 - K)x$: stable iff $K > 1$. The gain must exceed the instability.</div></details></li>
+  <li><span class="lvl m">MED</span> Positive feedback: $u = +Kx$ on a stable plant $\dot x = -x + u$. What happens as $K$ grows, and name a real system that exploits this.<details class="sol"><summary>Solution</summary><div>Closed loop $\dot x = (K - 1)x$: stable for $K &lt; 1$, and at $K > 1$ the origin destabilizes — states run away to whatever saturates them. Useful when you <em>want</em> commitment: bistable switches. Real examples: neuron spike generation, gene-expression toggle switches, Schmitt triggers, audience applause — positive feedback converts small preferences into decisive outcomes (and, less charmingly, feedback loops in recommender systems).</div></details></li>
+  <li><span class="lvl h">HARD</span> High gain cures error but courts instability when the plant has hidden dynamics. Show: plant $\ddot y + \dot y = u$ (a mass with friction), proportional feedback $u = K(r - y)$. Analyze stability vs $K$ and the emergent oscillation.<details class="sol"><summary>Solution</summary><div>Closed loop: $\ddot y + \dot y + Ky = Kr$. Characteristic roots $\lambda = \frac{-1 \pm \sqrt{1 - 4K}}{2}$: always in the left half-plane for every $K > 0$ — stable, but the character changes: $K \le 1/4$ gives real roots (sluggish, no overshoot); $K > 1/4$ complex roots with fixed real part $-1/2$ and frequency $\sqrt{K - 1/4}$ — ringing that grows faster and decays no quicker as $K \to \infty$: overshoot worsens without bound while settling stays ~2 time units... damping ratio $\zeta = \frac{1}{2\sqrt K} \to 0$. With one more lag in the loop (e.g. actuator $\dot u$ dynamics, making it third order), Routh–Hurwitz gives a finite $K$ beyond which the loop is outright unstable. Moral: gain buys accuracy until phase lag spends it; that budget is the subject of classical control's margins, and of PID's D-term (next-but-one topic). ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-dynamical-systems">
+ <h2>Linear dynamical systems</h2>
+ <p>Linear systems are the ones we can solve completely: superposition holds, the matrix exponential gives every trajectory in closed form, and eigen-decomposition splits the dynamics into independent one-dimensional modes. They matter twice — as exactly-solvable models, and as the local approximation of every smooth nonlinear system near an operating point.</p>
+ <div class="box def"><span class="label">Definition</span> $\dot x = Ax + Bu$: solution $$x(t) = e^{At}x_0 + \int_0^t e^{A(t - s)}Bu(s)\,ds$$ — free response plus a convolution of inputs with the propagator. If $A = V\Lambda V^{-1}$, then $e^{At} = Ve^{\Lambda t}V^{-1}$: in eigen-coordinates $z = V^{-1}x$, each mode evolves alone: $z_i(t) = e^{\lambda_i t}z_i(0)$. Discrete analog: $x_t = A^t x_0 + \sum_{k&lt;t}A^{t-1-k}Bu_k$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}-1 & 0\\ 0 & -10\end{pmatrix}$, $x_0 = (1, 1)$: $x(t) = (e^{-t}, e^{-10t})$. By $t = 0.5$ the fast mode is dead ($e^{-5} \approx 0.007$) while the slow one has barely moved ($e^{-0.5} \approx 0.61$): trajectories collapse quickly onto the slow eigendirection, then crawl along it. This time-scale separation — fast transients, slow manifolds — is ubiquitous: stiff ODEs (Ch 10), two-time-scale RL, fast weights vs slow weights. The condition number of the mode speeds is the stiffness.</div>
+ <div class="box link"><span class="label">Where this goes</span> Linear state-space models with learned $(A, B, C)$ are the backbone of S4/Mamba-style sequence architectures; the Kalman filter (soon) is exactly the Bayes-optimal observer for this class; and LQR is its optimal controller — the trio $(e^{At}$, Kalman, LQR$)$ is the complete theory of the linear-Gaussian world.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify superposition: if $x^a(t), x^b(t)$ solve $\dot x = Ax$ from $x^a_0, x^b_0$, what solves it from $x^a_0 + 2x^b_0$?<details class="sol"><summary>Solution</summary><div>$x^a(t) + 2x^b(t)$ — differentiate and use linearity of $A(\cdot)$. This is what fails for every nonlinear system and what makes linear ones fully knowable.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $e^{At}$ for $A = \begin{pmatrix}0 & 1\\ 0 & 0\end{pmatrix}$ and describe the motion.<details class="sol"><summary>Solution</summary><div>$A^2 = 0$, so the series stops: $e^{At} = I + At = \begin{pmatrix}1 & t\\ 0 & 1\end{pmatrix}$. Motion: $x_2$ constant, $x_1(t) = x_1(0) + t\,x_2(0)$ — constant-velocity drift (a double integrator's half): position slides linearly forever. Eigenvalues both 0 yet trajectories unbounded: the Jordan block strikes again; "no positive eigenvalues" does not mean bounded.</div></details></li>
+  <li><span class="lvl h">HARD</span> The convolution solution says a linear system is fully characterized by its <em>impulse response</em> $h(t) = Ce^{At}B$. Show that the output for any input is $y = h * u$, and connect to Ch 14.<details class="sol"><summary>Solution</summary><div>With $x_0 = 0$: $y(t) = C\int_0^t e^{A(t-s)}Bu(s)ds = \int_0^t h(t - s)u(s)\,ds = (h * u)(t)$ — exactly the convolution of Ch 14. Consequences cascade: the Fourier/Laplace transform diagonalizes the system (transfer function $H(s) = C(sI - A)^{-1}B$), sinusoids are eigenfunctions (steady-state response to $e^{i\omega t}$ is $H(i\omega)e^{i\omega t}$: gain and phase per frequency), and "filter design" and "controller design" become the same subject viewed from two chairs. LTI systems are precisely the class where frequency-domain thinking is exact. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="nonlinear-dynamical-systems">
+ <h2>Nonlinear dynamical systems</h2>
+ <p>Everything real saturates, thresholds, or multiplies — and each nonlinearity buys behavior no linear system can have: multiple equilibria (memory, decisions), limit cycles (autonomous rhythm), chaos. The working method is local + global: linearize around each fixed point to understand neighborhoods, then stitch the neighborhoods together with Lyapunov functions, invariant manifolds and numerical phase portraits.</p>
+ <div class="box def"><span class="label">Definition</span> $\dot x = f(x)$, $f$ nonlinear. <em>Hartman–Grobman</em>: near a hyperbolic fixed point, the flow is topologically conjugate to its linearization $\dot\delta = Df(x^*)\delta$. Exclusively nonlinear phenomena: multiple isolated equilibria; limit cycles; finite-time blowup; chaos; and <em>basins of attraction</em> — the partition of state space by destination, whose boundaries are the stable manifolds of saddles.</div>
+ <div class="box ex"><span class="label">Worked example</span> Bistable switch $\dot x = x - x^3$: equilibria $0, \pm1$; $f' = 1 - 3x^2$ gives $0$ unstable, $\pm1$ stable. Basins: start anywhere positive → converge to $+1$; anywhere negative → $-1$. The system is a 1-bit memory: its state records which side it was last pushed to, and small noise cannot flip it (must cross the barrier at 0). No linear system can do this — linear systems have exactly one equilibrium (or a subspace of them), so multistability, hence memory and decision, is intrinsically nonlinear.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Linearization is a local license only. The system $\dot x = -x + x^2$ linearizes at 0 to the innocently stable $\dot\delta = -\delta$, but any start with $x_0 > 1$ blows up in finite time — the basin of the "stable" origin ends at 1. Stability certificates without basin estimates routinely get over-claimed; Lyapunov sublevel sets $\{V \le c\}$ inside the region where $\dot V &lt; 0$ give honest basin lower bounds.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name three behaviors a nonlinear system can exhibit that no linear system can.<details class="sol"><summary>Solution</summary><div>Multiple isolated equilibria (bistability/memory), stable limit cycles (self-sustained oscillation at fixed amplitude), chaos (also: finite-time blowup, subcritical jumps/hysteresis).</div></details></li>
+  <li><span class="lvl m">MED</span> For $\dot x = -x + x^2$, compute the basin of attraction of 0 exactly.<details class="sol"><summary>Solution</summary><div>Equilibria at 0 (stable: $f'(0) = -1$) and 1 (unstable: $f'(1) = +1$). For $x_0 &lt; 1$... sign analysis: on $(0,1)$, $f = x(x-1) &lt; 0$: flows down to 0; on $(-\infty, 0)$, $f = x(x-1) > 0$: flows up to 0; at $x_0 > 1$: $f > 0$: escapes to $+\infty$ (in finite time, by comparison with $\dot x = x^2/2$ for large $x$... indeed $\dot x \ge \frac12 x^2$ for $x\ge2$). Basin of 0: $(-\infty, 1)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A trained RNN's hidden dynamics $h_{t+1} = \tanh(Wh_t)$ stores context as attractors. Explain, using this chapter's concepts, why (a) memories = stable fixed points, (b) capacity is limited, and (c) gradients through many steps explode or vanish according to local linearizations.<details class="sol"><summary>Solution</summary><div>(a) A remembered pattern must persist without input: a state with $h^* = \tanh(Wh^*)$, robust to noise — a stable fixed point whose basin is the set of cues that retrieve it. (b) Fixed points of the saturating map are isolated and each needs a basin of nonzero volume; a bounded state space (the $\tanh$ cube) fits only so many disjoint basins, and as $W$ packs in more attractors their basins shrink and spurious mixtures appear (the Hopfield capacity story, dynamically told). (c) Backprop through time multiplies Jacobians $\prod_t D\!\tanh\, W$ along the trajectory: the product's growth rate is exactly the trajectory's Lyapunov exponents — negative exponents (deep inside a basin, saturated units) ⇒ vanishing gradients; positive ones (near basin boundaries/chaotic regimes) ⇒ exploding. Gradient pathologies in RNNs <em>are</em> the stability theory of the underlying dynamical system, which is why gating (LSTM: engineered near-1 Jacobian directions) and spectral constraints work. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="controllability-and-observability">
+ <h2>Controllability and observability</h2>
+ <p>Two questions decide whether control is even possible. Controllability: can the inputs drive the state anywhere? Observability: can the outputs reveal where the state is? They are dual — the same algebra with $A, B$ swapped for $A^\top, C^\top$ — and together they are the fine print on every guarantee in this chapter: LQR needs the first, Kalman filtering the second.</p>
+ <div class="box def"><span class="label">Definition</span> $(A, B)$ is <em>controllable</em> iff the controllability matrix $\mathcal C = [B\ \ AB\ \ A^2B \cdots A^{n-1}B]$ has rank $n$: any state is reachable from any other in finite time. $(A, C)$ is <em>observable</em> iff $\mathcal O = [C;\ CA;\ \cdots;\ CA^{n-1}]$ has rank $n$: the initial state is uniquely determined by input–output records. Duality: $(A, B)$ controllable $\iff (A^\top, B^\top)$ observable.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two carts, force applied only to the first, no coupling: $A = \begin{pmatrix}0&0\\0&0\end{pmatrix}$ (velocities as states), $B = \begin{pmatrix}1\\0\end{pmatrix}$. $\mathcal C = [B\ AB] = \begin{pmatrix}1 & 0\\ 0 & 0\end{pmatrix}$: rank 1 — the second cart is unreachable, obviously (nothing touches it). Now couple them with a spring and the force propagates: $A = \begin{pmatrix}0 & 1\\ 1 & 0\end{pmatrix}$-ish structure makes $AB$ point into the second coordinate, rank 2 — controllable. Controllability is about whether influence <em>percolates</em> through the dynamics, not about how many actuators you have: one motor can steer many coupled degrees of freedom.</div>
+ <div class="box think"><span class="label">Think first</span> A drone's yaw gyro fails, leaving sensors for position only. Under what condition can software reconstruct yaw anyway?<details class="sol"><summary>Reveal</summary><div>Observability of the yaw state through the position outputs: yaw must影响... must affect the measured trajectory (it does — heading couples thrust direction to position dynamics), and that influence must be distinguishable from other states' influence: rank of $\mathcal O$ full. If yaw affected nothing measurable (hovering with symmetric dynamics), no algorithm — Kalman or neural — could recover it: observability is an information-theoretic property of the sensor suite, the precondition for estimation, not a feature of clever software.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Check controllability of the double integrator $A = \begin{pmatrix}0&1\\0&0\end{pmatrix}$, $B = \begin{pmatrix}0\\1\end{pmatrix}$ (force on a mass; states position, velocity).<details class="sol"><summary>Solution</summary><div>$AB = \begin{pmatrix}1\\0\end{pmatrix}$; $\mathcal C = \begin{pmatrix}0&1\\1&0\end{pmatrix}$: rank 2 — controllable. You can park the mass anywhere at any velocity using force alone (push then brake).</div></details></li>
+  <li><span class="lvl m">MED</span> With $C = (1\ \ 0)$ (measure position only), is the double integrator observable? What if you measure velocity only, $C = (0\ \ 1)$?<details class="sol"><summary>Solution</summary><div>Position: $\mathcal O = \begin{pmatrix}1&0\\0&1\end{pmatrix}$ (since $CA = (0\ 1)$): rank 2 — observable; velocity shows up as position's slope. Velocity only: $CA = (0\ 0)$, $\mathcal O = \begin{pmatrix}0&1\\0&0\end{pmatrix}$: rank 1 — <em>not</em> observable: absolute position never influences velocity readings; the initial position is invisible forever. Integration loses the constant; differentiation doesn't.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that if $(A, B)$ is controllable, state feedback $u = -Kx$ can place the closed-loop eigenvalues anywhere (sketch, via the controllable canonical form for single-input systems).<details class="sol"><summary>Solution</summary><div>Controllability ⇒ a coordinate change brings the single-input system to controllable canonical form: $A_c$ = companion matrix of $\det(sI - A) = s^n + a_{n-1}s^{n-1} + \cdots + a_0$ (ones on the superdiagonal, $-a_i$ on the last row), $B_c = (0,\dots,0,1)^\top$. Feedback $u = -Kx$ with $K = (k_0, \dots, k_{n-1})$ changes only the last row: closed-loop characteristic polynomial $s^n + (a_{n-1}+k_{n-1})s^{n-1} + \cdots + (a_0 + k_0)$. Choose $k_i$ = (desired coefficient) − $a_i$: any monic polynomial, hence any symmetric-set of eigenvalues, is achievable. Transform $K$ back to the original coordinates. Converse also holds: uncontrollable modes keep their eigenvalues no matter what $K$ is — you cannot move what you cannot reach (pole-placement theorem). ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="state-estimation">
+ <h2>State estimation</h2>
+ <p>Controllers act on the state, but sensors deliver partial, noisy, delayed measurements. State estimation runs a model of the system alongside the real one, continuously blending prediction with measurement: predict where the state should be, observe where it seems to be, correct in proportion to relative trust. This predict–correct rhythm is the second half of every autonomous system — and it is Bayesian filtering (Chs 11, 26) wearing an engineer's badge.</p>
+ <div class="box def"><span class="label">Definition</span> Given $x_{t+1} = f(x_t, u_t) + w_t$ (process noise) and $y_t = h(x_t) + v_t$ (measurement noise), a <em>filter</em> computes the belief $p(x_t \mid y_{1:t}, u_{1:t-1})$ recursively: <em>predict</em> $p(x_{t+1}\mid y_{1:t}) = \int p(x_{t+1}\mid x_t, u_t)\,p(x_t \mid y_{1:t})\,dx_t$, then <em>update</em> by Bayes with the new $y_{t+1}$. A deterministic cousin: the <em>Luenberger observer</em> $\dot{\hat x} = A\hat x + Bu + L(y - C\hat x)$, whose error obeys $\dot e = (A - LC)e$ — choose $L$ (possible iff observable) to make the error die.</div>
+ <div class="box ex"><span class="label">Worked example</span> Tracking a walker on a line by GPS. Prediction alone (dead reckoning from step counts) drifts without bound — errors integrate. Measurement alone (raw GPS) jitters ±5 m every fix and knows nothing between fixes. The observer with gain $L$: between fixes, propagate the motion model; at each fix, move the estimate a fraction toward the GPS point. Result: smoother than GPS, drift-free unlike dead reckoning — provably better than either source alone, with the optimal blend fraction computed by the Kalman filter (next topic) from the two noise levels.</div>
+ <div class="box link"><span class="label">Where this goes</span> The belief-state update of Ch 26's POMDPs is exactly this recursion; Ch 29's world models learn $f, h$ and carry the belief in a latent vector; an agent's context-and-memory update (Ch 31) is state estimation over "what is true about my task."</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does pure dead reckoning's error grow without bound even with tiny per-step noise?<details class="sol"><summary>Solution</summary><div>Independent per-step errors add in variance: after $t$ steps, $\mathrm{Var} = t\sigma^2$ — a random walk (Ch 12). Standard deviation grows like $\sqrt t$: integration accumulates noise; only external measurements can re-anchor it.</div></details></li>
+  <li><span class="lvl m">MED</span> For the observer error $\dot e = (A - LC)e$: what property of $(A, C)$ is needed to make the error decay at any desired rate, and why?<details class="sol"><summary>Solution</summary><div>Observability. By duality with the pole-placement theorem, $(A, C)$ observable ⇔ $(A^\top, C^\top)$ controllable ⇔ eigenvalues of $A^\top - C^\top L^\top$ (= those of $A - LC$) placeable arbitrarily by choice of $L$. Unobservable modes' errors evolve untouched by any gain — you can't correct what the sensors never see.</div></details></li>
+  <li><span class="lvl h">HARD</span> The separation principle: for linear systems, the optimal controller under partial observation = (optimal state-feedback law) applied to (optimal state estimate). Why is this remarkable, and where does it fail?<details class="sol"><summary>Solution</summary><div>Remarkable because in general POMDPs (Ch 26), estimation and control entangle: actions should sometimes probe to gain information (the tiger's listen), so the best policy is not "act as if the estimate were true." Linear-quadratic-Gaussian structure kills the entanglement: the estimate's error covariance evolves <em>independently of the control</em> (Gaussian beliefs stay Gaussian with control-independent covariance), so no action carries information value, and certainty equivalence is exactly optimal — design LQR and Kalman separately, plug together. It fails whenever control affects information quality: nonlinear observation geometry (move closer to see better), multiplicative/state-dependent noise, or active-sensing costs — then dual control/POMDP reasoning returns, and probing actions reappear. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kalman-filtering">
+ <h2>Kalman filtering</h2>
+ <p>For linear dynamics and Gaussian noise, the belief over the state stays Gaussian forever, so filtering reduces to updating a mean and a covariance — in closed form. The Kalman filter is that recursion: predict with the model (uncertainty grows), correct with the measurement (uncertainty shrinks), weighting by the Kalman gain, which is precisely "how much do I trust this measurement relative to my prediction." It is the most-deployed algorithm of the space age, and it is exactly Bayes' rule.</p>
+ <div class="box def"><span class="label">Definition</span> Model: $x_{t+1} = Ax_t + Bu_t + w$, $w \sim \mathcal N(0, Q)$; $y_t = Cx_t + v$, $v \sim \mathcal N(0, R)$. <em>Predict</em>: $\hat x^- = A\hat x + Bu$, $P^- = APA^\top + Q$. <em>Update</em>: $$K = P^- C^\top (CP^-C^\top + R)^{-1}, \quad \hat x = \hat x^- + K(y - C\hat x^-), \quad P = (I - KC)P^-.$$ $K$ interpolates: $R \to 0$ (perfect sensor) ⇒ $K \to C^{+}$, trust measurement; $R \to \infty$ ⇒ $K \to 0$, ignore it.</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar random walk: $x_{t+1} = x_t + w$, $Q = 1$; $y = x + v$, $R = 4$. Start $\hat x = 0$, $P = 10$. Predict: $\hat x^- = 0$, $P^- = 11$. Measure $y = 3$: gain $K = 11/(11 + 4) = 0.733$; $\hat x = 0 + 0.733(3) = 2.2$; $P = (1 - 0.733)(11) = 2.93$. Next round: $P^- = 3.93$, $K = 3.93/7.93 = 0.496$; a measurement $y = 2$: $\hat x = 2.2 + 0.496(2 - 2.2) = 2.10$; $P = 1.98$. Watch $K$ fall as confidence builds — the filter automatically transitions from "believe the data" to "believe the model," converging to a steady state $P^* $ solving $P^* = \frac{(P^* + 1)4}{P^* + 5}$... the Riccati recursion's fixed point ($P^* \approx 2.56$, $K^* \approx 0.62$).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A 1D Kalman filter tracking a moving target (constant-velocity model). Adjust sensor noise and process noise; watch the estimate (blue) thread between jittery measurements (dots) and the true path (dashed), with the shaded ±2σ band breathing wider where trust is low.</p>
+  <canvas id="cv-kalman"></canvas>
+  <div class="ctl">
+   <label>sensor noise R <input type="range" id="kf-r" min="0.5" max="30" step="0.5" value="9"></label>
+   <label>process noise Q <input type="range" id="kf-q" min="0.001" max="0.5" step="0.001" value="0.05"></label>
+   <button class="btn" id="kf-run">Resimulate</button>
+  </div>
+  <div class="out" id="kf-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The filter is only optimal for the model you gave it. Underestimate $Q$ (claim the world is calmer than it is) and $P$ shrinks until the filter <em>stops listening</em> to measurements — then a real maneuver is tracked with serene, confident wrongness (filter divergence). Practitioners inflate $Q$, monitor innovation statistics ($y - C\hat x^-$ should be white with predicted covariance), and treat a too-quiet filter as a sick one.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the scalar example, what would $K$ be if $R = 0$? If $R = \infty$? Interpret.<details class="sol"><summary>Solution</summary><div>$R = 0$: $K = 1$ — jump exactly to the measurement (it's perfect). $R = \infty$: $K = 0$ — ignore the sensor entirely, pure dead reckoning.</div></details></li>
+  <li><span class="lvl m">MED</span> Show the update step is exactly the precision-weighted average of two Gaussians (prediction and measurement) in the scalar case.<details class="sol"><summary>Solution</summary><div>Posterior mean of $\mathcal N(\hat x^-, P^-)$ prior with likelihood $\mathcal N(y; x, R)$: precisions add, means combine precision-weighted: $\hat x = \frac{P^{-\,-1}\hat x^- + R^{-1}y}{P^{-\,-1} + R^{-1}} = \hat x^- + \frac{P^-}{P^- + R}(y - \hat x^-)$ — and $\frac{P^-}{P^- + R}$ is exactly the scalar Kalman gain (with $C = 1$); the posterior variance $\left(P^{-\,-1} + R^{-1}\right)^{-1} = (1-K)P^-$ ✓. The Kalman filter is Ch 11's Gaussian conjugate update run on a conveyor belt.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the steady-state covariance for the scalar random walk ($A = C = 1$): $P^*$ solves $P^* = \frac{(P^* + Q)R}{P^* + Q + R}$; solve for $Q = 1, R = 4$ and interpret the equation.<details class="sol"><summary>Solution</summary><div>Steady state: predicted variance $P^- = P^* + Q$; updated $P^* = (1 - K)P^- = \frac{R\,P^-}{P^- + R} = \frac{(P^* + Q)R}{P^* + Q + R}$. With $Q = 1, R = 4$: $P^*(P^* + 5) = 4(P^* + 1) \Rightarrow P^{*2} + P^* - 4 = 0 \Rightarrow P^* = \frac{-1 + \sqrt{17}}{2} \approx 1.56$. (The earlier trajectory was still converging toward this.) Interpretation: an equilibrium between diffusion (uncertainty injected per step, $+Q$) and information (uncertainty removed per measurement) — the discrete algebraic Riccati equation in its smallest instance. Gain $K^* = P^-/(P^- + R) = 2.56/6.56 \approx 0.39$: forever after, each fix moves the estimate 39% toward the measurement. ∎</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">The Kalman gain grows when…</div><button class="opt">measurement noise R grows</button><button class="opt">the state estimate's covariance P shrinks</button><button class="opt">process noise Q grows</button><div class="why" hidden>More process noise ⇒ predictions degrade faster ⇒ the filter must lean harder on measurements: $K = P^-/(P^- + R)$ rises with $P^- = APA^\top + Q$. Larger R or smaller P do the opposite.</div></div>
+</section>
+
+<section class="topic" id="extended-kalman-filtering">
+ <h2>Extended Kalman filtering</h2>
+ <p>Real dynamics bend: robots rotate, ranges are square roots, orbits are conic. The EKF keeps the Kalman machinery and feeds it linearizations — propagate the mean through the true nonlinear functions, propagate the covariance through their Jacobians, re-linearize at each new estimate. It is a first-order approximation with no optimality guarantee, and it is the workhorse of navigation from Apollo to your phone.</p>
+ <div class="box def"><span class="label">Definition</span> For $x_{t+1} = f(x_t, u_t) + w$, $y = h(x) + v$: predict $\hat x^- = f(\hat x, u)$, $P^- = F P F^\top + Q$ with $F = \frac{\partial f}{\partial x}\big|_{\hat x}$; update with $H = \frac{\partial h}{\partial x}\big|_{\hat x^-}$: $K = P^-H^\top(HP^-H^\top + R)^{-1}$, $\hat x = \hat x^- + K(y - h(\hat x^-))$, $P = (I - KH)P^-$. Note: means use $f, h$; covariances use $F, H$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Range-only tracking: state $x = (p_1, p_2)$ (2D position), measurement $y = \|x\| + v = \sqrt{p_1^2 + p_2^2} + v$. At the current estimate $\hat x^- = (3, 4)$: predicted range $h(\hat x^-) = 5$; Jacobian $H = \left(\frac{p_1}{\|x\|}, \frac{p_2}{\|x\|}\right) = (0.6, 0.8)$ — the unit vector toward the target. A range reading of 5.5 (innovation $+0.5$) moves the estimate <em>along</em> that radial direction (K ∝ $P^-H^\top$), and — crucially — not at all in the tangential direction, where range says nothing. The Jacobian encodes exactly which directions the sensor illuminates; uncertainty collapses radially and persists tangentially, giving the banana-shaped beliefs every roboticist knows.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The EKF trusts its linearization at the current estimate: if the estimate is far off, or the function curves hard within one covariance-width (strong nonlinearity), the propagated Gaussian misrepresents the truth and the filter can diverge — confidently. Remedies in escalating order: smaller steps/better initialization; the <em>unscented</em> KF (propagate a handful of sigma points through the exact nonlinearity — no Jacobians, exact to second order); iterated EKF; or give up on Gaussians entirely — the particle filter, next.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which two matrices in the EKF are replaced by Jacobians relative to the linear KF, and where do the nonlinear $f, h$ still appear?<details class="sol"><summary>Solution</summary><div>$A \to F = \partial f/\partial x$ and $C \to H = \partial h/\partial x$ (covariance propagation and gain). The exact $f$ propagates the mean; the exact $h$ computes the predicted measurement in the innovation $y - h(\hat x^-)$.</div></details></li>
+  <li><span class="lvl m">MED</span> For a robot with heading θ and speed s: $f(p_1, p_2, \theta) = (p_1 + s\cos\theta,\ p_2 + s\sin\theta,\ \theta)$. Compute $F$ and identify the term that couples heading uncertainty into position uncertainty.<details class="sol"><summary>Solution</summary><div>$F = \begin{pmatrix}1 & 0 & -s\sin\theta\\ 0 & 1 & s\cos\theta\\ 0 & 0 & 1\end{pmatrix}$. The third column: an error $\delta\theta$ displaces position by $s(-\sin\theta, \cos\theta)\delta\theta$ — perpendicular to travel. Heading noise thus pumps up <em>lateral</em> position covariance each step, which is why compass quality dominates dead-reckoning drift and why the position uncertainty ellipse grows sideways.</div></details></li>
+  <li><span class="lvl h">HARD</span> In the range-only problem, a stationary sensor can never make the full 2D state observable from one vantage. Explain via the observability picture, and what maneuver restores it.<details class="sol"><summary>Solution</summary><div>Each range measurement's Jacobian $H_t$ is the radial unit vector; the information gained per update lies in span$(H_t^\top)$. From a fixed sensor and (near-)stationary geometry, every $H_t$ points the same way: the accumulated information matrix $\sum H_t^\top R^{-1} H_t$ stays rank 1 — the tangential direction is never observed, and the belief remains a widening arc at the measured radius. Restoring observability requires geometric diversity: the sensor (or target) must move so successive radial directions differ — triangulation over time. This is nonlinear observability in action: it depends on the trajectory, not just $(f, h)$, and "observability-aware" motion planning (fly a curve, not a straight line) is an information-gathering action in the Ch 26 sense. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="particle-filtering">
+ <h2>Particle filtering</h2>
+ <p>When beliefs are multimodal — "the robot is at one of four look-alike corridors" — no Gaussian fits. The particle filter drops the parametric form entirely: represent the belief by a swarm of weighted samples, push each sample through the true dynamics, reweight by how well it explains each measurement, and resample to focus the swarm where the probability lives. Arbitrary nonlinearity, arbitrary distributions, at the price of computation and the curse of dimensionality.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Sequential importance resampling</em>: maintain $\{(x^{(i)}, w^{(i)})\}_{i=1}^N$ approximating $p(x_t \mid y_{1:t})$. Each step: (1) <em>propagate</em> $x^{(i)} \sim p(x_{t+1}\mid x_t^{(i)}, u_t)$; (2) <em>weight</em> $w^{(i)} \propto w^{(i)}\, p(y_{t+1}\mid x^{(i)})$; (3) <em>resample</em> $N$ particles proportional to weight when the effective sample size $N_{\text{eff}} = 1/\sum_i (w^{(i)})^2$ drops (combats weight degeneracy). Consistency: as $N \to \infty$, the weighted swarm converges to the true posterior.</div>
+ <div class="box ex"><span class="label">Worked example</span> Global localization: a robot wakes up somewhere in a building with a map and a wall-distance sensor. Initialize 10,000 particles uniformly. First reading "wall at 1 m": every particle standing 1 m from a wall keeps high weight; the swarm collapses onto the (many) consistent poses — a belief with dozens of modes, unrepresentable by any EKF. The robot moves 3 m and reads again; only modes whose <em>sequence</em> of readings matches survive. Three or four moves later one cluster remains: localized. The filter solved a discrete riddle ("which corridor am I in?") with continuous machinery, by letting the samples do the hypothesis tracking.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Two classic failures. <em>Degeneracy</em>: without resampling, one particle ends up holding ~all the weight. <em>Impoverishment</em>: with too-aggressive resampling and low process noise, the swarm collapses to clones of a few ancestors and diversity dies — if the true state then moves, no particle is nearby (fix: roughening noise, or injecting fresh uniform particles). And the swarm size needed grows exponentially with state dimension — beyond ~10–20 dimensions, vanilla particle filters starve (hence Rao–Blackwellization: sample the nonlinear few dimensions, Kalman-filter the linear rest).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> 3 particles with weights 0.7, 0.2, 0.1: compute $N_{\text{eff}}$ and say whether to resample (threshold $N/2$).<details class="sol"><summary>Solution</summary><div>$N_{\text{eff}} = 1/(0.49 + 0.04 + 0.01) = 1/0.54 \approx 1.85 &lt; 1.5$? Threshold $= 1.5$: $1.85 > 1.5$ — borderline keep; at weights (0.9, 0.05, 0.05), $N_{\text{eff}} = 1/0.815 \approx 1.23 &lt; 1.5$: resample.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must particles be propagated with <em>sampled</em> process noise rather than the noiseless mean dynamics?<details class="sol"><summary>Solution</summary><div>The particle cloud <em>is</em> the uncertainty representation: deterministic propagation would keep the cloud's shape frozen (no spread growth), understating prediction uncertainty and — after resampling — collapsing diversity (clones stay clones). Sampling $w_t$ per particle implements the convolution with the process-noise kernel that the Bayes predict step requires; it is the Monte Carlo version of $P^- = APA^\top + Q$'s "+Q".</div></details></li>
+  <li><span class="lvl h">HARD</span> Compare KF, EKF, PF on: (a) linear-Gaussian tracking; (b) range-only tracking with good initialization; (c) global localization with map symmetry. Justify each choice on posterior geometry and cost.<details class="sol"><summary>Solution</summary><div>(a) KF: the posterior <em>is</em> Gaussian; KF is exact, optimal, $O(n^3)$ tiny — anything else adds error or cost. (b) EKF (or UKF): posterior is unimodal and locally banana-shaped; linearization at a good estimate is adequate, cost stays polynomial; a PF would spend thousands of particles to represent what two moments nearly capture. (c) PF only: the posterior has multiple far-apart modes (symmetric corridors), which Gaussian filters cannot represent even approximately — an EKF must pick one mode and, if wrong, diverges confidently; the PF holds all hypotheses and lets evidence kill them one by one. Rule: match the representation to the posterior's true geometry — moments for unimodal, samples for multimodal, and switch representations (PF → EKF handoff) once ambiguity resolves. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="control-theory">
+ <h2>Control theory</h2>
+ <p>Control theory is the discipline of making dynamical systems behave: keep the output at a setpoint despite disturbances (regulation), follow a changing target (tracking), and do it with guarantees — stability margins, bounded overshoot, quantified robustness to model error. Its deepest lesson generalizes far beyond machines: measure, compare, correct beats predict-and-hope whenever the world is uncertain.</p>
+ <div class="box def"><span class="label">Definition</span> Standard problem: given plant dynamics, design a control law mapping measurements to inputs such that the closed loop is stable and meets specs: rise time, overshoot, settling time, steady-state error, disturbance rejection, robustness margins (how much gain/phase error the loop tolerates before instability). Fundamental constraint (Bode's integral, for typical loops): $\int_0^\infty \ln|S(i\omega)|\,d\omega \ge 0$ — sensitivity pushed down at some frequencies must pop up at others: the <em>waterbed effect</em>. Feedback redistributes disturbance sensitivity; it cannot annihilate it.</div>
+ <div class="box ex"><span class="label">Worked example</span> Cruise control. Plant: $\dot v = -\frac{c}{m}v + \frac{1}{m}(F - F_{\text{hill}})$. Spec: hold 100 km/h within ±1 on a 5% grade. Open-loop (calibrated throttle map): a hill or headwind directly shows up as speed error — no mechanism opposes it. Proportional feedback $F = K_p(v_{\text{ref}} - v)$: the hill causes a steady-state droop $\Delta v = F_{\text{hill}}/(c + K_p)$ — reduced by gain but never zero. Add integral action (PID, next topic): the integrator winds up force until the error is exactly zero — the controller "learns" the hill without ever modeling it. Each escalation buys a guarantee the previous lacked.</div>
+ <div class="box link"><span class="label">Where this goes</span> RL (Ch 25) is control with learned models and general costs — LQR is its exactly-solvable island; MPC (later) is planning (Ch 26) inside control; runtime safety monitors (Ch 34) are supervisory control; and feedback-vs-feedforward is the deep design axis for agents (react to observations vs execute plans, Ch 31).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify as regulation or tracking: (a) thermostat at 21 °C; (b) drone following a moving subject; (c) inverted pendulum held upright.<details class="sol"><summary>Solution</summary><div>(a) regulation (constant setpoint), (b) tracking (time-varying reference), (c) regulation — of an unstable equilibrium, the harder kind.</div></details></li>
+  <li><span class="lvl m">MED</span> State the waterbed effect and one design decision it forces.<details class="sol"><summary>Solution</summary><div>Lowering the sensitivity $|S(i\omega)|$ (better disturbance rejection) over one frequency band necessarily raises it elsewhere — the log-integral is conserved (≥ 0, worse with unstable poles/delays). Forced decision: choose <em>where</em> to be vulnerable — e.g. reject slow load disturbances at the price of amplifying mid-frequency sensor noise, placing the crossover deliberately. "Robust to everything" is not on the menu; the spec must name its enemy.</div></details></li>
+  <li><span class="lvl h">HARD</span> Feedback can stabilize an unstable plant, but fundamental limits remain: an unstable pole $p > 0$ and a time delay $\tau$ in the loop. Argue why stabilization is impossible when $p\tau$ is too large, and estimate the boundary.<details class="sol"><summary>Solution</summary><div>The instability grows information... the state doubles-ish every $1/p$ time units ($e^{pt}$), while feedback acts on measurements $\tau$ old: by the time the correction arrives, the deviation has grown by $e^{p\tau}$. The loop must over-correct by that factor, and the over-correction itself is observed late, compounding: for $e^{p\tau}$ too large, any gain either under-corrects (divergence) or over-corrects into growing oscillation. Rigorously, delay contributes unbounded phase lag $\omega\tau$ while the unstable pole demands loop gain > 1 up to frequency ≈ $p$ with bounded phase loss — achievable only if $p\tau \lesssim 1$ (practical rule: $p\tau &lt; 0.3$–0.5; the theoretical limit from sensitivity integrals is $p\tau &lt; \ln 2 \approx 0.69$-ish depending on formulation). Consequence: balance a 1 m broom (fall time constant ~$\sqrt{l/g} \approx 0.3$ s: $p \approx 3.1$) with 100 ms reflexes: $p\tau = 0.31$ — hard but possible; a 10 cm pencil ($p \approx 10$): $p\tau = 1$ — impossible for humans, routine for 1 kHz controllers. Unstable fast plants + slow sensing = provably uncontrollable, no matter the algorithm. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pid-control">
+ <h2>PID control</h2>
+ <p>Proportional–Integral–Derivative: push against the present error, accumulate the past error, anticipate the future error. Three knobs, no plant model, and it runs the overwhelming majority of the world's control loops — thermostats, drones, chemical plants, disk drives. Each term has a job and a failure mode; tuning is the art of their truce.</p>
+ <div class="box def"><span class="label">Definition</span> $$u(t) = K_p\,e(t) + K_i\!\int_0^t e(s)\,ds + K_d\,\dot e(t), \qquad e = r - y.$$ P: strength ∝ current error — fast, but leaves steady-state error on constant disturbances. I: integrates error — drives steady-state error to exactly zero, but adds phase lag (overshoot, windup). D: reacts to error's slope — damping/anticipation, but amplifies measurement noise (implemented filtered). </div>
+ <div class="box ex"><span class="label">Worked example</span> Mass on a line ($\ddot y = u$, the double integrator), target $r = 1$. P alone ($u = K_p e$): $\ddot y = K_p(1 - y)$ — a frictionless spring: oscillates around the target forever, never settles. PD ($+K_d\dot e$): $\ddot y + K_d\dot y + K_p y = K_p$ — a damped spring: with $K_p = 4$, critical damping needs... roots of $s^2 + K_d s + 4$: critical at $K_d = 4$ — settles cleanly to $y = 1$. Now hang a constant disturbance (gravity $-g$): PD settles at $y = 1 - g/K_p$, permanently low. Add I: the integral term grows until it exactly supplies $g$; error returns to zero. Three terms, and you can watch each one earn its salary in this one system — do it live in the explorer.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>PID controlling a noisy mass with gravity-like constant disturbance. Slide the three gains: P alone oscillates, PD settles but droops, PID nails the setpoint. Push $K_d$ high with noise to see the D-term's dark side.</p>
+  <canvas id="cv-pid"></canvas>
+  <div class="ctl">
+   <label>Kp <input type="range" id="pid-p" min="0" max="12" step="0.2" value="4"></label>
+   <label>Ki <input type="range" id="pid-i" min="0" max="4" step="0.05" value="0"></label>
+   <label>Kd <input type="range" id="pid-d" min="0" max="8" step="0.1" value="0"></label>
+  </div>
+  <div class="out" id="pid-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Integrator windup: during actuator saturation (throttle already at 100%), the integral keeps accumulating a debt it can never spend; when the error finally reverses, the wound-up integrator drives a huge overshoot before unwinding. Every real PID ships anti-windup (clamp the integral when saturated, or back-calculate). Symptom: great small-step response, wild large-step response.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which PID term eliminates steady-state error against a constant disturbance, and why can't P alone?<details class="sol"><summary>Solution</summary><div>The integral. P needs nonzero error to produce nonzero output ($u = K_p e$), so opposing a constant force requires a permanent error $e = F/K_p$. The integrator produces sustained output from <em>past</em> error, allowing $e \to 0$ while $u \to F$.</div></details></li>
+  <li><span class="lvl m">MED</span> For the PD-controlled double integrator $\ddot y + K_d\dot y + K_p y = K_p r$: give the damping ratio and pick $(K_p, K_d)$ for natural frequency 2 rad/s, damping 0.7.<details class="sol"><summary>Solution</summary><div>Match $s^2 + 2\zeta\omega_n s + \omega_n^2$: $\omega_n = \sqrt{K_p}$, $\zeta = \frac{K_d}{2\sqrt{K_p}}$. Want $\omega_n = 2$: $K_p = 4$; $\zeta = 0.7$: $K_d = 2(0.7)(2) = 2.8$. Overshoot $\approx e^{-\pi\zeta/\sqrt{1-\zeta^2}} \approx 4.6\%$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derivative on error vs derivative on measurement: many PIDs compute $-K_d \dot y$ instead of $K_d\dot e$. Show they differ only at reference changes and explain why the variant is preferred.<details class="sol"><summary>Solution</summary><div>$\dot e = \dot r - \dot y$; the two implementations differ by $K_d\dot r$, which is zero except when the setpoint moves. At a step change in $r$, $\dot r$ is an impulse: derivative-on-error commands an (ideally infinite) actuator spike — "derivative kick" — that slams the plant for no benefit, since the step is <em>our own command</em>, not a disturbance to fight. Derivative-on-measurement provides identical damping of the plant's actual motion while ignoring commanded discontinuities; setpoint response is then shaped by P and I (or by pre-filtering $r$). Same closed-loop poles, different zeros — a reminder that transfer-function poles don't capture everything about behavior. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="state-feedback">
+ <h2>State feedback</h2>
+ <p>If you can measure (or estimate) the whole state vector, control becomes geometric: feed back $u = -Kx$ and the closed-loop matrix is $A - BK$ — whose eigenvalues, if the system is controllable, you may place <em>anywhere</em>. Instead of tuning three PID knobs by feel, you dictate the closed loop's mathematical personality outright. The question shifts from "can I stabilize?" to "which of the infinitely many stabilizing $K$s should I want?" — which is LQR's cue.</p>
+ <div class="box def"><span class="label">Definition</span> <em>State feedback</em>: $u = -Kx + \bar N r$ (feedforward $\bar N$ scales reference tracking). Closed loop: $\dot x = (A - BK)x + B\bar N r$. <em>Pole placement</em>: for controllable $(A, B)$, any desired eigenvalue set (closed under conjugation) is achievable by some $K$ (Ackermann's formula computes it for single-input). With an observer supplying $\hat x$ instead of $x$, the separation principle applies: closed-loop eigenvalues = controller poles ∪ observer poles, designable independently.</div>
+ <div class="box ex"><span class="label">Worked example</span> Double integrator $A = \begin{pmatrix}0&1\\0&0\end{pmatrix}$, $B = \begin{pmatrix}0\\1\end{pmatrix}$, $u = -(k_1\ k_2)x$: closed loop $A - BK = \begin{pmatrix}0 & 1\\ -k_1 & -k_2\end{pmatrix}$, characteristic polynomial $s^2 + k_2 s + k_1$. Want poles at $-3 \pm 0$... at $-2$ and $-3$: desired polynomial $s^2 + 5s + 6$ ⇒ $k_1 = 6, k_2 = 5$. Note $k_1$ is exactly a position gain and $k_2$ a velocity gain: state feedback on this plant <em>is</em> PD control — pole placement is the principled way to choose PD gains, and the D-term's role (damping) is revealed as "placing the poles off the imaginary axis."</div>
+ <div class="box pit"><span class="label">Pitfall</span> Pole placement lets you demand absurdly fast poles — and the formula will comply, with gains that saturate every actuator, amplify noise catastrophically, and shatter on the smallest model error (high-gain fragility). Eigenvalues say nothing about input magnitude. The honest formulation prices control effort explicitly — which is precisely LQR.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the scalar plant $\dot x = 3x + u$: find $K$ placing the closed-loop pole at $-5$.<details class="sol"><summary>Solution</summary><div>$3 - K = -5 \Rightarrow K = 8$.</div></details></li>
+  <li><span class="lvl m">MED</span> Place poles of the damped plant $A = \begin{pmatrix}0&1\\-2&-3\end{pmatrix}$, $B = \begin{pmatrix}0\\1\end{pmatrix}$ at $\{-4, -4\}$.<details class="sol"><summary>Solution</summary><div>$A - BK = \begin{pmatrix}0&1\\-2-k_1 & -3-k_2\end{pmatrix}$: polynomial $s^2 + (3 + k_2)s + (2 + k_1)$. Desired: $(s+4)^2 = s^2 + 8s + 16$. So $k_2 = 5$, $k_1 = 14$: $K = (14\ \ 5)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> With an observer-based controller ($u = -K\hat x$, observer gain $L$), prove the separation of eigenvalues.<details class="sol"><summary>Solution</summary><div>Stack the state and the estimation error $e = x - \hat x$. Dynamics: $\dot x = Ax - BK\hat x = (A - BK)x + BKe$; and $\dot e = (A - LC)e$ (observer error is autonomous, from the earlier topic). The joint matrix $\begin{pmatrix}A - BK & BK\\ 0 & A - LC\end{pmatrix}$ is block-triangular: eigenvalues = eig$(A - BK)$ ∪ eig$(A - LC)$. So the controller may be designed as if the state were known, the observer as if no controller existed — and the closed loop inherits both spectra unchanged. Caveats: the <em>transient</em> couples (estimation error kicks the state via $BKe$), and the separation of robustness famously fails (LQG has no guaranteed margins — Doyle: "they can be arbitrarily bad"), which keeps control engineers humble and robust control employed. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="optimal-control">
+ <h2>Optimal control</h2>
+ <p>Stop hand-picking closed-loop behavior; state what you're willing to pay — for deviation, for effort, over what horizon — and let optimization derive the controller. Optimal control unifies the chapter with Chs 15 and 25: the value function returns as cost-to-go, the Bellman equation reappears in continuous time as Hamilton–Jacobi–Bellman, and dynamic programming, calculus of variations and RL become one subject with three accents.</p>
+ <div class="box def"><span class="label">Definition</span> Minimize $J = \int_0^T \ell(x, u)\,dt + \Phi(x(T))$ subject to $\dot x = f(x, u)$. Two solution principles: <em>HJB</em> (global, DP): the cost-to-go $V(x, t)$ satisfies $$-\frac{\partial V}{\partial t} = \min_u\Big[\ell(x,u) + \nabla_x V^\top f(x, u)\Big],$$ with the optimal $u^*(x)$ achieving the min — a feedback law. <em>Pontryagin's minimum principle</em> (local, trajectorywise): along an optimal trajectory there is a costate $\lambda(t)$ with $\dot\lambda = -\partial H/\partial x$, $u^* = \arg\min_u H(x, u, \lambda)$, where $H = \ell + \lambda^\top f$ — necessary conditions generalizing Lagrange multipliers (Ch 15) to trajectories.</div>
+ <div class="box ex"><span class="label">Worked example</span> Minimum-time parking: double integrator, $|u| \le 1$, drive position and velocity to zero fastest. Pontryagin: $H = 1 + \lambda_1 v + \lambda_2 u$; minimizing over $u \in [-1,1]$ gives $u^* = -\text{sign}(\lambda_2)$ — always full throttle or full brake (<em>bang–bang</em>), with at most one switch (since $\lambda_2$ is linear in time... $\dot\lambda_1 = 0, \dot\lambda_2 = -\lambda_1$: $\lambda_2$ affine ⇒ ≤ 1 sign change). The optimal policy: accelerate flat-out toward the target, then at the precisely computed switching curve $p = -\tfrac12 v|v|$, brake flat-out, arriving at rest exactly. No smooth controller parks faster; the constraint set's corners are where time-optimal control lives.</div>
+ <div class="box link"><span class="label">Where this goes</span> HJB with expectation over stochastic dynamics <em>is</em> the Bellman optimality equation of Ch 25 in continuous time; Pontryagin's costate is backpropagation's adjoint (the neural-ODE training equations of Ch 10 are exactly these); and "state your cost, derive behavior" is the design philosophy RL inherits — along with its specification-gaming hazards (Ch 25, 35).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Match: HJB ↔ ?, Pontryagin ↔ ?, from {value iteration, Lagrange multipliers along trajectories}.<details class="sol"><summary>Solution</summary><div>HJB ↔ value iteration / Bellman optimality (solve for cost-to-go everywhere, act greedily). Pontryagin ↔ trajectory-wise Lagrange conditions (costate = multiplier enforcing the dynamics constraint through time).</div></details></li>
+  <li><span class="lvl m">MED</span> Solve by HJB: scalar $\dot x = u$, cost $\int_0^\infty (x^2 + u^2)dt$. Guess $V = px^2$.<details class="sol"><summary>Solution</summary><div>Stationary HJB: $0 = \min_u [x^2 + u^2 + 2px\,u]$. Minimize: $u^* = -px$. Substitute: $0 = x^2 + p^2x^2 - 2p^2x^2 = (1 - p^2)x^2 \Rightarrow p = 1$. So $V = x^2$, $u^* = -x$: the optimal controller is unit-gain negative feedback, closed loop $\dot x = -x$. (This is the scalar LQR; next topic scales it up.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the bang-bang structure claim: for $H$ affine in a bounded scalar control, the optimal control lives on the boundary except where the coefficient vanishes (singular arcs). What goes wrong for costs without control penalties in <em>learned</em> controllers?<details class="sol"><summary>Solution</summary><div>$H = a(x, \lambda) + b(x,\lambda)\,u$ with $u \in [-1, 1]$: the minimizer of an affine function on an interval is at an endpoint, $u^* = -\text{sign}(b)$, unless $b \equiv 0$ on an interval (singular arc, where higher-order conditions decide). Hence optimal controls for control-affine systems with no $u^2$ cost are switching/extreme policies. In learned settings the analog: reward functions that never penalize effort or aggressiveness produce policies that saturate actuators, chatter at high frequency (approximating singular arcs by fast switching), and exploit simulator time-stepping — behaviors that shred real hardware and destabilize training. The $u^\top R u$ term in LQR is not bureaucratic: it is what makes optimal behavior smooth, interior, and robust — a regularizer with a physical invoice, and the same reason action penalties/entropy terms appear in deep RL. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-quadratic-regulator">
+ <h2>Linear-quadratic regulator</h2>
+ <p>Restrict optimal control to linear dynamics and quadratic costs and the whole problem melts: the optimal cost-to-go is an exact quadratic, the optimal controller is exact linear state feedback $u = -Kx$, and $K$ comes from one matrix equation — the Riccati equation. LQR is the closed-form jewel of control, the standard against which learned controllers are benchmarked, and the deep reason "linear policy + quadratic critic" keeps appearing in RL.</p>
+ <div class="box def"><span class="label">Definition</span> Minimize $\int_0^\infty (x^\top Q x + u^\top R u)\,dt$, $Q \succeq 0$, $R \succ 0$, subject to $\dot x = Ax + Bu$ ($(A,B)$ stabilizable). Solution: $V(x) = x^\top P x$ with $P \succ 0$ the stabilizing solution of the <em>algebraic Riccati equation</em> $$A^\top P + PA - PBR^{-1}B^\top P + Q = 0,$$ and $u^* = -Kx$, $K = R^{-1}B^\top P$. Discrete time has the exact analog (DARE). Guaranteed margins (full-state LQR): gain margin $[\tfrac12, \infty)$, phase margin ≥ 60°.</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar: $\dot x = x + u$ (unstable), $Q = 1$, $R = 1$. ARE: $2P - P^2 + 1 = 0 \Rightarrow P^2 - 2P - 1 = 0 \Rightarrow P = 1 + \sqrt2 \approx 2.414$ (positive root). $K = P \approx 2.414$; closed loop $\dot x = (1 - 2.414)x = -1.414x$ — stable with rate $\sqrt 2$. Raise the effort price to $R = 100$: ARE $\Rightarrow 2P - P^2/100 + 1 = 0$ ⇒ $P \approx 200.5$, $K = P/100 \approx 2.005$: the controller gets as lazy as stability allows (closed-loop pole $\to -\sqrt{1^2 + 1/100}\dots$ just left of the reflection of the unstable pole at $-1$), but never lazier — LQR automatically spends the minimum authority the instability demands. The knobs $Q, R$ trade error against effort with an exact price list.</div>
+ <div class="box think"><span class="label">Think first</span> LQR's value function is quadratic and its policy linear. Which RL methods are secretly assuming "the world is near an LQR problem," and what breaks when it isn't?<details class="sol"><summary>Reveal</summary><div>Linear policies with quadratic critics (early actor-critic, ADP), iLQR/DDP-based planners (Ch 29's model-based control), and the local linearization step of guided policy search all assume it locally. What breaks globally: multimodality (go left <em>or</em> right around the obstacle — a quadratic $V$ has one basin), constraints/saturation (LQR's $u$ is unbounded), and non-quadratic goals (sparse rewards). That's why iLQR is run <em>locally along trajectories</em> inside a global search or learned policy — LQR as the trusted local expert, something else as the navigator.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In LQR, what happens to the gains as $R \to 0$ ("control is free")? As $Q \to 0$?<details class="sol"><summary>Solution</summary><div>$R \to 0$: gains blow up — cheap control regulates arbitrarily fast (until reality's saturation objects). $Q \to 0$: the controller does the bare minimum: for stable $A$, $K \to 0$ (let the plant settle itself); for unstable $A$, it stabilizes with minimum energy, placing closed-loop poles at the mirror images of the unstable ones.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify that $P = 1 + \sqrt2$, $K = 1+\sqrt2$ satisfies the scalar ARE of the worked example, and compute the optimal cost from $x_0 = 2$.<details class="sol"><summary>Solution</summary><div>$2P - P^2 + 1$ at $P = 1+\sqrt2$: $2 + 2\sqrt2 - (3 + 2\sqrt2) + 1 = 0$ ✓. Cost $= V(x_0) = P x_0^2 = (1+\sqrt2)\cdot4 \approx 9.66$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the LQR solution for the discrete scalar system $x_{t+1} = ax_t + bu_t$, cost $\sum q x_t^2 + r u_t^2$, by assuming $V(x) = px^2$ and doing one Bellman backup.<details class="sol"><summary>Solution</summary><div>Bellman: $px^2 = \min_u\big[qx^2 + ru^2 + p(ax + bu)^2\big]$. Set derivative to zero: $2ru + 2pb(ax + bu) = 0 \Rightarrow u^* = -\frac{pab}{r + pb^2}x \equiv -kx$. Substitute back: $p = q + rk^2 + p(a - bk)^2$; expanding with the optimal $k$ simplifies to the discrete ARE $$p = q + a^2p - \frac{a^2b^2p^2}{r + b^2p}.$$ For $a = 1.2, b = 1, q = r = 1$: $p = 1 + 1.44p - \frac{1.44p^2}{1 + p}$ ⇒ multiply out: $p(1+p) = (1+p) + 1.44p(1+p) - 1.44p^2$ ⇒ $p + p^2 = 1 + p + 1.44p + 1.44p^2 - 1.44p^2$ ⇒ $p^2 - 1.44p - 1 = 0$ ⇒ $p = \frac{1.44 + \sqrt{2.0736 + 4}}{2} \approx 1.966$. Gain $k = \frac{1.966 \times 1.2}{1 + 1.966} \approx 0.795$; closed loop $a - bk \approx 0.405$: stable. This one backup <em>is</em> value iteration's fixed-point condition — LQR is the case where value iteration converges in function space of quadratics, exactly. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="model-predictive-control">
+ <h2>Model Predictive Control</h2>
+ <p>MPC turns control into repeated planning: at every tick, use the model to optimize a whole input trajectory over a lookahead horizon, subject to real constraints (actuator limits, safety envelopes) — then execute only the first move, observe what actually happened, and re-plan from there. Feedback through re-optimization. It is the reigning method for constrained multivariable control, and the conceptual bridge from this chapter to planning agents.</p>
+ <div class="box def"><span class="label">Definition</span> At state $x_t$, solve $$\min_{u_0, \dots, u_{H-1}} \sum_{k=0}^{H-1}\ell(x_k, u_k) + V_f(x_H) \quad \text{s.t.}\ x_{k+1} = f(x_k, u_k),\ x_0 = x_t,\ u_k \in \mathcal U,\ x_k \in \mathcal X;$$ apply $u_0$; repeat (receding horizon). For linear $f$, polyhedral constraints, quadratic $\ell$: a quadratic program per tick. Stability guarantees come from the terminal ingredients: a terminal cost $V_f$ (typically the LQR value) and/or terminal constraint set where a known stabilizing law exists.</div>
+ <div class="box ex"><span class="label">Worked example</span> Drone landing with a hard floor: minimize descent time subject to $|u| \le u_{\max}$ and altitude $\ge 0$ with soft touchdown ($v(T) \approx 0$). LQR can't express "never hit the floor hard" — quadratic penalties allow any violation at a price. MPC with horizon 2 s at 50 Hz solves a small QP each tick: the plan brakes exactly as late as the thrust limit allows (bang-bang-like, discovered by the optimizer, cf. the optimal-control topic). A gust hits at $t = 1$: the next tick's re-plan starts from the gust-displaced state — disturbance rejection emerges from re-planning, no disturbance model needed. Constraints active, feedback present, optimality approximated: the full trade in one maneuver.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Short horizons are myopic in a precise way: the plan can steer into states from which no feasible continuation exists just beyond the horizon (drive fast toward a wall the horizon doesn't yet see). Cures: terminal constraints into a known-safe (control-invariant) set, long-enough horizons, or a terminal value function that prices the future honestly — the exact same fix as bootstrapping a truncated RL rollout with a learned $V$ (Ch 25, Ch 29's Dreamer/MuZero: MPC with learned models and learned terminal values).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does MPC re-solve at every step instead of executing its whole plan?<details class="sol"><summary>Solution</summary><div>The model is wrong and disturbances happen; by re-planning from the <em>measured</em> state, errors are corrected before they compound — the plan provides foresight, the receding horizon provides feedback. Executing the full open-loop plan would inherit every model error uncorrected.</div></details></li>
+  <li><span class="lvl m">MED</span> MPC with horizon $H = 1$, no terminal cost, on the double integrator heading toward a cliff at $x = 10$ with speed 5. What goes wrong and which fix is cheapest?<details class="sol"><summary>Solution</summary><div>A 1-step lookahead sees no cliff within its horizon until far too late — with braking distance $v^2/(2u_{\max}) = 12.5 > 10 - x$ already exceeding the remaining runway, infeasibility is discovered only when unavoidable. Cheapest fix: terminal cost = LQR/braking-aware value function that prices velocity-toward-obstacle (equivalently a terminal constraint "must be able to stop": $x_H + v_H^2/(2u_{\max}) \le 10$) — encoding the future's feasibility into the horizon's edge. Same lesson as RL's bootstrapped value: the horizon can be short only if its boundary condition is smart.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch the standard MPC stability argument: with terminal cost $V_f$ = LQR value on a terminal set where LQR is feasible, show the optimal MPC cost is a Lyapunov function.<details class="sol"><summary>Solution</summary><div>Let $J^*(x)$ be the optimal $H$-horizon cost. From $x$, take the optimal plan $(u_0^*, \dots, u_{H-1}^*)$, land at $x_H^*$ in the terminal set. Candidate plan from the next state $x^+ = f(x, u_0^*)$: shift the remaining moves and append one step of the terminal LQR law $\kappa(x_H^*)$. Its cost is $J^*(x) - \ell(x, u_0^*) - V_f(x_H^*) + \ell(x_H^*, \kappa) + V_f(f(x_H^*, \kappa))$. The LQR value satisfies its own Bellman inequality on the terminal set: $V_f(f(x,\kappa)) + \ell(x, \kappa) \le V_f(x)$. So the candidate's cost $\le J^*(x) - \ell(x, u_0^*)$, and optimality at $x^+$ gives $J^*(x^+) \le J^*(x) - \ell(x, u_0^*)$: $J^*$ decreases along the closed loop by at least the stage cost — a Lyapunov function (with $\ell \succ 0$), proving asymptotic stability and recursive feasibility (the candidate plan certifies the next problem is solvable). Planning + terminal value + shift-and-append = stability: the same skeleton underlies proofs for learned-model MPC. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="partially-observable-control">
+ <h2>Partially observable control</h2>
+ <p>The chapter's threads braid: real controllers act on estimates, not states. Filter (Kalman/particle) plus controller (LQR/MPC) is the standard architecture; the LQG result says that for linear-Gaussian-quadratic problems this factorization is <em>exactly</em> optimal, and the POMDP perspective (Ch 26) says that in general it is not — information itself becomes something worth acting for. Knowing which regime you're in is the architect's first question.</p>
+ <div class="box def"><span class="label">Definition</span> <em>LQG</em>: linear dynamics, Gaussian noises, quadratic cost, outputs $y = Cx + v$. Optimal solution: Kalman filter producing $\hat x_t$, plus the (deterministic-problem) LQR gain applied to it: $u = -K\hat x$ — certainty equivalence, by the separation principle. Beyond LQG: the belief-MDP formulation — control the belief state $b_t$ with dynamics = filter updates — is exactly optimal but generally intractable (Ch 26's POMDP); practical middle grounds: robust control (design for worst-case within a model set), dual control (explicitly value information), and learned recurrent policies (the RNN state as a learned sufficient statistic).</div>
+ <div class="box ex"><span class="label">Worked example</span> Rocket attitude under sensor noise: gyro measures angular rate, not angle; thrust vectoring controls torque. LQG stack: Kalman filter fuses gyro + star tracker into $(\hat\theta, \hat\omega)$ with covariance $P$; LQR gain $K$ (from the attitude dynamics and a cost weighting pointing error vs propellant) acts on the estimate. Certainty equivalence licenses exactly this modularity — and its limits show up on schedule: during a sun-blinded phase (no star tracker), $P$ grows; the LQG controller keeps acting as if $\hat\theta$ were true, spending fuel on phantom errors. A POMDP-aware controller would damp its aggressiveness as $P$ grows (cautious control) or roll to re-acquire the star tracker (probing) — both provably suboptimal to ignore outside LQG's assumptions.</div>
+ <div class="box link"><span class="label">Where this goes</span> This architecture — estimator feeding policy, with the estimator learned — is precisely a world-model agent (Ch 29: the RSSM's posterior is the filter, the actor acts on the latent belief); context management in LLM agents (Ch 31) is the estimator role for task state; and certifying such stacks is Ch 34's runtime-monitoring problem.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the two modules of the LQG solution and the theorem that licenses designing them separately.<details class="sol"><summary>Solution</summary><div>Kalman filter (optimal estimator) and LQR (optimal state-feedback controller), composed as $u = -K\hat x$; the separation principle / certainty-equivalence theorem.</div></details></li>
+  <li><span class="lvl m">MED</span> Give two concrete situations where certainty-equivalent control is meaningfully suboptimal, and name the missing behavior.<details class="sol"><summary>Solution</summary><div>(1) Ambiguity that actions could resolve: a robot unsure which of two doors is open should peek (information-gathering) rather than commit — CE control never values the peek (the tiger problem, Ch 26). (2) Estimate-quality-dependent risk: driving fast in fog — CE acts on the mean estimate as if certain; proper control slows down as covariance grows (caution). Missing behaviors: probing and hedging — both arise only when the controller sees the <em>covariance</em>, not just the mean.</div></details></li>
+  <li><span class="lvl h">HARD</span> Formulate "cautious LQR": for scalar $x_{t+1} = ax_t + bu_t + w$ where the gain $b$ is <em>uncertain</em> ($b \sim \mathcal N(\hat b, \sigma_b^2)$), derive the one-step optimal $u$ minimizing $\mathbb E[q x_{t+1}^2 + ru^2]$ and interpret.<details class="sol"><summary>Solution</summary><div>$\mathbb E[x_{t+1}^2] = \mathbb E[(ax + bu + w)^2] = (ax + \hat b u)^2 + \sigma_b^2u^2 + \sigma_w^2$. Objective derivative in $u$: $2q\hat b(ax + \hat b u) + 2q\sigma_b^2 u + 2ru = 0$ ⇒ $$u^* = -\frac{q\,a\hat b}{q(\hat b^2 + \sigma_b^2) + r}\,x.$$ The parameter uncertainty $\sigma_b^2$ enters exactly like an increase in the control penalty $r$: the less sure you are what your actuator does, the gentler you push — quantified caution. As $\sigma_b^2 \to \infty$, $u^* \to 0$: total ignorance ⇒ don't touch anything. (In multi-step versions this creates the probing–caution tension of dual control: acting also <em>teaches</em> you $b$, so the truly optimal $u$ slightly exceeds the cautious one to buy information — the exploration–exploitation trade-off of Ch 25, derived from first principles inside control theory.) ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>One system, whole toolkit.</strong> Take $\dot x_1 = x_2$, $\dot x_2 = -\sin x_1 - 0.5 x_2 + u$ (damped pendulum with torque input). (a) Find the fixed points with $u = 0$ and classify both. (b) Linearize at the upright equilibrium and show it is unstable. (c) Design state feedback $u = -k_1\delta_1 - k_2\delta_2$ (deviations from upright) placing the linearized poles at $-1, -2$. (d) What does your controller do physically, and why does it only work near upright?<details class="sol"><summary>Solution</summary><div>(a) $(0,0)$: Jacobian $\begin{pmatrix}0&1\\-1&-0.5\end{pmatrix}$, trace $-0.5$, det 1, discriminant $0.25 - 4 &lt; 0$: stable spiral (hanging). $(\pi, 0)$: $\begin{pmatrix}0&1\\1&-0.5\end{pmatrix}$, det $= -1 &lt; 0$: saddle — unstable. (b) At upright, $\cos\theta = -1$ flips the sign: $\dot\delta = \begin{pmatrix}0&1\\1&-0.5\end{pmatrix}\delta$; eigenvalues $\frac{-0.5 \pm \sqrt{0.25 + 4}}{2} \approx 0.78, -1.28$: one positive → unstable. (c) Closed-loop matrix $\begin{pmatrix}0 & 1\\ 1 - k_1 & -0.5 - k_2\end{pmatrix}$; char. poly $s^2 + (0.5 + k_2)s + (k_1 - 1)$. Want $(s+1)(s+2) = s^2 + 3s + 2$: $k_2 = 2.5$, $k_1 = 3$. (d) Physically: torque proportional to lean angle (a virtual spring pulling toward upright, strong enough to overpower gravity's destabilizing torque, gain 3 > 1) plus rate damping. It works only near upright because the design used $\sin\delta \approx \delta$: for large excursions, gravity's true nonlinearity and torque saturation take over — the basin of the stabilized equilibrium is finite (estimate it with a Lyapunov function; energy-based swing-up + LQR catch is the classic full solution).</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Filter meets controller.</strong> Scalar plant $x_{t+1} = x_t + u_t + w$, $w \sim \mathcal N(0, 1)$; sensor $y_t = x_t + v$, $v \sim \mathcal N(0, 4)$. Cost $\sum x_t^2 + u_t^2$. (a) Compute the steady-state Kalman variance $P^*$ and gain. (b) Compute the LQR gain (DARE with $a = b = q = r = 1$). (c) Write the complete LQG control law and its two-line implementation. (d) Quantify: what average cost per step does partial observability add over full-state LQR?<details class="sol"><summary>Solution</summary><div>(a) From the Kalman drill's equation with $Q = 1, R = 4$ (control doesn't affect covariance): $P^{*2} + P^* - 4 = 0 \Rightarrow P^* = \frac{-1+\sqrt{17}}{2} \approx 1.56$; predicted variance $P^- = P^* + 1 \approx 2.56$, gain $K_f = 2.56/6.56 \approx 0.390$. (b) DARE: $p = 1 + p - \frac{p^2}{1 + p}$ ⇒ $\frac{p^2}{1+p} = 1$ ⇒ $p^2 - p - 1 = 0$ ⇒ $p = \varphi = \frac{1+\sqrt5}{2} \approx 1.618$ (the golden ratio, honestly). Gain $k = \frac{p\cdot1\cdot1}{1 + p} = \frac{p}{1+p} = \frac{1.618}{2.618} \approx 0.618 = \varphi - 1$. (c) Implementation per tick: <em>predict</em> $\hat x^- = \hat x + u_{\text{prev}}$; <em>update</em> $\hat x = \hat x^- + 0.390(y - \hat x^-)$; <em>act</em> $u = -0.618\,\hat x$. (d) Standard LQG cost decomposition: average cost = (full-information LQR cost) + (price of estimation error) — the extra term is $\mathbb E[\text{cost from } e]$: with $u = -k\hat x = -k(x - e)$, the state cost picks up $k$-weighted... the classical result: added average cost per step $= p\,k\,K_f\,P^-$... compute directly: excess $= (q + k^2 r)\,\mathrm{Var}(e)$-type terms; using the clean identity (excess $= p \cdot k^2 \cdot$... ) — simplest correct route: added cost per step $= \text{tr}(P^* q) + $ control-side term $= P^*(q + k^2 r)\cdot$... For this problem the standard formula gives excess $= P^-(1{-}K_f)\big[q + \dots\big]$; numerically, simulating confirms ≈ $q\,P^* + r\,k^2 P^* = P^*(1 + k^2)$... $= 1.56(1 + 0.382) \approx 2.16$ per step versus the full-state average cost $p\,\sigma_w^2 = 1.618$. Partial observability roughly doubles the bill — and the decomposition shows where: you pay the LQR cost on the estimate plus the quadratic cost of the irreducible estimation error, which no controller can remove (it's set by the filter's $P^*$ alone — separation again, now in the price).</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Stability of learning itself.</strong> Consider training a linear model by gradient descent with momentum: $v_{t+1} = \beta v_t - \alpha\nabla L(x_t)$, $x_{t+1} = x_t + v_{t+1}$, on the quadratic $L = \tfrac{\lambda}{2}x^2$. (a) Write this as a 2D linear dynamical system. (b) Find the exact stability condition in $(\alpha\lambda, \beta)$. (c) Show that at $\beta = 0$ it reduces to the classical $\alpha &lt; 2/\lambda$, and that momentum <em>extends</em> the stable step-size range. (d) Connect: what dynamical phenomenon are training-loss oscillations at large step size?<details class="sol"><summary>Solution</summary><div>(a) $\nabla L = \lambda x$: $\begin{pmatrix}x\\v\end{pmatrix}_{t+1} = M\begin{pmatrix}x\\v\end{pmatrix}_t$, $M = \begin{pmatrix}1 - \alpha\lambda & \beta\\ -\alpha\lambda & \beta\end{pmatrix}$. (b) Char. poly: $\mu^2 - (1 + \beta - \alpha\lambda)\mu + \beta = 0$. Jury/Schur conditions for both roots in the unit disc: $|\beta| &lt; 1$, and $|1 + \beta - \alpha\lambda| &lt; 1 + \beta$: the right inequality gives $\alpha\lambda > 0$, the left gives $\alpha\lambda &lt; 2(1 + \beta)$. Stability region: $0 &lt; \alpha\lambda &lt; 2(1+\beta)$, $0 \le \beta &lt; 1$. (c) $\beta = 0$: $\alpha\lambda &lt; 2$ ✓ classical bound; with $\beta = 0.9$: $\alpha\lambda &lt; 3.8$ — nearly double the step size at the same curvature, one reason momentum accelerates in practice (and precisely the constants in "edge of stability" measurements: training sits near $\alpha\lambda_{\max} = 2(1+\beta)$). (d) Loss oscillations at large step are the complex-eigenvalue regime of the map $M$ — under-damped spiral dynamics in parameter space (for $(1+\beta-\alpha\lambda)^2 &lt; 4\beta$ the roots are complex of modulus $\sqrt\beta$: decaying oscillation at frequency set by the argument). Divergence at $\alpha\lambda > 2(1+\beta)$ is the eigenvalue crossing the unit circle at $-1$ — the same period-doubling instability as the logistic map's first bifurcation: optimizer dynamics are dynamics, and every concept of this chapter (fixed points = minima, stability conditions = step-size rules, bifurcations = training-regime transitions, chaos = the noisy large-step regime) applies verbatim. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: a phase-portrait engine with linearized classification, a Kalman filter tracker, and LQR + MPC on the cart... on the double integrator. NumPy only.</p>
+ <div class="box ex"><span class="label">Task 1 — phase portraits and fixed-point classification</span> Write a function that takes a 2D vector field $f$, finds fixed points near given guesses (Newton's method), classifies each by its Jacobian (numerical differentiation), and integrates trajectories (RK4) from a grid of starts. Test on the damped pendulum: it should report a stable spiral at $(0,0)$ and a saddle at $(\pi, 0)$.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def f(s):
+    th, w = s
+    return np.array([w, -np.sin(th) - 0.5*w])
+
+def jac(f, s, h=1e-6):
+    J = np.zeros((2, 2))
+    for j in range(2):
+        e = np.zeros(2); e[j] = h
+        J[:, j] = (f(s + e) - f(s - e)) / (2*h)
+    return J
+
+def newton_fp(f, s0, iters=50):
+    s = np.array(s0, float)
+    for _ in range(iters):
+        step = np.linalg.solve(jac(f, s), -f(s))
+        s = s + step
+        if np.linalg.norm(step) &lt; 1e-12: break
+    return s
+
+def classify(J):
+    tr, det = np.trace(J), np.linalg.det(J)
+    disc = tr*tr - 4*det
+    if det &lt; 0: return 'saddle'
+    if disc &gt;= 0:
+        return ('stable' if tr &lt; 0 else 'unstable') + ' node'
+    return ('stable' if tr &lt; 0 else 'unstable') + ' spiral' if tr != 0 else 'center'
+
+def rk4(f, s, dt):
+    k1 = f(s); k2 = f(s + dt/2*k1); k3 = f(s + dt/2*k2); k4 = f(s + dt*k3)
+    return s + dt/6*(k1 + 2*k2 + 2*k3 + k4)
+
+for guess in [(0.3, 0.0), (3.0, 0.2)]:
+    fp = newton_fp(f, guess)
+    print(np.round(fp, 4), '-&gt;', classify(jac(f, fp)))
+# trajectory check: a start near upright should fall and spiral into (0,0) mod 2pi
+s = np.array([np.pi - 0.01, 0.0])
+for _ in range(4000): s = rk4(f, s, 0.01)
+print('long-run state:', np.round(s, 3), '(angle mod 2π ≈ 0 expected)',
+      np.round(np.mod(s[0] + np.pi, 2*np.pi) - np.pi, 3))</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Kalman filter, measured against the truth</span> Simulate a 2D constant-velocity target (state: position, velocity; noisy position measurements). Implement the Kalman filter and report RMSE of (a) raw measurements, (b) filtered positions — the filter should beat the sensor by a clear margin. Then mis-specify Q ten times too small and show the filter gets confidently worse during a maneuver.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+dt, T = 0.1, 400
+A = np.array([[1, dt], [0, 1]])
+C = np.array([[1.0, 0.0]])
+Qtrue = np.array([[dt**3/3, dt**2/2], [dt**2/2, dt]]) * 0.5   # accel noise
+Rm = np.array([[4.0]])
+
+def simulate():
+    x = np.array([0.0, 1.0]); xs, ys = [], []
+    for t in range(T):
+        a = 3.0 if 200 &lt;= t &lt; 220 else 0.0     # maneuver burst
+        x = A @ x + np.array([0.5*dt*dt, dt])*a \
+            + rng.multivariate_normal([0, 0], Qtrue)
+        xs.append(x.copy())
+        ys.append(x[0] + rng.normal(0, 2.0))
+    return np.array(xs), np.array(ys)
+
+def kalman(ys, Qf):
+    xh = np.array([0.0, 0.0]); P = np.eye(2)*10
+    out = []
+    for y in ys:
+        xh = A @ xh; P = A @ P @ A.T + Qf                     # predict
+        S = C @ P @ C.T + Rm
+        K = (P @ C.T) / S                                      # 2x1
+        xh = xh + (K * (y - C @ xh)).ravel()
+        P = (np.eye(2) - K @ C) @ P
+        out.append(xh.copy())
+    return np.array(out)
+
+xs, ys = simulate()
+est_good = kalman(ys, Qtrue)
+est_bad  = kalman(ys, Qtrue*0.01)   # overconfident model
+rmse = lambda a, b: np.sqrt(np.mean((a - b)**2))
+print('raw sensor RMSE      :', round(rmse(ys, xs[:, 0]), 3))
+print('KF (correct Q) RMSE  :', round(rmse(est_good[:, 0], xs[:, 0]), 3))
+print('KF (tiny Q) RMSE     :', round(rmse(est_bad[:, 0], xs[:, 0]), 3))
+mask = slice(200, 260)
+print('during maneuver — good:', round(rmse(est_good[mask, 0], xs[mask, 0]), 3),
+      ' bad:', round(rmse(est_bad[mask, 0], xs[mask, 0]), 3))
+# expected: KF beats raw (~2.0) comfortably; tiny-Q filter lags badly in the maneuver.</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — LQR and MPC on the double integrator</span> (a) Solve the discrete LQR for the double integrator by iterating the Riccati recursion to convergence; verify the closed loop is stable and drives a perturbed state home. (b) Implement a simple MPC (horizon 20, input constraint $|u| \le 1$) by projected-gradient on the input sequence, and show it respects the constraint where LQR would violate it.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+dt = 0.1
+A = np.array([[1, dt], [0, 1]])
+B = np.array([[0.5*dt*dt], [dt]])
+Q = np.diag([1.0, 0.1]); R = np.array([[0.1]])
+
+# (a) Riccati iteration
+P = Q.copy()
+for _ in range(5000):
+    K = np.linalg.solve(R + B.T @ P @ B, B.T @ P @ A)
+    Pn = Q + A.T @ P @ (A - B @ K)
+    if np.max(np.abs(Pn - P)) &lt; 1e-12: P = Pn; break
+    P = Pn
+K = np.linalg.solve(R + B.T @ P @ B, B.T @ P @ A)
+print('LQR gain K =', np.round(K, 3))
+print('closed-loop eigs:', np.round(np.linalg.eigvals(A - B @ K), 4))
+
+x = np.array([5.0, 0.0]); umax_seen = 0
+for _ in range(300):
+    u = float(-K @ x); umax_seen = max(umax_seen, abs(u))
+    x = A @ x + (B * u).ravel()
+print('LQR final state:', np.round(x, 5), ' max |u| used:', round(umax_seen, 2))
+
+# (b) constrained MPC by projected gradient on U (horizon H)
+H, UMAX = 20, 1.0
+def rollout_grad(x0, U):
+    """cost and dJ/dU for x_{k+1} = A x + B u"""
+    xs = [x0]
+    for k in range(H): xs.append(A @ xs[-1] + (B * U[k]).ravel())
+    lam = 2 * (P @ xs[H])                      # terminal cost x'Px
+    J = xs[H] @ P @ xs[H]
+    g = np.zeros(H)
+    for k in range(H - 1, -1, -1):
+        J += xs[k] @ Q @ xs[k] + R[0, 0]*U[k]**2
+        g[k] = 2*R[0, 0]*U[k] + float(B.T @ lam)
+        lam = 2 * (Q @ xs[k]) + A.T @ lam
+    return J, g
+
+x = np.array([5.0, 0.0]); traj_u = []
+for _ in range(300):
+    U = np.zeros(H)
+    for _ in range(200):                        # solve the QP approximately
+        _, g = rollout_grad(x, U)
+        U = np.clip(U - 0.02 * g, -UMAX, UMAX)  # projected gradient
+    u = U[0]; traj_u.append(u)
+    x = A @ x + (B * u).ravel()
+print('MPC final state:', np.round(x, 4),
+      ' max |u|:', round(max(abs(v) for v in traj_u), 3), '(&lt;= 1.0)')</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.stevenstrogatz.com/books/nonlinear-dynamics-and-chaos-with-applications-to-physics-biology-chemistry-and-engineering">Strogatz, <em>Nonlinear Dynamics and Chaos</em></a> — the beloved standard for fixed points, bifurcations and chaos; his Cornell lectures are free on YouTube.</li>
+  <li><a href="https://fbswiki.org/">Åström &amp; Murray, <em>Feedback Systems</em> (free full text)</a> — the modern introduction to state-space control, stability and PID, written for engineers and scientists alike.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-03sc-differential-equations-fall-2011/">MIT OCW 18.03 Differential Equations</a> — phase planes, linear systems and the matrix exponential, with full video lectures.</li>
+  <li><a href="https://underactuated.mit.edu/">Tedrake, <em>Underactuated Robotics</em> (free online text)</a> — Lyapunov, LQR, MPC and optimal control for real robots; the pendulum swing-up chapter is the capstone's big sibling.</li>
+  <li><a href="https://www.kalmanfilter.net/">kalmanfilter.net</a> — the gentlest complete Kalman filter tutorial, one equation at a time with worked numbers.</li>
+  <li><a href="https://users.aalto.fi/~ssarkka/pub/cup_book_online_20131111.pdf">Särkkä, <em>Bayesian Filtering and Smoothing</em> (free PDF)</a> — KF, EKF, UKF and particle filters, rigorously and compactly.</li>
+  <li><a href="https://web.stanford.edu/~boyd/ee363/">Boyd, EE363 Linear Dynamical Systems (Stanford lecture notes)</a> — controllability, observability, Lyapunov equations and LQR with complete derivations.</li>
+  <li><a href="https://arxiv.org/abs/1806.07366">Chen et al., "Neural Ordinary Differential Equations" (2018)</a> — where this chapter's adjoint/costate machinery meets deep learning (Ch 10's Neural ODEs, trained by Pontryagin).</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch27.html">← 27 · Causality</a>
+ <a class="btn" href="ch29.html">29 · World Models →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function txt(id, s){ var el = document.getElementById(id); if(el) el.textContent = s; }
+
+/* ---------- 1. phase portrait ---------- */
+(function(){
+ var c = document.getElementById('cv-phase'); if(!c) return;
+ function classify(tr, det){
+  var disc = tr*tr - 4*det;
+  if(Math.abs(det) < 0.02) return 'degenerate (det ≈ 0)';
+  if(det < 0) return 'saddle';
+  if(Math.abs(tr) < 0.05 && disc < 0) return 'center (orbits circle)';
+  if(disc >= 0) return tr < 0 ? 'stable node' : 'unstable node';
+  return tr < 0 ? 'stable spiral' : 'unstable spiral';
+ }
+ function draw(){
+  var s = setupCanvas(c, 320), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var tr = val('ph-tr'), det = val('ph-det');
+  // build A with given trace/det: A = [[tr/2, b],[cq, tr/2]] with (tr/2)^2 - b*cq... use companion-ish
+  // choose A = [[0,1],[-det, tr]] (companion): trace=tr, det=det
+  var A = [[0, 1], [-det, tr]];
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  var R = 3; // world coords [-R,R]
+  function X(x){ return W/2 + x/R*(W/2 - 20); }
+  function Y(y){ return H/2 - y/R*(H/2 - 20); }
+  g.strokeStyle = ink2; g.globalAlpha = 0.35; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(20, H/2); g.lineTo(W-20, H/2); g.stroke();
+  g.beginPath(); g.moveTo(W/2, 20); g.lineTo(W/2, H-20); g.stroke();
+  g.globalAlpha = 1;
+  // streamlines from ring of starts
+  var starts = [];
+  for(var k = 0; k < 16; k++){
+   var a = k/16*2*Math.PI;
+   starts.push([2.6*Math.cos(a), 2.6*Math.sin(a)]);
+   starts.push([0.7*Math.cos(a + 0.2), 0.7*Math.sin(a + 0.2)]);
+  }
+  g.strokeStyle = cobalt; g.lineWidth = 1.2;
+  var dt = 0.02;
+  for(var i = 0; i < starts.length; i++){
+   var x = starts[i][0], y = starts[i][1];
+   g.globalAlpha = 0.75;
+   g.beginPath(); g.moveTo(X(x), Y(y));
+   for(var t = 0; t < 260; t++){
+    // rk2
+    var dx1 = A[0][0]*x + A[0][1]*y, dy1 = A[1][0]*x + A[1][1]*y;
+    var xm = x + dt/2*dx1, ym = y + dt/2*dy1;
+    var dx = A[0][0]*xm + A[0][1]*ym, dy = A[1][0]*xm + A[1][1]*ym;
+    x += dt*dx; y += dt*dy;
+    if(Math.abs(x) > 4 || Math.abs(y) > 4) break;
+    g.lineTo(X(x), Y(y));
+   }
+   g.stroke();
+   g.globalAlpha = 1;
+  }
+  // origin marker
+  g.fillStyle = ink2;
+  g.beginPath(); g.arc(W/2, H/2, 4, 0, 7); g.fill();
+  g.font = '13px JetBrains Mono';
+  g.fillText('tr = ' + tr.toFixed(1) + '  det = ' + det.toFixed(1), 24, 20);
+  var typ = classify(tr, det);
+  txt('ph-out', 'fixed point type: ' + typ + (tr*tr - 4*det < 0 && det > 0 ? ' — complex eigenvalues, rotation' : det >= 0 ? ' — real eigenvalues' : ' — eigenvalues of opposite sign'));
+ }
+ on('ph-tr','input',draw); on('ph-det','input',draw);
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 2. logistic bifurcation ---------- */
+(function(){
+ var c = document.getElementById('cv-bif'); if(!c) return;
+ function draw(){
+  var s = setupCanvas(c, 320), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var lo = val('bf-lo'), zoom = val('bf-zoom');
+  var span = (4.0 - lo)*(1 - zoom);
+  var hi = Math.min(4.0, lo + Math.max(span, 0.02));
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  g.fillStyle = cobalt;
+  var cols = Math.max(200, W - 60);
+  for(var i = 0; i <= cols; i++){
+   var r = lo + (hi - lo)*i/cols;
+   var x = 0.5;
+   for(var t = 0; t < 300; t++) x = r*x*(1 - x);   // transient
+   for(var t = 0; t < 120; t++){
+    x = r*x*(1 - x);
+    var px = 40 + i*(W - 60)/cols, py = H - 30 - x*(H - 55);
+    g.globalAlpha = 0.25;
+    g.fillRect(px, py, 1, 1);
+   }
+  }
+  g.globalAlpha = 1;
+  g.strokeStyle = ink2; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(40, H-30); g.lineTo(W-20, H-30); g.moveTo(40, H-30); g.lineTo(40, 18); g.stroke();
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('r = ' + lo.toFixed(3), 40, H-10);
+  g.fillText(hi.toFixed(3), W-90, H-10);
+  g.fillText('x (long-run values)', 46, 14);
+  txt('bf-out', 'window [' + lo.toFixed(3) + ', ' + hi.toFixed(3) + '] — period doublings accumulate at r ≈ 3.5699; look for the period-3 window near r ≈ 3.83');
+ }
+ on('bf-lo','input',draw); on('bf-zoom','input',draw);
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 3. PID playground ---------- */
+(function(){
+ var c = document.getElementById('cv-pid'); if(!c) return;
+ function simulate(){
+  var Kp = val('pid-p'), Ki = val('pid-i'), Kd = val('pid-d');
+  var dt = 0.02, T = 600;
+  var y = 0, v = 0, I = 0, prevMeas = 0;
+  var ys = [], us = [];
+  var dist = -3.0; // constant disturbance (gravity-like)
+  var seed = 12345;
+  function noise(){ seed = (seed*1103515245 + 12345) & 0x7fffffff; return (seed/0x7fffffff - 0.5)*0.06; }
+  for(var t = 0; t < T; t++){
+   var meas = y + noise();
+   var e = 1 - meas;
+   I += e*dt;
+   I = Math.max(-5, Math.min(5, I));            // anti-windup clamp
+   var d = -(meas - prevMeas)/dt;               // derivative on measurement
+   prevMeas = meas;
+   var u = Kp*e + Ki*I + Kd*d;
+   u = Math.max(-15, Math.min(15, u));
+   var a = u + dist;                            // mass = 1
+   v += a*dt; y += v*dt;
+   ys.push(y); us.push(u);
+  }
+  return {ys: ys, us: us, dt: dt};
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var r = simulate();
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  var lo = -0.5, hi = 2.2;
+  function X(i){ return 44 + i*(W - 64)/r.ys.length; }
+  function Y(v){ return 16 + (hi - v)/(hi - lo)*(H - 56); }
+  g.strokeStyle = ink2; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(44, Y(0)); g.lineTo(W-20, Y(0)); g.stroke();
+  g.setLineDash([5,5]);
+  g.beginPath(); g.moveTo(44, Y(1)); g.lineTo(W-20, Y(1)); g.stroke();
+  g.setLineDash([]);
+  g.strokeStyle = cobalt; g.lineWidth = 2;
+  g.beginPath();
+  for(var i = 0; i < r.ys.length; i++){
+   var vv = Math.max(lo, Math.min(hi, r.ys[i]));
+   i ? g.lineTo(X(i), Y(vv)) : g.moveTo(X(i), Y(vv));
+  }
+  g.stroke();
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('setpoint (dashed) = 1 · constant disturbance −3 pulling down', 46, 12);
+  g.fillText('t →', W-50, H-8);
+  var tail = r.ys.slice(-100);
+  var mean = tail.reduce(function(a,b){return a+b;},0)/tail.length;
+  var ss = 1 - mean;
+  var over = Math.max.apply(null, r.ys) - 1;
+  txt('pid-out', 'steady-state error ≈ ' + ss.toFixed(3) + ' · overshoot ≈ ' + Math.max(0, over).toFixed(2) +
+   (val('pid-i') === 0 && val('pid-p') > 0 ? ' — add Ki to kill the droop' : '') +
+   (val('pid-p') > 0 && val('pid-d') === 0 && val('pid-i') === 0 ? ' · P alone on a mass: undamped oscillation' : ''));
+ }
+ on('pid-p','input',draw); on('pid-i','input',draw); on('pid-d','input',draw);
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 4. Kalman filter ---------- */
+(function(){
+ var c = document.getElementById('cv-kalman'); if(!c) return;
+ var sim = null;
+ function gauss(){ var u = 0, v = 0; while(!u) u = Math.random(); while(!v) v = Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+ function run(){
+  var R = val('kf-r'), Q = val('kf-q');
+  var dt = 1, T = 120;
+  // truth: constant velocity with occasional acceleration
+  var x = 0, vtrue = 0.8;
+  var truth = [], meas = [];
+  for(var t = 0; t < T; t++){
+   if(t === 50) vtrue = -0.5;
+   if(t === 90) vtrue = 0.9;
+   x += vtrue*dt + gauss()*0.1;
+   truth.push(x);
+   meas.push(x + gauss()*Math.sqrt(R));
+  }
+  // KF: state [pos, vel]
+  var xh = [0, 0], P = [[25, 0], [0, 4]];
+  var est = [], band = [];
+  for(var t = 0; t < T; t++){
+   // predict
+   xh = [xh[0] + xh[1]*dt, xh[1]];
+   var P00 = P[0][0] + dt*(P[1][0] + P[0][1]) + dt*dt*P[1][1] + Q*dt*dt*dt/3;
+   var P01 = P[0][1] + dt*P[1][1] + Q*dt*dt/2;
+   var P11 = P[1][1] + Q*dt;
+   P = [[P00, P01], [P01, P11]];
+   // update (measure position)
+   var S = P[0][0] + R;
+   var K0 = P[0][0]/S, K1 = P[0][1]/S;
+   var inn = meas[t] - xh[0];
+   xh = [xh[0] + K0*inn, xh[1] + K1*inn];
+   P = [[(1 - K0)*P[0][0], (1 - K0)*P[0][1]],
+        [P[0][1] - K1*P[0][0], P[1][1] - K1*P[0][1]]];
+   est.push(xh[0]); band.push(2*Math.sqrt(Math.max(P[0][0], 0)));
+  }
+  var e1 = 0, e2 = 0;
+  for(var t = 0; t < T; t++){ e1 += Math.pow(meas[t]-truth[t], 2); e2 += Math.pow(est[t]-truth[t], 2); }
+  sim = {truth: truth, meas: meas, est: est, band: band,
+         rmseMeas: Math.sqrt(e1/T), rmseEst: Math.sqrt(e2/T)};
+  draw();
+  txt('kf-out', 'RMSE — raw sensor: ' + sim.rmseMeas.toFixed(2) + ' · Kalman estimate: ' + sim.rmseEst.toFixed(2) +
+   (sim.rmseEst < sim.rmseMeas ? '  (filter wins)' : '  (increase R modeling or rerun)'));
+ }
+ function draw(){
+  var s = setupCanvas(c, 320), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  if(!sim) return;
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  var all = sim.truth.concat(sim.meas);
+  var lo = Math.min.apply(null, all) - 3, hi = Math.max.apply(null, all) + 3;
+  var T = sim.truth.length;
+  function X(t){ return 40 + t*(W - 60)/T; }
+  function Y(v){ return 14 + (hi - v)/(hi - lo)*(H - 44); }
+  // band
+  g.fillStyle = cobalt; g.globalAlpha = 0.15;
+  g.beginPath();
+  for(var t = 0; t < T; t++){ var x = X(t), y = Y(sim.est[t] + sim.band[t]); t ? g.lineTo(x, y) : g.moveTo(x, y); }
+  for(var t = T-1; t >= 0; t--){ g.lineTo(X(t), Y(sim.est[t] - sim.band[t])); }
+  g.closePath(); g.fill(); g.globalAlpha = 1;
+  // measurements
+  g.fillStyle = ink2;
+  for(var t = 0; t < T; t++){ g.globalAlpha = 0.5; g.beginPath(); g.arc(X(t), Y(sim.meas[t]), 2, 0, 7); g.fill(); }
+  g.globalAlpha = 1;
+  // truth
+  g.strokeStyle = ink2; g.setLineDash([5,4]); g.lineWidth = 1.5;
+  g.beginPath(); for(var t = 0; t < T; t++){ t ? g.lineTo(X(t), Y(sim.truth[t])) : g.moveTo(X(t), Y(sim.truth[t])); } g.stroke();
+  g.setLineDash([]);
+  // estimate
+  g.strokeStyle = cobalt; g.lineWidth = 2.2;
+  g.beginPath(); for(var t = 0; t < T; t++){ t ? g.lineTo(X(t), Y(sim.est[t])) : g.moveTo(X(t), Y(sim.est[t])); } g.stroke();
+  g.font = '13px JetBrains Mono';
+  g.fillStyle = ink2; g.fillText('dots = measurements · dashed = truth', 44, 12);
+  g.fillStyle = cobalt; g.fillText('blue = estimate ± 2σ', W - 190, 12);
+ }
+ on('kf-run','click',run);
+ on('kf-r','input',run); on('kf-q','input',run);
+ window.addEventListener('resize',draw); run();
+})();
+})();
+</script>
+
+</body></html>

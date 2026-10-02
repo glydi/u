@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 01 Arithmetic</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','01')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">01</div><h1>Arithmetic</h1><p class="lede">The number systems and the everyday machinery of quantity.</p>
+   <div class="meta"><span class="chip">21 topics</span><span class="chip">needs: nothing</span><span class="chip">feeds: chapters 02–04, 11</span></div>
+  </div>
+
+<section class="topic" id="natural-numbers">
+ <h2>Natural numbers</h2>
+ <p>The natural numbers are the counting numbers: what you get by starting at 1 (or 0, by convention) and adding one forever. They are the numbers of "how many": sheep in a field, tokens in a prompt. Everything else in mathematics is scaffolding built on top of this infinite ladder. Two features make the ladder special: it has a bottom rung, and every rung has exactly one rung above it. That pair of facts — a starting point plus a "next" operation — is all you need to define addition, multiplication, and eventually every algorithm that loops. When a program says <code>for i in range(n)</code>, it is walking up this ladder.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{N} = \{0, 1, 2, 3, \dots\}$ (some authors start at 1). $\mathbb{N}$ is closed under addition and multiplication: if $a,b \in \mathbb{N}$ then $a+b \in \mathbb{N}$ and $a \cdot b \in \mathbb{N}$. It is <em>not</em> closed under subtraction or division.</div>
+ <div class="box ex"><span class="label">Worked example</span> Is $\mathbb{N}$ closed under subtraction? Test: $3 - 5 = -2$, and $-2 \notin \mathbb{N}$. One counterexample is enough: no. That failure is precisely why the integers were invented.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Does $\mathbb{N}$ include 0?" depends on the author. Number theorists usually start at 1; logicians and computer scientists start at 0 (array indices, <code>range(n)</code>). Always check the convention before using a result — an off-by-one here is the arithmetic ancestor of the most common bug in programming.</div>
+ <div class="box link"><span class="label">Where this goes</span> Induction over $\mathbb{N}$ (Ch 3) is the proof engine of computer science; counting over $\mathbb{N}$ (Ch 3) grounds probability (Ch 11); and indices into arrays, tokens and time steps are naturals from here to the last chapter.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which of these are natural numbers: $7,\ -3,\ 0,\ \tfrac{1}{2},\ 10^6$? <details class="sol"><summary>Solution</summary><div>$7$, $0$ (with the 0-convention), and $10^6$. $-3$ is negative, $\tfrac12$ is not whole.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $\mathbb{N}$ closed under the operation $a \star b = a^b$? <details class="sol"><summary>Solution</summary><div>Yes for $\mathbb{N}=\{1,2,\dots\}$: a natural raised to a natural power is a product of naturals, hence natural. With 0 included, $0^0$ is conventionally $1$, so still yes under that convention.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that every nonempty set of natural numbers has a smallest element (the well-ordering principle), assuming induction. <details class="sol"><summary>Solution</summary><div>Suppose $S \subseteq \mathbb{N}$ is nonempty but has no least element. Let $P(n)$: "no element of $S$ is $\le n$". $P(0)$ holds ($0\in S$ would be least). If $P(n)$ holds, then $n{+}1 \in S$ would make $n{+}1$ least (nothing smaller is in $S$), so $n{+}1 \notin S$: $P(n{+}1)$ holds. By induction $P(n)$ for all $n$, so $S$ is empty — contradiction.</div></details></li>
+  <li><span class="lvl m">MED</span> How many natural numbers $n$ satisfy $n^2 &lt; 200$? (Use the 0-convention.) <details class="sol"><summary>Solution</summary><div>$14^2 = 196 &lt; 200$ but $15^2 = 225 &gt; 200$, so $n \in \{0, 1, \dots, 14\}$: fifteen of them. (Starting at 1 the answer is 14 — conventions matter.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="integers">
+ <h2>Integers</h2>
+ <p>Integers extend the naturals with negatives, so subtraction always works. Picture a ledger: credits are positive, debts are negative, and zero is the balance point. The integers are the first number system that is symmetric around zero. A negative number is not a mysterious object — it is an <em>instruction</em>: "undo that much." $-5$ is whatever cancels $+5$. Once you see negatives as undo operations, the sign rules stop being arbitrary: multiplying by $-1$ means "flip direction," and flipping twice lands you back where you started, which is exactly why $(-)(-) = (+)$.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{Z} = \{\dots,-2,-1,0,1,2,\dots\}$. $\mathbb{Z}$ is closed under $+$, $-$, $\times$ but not $\div$ (e.g. $1 \div 2 \notin \mathbb{Z}$). Every $a \in \mathbb{Z}$ has an additive inverse $-a$ with $a + (-a) = 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sign rules: $(-3)\times(-4) = 12$; $(-3)\times 4 = -12$; $(-12) \div (-3) = 4$. A product is negative exactly when an odd number of factors is negative: $(-1)(-2)(-3) = -6$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Division with remainder: for any integers $a$ and $b &gt; 0$ there are unique $q, r$ with $a = qb + r$ and $0 \le r &lt; b$. For $a = -17$, $b = 5$: $-17 = (-4)(5) + 3$, so $q = -4$, $r = 3$ — the remainder is still nonnegative. (Python's <code>-17 % 5</code> agrees and gives <code>3</code>; C's <code>%</code> gives <code>-2</code> — same identity, different convention.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> $-3^2 = -9$, not $9$: exponentiation binds before the unary minus. $(-3)^2 = 9$. The same trap exists in code: in Python <code>-3**2</code> evaluates to <code>-9</code>.</div>
+ <div class="box link"><span class="label">Where this goes</span> Integer arithmetic with remainders becomes modular arithmetic in Ch 3, the substrate of hashing and cryptography; signed quantities become signed vectors and gradients from Ch 5 onward.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $-7 + 12 - (-5)$. <details class="sol"><summary>Solution</summary><div>$-7+12 = 5$; $5-(-5)=5+5=10$.</div></details></li>
+  <li><span class="lvl m">MED</span> What is the sign of $(-2)^{17} \cdot (-3)^{4}$? <details class="sol"><summary>Solution</summary><div>$(-2)^{17}$ is negative (odd power), $(-3)^4$ is positive (even power). Negative × positive = negative.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $(-a)(-b) = ab$ using only ring axioms ($0\cdot x = 0$, distributivity, inverses). <details class="sol"><summary>Solution</summary><div>First $a\cdot(-b) + ab = a(-b + b) = a\cdot 0 = 0$, so $a(-b) = -(ab)$. Then $(-a)(-b) + (-(ab)) = (-a)(-b) + a(-b) = (-a + a)(-b) = 0\cdot(-b) = 0$, so $(-a)(-b)$ is the additive inverse of $-(ab)$, which is $ab$.</div></details></li>
+  <li><span class="lvl m">MED</span> At noon the temperature is $7°$ and drops steadily $3°$ per hour. At what time does it reach $-8°$? <details class="sol"><summary>Solution</summary><div>Total drop needed: $7 - (-8) = 15$ degrees. At $3°$/hour that takes $15/3 = 5$ hours: 5 p.m.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rational-numbers">
+ <h2>Rational numbers</h2>
+ <p>Rationals are ratios of integers — the numbers you can name with a fraction. Between any two rationals lies another (their average), so they are packed densely on the line, yet, remarkably, they still leave gaps. Hold that picture: zoom in anywhere on the line and you find rationals everywhere, like dust that settles into every crack — and still the dust misses points. The other superpower of $\mathbb{Q}$ is that it is a <em>field</em>: all four operations stay inside the system (except dividing by zero), so you can compute freely without ever leaving.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{Q} = \left\{ \tfrac{p}{q} : p, q \in \mathbb{Z},\ q \neq 0 \right\}$, with $\tfrac{p}{q} = \tfrac{r}{s}$ iff $ps = qr$. $\mathbb{Q}$ is closed under $+,-,\times$, and under $\div$ by anything nonzero: it is a <em>field</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Density: between $\tfrac{1}{3}$ and $\tfrac{1}{2}$ lies their average $\tfrac{1}{2}\!\left(\tfrac13 + \tfrac12\right) = \tfrac{1}{2}\cdot\tfrac{5}{6} = \tfrac{5}{12}$. Check: $\tfrac{4}{12} &lt; \tfrac{5}{12} &lt; \tfrac{6}{12}$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> Two fractions can be the same number in different clothes: $\tfrac{2}{4} = \tfrac{3}{6} = \tfrac{1}{2}$. A rational number is the whole equivalence class, not one pair $(p,q)$ — which is why the definition tests $ps = qr$ rather than $p = r$ and $q = s$. Code that compares fractions componentwise without reducing first has this exact bug.</div>
+ <div class="box think"><span class="label">Think first</span> A number is rational iff its decimal expansion terminates or repeats. Which is $0.101001000100001\dots$ (ones separated by ever more zeros)? <details class="sol"><summary>Reveal</summary><div>The gaps between 1s grow forever, so the expansion never settles into a repeating block: the number is irrational.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Exact rational arithmetic is what floating point (Ch 18) approximates: a <code>float</code> is really a rational with a power-of-two denominator, which is why $0.1$ cannot be stored exactly in binary.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $0.75$ as a fraction in lowest terms. <details class="sol"><summary>Solution</summary><div>$0.75 = \tfrac{75}{100} = \tfrac{3}{4}$ (divide top and bottom by 25).</div></details></li>
+  <li><span class="lvl m">MED</span> Convert $0.\overline{27}$ to a fraction. <details class="sol"><summary>Solution</summary><div>Let $x = 0.272727\dots$. Then $100x = 27.2727\dots$, so $100x - x = 27$, $x = \tfrac{27}{99} = \tfrac{3}{11}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that between any two distinct rationals there are infinitely many rationals. <details class="sol"><summary>Solution</summary><div>Given $a &lt; b$ rational, $m_1 = \tfrac{a+b}{2}$ is rational and $a &lt; m_1 &lt; b$. Repeat on $(a, m_1)$ to get $m_2$, then $(a, m_2)$, etc. Each $m_k$ is distinct (strictly decreasing) and rational, giving infinitely many.</div></details></li>
+  <li><span class="lvl m">MED</span> Which is larger, $\tfrac{7}{9}$ or $\tfrac{11}{14}$? Decide without decimals. <details class="sol"><summary>Solution</summary><div>Cross-multiply (both denominators positive): compare $7 \times 14 = 98$ with $11 \times 9 = 99$. Since $98 &lt; 99$, $\tfrac{7}{9} &lt; \tfrac{11}{14}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="irrational-numbers">
+ <h2>Irrational numbers</h2>
+ <p>Irrationals are the numbers that no fraction can name: $\sqrt{2}$, $\pi$, $e$. They are the "gaps" the rationals leave in the line. The Pythagoreans discovered $\sqrt 2$ hiding in the diagonal of a unit square — geometry forced numbers that arithmetic could not write down. And here is the twist: although you can only ever <em>name</em> countably many numbers with fractions, the gaps vastly outnumber the fractions. In a precise sense (Ch 3, cardinality), almost every real number is irrational; the rationals you compute with daily are the rare exceptions.</p>
+ <div class="box def"><span class="label">Definition</span> A real number $x$ is <em>irrational</em> if $x \notin \mathbb{Q}$: there are no integers $p,q$ ($q\ne0$) with $x = p/q$. Equivalently, its decimal expansion neither terminates nor repeats.</div>
+ <div class="box thm"><span class="label">Theorem</span> $\sqrt{2}$ is irrational.</div>
+ <div class="box ex"><span class="label">Worked example</span> Suppose $\sqrt2 = p/q$ in lowest terms. Then $p^2 = 2q^2$, so $p^2$ is even, so $p$ is even: $p = 2k$. Then $4k^2 = 2q^2 \Rightarrow q^2 = 2k^2$, so $q$ is even too — contradicting lowest terms. Hence no such fraction exists.</div>
+ <div class="box pit"><span class="label">Pitfall</span> You cannot verify irrationality by computing digits. A trillion non-repeating digits proves nothing — the pattern could start repeating at digit trillion-and-one. Irrationality is only ever established by <em>proof</em>, never by inspection. (Whether $\pi + e$ is irrational is still an open problem.)</div>
+ <div class="box link"><span class="label">Where this goes</span> This is your first proof by contradiction — the technique gets its own section in Ch 3. Irrationals also explain why computers never store $\pi$ or $\sqrt2$ exactly: floating point (Ch 18) rounds every irrational to a nearby rational.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify: $\sqrt{9}$, $\sqrt{10}$, $\tfrac{22}{7}$, $\pi$. <details class="sol"><summary>Solution</summary><div>$\sqrt9 = 3$ rational; $\sqrt{10}$ irrational (10 is not a perfect square); $\tfrac{22}{7}$ rational (a famous <em>approximation</em> of $\pi$, not $\pi$); $\pi$ irrational.</div></details></li>
+  <li><span class="lvl m">MED</span> Is the sum of two irrationals always irrational? <details class="sol"><summary>Solution</summary><div>No: $\sqrt2 + (-\sqrt2) = 0 \in \mathbb{Q}$. But rational + irrational is always irrational (if $r + x = s$ with $r,s$ rational then $x = s - r$ would be rational).</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\log_2 3$ is irrational. <details class="sol"><summary>Solution</summary><div>Suppose $\log_2 3 = p/q$ with $p,q$ positive integers. Then $2^{p/q} = 3$, so $2^p = 3^q$. The left side is even, the right side odd — impossible. Hence irrational.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that if $x$ is irrational and $r \ne 0$ is rational, then $rx$ is irrational. <details class="sol"><summary>Solution</summary><div>Suppose $rx = s$ were rational. Then $x = s/r$, a quotient of rationals with $r \ne 0$, hence rational — contradiction. So $rx$ is irrational. (Example: $\tfrac{\sqrt2}{2} = \tfrac12 \cdot \sqrt2$ is irrational.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="real-numbers">
+ <h2>Real numbers</h2>
+ <p>The reals are the rationals with every gap filled in: the complete, continuous number line. "Complete" is the key word — any quantity you can trap between ever-tighter rational bounds is itself a real number. This is what makes limits, and therefore all of calculus, possible. Think of it as a guarantee: if a process of approximation keeps narrowing in — $1.4$, $1.41$, $1.414$, $1.4142, \dots$ — completeness promises there is an actual number at the end of the tunnel. Without that promise, "the value gradient descent converges to" might simply not exist.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{R}$ is the complete ordered field: it contains $\mathbb{Q}$, and satisfies the <em>completeness axiom</em> — every nonempty set of reals that is bounded above has a least upper bound (supremum) in $\mathbb{R}$. Chain of inclusions: $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The set $S = \{x \in \mathbb{Q} : x^2 &lt; 2\}$ is bounded above (by 2), but its least upper bound $\sqrt2$ is not rational. In $\mathbb{Q}$, $S$ has no supremum; in $\mathbb{R}$ it does. That is exactly the difference between the two systems.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\infty$ is not a real number. "$x \to \infty$" is shorthand for "grows without bound," not arithmetic with an object called infinity: $\infty - \infty$ and $\tfrac{\infty}{\infty}$ have no defined value. Treating $\infty$ as a number is the fastest way to prove false things.</div>
+ <div class="box link"><span class="label">Where this goes</span> Completeness is what makes limits (Ch 7) and gradient descent's convergence arguments (Ch 15) meaningful. Note also that a computer's <code>float64</code> is a <em>finite</em> subset of $\mathbb{R}$ — Ch 18 studies exactly what breaks when the continuum gets sampled.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> True or false: every real number is either rational or irrational. <details class="sol"><summary>Solution</summary><div>True — by definition irrational means "real and not rational", so the two classes partition $\mathbb{R}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the supremum and maximum (if any) of $\{1 - \tfrac{1}{n} : n = 1, 2, 3, \dots\}$. <details class="sol"><summary>Solution</summary><div>Values: $0, \tfrac12, \tfrac23, \tfrac34, \dots$ increasing toward 1. Supremum $= 1$; no maximum, since $1 - \tfrac1n &lt; 1$ for every $n$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Using completeness, show every positive real $a$ has a square root. <details class="sol"><summary>Solution</summary><div>Let $S = \{x \ge 0 : x^2 \le a\}$. $S$ is nonempty ($0 \in S$) and bounded above (by $a+1$, since $x &gt; a+1 \Rightarrow x^2 &gt; (a+1)^2 &gt; a$... indeed $(a+1)^2 = a^2+2a+1 &gt; a$). Let $s = \sup S$. If $s^2 &lt; a$, one can pick small $\epsilon&gt;0$ with $(s+\epsilon)^2 = s^2 + 2s\epsilon + \epsilon^2 &lt; a$ (choose $\epsilon &lt; \min(1, \tfrac{a - s^2}{2s+1})$), contradicting that $s$ is an upper bound. If $s^2 &gt; a$, similarly $(s-\epsilon)^2 &gt; a$ for small $\epsilon$, so $s-\epsilon$ is a smaller upper bound — contradiction. Hence $s^2 = a$.</div></details></li>
+  <li><span class="lvl m">MED</span> Give one rational and one irrational number strictly between $1.41$ and $1.42$. <details class="sol"><summary>Solution</summary><div>Rational: $1.415$. Irrational: $\sqrt2 = 1.41421\dots$ (since $1.41^2 = 1.9881 &lt; 2$ and $1.42^2 = 2.0164 &gt; 2$). Both kinds are dense: every interval, however small, contains both.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="number-line">
+ <h2>Number line</h2>
+ <p>The number line turns numbers into geometry: each real number is a point, order is left-to-right, addition is a shift, and multiplication is a stretch (with a flip if negative). Most intuition you will ever build about inequalities, absolute value and limits lives on this one picture. Get in the habit of <em>drawing</em> it: an inequality is a shaded ray, an equation is a marked point, "between" is a segment. When a comparison feels confusing — especially with negatives — put the numbers on the line and the confusion usually evaporates.</p>
+ <div class="box def"><span class="label">Definition</span> The number line is a bijection between $\mathbb{R}$ and points of a line: fix a point for $0$, a unit length to $1$; then $x &lt; y$ iff the point for $x$ lies left of the point for $y$, and $|x - y|$ is the distance between them.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Bigger" and "further from zero" only agree for positive numbers. $-100 &lt; -1$, though $-100$ is a hundred times further out. When comparing negatives, mentally flip: the one with <em>smaller</em> magnitude wins.</div>
+ <div class="box ex"><span class="label">Worked example</span> Which is bigger, $-\tfrac{7}{3}$ or $-2.5$? Convert: $-\tfrac73 \approx -2.333$. On the line $-2.333$ sits to the <em>right</em> of $-2.5$, so $-\tfrac73 &gt; -2.5$. With negatives, larger magnitude means smaller number.</div>
+ <div class="box think"><span class="label">Think first</span> A frog starts at 0 and makes jumps of $+3$ and $-5$ in some order, seven jumps total: four of $+3$ and three of $-5$. Where does it land — and does the order matter? <details class="sol"><summary>Reveal</summary><div>Addition is commutative, so order is irrelevant: $4(3) + 3(-5) = 12 - 15 = -3$. Every route with those jumps ends at $-3$; only the <em>path</em> differs.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Two perpendicular number lines make the coordinate plane (Ch 4); $n$ of them make $\mathbb{R}^n$, the home of every vector, embedding and weight matrix from Ch 5 onward. Distance on the line generalizes to norms there.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the sliders to place $a$ and $b$ and watch $a+b$ and $a\cdot b$ move on the line.</p>
+  <canvas id="cv-numline"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="nl-a" min="-5" max="5" step="0.1" value="2"></label>
+   <label>b <input type="range" id="nl-b" min="-5" max="5" step="0.1" value="-1.5"></label>
+  </div>
+  <div class="out" id="nl-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Order from least to greatest: $0.3,\ \tfrac13,\ 0.33$. <details class="sol"><summary>Solution</summary><div>$\tfrac13 = 0.3333\dots$, so $0.3 &lt; 0.33 &lt; \tfrac13$.</div></details></li>
+  <li><span class="lvl m">MED</span> What point is exactly halfway between $-4$ and $10$? <details class="sol"><summary>Solution</summary><div>Midpoint $= \tfrac{-4 + 10}{2} = 3$. Check: distance to each end is 7. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all $x$ whose distance to 2 is twice its distance to $-1$. <details class="sol"><summary>Solution</summary><div>$|x-2| = 2|x+1|$. Square both sides: $x^2 -4x +4 = 4(x^2+2x+1) \Rightarrow 3x^2 + 12x = 0 \Rightarrow 3x(x+4) = 0$, so $x = 0$ or $x = -4$. Check $x=0$: $2 = 2\cdot1$ ✓. Check $x=-4$: $6 = 2\cdot3$ ✓.</div></details></li>
+  <li><span class="lvl m">MED</span> The point $p$ divides the segment from $2$ to $14$ in the ratio $1:3$ (measuring from $2$). Where is $p$? <details class="sol"><summary>Solution</summary><div>The segment has length 12; one part out of $1+3 = 4$ parts is 3. So $p = 2 + 3 = 5$. Check: $5 - 2 = 3$ and $14 - 5 = 9$, ratio $3:9 = 1:3$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="order-of-operations">
+ <h2>Order of operations</h2>
+ <p>An expression like $2 + 3 \times 4$ is ambiguous until we agree who goes first. The convention — parentheses, exponents, multiplication/division left-to-right, addition/subtraction left-to-right — is a parsing rule, the same kind of rule a compiler uses to read code. There is nothing deep here, and that is the point: it is a shared protocol, like driving on the right. What <em>is</em> worth internalizing is the tree picture — every expression is secretly a tree, with the last-performed operation at the root, and precedence just tells you how to rebuild the tree from a flat line of symbols. When in doubt, add parentheses; they cost nothing and remove all ambiguity.</p>
+ <div class="box def"><span class="label">Definition</span> Evaluation precedence: (1) parentheses/grouping innermost first, (2) exponents (right-to-left), (3) $\times$ and $\div$ at equal rank, left to right, (4) $+$ and $-$ at equal rank, left to right.</div>
+ <div class="box ex"><span class="label">Worked example</span> $8 - 2 \times 3^2 + (4+2)\div 3$. Parentheses: $(4+2)=6$. Exponent: $3^2 = 9$. Multiply/divide left-to-right: $2\times9 = 18$, $6\div3 = 2$. Then $8 - 18 + 2 = -8$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Division and multiplication are the <em>same</em> rank: $8 \div 4 \times 2 = 2 \times 2 = 4$, not $8 \div 8 = 1$. Also exponents stack right-to-left: $2^{3^2} = 2^9 = 512$, not $8^2 = 64$.</div>
+ <div class="box link"><span class="label">Where this goes</span> The expression tree hiding under precedence becomes explicit as the computational graph of Ch 8: automatic differentiation is nothing but walking that tree, and the chain rule is applied in exactly the order the parser built it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $5 + 2 \times 6$. <details class="sol"><summary>Solution</summary><div>$2\times6 = 12$, then $5 + 12 = 17$.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate $18 \div 3 \times 2 - 4^2$. <details class="sol"><summary>Solution</summary><div>$18\div3 = 6$, $6\times2 = 12$; $4^2 = 16$; $12 - 16 = -4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Insert one pair of parentheses into $2 + 3 \times 4 - 1$ to make it equal 19. <details class="sol"><summary>Solution</summary><div>$(2+3)\times4 - 1 = 20 - 1 = 19$.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate $2^{2^3}$ and $(2^2)^3$. Why do they differ? <details class="sol"><summary>Solution</summary><div>Exponents associate right-to-left: $2^{2^3} = 2^8 = 256$, while $(2^2)^3 = 4^3 = 64$. The convention exists because $(a^b)^c$ already has the shorter name $a^{bc}$, so the tower notation is reserved for the other reading.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">What is $6 \div 2(1+2)$ under the standard left-to-right convention?</div><button class="opt">1</button><button class="opt">9</button><button class="opt">6</button><div class="why" hidden>$(1+2)=3$; then $6 \div 2 \times 3$ runs left to right: $3 \times 3 = 9$. The viral ambiguity comes from treating $2(3)$ as tighter-binding than $\div$ — the standard convention does not.</div></div>
+</section>
+
+<section class="topic" id="factors">
+ <h2>Factors</h2>
+ <p>A factor of $n$ is a number that divides $n$ cleanly — no remainder. Factors are how a number decomposes multiplicatively; listing them is like finding all the rectangular arrangements of $n$ dots: 12 dots make a $1\times12$, $2\times6$, or $3\times4$ rectangle, so 12 has factors $1,2,3,4,6,12$. The pairing trick in the example below — every factor below $\sqrt n$ has a partner above it — is your first example of exploiting <em>structure</em> to halve a search, a move you will make constantly in algorithms.</p>
+ <div class="box def"><span class="label">Definition</span> For integers $a, n$ with $a \neq 0$: $a$ <em>divides</em> $n$ (written $a \mid n$) if $n = a k$ for some integer $k$. Then $a$ is a factor (divisor) of $n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Factors of 36: pair them up to $\sqrt{36}=6$: $(1,36), (2,18), (3,12), (4,9), (6,6)$. So the factors are $1,2,3,4,6,9,12,18,36$ — nine of them. (Perfect squares always have an odd number of factors, because one pair collapses.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Quick divisibility tests, all consequences of place value: a number is divisible by 2 or 5 by its last digit, by 4 by its last two digits, by 3 or 9 when its digit sum is (because $10 \equiv 1$ mod 3 and mod 9). Test 4572: digit sum $4+5+7+2 = 18$, divisible by 9, so $4572 = 9 \times 508$. Last two digits 72 divisible by 4, so 4 divides it too.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Factor" and "prime factor" are different questions. 36 has nine factors but only two prime factors ($2$ and $3$). And $1$ divides everything but is never counted as a prime factor.</div>
+ <div class="box link"><span class="label">Where this goes</span> Divisibility structure becomes modular arithmetic in Ch 3; the fact that factoring large numbers is <em>hard</em> while multiplying is easy is the asymmetry behind RSA cryptography and relates to hash-function design.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List all factors of 28. <details class="sol"><summary>Solution</summary><div>$1, 2, 4, 7, 14, 28$. (Fun: $1+2+4+7+14 = 28$ — a perfect number.)</div></details></li>
+  <li><span class="lvl m">MED</span> How many factors does $360 = 2^3 \cdot 3^2 \cdot 5$ have? <details class="sol"><summary>Solution</summary><div>Each factor picks an exponent for each prime: $(3{+}1)(2{+}1)(1{+}1) = 24$ factors.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $a \mid b$ and $a \mid c$, then $a \mid (mb + nc)$ for any integers $m, n$. <details class="sol"><summary>Solution</summary><div>Write $b = ak$, $c = al$. Then $mb + nc = m(ak) + n(al) = a(mk + nl)$, an integer multiple of $a$. This "divides any linear combination" fact powers the Euclidean algorithm below.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the smallest positive integer with exactly 5 factors. <details class="sol"><summary>Solution</summary><div>The factor count $(a_1{+}1)(a_2{+}1)\cdots$ equals 5, a prime, only as $5 = 5$: one prime to the 4th power. Smallest: $2^4 = 16$. Check its factors: $1, 2, 4, 8, 16$ — exactly five.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multiples">
+ <h2>Multiples</h2>
+ <p>Multiples run the other direction from factors: the multiples of $n$ are the numbers $n$ divides. They form an evenly spaced ladder $n, 2n, 3n, \dots$ up the number line — the skeleton on which modular arithmetic and periodicity are built. Anything that repeats on a fixed cycle — clock hands, batch boundaries in a training loop, every 4th year being a leap year — is really a statement about multiples. Counting multiples in a range is the floor-function trick $\lfloor N/n \rfloor$, and combining several cycles is inclusion–exclusion: two ideas you will reuse in counting (Ch 3) and probability (Ch 11).</p>
+ <div class="box def"><span class="label">Definition</span> The multiples of $n$ are $\{kn : k \in \mathbb{Z}\}$. Note the duality: $a$ is a factor of $b$ $\iff$ $b$ is a multiple of $a$.</div>
+ <div class="box ex"><span class="label">Worked example</span> How many multiples of 7 lie between 1 and 100? The largest is $\lfloor 100/7 \rfloor \cdot 7 = 14 \cdot 7 = 98$, so there are 14: $7, 14, \dots, 98$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Counting in a range: how many multiples of 7 lie in $[200, 500]$? First one at or above 200: $\lceil 200/7 \rceil = 29$, giving $203$. Last one at or below 500: $\lfloor 500/7 \rfloor = 71$, giving $497$. Count $= 71 - 29 + 1 = 43$. (The $+1$ is the classic fencepost: a range of indices from 29 to 71 inclusive has $71-29+1$ entries, not $71-29$.)</div>
+ <div class="box think"><span class="label">Think first</span> Is $0$ a multiple of $7$? Is $-14$? <details class="sol"><summary>Reveal</summary><div>Yes to both: $0 = 0 \cdot 7$ and $-14 = (-2)\cdot 7$, and the definition allows any integer $k$. "Multiples of $n$" is the full two-sided ladder $\{\dots,-2n,-n,0,n,2n,\dots\}$; only in casual counting problems do we restrict to positive ones.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> "Same multiple-ladder rung" becomes congruence mod $n$ in Ch 3 — the arithmetic of hash buckets, cyclic learning-rate schedules and positional wraparound.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List the first five positive multiples of 12. <details class="sol"><summary>Solution</summary><div>$12, 24, 36, 48, 60$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many multiples of 6 lie strictly between 100 and 200? <details class="sol"><summary>Solution</summary><div>First: $102 = 6\cdot17$; last: $198 = 6\cdot33$. Count $= 33 - 17 + 1 = 17$.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many integers from 1 to 1000 are multiples of 3 or 5? <details class="sol"><summary>Solution</summary><div>Inclusion–exclusion: $\lfloor 1000/3\rfloor + \lfloor 1000/5\rfloor - \lfloor 1000/15\rfloor = 333 + 200 - 66 = 467$.</div></details></li>
+  <li><span class="lvl m">MED</span> What is the smallest positive multiple of 9 whose digits are all even? <details class="sol"><summary>Solution</summary><div>Multiples of 9 have digit sum divisible by 9; all-even digits give an even digit sum, so the digit sum must be a multiple of 18. Two even digits sum to at most 16, so we need at least three digits summing to 18. Smallest such number: leading digit small, e.g. $2,8,8 \to 288 = 9 \times 32$. Nothing smaller works (three-digit candidates below 288 with even digits: 200–286, digit sums at most $2+8+6=16 &lt; 18$). Answer: 288.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="prime-numbers">
+ <h2>Prime numbers</h2>
+ <p>Primes are the atoms of multiplication: numbers greater than 1 whose only factors are 1 and themselves. Every integer factors into primes in exactly one way — the periodic table of arithmetic. Their apparent randomness underlies modern cryptography. Hold both halves of that paradox: individually the primes look lawless (nobody can predict the next gap), yet collectively they obey clean statistics — about $n/\ln n$ of them lie below $n$. That "chaotic locally, regular globally" character is your first taste of a theme that returns with random variables and concentration in Ch 11.</p>
+ <div class="box def"><span class="label">Definition</span> $p &gt; 1$ is <em>prime</em> if its only positive divisors are $1$ and $p$. Otherwise (and $&gt;1$) it is <em>composite</em>. $1$ is neither.</div>
+ <div class="box thm"><span class="label">Theorem (Fundamental Theorem of Arithmetic)</span> Every integer $n &gt; 1$ has a unique factorization into primes, up to order: $n = p_1^{a_1} p_2^{a_2} \cdots p_k^{a_k}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Factor 924: $924 = 2 \cdot 462 = 2^2 \cdot 231 = 2^2 \cdot 3 \cdot 77 = 2^2 \cdot 3 \cdot 7 \cdot 11$. Check: $4 \cdot 3 \cdot 7 \cdot 11 = 12 \cdot 77 = 924$. ✓</div>
+ <div class="box think"><span class="label">Think first</span> Are there infinitely many primes? Try to argue it before revealing. <details class="sol"><summary>Reveal</summary><div>Euclid: suppose $p_1,\dots,p_k$ were all the primes. Let $N = p_1 p_2 \cdots p_k + 1$. Each $p_i$ leaves remainder 1 dividing $N$, so $N$'s prime factors are new primes — contradiction.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Hash tables use prime moduli to spread keys evenly; RSA encryption rests on multiplying two large primes being easy while recovering them is infeasible; and unique factorization is why "min/max of exponents" computes gcd and lcm two sections from here.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $n$ to run the Sieve of Eratosthenes up to $n$ and watch composites get crossed out.</p>
+  <canvas id="cv-sieve"></canvas>
+  <div class="ctl"><label>n <input type="range" id="sv-n" min="20" max="400" step="1" value="120"></label></div>
+  <div class="out" id="sv-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List the primes below 30. <details class="sol"><summary>Solution</summary><div>$2, 3, 5, 7, 11, 13, 17, 19, 23, 29$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is 221 prime? <details class="sol"><summary>Solution</summary><div>Trial divide by primes up to $\sqrt{221} \approx 14.9$: not by 2, 3, 5, 7, 11; $221 = 13 \times 17$. Composite.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $n$ is composite, it has a prime factor $\le \sqrt n$. <details class="sol"><summary>Solution</summary><div>Write $n = ab$ with $1 &lt; a \le b$. If $a &gt; \sqrt n$ then $b \ge a &gt; \sqrt n$ gives $ab &gt; n$, contradiction. So $a \le \sqrt n$, and any prime factor of $a$ is $\le \sqrt n$. This is why trial division stops at $\sqrt n$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find a run of five consecutive composite numbers below 100. <details class="sol"><summary>Solution</summary><div>$24, 25, 26, 27, 28$ works ($24 = 2^3\cdot3$, $25 = 5^2$, $26 = 2\cdot13$, $27 = 3^3$, $28 = 2^2\cdot7$). So does $90$–$96$, a run of seven. In general $n!+2, \dots, n!+n$ gives arbitrarily long runs: prime gaps can be as large as you like.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="greatest-common-divisor">
+ <h2>Greatest common divisor</h2>
+ <p>The GCD of two numbers is the largest number dividing both — the biggest common building block. The Euclidean algorithm finds it by repeatedly replacing the larger number with a remainder, one of the oldest and most beautiful algorithms in existence. Picture tiling an $a \times b$ rectangle with the largest possible square tiles: cut off $b \times b$ squares until a smaller rectangle remains, then recurse — the final tile size is $\gcd(a,b)$. The remainders shrink fast (they at least halve every two steps), so even for thousand-digit numbers Euclid finishes in a few thousand steps. Factoring, by contrast, would take longer than the age of the universe — same answer, wildly different cost.</p>
+ <div class="box def"><span class="label">Definition</span> $\gcd(a,b)$ is the largest positive integer dividing both $a$ and $b$. Euclid's rule: $\gcd(a, b) = \gcd(b,\ a \bmod b)$, with $\gcd(a, 0) = a$. If $\gcd(a,b) = 1$, $a$ and $b$ are <em>coprime</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\gcd(252, 198)$: $252 = 1\cdot198 + 54$; $198 = 3\cdot54 + 36$; $54 = 1\cdot36 + 18$; $36 = 2\cdot18 + 0$. So $\gcd = 18$. Via primes: $252 = 2^2 3^2 7$, $198 = 2 \cdot 3^2 \cdot 11$; common part $2 \cdot 3^2 = 18$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Coprime" does not mean "both prime": $\gcd(8, 9) = 1$ though neither is prime. And $\gcd(a, 0) = a$, not 0 — every number divides 0.</div>
+ <div class="box link"><span class="label">Where this goes</span> GCD reduces fractions to lowest terms below, and the "min of exponents" view pairs with LCM's "max of exponents". The extended Euclidean algorithm (Ch 3) turns the same remainder chain into modular inverses — the engine room of RSA.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find $\gcd(24, 36)$. <details class="sol"><summary>Solution</summary><div>Divisors of 24 shared with 36: $12$ works, nothing bigger does. $\gcd = 12$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use the Euclidean algorithm on $\gcd(1071, 462)$. <details class="sol"><summary>Solution</summary><div>$1071 = 2\cdot462 + 147$; $462 = 3\cdot147 + 21$; $147 = 7\cdot21 + 0$. $\gcd = 21$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove Euclid's rule: $\gcd(a,b) = \gcd(b, r)$ where $a = qb + r$. <details class="sol"><summary>Solution</summary><div>Any common divisor $d$ of $a,b$ divides $r = a - qb$ (linear combination), so $d$ is a common divisor of $b, r$. Conversely any common divisor of $b, r$ divides $a = qb + r$. The two pairs share the same set of common divisors, hence the same greatest one.</div></details></li>
+  <li><span class="lvl m">MED</span> A florist has 84 roses and 60 tulips and wants identical bouquets using every flower. What is the largest possible number of bouquets, and what is in each? <details class="sol"><summary>Solution</summary><div>The number of bouquets must divide both 84 and 60: the most is $\gcd(84, 60)$. Euclid: $84 = 1\cdot60 + 24$; $60 = 2\cdot24 + 12$; $24 = 2\cdot12 + 0$. So 12 bouquets, each with $84/12 = 7$ roses and $60/12 = 5$ tulips.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="least-common-multiple">
+ <h2>Least common multiple</h2>
+ <p>The LCM is the first place two ladders of multiples meet: the smallest number both divide. Two gears with 8 and 12 teeth return to their starting alignment after lcm(8,12) = 24 teeth pass. It is the natural "common denominator" machine. The identity $\gcd \cdot \operatorname{lcm} = ab$ is worth a picture too: $ab$ counts the common building block twice over, once too many, and dividing by the gcd removes the double-count — the multiplicative cousin of inclusion–exclusion. In practice you never search for the lcm; you compute the gcd fast with Euclid and read the lcm off the identity.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{lcm}(a,b)$ is the smallest positive integer that is a multiple of both $a$ and $b$. Key identity: $\gcd(a,b)\cdot\operatorname{lcm}(a,b) = |ab|$. In prime exponents, gcd takes the min, lcm takes the max of each exponent.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\operatorname{lcm}(12, 18)$: $\gcd(12,18) = 6$, so $\operatorname{lcm} = \tfrac{12 \cdot 18}{6} = 36$. Prime view: $12 = 2^2 3$, $18 = 2\,3^2$; max exponents give $2^2 3^2 = 36$. ✓</div>
+ <div class="box think"><span class="label">Think first</span> Can $\operatorname{lcm}(a,b)$ ever be <em>smaller</em> than both $a$ and $b$? Smaller than one of them? <details class="sol"><summary>Reveal</summary><div>Never smaller than either: the lcm is a positive multiple of both $a$ and $b$, so $\operatorname{lcm}(a,b) \ge \max(a,b)$. It <em>equals</em> $\max(a,b)$ exactly when the smaller divides the larger, e.g. $\operatorname{lcm}(4, 12) = 12$.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> $\operatorname{lcm}(a,b)$ is <em>not</em> usually $ab$ — only when $a, b$ are coprime. $\operatorname{lcm}(4, 6) = 12$, not 24.</div>
+ <div class="box link"><span class="label">Where this goes</span> Common denominators for fractions (next section) are lcms in disguise; synchronized periodic events — cron jobs, gear trains, cyclic schedules — recur at the lcm of their periods, a pattern the capstone exploits.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find $\operatorname{lcm}(6, 8)$. <details class="sol"><summary>Solution</summary><div>Multiples of 8: 8, 16, 24… and $24$ is divisible by 6. $\operatorname{lcm} = 24$. (Or $\tfrac{6\cdot8}{\gcd(6,8)} = \tfrac{48}{2} = 24$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Buses A and B leave a stop together; A returns every 12 min, B every 20 min. When do they next coincide? <details class="sol"><summary>Solution</summary><div>$\operatorname{lcm}(12,20)$: $\gcd = 4$, so lcm $= 240/4 = 60$ minutes.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\gcd(a,b)\cdot \operatorname{lcm}(a,b) = ab$ for positive integers using prime exponents. <details class="sol"><summary>Solution</summary><div>For each prime $p$, let $a$ carry exponent $\alpha$, $b$ carry $\beta$. gcd carries $\min(\alpha,\beta)$, lcm carries $\max(\alpha,\beta)$, and $\min + \max = \alpha + \beta$, the exponent in $ab$. Since this holds prime by prime, the products match.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the smallest positive integer divisible by every number from 1 to 10. <details class="sol"><summary>Solution</summary><div>Take the max prime power at or below 10 for each prime: $2^3, 3^2, 5, 7$. Product: $8 \times 9 \times 5 \times 7 = 2520$. (Including 6, 8, 9, 10 as divisors is automatic once those prime powers are present.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fractions">
+ <h2>Fractions</h2>
+ <p>A fraction $\tfrac{a}{b}$ says: cut a whole into $b$ equal parts and take $a$ of them. Adding fractions requires cutting both wholes into the same-size parts first — that is all a common denominator is. Multiplying is taking a fraction <em>of</em> a fraction; dividing asks how many times one piece fits in another. Even "invert and multiply" has a picture: dividing by $\tfrac12$ asks how many half-pieces fit, and twice as many half-pieces fit as whole ones, so dividing by $\tfrac12$ doubles. Every fraction rule earns its keep this way — none of them needs to be memorized as magic.</p>
+ <div class="box def"><span class="label">Definition</span> For $b, d \neq 0$: $\ \tfrac{a}{b} + \tfrac{c}{d} = \tfrac{ad + bc}{bd}$; $\ \tfrac{a}{b}\cdot\tfrac{c}{d} = \tfrac{ac}{bd}$; $\ \tfrac{a}{b} \div \tfrac{c}{d} = \tfrac{a}{b}\cdot\tfrac{d}{c}$ ($c \ne 0$). A fraction is in lowest terms when $\gcd(a,b) = 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\tfrac{3}{4} + \tfrac{5}{6}$: $\operatorname{lcm}(4,6) = 12$, so $\tfrac{9}{12} + \tfrac{10}{12} = \tfrac{19}{12}$. And $\tfrac{3}{4} \div \tfrac{5}{6} = \tfrac{3}{4}\cdot\tfrac{6}{5} = \tfrac{18}{20} = \tfrac{9}{10}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\tfrac{a}{b} + \tfrac{c}{d} \neq \tfrac{a+c}{b+d}$. Test it: $\tfrac12 + \tfrac12 = 1$, but $\tfrac{1+1}{2+2} = \tfrac12$. Never add tops and bottoms.</div>
+ <div class="box link"><span class="label">Where this goes</span> Probabilities (Ch 11) are fractions — favorable counts over total counts — and conditional probability is literally a fraction of a fraction. Softmax outputs and attention weights are fractions of a total, too.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Set the two fractions and watch the common-denominator bars align for the sum.</p>
+  <canvas id="cv-frac"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="fr-a" min="1" max="8" step="1" value="3"></label>
+   <label>b <input type="range" id="fr-b" min="2" max="9" step="1" value="4"></label>
+   <label>c <input type="range" id="fr-c" min="1" max="8" step="1" value="5"></label>
+   <label>d <input type="range" id="fr-d" min="2" max="9" step="1" value="6"></label>
+  </div>
+  <div class="out" id="fr-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify $\tfrac{42}{56}$. <details class="sol"><summary>Solution</summary><div>$\gcd(42,56) = 14$: $\tfrac{42}{56} = \tfrac{3}{4}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\tfrac{2}{3} - \tfrac{3}{5} + \tfrac{1}{15}$. <details class="sol"><summary>Solution</summary><div>Denominator 15: $\tfrac{10}{15} - \tfrac{9}{15} + \tfrac{1}{15} = \tfrac{2}{15}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Simplify the compound fraction $\dfrac{\tfrac{1}{2} + \tfrac{1}{3}}{\tfrac{1}{2} - \tfrac{1}{3}}$. <details class="sol"><summary>Solution</summary><div>Numerator $= \tfrac{5}{6}$, denominator $= \tfrac{1}{6}$; ratio $= \tfrac{5}{6}\cdot 6 = 5$. (Shortcut: multiply top and bottom by 6.)</div></details></li>
+  <li><span class="lvl m">MED</span> A recipe needs $\tfrac{2}{3}$ cup of sugar per batch. You have $2\tfrac{1}{2}$ cups. How many full batches, and how much sugar is left over? <details class="sol"><summary>Solution</summary><div>$\tfrac{5}{2} \div \tfrac{2}{3} = \tfrac{5}{2}\cdot\tfrac{3}{2} = \tfrac{15}{4} = 3.75$: three full batches. Used: $3 \times \tfrac23 = 2$ cups; left over: $\tfrac52 - 2 = \tfrac12$ cup.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">What is $\tfrac{1}{2} \div 2$?</div><button class="opt">$\tfrac14$</button><button class="opt">$1$</button><button class="opt">$\tfrac12$</button><div class="why" hidden>Dividing by 2 halves: $\tfrac12 \cdot \tfrac12 = \tfrac14$. The classic slip is confusing this with $\tfrac12 \div \tfrac12 = 1$. Rule of thumb: dividing by a number greater than 1 shrinks, dividing by a number between 0 and 1 grows.</div></div>
+</section>
+
+<section class="topic" id="decimal-representation">
+ <h2>Decimal representation</h2>
+ <p>A decimal is a place-value sum: each digit multiplies a power of 10, with negative powers to the right of the point. A fraction's decimal terminates exactly when its reduced denominator has only 2s and 5s (the primes of 10); otherwise it repeats forever. Why must it repeat? Do the long division: each step produces a remainder between $0$ and $q-1$, so within $q$ steps some remainder recurs — and from that moment the digits replay exactly. The decimal point is an accident of ten fingers; base 2 works identically with 2 in place of 10, and that switch is precisely where floating-point surprises come from.</p>
+ <div class="box def"><span class="label">Definition</span> $d_k d_{k-1}\dots d_0 . d_{-1} d_{-2}\dots$ means $\sum_i d_i \cdot 10^i$. A reduced fraction $\tfrac{p}{q}$ terminates iff $q = 2^a 5^b$; otherwise its expansion is eventually periodic with period dividing the order of 10 mod the 2,5-free part of $q$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\tfrac{7}{8}$: $8 = 2^3$, so it terminates: $\tfrac{7}{8} = \tfrac{7 \cdot 125}{1000} = 0.875$. $\tfrac{5}{12}$: $12 = 2^2\cdot3$ has a 3, so it repeats: $5 \div 12 = 0.41666\dots = 0.41\overline{6}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $0.\overline{9} = 1$ exactly, not "just below 1": if $x = 0.999\dots$ then $10x - x = 9$, so $x = 1$. Two decimal names, one number.</div>
+ <div class="box link"><span class="label">Where this goes</span> In base 2 the criterion becomes "denominator a power of 2": $\tfrac{1}{10}$ repeats forever in binary, which is why <code>0.1 + 0.2 != 0.3</code> in every programming language. Ch 18 (floating point) is this section wearing a hardware costume.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $\tfrac{3}{20}$ as a decimal. <details class="sol"><summary>Solution</summary><div>$\tfrac{3}{20} = \tfrac{15}{100} = 0.15$.</div></details></li>
+  <li><span class="lvl m">MED</span> Does $\tfrac{9}{60}$ terminate? <details class="sol"><summary>Solution</summary><div>Reduce first! $\tfrac{9}{60} = \tfrac{3}{20}$, and $20 = 2^2 \cdot 5$: terminates, $= 0.15$. (The unreduced 60 contains a 3 — a trap.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Convert $2.3\overline{45}$ to a fraction. <details class="sol"><summary>Solution</summary><div>Let $x = 2.3454545\dots$. $10x = 23.454545\dots$, $1000x = 2345.4545\dots$. Subtract: $990x = 2322$, so $x = \tfrac{2322}{990} = \tfrac{129}{55}$ (divide by 18). Check: $\tfrac{129}{55} = 2.34545\dots$ ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Without dividing, how long can the repeating block of $\tfrac{1}{13}$ possibly be? Then find it. <details class="sol"><summary>Solution</summary><div>Remainders in long division by 13 lie in $\{1,\dots,12\}$, so the period is at most 12. Dividing: $1/13 = 0.\overline{076923}$ — period 6, which indeed divides 12.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="percentages">
+ <h2>Percentages</h2>
+ <p>"Percent" is just "per hundred": a fraction with a fixed denominator of 100, chosen because humans compare hundredths easily. Every percentage problem is one multiplication once you translate "of" into "×" and $p\%$ into $p/100$. The single most useful habit: think in <em>multipliers</em>, not in percents. "Up 30%" is $\times 1.3$; "down 15%" is $\times 0.85$; a sequence of changes is a product of multipliers. Multipliers compose, commute and invert cleanly — percents do none of those things, which is why headlines get them wrong so often.</p>
+ <div class="box def"><span class="label">Definition</span> $p\% = \tfrac{p}{100}$. Increase by $p\%$: multiply by $1 + \tfrac{p}{100}$. Decrease by $p\%$: multiply by $1 - \tfrac{p}{100}$. Percent change from $a$ to $b$: $\tfrac{b-a}{a} \times 100\%$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A \$80 item is marked up 25%, then discounted 25%. Final price: $80 \times 1.25 \times 0.75 = 80 \times 0.9375 = \$75$ — not \$80, because the 25% off applies to the <em>larger</em> base.</div>
+ <div class="box ex"><span class="label">Worked example</span> Reverse percentage: a jacket costs \$126 <em>after</em> a 30% discount. Original price? The tag shows $0.7$ of the original, so original $= 126 / 0.7 = \$180$. The common error — adding 30% back to get $126 \times 1.3 = \$163.80$ — fails because the 30% was taken of the larger original, not of \$126.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Percentage changes don't add: $+25\%$ then $-25\%$ is $\times 1.25 \times 0.75 = \times 0.9375$, a net $-6.25\%$. Chain multipliers, never add percents. Also distinguish <em>percent</em> from <em>percentage points</em>: accuracy moving from 90% to 93% is a rise of 3 percentage points but $\tfrac{3}{90} \approx 3.3\%$ relative — and a $30\%$ drop in the error rate (10% → 7%).</div>
+ <div class="box think"><span class="label">Think first</span> A stock falls 50% one year and rises 50% the next. Is the owner back to even? <details class="sol"><summary>Reveal</summary><div>No: $\times 0.5 \times 1.5 = \times 0.75$ — still down 25%. Symmetric percent moves are not symmetric in value, because the second change acts on a different base. (This asymmetry is why losses hurt portfolios more than equal-percent gains help.)</div></details></div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Apply two successive percent changes and see the true combined multiplier versus naive addition.</p>
+  <canvas id="cv-pct"></canvas>
+  <div class="ctl">
+   <label>change 1 % <input type="range" id="pc-a" min="-50" max="100" step="1" value="25"></label>
+   <label>change 2 % <input type="range" id="pc-b" min="-50" max="100" step="1" value="-25"></label>
+  </div>
+  <div class="out" id="pc-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is 15% of 240? <details class="sol"><summary>Solution</summary><div>$0.15 \times 240 = 36$.</div></details></li>
+  <li><span class="lvl m">MED</span> A price rises from \$60 to \$75. What is the percent increase? <details class="sol"><summary>Solution</summary><div>$\tfrac{75-60}{60} = \tfrac{15}{60} = 0.25 = 25\%$.</div></details></li>
+  <li><span class="lvl h">HARD</span> After a 20% drop, what percent gain restores the original value? <details class="sol"><summary>Solution</summary><div>Value is now $0.8V$; need multiplier $m$ with $0.8Vm = V$, so $m = 1.25$: a $25\%$ gain. In general, a $p\%$ drop needs a $\tfrac{p}{100-p}\times100\%$ recovery.</div></details></li>
+  <li><span class="lvl m">MED</span> A model's accuracy improves from 88% to 92%. Report the change three ways: in percentage points, as a relative improvement in accuracy, and as a relative reduction in error rate. <details class="sol"><summary>Solution</summary><div>Points: $+4$. Relative accuracy: $\tfrac{4}{88} \approx 4.5\%$. Error rate falls from 12% to 8%: a $\tfrac{4}{12} \approx 33\%$ reduction. All three describe the same result — papers quote whichever sounds best, so read carefully.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ratios">
+ <h2>Ratios</h2>
+ <p>A ratio compares quantities by division rather than subtraction: 2 parts flour to 3 parts water stays "2 : 3" whether you make a cup or a barrel. Ratios are scale-free — the earliest form of a "shape of data" separate from its size. The working method for almost every ratio problem is the same three steps: count the parts, find the size of one part, multiply. It feels almost too simple, and that is why it generalizes: normalizing a vector, converting counts to probabilities, and splitting a budget are all "find the size of one part" in costume.</p>
+ <div class="box def"><span class="label">Definition</span> The ratio $a : b$ (with $b \ne 0$) is the equivalence class of pairs under scaling: $a : b = ka : kb$ for $k \neq 0$. It is captured by the single number $\tfrac{a}{b}$. Ratios extend to three or more parts: $a : b : c$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Split \$1400 in the ratio $2 : 5$. Total parts $= 7$, each part $= \$200$; shares are $\$400$ and $\$1000$. Check: $400 : 1000 = 2 : 5$ ✓ and $400 + 1000 = 1400$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A ratio of $2 : 3$ between two parts means the first is $\tfrac{2}{5}$ of the <em>total</em>, not $\tfrac{2}{3}$ of it. Part-to-part and part-to-whole are different fractions; mixing them up is the standard ratio error.</div>
+ <div class="box link"><span class="label">Where this goes</span> Odds in probability (Ch 11) are ratios ($2:1$ odds means probability $\tfrac23$), and likelihood ratios drive Bayesian updating there. Scale-free comparison returns as cosine similarity between embeddings in Ch 5.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify the ratio $18 : 24$. <details class="sol"><summary>Solution</summary><div>Divide by $\gcd = 6$: $3 : 4$.</div></details></li>
+  <li><span class="lvl m">MED</span> Concrete uses cement, sand, gravel in $1 : 2 : 4$. How much sand for 3.5 m³ of mix? <details class="sol"><summary>Solution</summary><div>7 parts total; sand is $\tfrac{2}{7} \times 3.5 = 1$ m³.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $a : b = 3 : 4$ and $b : c = 6 : 5$, find $a : b : c$. <details class="sol"><summary>Solution</summary><div>Scale to a common $b$: lcm(4, 6) = 12. First ratio ×3: $9 : 12$; second ×2: $12 : 10$. So $a : b : c = 9 : 12 : 10$.</div></details></li>
+  <li><span class="lvl m">MED</span> A dataset has positive and negative examples in ratio $1 : 9$. You want $1 : 3$ by removing negatives only. What fraction of the negatives must go? <details class="sol"><summary>Solution</summary><div>Per 1 positive there are 9 negatives; the target is 3 negatives per positive. Remove $9 - 3 = 6$ of every 9: $\tfrac{6}{9} = \tfrac23$ of the negatives.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="proportions">
+ <h2>Proportions</h2>
+ <p>A proportion asserts two ratios are equal: $\tfrac{a}{b} = \tfrac{c}{d}$. It is the mathematics of "scales the same way" — maps, recipes, similar triangles. Cross-multiplication converts a proportion into an equation you can solve. Direct proportion $y = kx$ is the simplest possible relationship between two quantities — a straight line through the origin — and the constant $k$ is its entire personality. Before assuming a proportion holds, always ask: does doubling one input really double the output? Cooking time doesn't double when a roast doubles; that question is the whole modeling skill.</p>
+ <div class="box def"><span class="label">Definition</span> $\tfrac{a}{b} = \tfrac{c}{d} \iff ad = bc$ (for $b, d \ne 0$). $y$ is <em>directly proportional</em> to $x$ if $y = kx$; <em>inversely proportional</em> if $y = k/x$, for a constant $k$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 3 cm map segment represents 45 km. How far is a 7.2 cm segment? $\tfrac{45}{3} = \tfrac{x}{7.2} \Rightarrow x = \tfrac{45 \times 7.2}{3} = 108$ km. The cleanest mental route: find the unit rate first ($15$ km per cm), then scale ($15 \times 7.2 = 108$).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Not everything is proportional. If 3 workers finish in 10 days, 6 workers do <em>not</em> take 20 days — work is inversely proportional to workers: $6$ workers take $5$ days (same worker-days, 30).</div>
+ <div class="box link"><span class="label">Where this goes</span> "$y = kx$" is linearity, the star of Chs 2 and 5 (linear maps are proportions in many dimensions at once), and "locally proportional" is exactly what a derivative asserts in Ch 7: $\Delta y \approx f'(x)\,\Delta x$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $\tfrac{x}{12} = \tfrac{5}{4}$. <details class="sol"><summary>Solution</summary><div>$x = \tfrac{5 \times 12}{4} = 15$.</div></details></li>
+  <li><span class="lvl m">MED</span> $y$ is inversely proportional to $x$, and $y = 8$ when $x = 3$. Find $y$ when $x = 12$. <details class="sol"><summary>Solution</summary><div>$k = xy = 24$; $y = 24/12 = 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $\tfrac{a}{b} = \tfrac{c}{d}$, prove $\tfrac{a+b}{b} = \tfrac{c+d}{d}$. <details class="sol"><summary>Solution</summary><div>$\tfrac{a+b}{b} = \tfrac{a}{b} + 1 = \tfrac{c}{d} + 1 = \tfrac{c+d}{d}$. (Called componendo — adding the whole to a part preserves proportion.)</div></details></li>
+  <li><span class="lvl m">MED</span> A photo 4 in wide and 6 in tall is enlarged so its width becomes 10 in. What is the new height, and by what factor did the <em>area</em> grow? <details class="sol"><summary>Solution</summary><div>Height scales the same way: $\tfrac{6}{4} = \tfrac{h}{10} \Rightarrow h = 15$ in. Lengths scaled by $\tfrac{10}{4} = 2.5$, so area scaled by $2.5^2 = 6.25$: from 24 in² to 150 in². Area grows with the <em>square</em> of the length factor.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rates">
+ <h2>Rates</h2>
+ <p>A rate is a ratio of two <em>different</em> kinds of quantity: kilometers per hour, tokens per second, dollars per kilogram. The word "per" always means division. Rates are the arithmetic ancestor of the derivative — the instantaneous rate of Chapter 7. Treat the units as algebra: they multiply and cancel exactly like symbols, so $\text{km/h} \times \text{h} = \text{km}$, and if the units of your answer come out wrong, the arithmetic is wrong no matter how carefully you did it. Dimensional analysis — checking units before checking numbers — catches more real-world errors than any other single habit.</p>
+ <div class="box def"><span class="label">Definition</span> A rate is a quotient $\tfrac{\Delta(\text{quantity A})}{\Delta(\text{quantity B})}$, e.g. average speed $= \tfrac{\text{distance}}{\text{time}}$. A <em>unit rate</em> has denominator 1 (e.g. 60 km per 1 h).</div>
+ <div class="box ex"><span class="label">Worked example</span> Drive 120 km at 60 km/h, then 120 km at 40 km/h. Average speed? Times: $2$ h and $3$ h. Total: $240$ km in $5$ h $= 48$ km/h — <em>not</em> the naive 50. Average speed is the harmonic-style total ÷ total, never the mean of the rates.</div>
+ <div class="box ex"><span class="label">Worked example</span> Unit chains: a job processes $500$ requests/min, each request averaging $2.2$ kB. Daily data volume: $500\ \tfrac{\text{req}}{\text{min}} \times 2.2\ \tfrac{\text{kB}}{\text{req}} \times 1440\ \tfrac{\text{min}}{\text{day}} = 1\,584\,000$ kB/day $\approx 1.58$ GB/day. Every unit cancels except kB/day — the units did the bookkeeping.</div>
+ <div class="box pit"><span class="label">Pitfall</span> You may only average rates directly when the <em>denominators</em> are equal. Equal times: average the speeds. Equal distances: average the times (equivalently take the harmonic mean of the speeds). The worked example fails the naive average precisely because the two legs took different times.</div>
+ <div class="box link"><span class="label">Where this goes</span> "Rate at an instant" becomes the derivative in Ch 7; "loss per training step" is the rate every ML curve plots; tokens/s, FLOPs and throughput budgets (Ch 18) are all rate arithmetic.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A printer outputs 45 pages in 3 minutes. Pages per minute? <details class="sol"><summary>Solution</summary><div>$45/3 = 15$ pages per minute.</div></details></li>
+  <li><span class="lvl m">MED</span> A GPU processes $2.4\times10^6$ tokens in 80 s. What is its rate in tokens/s, and how long for $10^9$ tokens? <details class="sol"><summary>Solution</summary><div>Rate $= 2.4\times10^6 / 80 = 3\times10^4$ tokens/s. Time $= 10^9 / (3\times10^4) \approx 3.33\times10^4$ s $\approx 9.26$ hours.</div></details></li>
+  <li><span class="lvl h">HARD</span> Pipe A fills a tank in 6 h, pipe B in 4 h, and drain C empties it in 12 h. All open: how long to fill? <details class="sol"><summary>Solution</summary><div>Rates per hour: $\tfrac16 + \tfrac14 - \tfrac1{12} = \tfrac{2}{12} + \tfrac{3}{12} - \tfrac{1}{12} = \tfrac{4}{12} = \tfrac13$ tank/h. Time $= 3$ hours.</div></details></li>
+  <li><span class="lvl e">EASY</span> Convert 90 km/h to meters per second. <details class="sol"><summary>Solution</summary><div>$90\ \tfrac{\text{km}}{\text{h}} \times \tfrac{1000\ \text{m}}{1\ \text{km}} \times \tfrac{1\ \text{h}}{3600\ \text{s}} = \tfrac{90\,000}{3600} = 25$ m/s. (Handy: km/h ÷ 3.6 = m/s.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">You drive 60 km at 30 km/h and 60 km at 60 km/h. Your average speed is:</div><button class="opt">45 km/h</button><button class="opt">40 km/h</button><button class="opt">50 km/h</button><div class="why" hidden>Times: 2 h + 1 h = 3 h for 120 km, so 40 km/h. Equal distances call for the harmonic mean of the speeds, always below the arithmetic mean 45.</div></div>
+</section>
+
+<section class="topic" id="scientific-notation">
+ <h2>Scientific notation</h2>
+ <p>Scientific notation writes any number as "a small number times a power of ten," splitting it into a <em>precision</em> part and a <em>scale</em> part. It is how you sanely handle both a model's $1.8 \times 10^{12}$ parameters and a learning rate of $3 \times 10^{-4}$ in the same breath. The exponent is the number's <em>order of magnitude</em>, and most engineering judgment happens at that resolution: "is this $10^6$ or $10^9$?" matters far more than the mantissa. Practice doing the exponent arithmetic in your head while only roughly tracking mantissas — that is exactly how back-of-the-envelope compute estimates are done.</p>
+ <div class="box def"><span class="label">Definition</span> $x = m \times 10^{n}$ with $1 \le |m| &lt; 10$ and $n \in \mathbb{Z}$. To multiply: multiply mantissas, add exponents. To divide: divide mantissas, subtract exponents. Renormalize $m$ at the end.</div>
+ <div class="box ex"><span class="label">Worked example</span> $(3 \times 10^8)\,(6 \times 10^{-4}) = 18 \times 10^{4} = 1.8 \times 10^{5}$. And $\dfrac{4.2 \times 10^{7}}{6 \times 10^{9}} = 0.7 \times 10^{-2} = 7 \times 10^{-3}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Order-of-magnitude estimate: training uses $\approx 6ND$ FLOPs for $N$ parameters, $D$ tokens. With $N = 7\times10^9$, $D = 2\times10^{12}$: $6 \times 7 \times 2 \times 10^{21} = 84 \times 10^{21} = 8.4\times10^{22}$ FLOPs.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Addition needs matching exponents first: $3\times10^5 + 2\times10^3 = 300\times10^3 + 2\times10^3 = 302\times10^3 = 3.02\times10^5$. And when the exponents differ by a lot, the small term barely registers — the seed of the "catastrophic absorption" issue in floating point.</div>
+ <div class="box link"><span class="label">Where this goes</span> A <code>float</code> in hardware <em>is</em> scientific notation in base 2 — sign, mantissa, exponent. Everything about precision loss and overflow in Ch 18 is this section's arithmetic with a fixed-width mantissa.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write 0.00052 in scientific notation. <details class="sol"><summary>Solution</summary><div>$5.2 \times 10^{-4}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $(2.5 \times 10^{-3})^2$. <details class="sol"><summary>Solution</summary><div>$6.25 \times 10^{-6}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Roughly how many seconds old is a 20-year-old? Express in scientific notation and compare with $10^9$. <details class="sol"><summary>Solution</summary><div>$20 \times 365.25 \times 24 \times 3600 \approx 20 \times 3.156\times10^7 \approx 6.3 \times 10^8$ s — about $0.63$ billion seconds. (A billion seconds is ~31.7 years.)</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\dfrac{(3\times10^4)(8\times10^{-7})}{6\times10^{-2}}$ in scientific notation. <details class="sol"><summary>Solution</summary><div>Mantissas: $\tfrac{3 \times 8}{6} = 4$. Exponents: $4 + (-7) - (-2) = -1$. Answer: $4 \times 10^{-1} = 0.4$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">Which is largest?</div><button class="opt">$9.9 \times 10^{5}$</button><button class="opt">$1.2 \times 10^{6}$</button><button class="opt">$2.0 \times 10^{6}$</button><div class="why" hidden>Compare exponents first ($10^6$ beats $10^5$), then mantissas: $2.0 &gt; 1.2$.</div></div>
+</section>
+
+<section class="topic" id="absolute-value">
+ <h2>Absolute value</h2>
+ <p>Absolute value is distance from zero — direction stripped away, magnitude kept. $|x - y|$ is the distance between $x$ and $y$, which makes absolute value the one-dimensional prototype of every norm, metric and error measure you will meet later. Read every absolute-value statement geometrically before touching algebra: $|x - 3| &lt; 2$ says "$x$ is within 2 of 3," instantly the interval $(1, 5)$. The triangle inequality has the same flavor — a detour through $y$ can never be shorter than the straight path — and that one sentence is the backbone of half the estimates in analysis.</p>
+ <div class="box def"><span class="label">Definition</span> $|x| = x$ if $x \ge 0$, and $|x| = -x$ if $x &lt; 0$. Properties: $|x| \ge 0$; $|xy| = |x||y|$; $|x| &lt; a \iff -a &lt; x &lt; a$ (for $a&gt;0$); and the <em>triangle inequality</em> $|x + y| \le |x| + |y|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $|2x - 3| = 7$. Either $2x - 3 = 7 \Rightarrow x = 5$, or $2x - 3 = -7 \Rightarrow x = -2$. Check: $|7| = 7$, $|-7| = 7$. ✓</div>
+ <div class="box ex"><span class="label">Worked example</span> Triangle inequality in action: bound $|a + b + c|$ when $|a| \le 2$, $|b| \le 3$, $|c| \le 1$. Apply it twice: $|a+b+c| \le |a| + |b+c| \le |a| + |b| + |c| \le 6$. The bound is attained when all three share a sign, e.g. $a=2, b=3, c=1$. This "split, bound each piece, add" move is the template for nearly every error estimate you will ever write.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\sqrt{x^2} = |x|$, not $x$: $\sqrt{(-3)^2} = 3$. Forgetting this silently drops solutions and breaks calculus arguments later.</div>
+ <div class="box link"><span class="label">Where this goes</span> $|x|$ grows into vector norms in Ch 5, distance metrics everywhere after, and the L1 loss $\sum_i |y_i - \hat y_i|$ in regression; the triangle inequality reappears verbatim in every norm's definition and in the concentration bounds of Ch 11.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Move the center $c$ and radius $r$: the shaded set is $\{x : |x - c| \le r\}$.</p>
+  <canvas id="cv-abs"></canvas>
+  <div class="ctl">
+   <label>c <input type="range" id="ab-c" min="-5" max="5" step="0.1" value="1"></label>
+   <label>r <input type="range" id="ab-r" min="0" max="4" step="0.1" value="2"></label>
+  </div>
+  <div class="out" id="ab-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $|{-4}| + |3| - |{-2}|$. <details class="sol"><summary>Solution</summary><div>$4 + 3 - 2 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $|x + 1| = |2x - 4|$. <details class="sol"><summary>Solution</summary><div>Either $x+1 = 2x-4 \Rightarrow x = 5$, or $x+1 = -(2x-4) \Rightarrow 3x = 3 \Rightarrow x = 1$. Check $x=5$: $6=6$ ✓; $x=1$: $2 = 2$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the reverse triangle inequality: $\big||x| - |y|\big| \le |x - y|$. <details class="sol"><summary>Solution</summary><div>$|x| = |(x-y) + y| \le |x-y| + |y|$, so $|x| - |y| \le |x-y|$. Swap roles: $|y| - |x| \le |y - x| = |x-y|$. Both signed differences are $\le |x-y|$, hence so is their absolute value.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve the inequality $|3x - 6| \le 9$ and describe the solution as an interval. <details class="sol"><summary>Solution</summary><div>$|3x-6| \le 9 \iff -9 \le 3x - 6 \le 9 \iff -3 \le 3x \le 15 \iff -1 \le x \le 5$: the interval $[-1, 5]$. Geometric read: $3|x - 2| \le 9$, so $x$ is within 3 of 2.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="arithmetic-inequalities">
+ <h2>Arithmetic inequalities</h2>
+ <p>Inequalities compare rather than equate, and they obey almost the same manipulation rules as equations — with one famous exception: multiplying by a negative flips the direction. Inequalities are the language of bounds, and bounding things is half of what mathematical analysis and ML theory do. There is also a change of mindset: an equation has an answer, but an inequality has a <em>region</em>, and a bound need not be tight to be useful — "the error is at most $10^{-3}$" wins arguments that exact values never could. Learning which crude over-estimates are safe to make is a skill, and it starts here.</p>
+ <div class="box def"><span class="label">Definition</span> For reals: if $a &lt; b$ then $a + c &lt; b + c$ for any $c$; $ac &lt; bc$ if $c &gt; 0$ but $ac &gt; bc$ if $c &lt; 0$. Also $a &lt; b$ and $b &lt; c$ imply $a &lt; c$ (transitivity), and for $a,b &gt; 0$: $a &lt; b \iff \tfrac1a &gt; \tfrac1b$.</div>
+ <div class="box thm"><span class="label">Theorem (AM–GM)</span> For $x, y \ge 0$: $\ \dfrac{x + y}{2} \ge \sqrt{xy}$, with equality iff $x = y$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $-3x + 5 \le 20$. Subtract 5: $-3x \le 15$. Divide by $-3$ and <em>flip</em>: $x \ge -5$. Check $x = 0$: $5 \le 20$ ✓; check $x = -6$: $23 \le 20$ ✗ — consistent.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Squaring both sides preserves an inequality only when both sides are nonnegative: from $-3 &lt; 2$, squaring gives the false $9 &lt; 4$. Likewise taking reciprocals flips the direction only when both sides share a sign. When an operation is not monotone over your numbers, split into cases.</div>
+ <div class="box think"><span class="label">Think first</span> Among all rectangles of perimeter 20, which has the largest area? Guess, then prove with AM–GM. <details class="sol"><summary>Reveal</summary><div>Sides $x + y = 10$. Area $xy \le \left(\tfrac{x+y}{2}\right)^2 = 25$ by AM–GM, with equality at $x = y = 5$: the square wins, area 25.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Bounding sums and products is the daily bread of concentration inequalities (Ch 11) and convergence proofs (Ch 15).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $2x - 7 &gt; 3$. <details class="sol"><summary>Solution</summary><div>$2x &gt; 10 \Rightarrow x &gt; 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $-2 \le \tfrac{4 - x}{3} &lt; 1$. <details class="sol"><summary>Solution</summary><div>Multiply by 3: $-6 \le 4 - x &lt; 3$. Subtract 4: $-10 \le -x &lt; -1$. Multiply by $-1$, flipping both: $1 &lt; x \le 10$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove AM–GM for two variables: $\tfrac{x+y}{2} \ge \sqrt{xy}$ for $x,y \ge 0$. <details class="sol"><summary>Solution</summary><div>$(\sqrt x - \sqrt y)^2 \ge 0 \Rightarrow x - 2\sqrt{xy} + y \ge 0 \Rightarrow x + y \ge 2\sqrt{xy}$. Divide by 2. Equality iff $\sqrt x = \sqrt y$, i.e. $x = y$.</div></details></li>
+  <li><span class="lvl m">MED</span> Without a calculator, decide which is larger: $\sqrt{50}$ or $7.1$. <details class="sol"><summary>Solution</summary><div>Compare squares (both sides positive, so squaring is safe): $\sqrt{50}^2 = 50$ and $7.1^2 = 50.41$. Since $50 &lt; 50.41$, $\sqrt{50} &lt; 7.1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <p>Three problems that braid the chapter together.</p>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> A model checkpoint is $13.5$ GB and your link uploads at $18$ MB/s. (a) How long is the upload, in minutes? (b) The provider then compresses it by $35\%$; what is the stored size, in scientific notation (bytes, 1 GB $= 10^9$ B)? <details class="sol"><summary>Solution</summary><div>(a) $13.5$ GB $= 13\,500$ MB; $13\,500 / 18 = 750$ s $= 12.5$ min. (b) Stored $= 13.5 \times 0.65 = 8.775$ GB $= 8.775 \times 10^{9}$ bytes.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two synchronized jobs re-run every 84 minutes and 126 minutes. (a) When do they next start together? (b) Show the answer via prime factorizations and verify $\gcd \cdot \operatorname{lcm} = 84 \cdot 126$. <details class="sol"><summary>Solution</summary><div>$84 = 2^2\cdot3\cdot7$, $126 = 2\cdot3^2\cdot7$. lcm takes max exponents: $2^2 3^2 7 = 252$ minutes (4 h 12 min). gcd takes mins: $2\cdot3\cdot7 = 42$. Check: $42 \times 252 = 10\,584 = 84 \times 126$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that $x + \tfrac{1}{x} \ge 2$ for all $x &gt; 0$, determine when equality holds, and use it to show any positive rational $\tfrac{p}{q} + \tfrac{q}{p} \ge 2$ with equality iff $p = q$. <details class="sol"><summary>Solution</summary><div>By AM–GM with the pair $x, \tfrac1x$: $\tfrac{x + 1/x}{2} \ge \sqrt{x \cdot \tfrac1x} = 1$, so $x + \tfrac1x \ge 2$, equality iff $x = \tfrac1x$, i.e. $x = 1$ (positive root). Setting $x = \tfrac{p}{q} &gt; 0$ gives $\tfrac{p}{q} + \tfrac{q}{p} \ge 2$ with equality iff $\tfrac{p}{q} = 1$, i.e. $p = q$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Implement the chapter's machinery in Python.</p>
+ <p><b>Task 1 — Euclid and friends.</b> Write <code>gcd(a, b)</code> using the Euclidean algorithm (no <code>math.gcd</code>), then <code>lcm(a, b)</code> via the identity, and <code>reduce_fraction(p, q)</code> returning lowest terms with a positive denominator.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>def gcd(a, b):
+    a, b = abs(a), abs(b)
+    while b:
+        a, b = b, a % b
+    return a
+
+def lcm(a, b):
+    if a == 0 or b == 0:
+        return 0
+    return abs(a * b) // gcd(a, b)
+
+def reduce_fraction(p, q):
+    assert q != 0
+    g = gcd(p, q)
+    p, q = p // g, q // g
+    if q &lt; 0:
+        p, q = -p, -q
+    return p, q
+
+assert gcd(252, 198) == 18
+assert lcm(12, 18) == 36
+assert reduce_fraction(42, -56) == (-3, 4)</code></pre></div></details>
+ <p><b>Task 2 — Sieve of Eratosthenes.</b> Write <code>primes_up_to(n)</code> returning all primes $\le n$, crossing out multiples starting at $p^2$. Check there are 25 primes below 100 and 168 below 1000.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>def primes_up_to(n):
+    if n &lt; 2:
+        return []
+    is_prime = [True] * (n + 1)
+    is_prime[0] = is_prime[1] = False
+    p = 2
+    while p * p &lt;= n:
+        if is_prime[p]:
+            for m in range(p * p, n + 1, p):
+                is_prime[m] = False
+        p += 1
+    return [i for i, ok in enumerate(is_prime) if ok]
+
+assert len(primes_up_to(100)) == 25
+assert len(primes_up_to(1000)) == 168</code></pre></div></details>
+ <p><b>Task 3 — Repeating decimals.</b> Write <code>decimal_expansion(p, q, max_digits)</code> that returns the decimal digits of $p/q$ ($0 &lt; p &lt; q$) and detects the repeating block by tracking remainders (long division). Verify $1/7 = 0.\overline{142857}$.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>def decimal_expansion(p, q, max_digits=64):
+    seen = {}          # remainder -&gt; position
+    digits = []
+    r = p % q
+    while r and r not in seen and len(digits) &lt; max_digits:
+        seen[r] = len(digits)
+        r *= 10
+        digits.append(r // q)
+        r %= q
+    if r == 0:
+        return digits, None                # terminates
+    if r in seen:
+        i = seen[r]
+        return digits[:i], digits[i:]      # prefix, repeating block
+    return digits, None                    # truncated
+
+pre, rep = decimal_expansion(1, 7)
+assert pre == [] and rep == [1, 4, 2, 8, 5, 7]
+pre, rep = decimal_expansion(5, 12)
+assert pre == [4, 1] and rep == [6]</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.khanacademy.org/math/arithmetic">Khan Academy — Arithmetic</a>: every topic here with videos and endless practice problems.</li>
+  <li><a href="https://openstax.org/details/books/prealgebra-2e">OpenStax — Prealgebra 2e</a>: a free, rigorous textbook covering fractions through inequalities.</li>
+  <li><a href="https://www.3blue1brown.com/lessons/eulers-fermat">3Blue1Brown</a>: visual number-sense; watch anything on primes and number theory.</li>
+  <li><a href="https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/">MIT OCW 6.042J — Mathematics for CS</a>: chapters on number theory (gcd, primes, modular arithmetic) with proofs.</li>
+  <li><a href="https://www.numbertheory.org/book/">Matthews — Elementary Number Theory notes</a>: free notes going deeper on divisibility and Euclid.</li>
+  <li><a href="https://en.wikipedia.org/wiki/Fundamental_theorem_of_arithmetic">Wikipedia — Fundamental Theorem of Arithmetic</a>: full statement and proof of unique factorization.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <span></span>
+ <a href="ch02.html">Next: 02 · Algebra →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function axisLine(g, s, y){ g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1; g.beginPath(); g.moveTo(0, y); g.lineTo(s.w, y); g.stroke(); }
+ function mono(g){ g.font = '13px "JetBrains Mono", monospace'; }
+
+ // --- Number line explorer ---
+ var nlc = document.getElementById('cv-numline');
+ function drawNL(){
+  if(!nlc) return;
+  var s = setupCanvas(nlc, 180), g = s.g;
+  var a = parseFloat(document.getElementById('nl-a').value);
+  var b = parseFloat(document.getElementById('nl-b').value);
+  var lo = -10, hi = 10;
+  function X(v){ return (v - lo) / (hi - lo) * (s.w - 40) + 20; }
+  var y = 100;
+  g.clearRect(0,0,s.w,s.h);
+  axisLine(g, s, y);
+  mono(g);
+  g.fillStyle = cssVar('--ink-2');
+  for(var t = lo; t <= hi; t += 2){
+   g.beginPath(); g.moveTo(X(t), y-4); g.lineTo(X(t), y+4); g.strokeStyle = cssVar('--ink-2'); g.stroke();
+   g.fillText(t, X(t)-8, y+20);
+  }
+  function dot(v, color, label, dy){
+   if(v < lo || v > hi){ return; }
+   g.fillStyle = color;
+   g.beginPath(); g.arc(X(v), y, 6, 0, 2*Math.PI); g.fill();
+   g.fillText(label + '=' + v.toFixed(2), X(v)-20, y + dy);
+  }
+  dot(a, cssVar('--cobalt') || '#2255cc', 'a', -34);
+  dot(b, cssVar('--rose') || '#cc3355', 'b', -18);
+  dot(a+b, cssVar('--emerald') || '#11aa66', 'a+b', 38);
+  dot(a*b, cssVar('--amber') || '#cc8800', 'a·b', 54);
+  var out = document.getElementById('nl-out');
+  if(out) out.textContent = 'a+b = ' + (a+b).toFixed(2) + '   a·b = ' + (a*b).toFixed(2) + ((a*b > 10 || a*b < -10) ? '  (product off-scale)' : '');
+ }
+
+ // --- Sieve explorer ---
+ var svc = document.getElementById('cv-sieve');
+ function drawSV(){
+  if(!svc) return;
+  var n = parseInt(document.getElementById('sv-n').value, 10);
+  var s = setupCanvas(svc, 260), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var comp = new Array(n+1).fill(false);
+  for(var p = 2; p*p <= n; p++){ if(!comp[p]) for(var m = p*p; m <= n; m += p) comp[m] = true; }
+  var cols = Math.ceil(Math.sqrt(n * s.w / 240));
+  cols = Math.max(10, Math.min(cols, Math.floor(s.w / 16)));
+  var cell = Math.min(Math.floor((s.w - 10) / cols), 22);
+  var count = 0;
+  mono(g);
+  for(var i = 2; i <= n; i++){
+   var idx = i - 2, cx = (idx % cols) * cell + 5, cy = Math.floor(idx / cols) * cell + 5;
+   if(cy + cell > s.h) break;
+   if(!comp[i]){ count++; g.fillStyle = cssVar('--cobalt') || '#2255cc'; g.fillRect(cx, cy, cell-2, cell-2); }
+   else { g.fillStyle = cssVar('--ink-2'); g.globalAlpha = 0.18; g.fillRect(cx, cy, cell-2, cell-2); g.globalAlpha = 1; }
+  }
+  var total = 0; for(var k = 2; k <= n; k++) if(!comp[k]) total++;
+  var out = document.getElementById('sv-out');
+  if(out) out.textContent = 'primes ≤ ' + n + ': ' + total + '   (density ' + (100*total/n).toFixed(1) + '%, vs n/ln n ≈ ' + Math.round(n/Math.log(n)) + ')';
+ }
+
+ // --- Fraction addition explorer ---
+ var frc = document.getElementById('cv-frac');
+ function g2(a,b){ while(b){ var t = a % b; a = b; b = t; } return a; }
+ function drawFR(){
+  if(!frc) return;
+  var a = +document.getElementById('fr-a').value, b = +document.getElementById('fr-b').value;
+  var c = +document.getElementById('fr-c').value, d = +document.getElementById('fr-d').value;
+  var s = setupCanvas(frc, 220), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var L = g2(b,d) ? b*d / g2(b,d) : b*d; // lcm
+  var W = s.w - 40, x0 = 20;
+  function bar(y, num, den, color, label){
+   var unit = W / den;
+   for(var i = 0; i < den; i++){
+    g.strokeStyle = cssVar('--ink-2'); g.strokeRect(x0 + i*unit, y, unit, 30);
+    if(i < num){ g.fillStyle = color; g.globalAlpha = 0.75; g.fillRect(x0 + i*unit, y, unit, 30); g.globalAlpha = 1; }
+   }
+   mono(g); g.fillStyle = cssVar('--ink-2'); g.fillText(label, x0, y - 5);
+  }
+  bar(25, a, b, cssVar('--cobalt') || '#2255cc', a + '/' + b + ' = ' + (a*(L/b)) + '/' + L);
+  bar(85, c, d, cssVar('--rose') || '#cc3355', c + '/' + d + ' = ' + (c*(L/d)) + '/' + L);
+  var num = a*(L/b) + c*(L/d);
+  bar(145, Math.min(num, L), L, cssVar('--emerald') || '#11aa66', 'sum = ' + num + '/' + L + (num > L ? '  (overflows one whole)' : ''));
+  var gg = g2(num, L);
+  var out = document.getElementById('fr-out');
+  if(out) out.textContent = a + '/' + b + ' + ' + c + '/' + d + ' = ' + num + '/' + L + '  = ' + (num/gg) + '/' + (L/gg) + ' in lowest terms = ' + (num/L).toFixed(4);
+ }
+
+ // --- Percent chaining explorer ---
+ var pcc = document.getElementById('cv-pct');
+ function drawPC(){
+  if(!pcc) return;
+  var pa = +document.getElementById('pc-a').value, pb = +document.getElementById('pc-b').value;
+  var s = setupCanvas(pcc, 200), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var m1 = 1 + pa/100, m2 = 1 + pb/100, real = m1*m2, naive = 1 + (pa+pb)/100;
+  var vals = [1, m1, real], labels = ['start 100', 'after ' + pa + '% → ' + (100*m1).toFixed(1), 'after ' + pb + '% → ' + (100*real).toFixed(1)];
+  var maxv = Math.max(2.2, real, m1, naive) * 1.1;
+  var bw = Math.min(90, (s.w - 80) / 4), base = s.h - 30;
+  mono(g);
+  for(var i = 0; i < 3; i++){
+   var h = (vals[i]/maxv) * (s.h - 60), x = 30 + i*(bw + 30);
+   g.fillStyle = [cssVar('--ink-2'), cssVar('--cobalt') || '#2255cc', cssVar('--emerald') || '#11aa66'][i];
+   g.globalAlpha = i === 0 ? 0.35 : 0.85; g.fillRect(x, base - h, bw, h); g.globalAlpha = 1;
+   g.fillStyle = cssVar('--ink-2'); g.fillText(labels[i], x - 8, base + 16);
+  }
+  // naive marker
+  var ny = base - (naive/maxv)*(s.h - 60);
+  g.strokeStyle = cssVar('--rose') || '#cc3355'; g.setLineDash([5,4]);
+  g.beginPath(); g.moveTo(20, ny); g.lineTo(s.w - 20, ny); g.stroke(); g.setLineDash([]);
+  g.fillStyle = cssVar('--rose') || '#cc3355';
+  g.fillText('naive add: ' + (100*naive).toFixed(1), s.w - 170, ny - 6);
+  var out = document.getElementById('pc-out');
+  if(out) out.textContent = 'true multiplier ' + m1.toFixed(3) + ' × ' + m2.toFixed(3) + ' = ' + real.toFixed(4) + '  (net ' + ((real-1)*100).toFixed(2) + '%), naive sum says ' + (pa+pb) + '%';
+ }
+
+ // --- Absolute value interval explorer ---
+ var abc = document.getElementById('cv-abs');
+ function drawAB(){
+  if(!abc) return;
+  var c = +document.getElementById('ab-c').value, r = +document.getElementById('ab-r').value;
+  var s = setupCanvas(abc, 170), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var lo = -9, hi = 9, y = 95;
+  function X(v){ return (v - lo)/(hi - lo)*(s.w - 40) + 20; }
+  // shaded interval
+  g.fillStyle = cssVar('--cobalt') || '#2255cc'; g.globalAlpha = 0.25;
+  g.fillRect(X(c - r), y - 16, X(c + r) - X(c - r), 32); g.globalAlpha = 1;
+  axisLine(g, s, y); mono(g); g.fillStyle = cssVar('--ink-2');
+  for(var t = -8; t <= 8; t += 2){ g.beginPath(); g.moveTo(X(t), y-4); g.lineTo(X(t), y+4); g.stroke(); g.fillText(t, X(t)-6, y+22); }
+  g.fillStyle = cssVar('--rose') || '#cc3355';
+  g.beginPath(); g.arc(X(c), y, 5, 0, 2*Math.PI); g.fill();
+  g.fillText('c=' + c.toFixed(1), X(c)-18, y-26);
+  g.fillStyle = cssVar('--cobalt') || '#2255cc';
+  [c - r, c + r].forEach(function(e){ g.beginPath(); g.arc(X(e), y, 4, 0, 2*Math.PI); g.fill(); });
+  var out = document.getElementById('ab-out');
+  if(out) out.textContent = '|x − ' + c.toFixed(1) + '| ≤ ' + r.toFixed(1) + '  ⇔  ' + (c-r).toFixed(1) + ' ≤ x ≤ ' + (c+r).toFixed(1) + '   (width ' + (2*r).toFixed(1) + ')';
+ }
+
+ function all(){ drawNL(); drawSV(); drawFR(); drawPC(); drawAB(); }
+ document.addEventListener('input', all);
+ window.addEventListener('resize', all);
+ document.addEventListener('DOMContentLoaded', all);
+ all();
+})();
+</script>
+
+</body></html>

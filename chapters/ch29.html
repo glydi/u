@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 29 World Models</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','29')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">29</div><h1>World Models</h1><p class="lede">Agents that learn an internal simulator of their world.</p>
+   <div class="meta"><span class="chip">19 topics</span><span class="chip">needs: chapters 11, 12, 21, 22, 25, 28</span><span class="chip">feeds: chapters 30, 31, 36</span></div>
+  </div>
+
+<section class="topic" id="latent-state-representations">
+ <h2>Latent state representations</h2>
+ <p>A camera frame has millions of pixels, but the situation it depicts — "cup near the edge, hand approaching" — can be described in a few numbers. A latent state is that compressed description: a vector $z$ the agent invents so that everything it needs to predict the future is packed into it. The world model does its thinking in $z$-space, not in pixel space.</p>
+ <div class="box def"><span class="label">Definition</span> Given observations $o_t$, a latent state representation is an encoder $z_t = e_\phi(o_{\le t})$ mapping observation histories to vectors $z_t \in \mathbb{R}^d$ such that $z_t$ is (approximately) a <em>sufficient statistic</em> of the history for prediction: $p(o_{t+1:T} \mid o_{\le t}, a_{t:T-1}) \approx p(o_{t+1:T} \mid z_t, a_{t:T-1})$. When this holds exactly, $z_t$ is a state in the sense of Chapter 28's state-space models: the future depends on the past only through $z_t$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A cart-pole from pixels. Each observation is a $64\times 64$ grayscale image ($4096$ numbers). The true state is $(x, \dot x, \theta, \dot\theta)$ — 4 numbers. A single frame cannot reveal velocities, so a good encoder consumes two consecutive frames: $z_t = e_\phi(o_{t-1}, o_t) \in \mathbb{R}^4$ can in principle recover all four state variables (positions from either frame, velocities from the difference). Compression ratio: $2\times 4096 / 4 = 2048$. Any planner that works on $z$ now searches a 4-dimensional space instead of an 8192-dimensional one.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Low-dimensional" is not the goal by itself — <em>predictively sufficient</em> is. A 2-D latent that drops $\dot\theta$ is small but useless: the model cannot tell a pole falling left from one swinging right through the same angle. Conversely a latent can be high-dimensional and still be a good state if it is Markov for the dynamics.</div>
+ <div class="box link"><span class="label">Where this goes</span> Latent states are the substrate for latent dynamics and Dreamer/MuZero-style agents later in this chapter, and for the agent state of Chapter 31.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An agent sees $128\times128\times3$ RGB frames and encodes them into $z\in\mathbb{R}^{32}$. What is the compression ratio? <details class="sol"><summary>Solution</summary><div>$128\cdot128\cdot3 = 49152$ input numbers, 32 latent numbers, ratio $49152/32 = 1536$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why can a single static image of a pendulum never be a Markov state, no matter how clever the encoder? <details class="sol"><summary>Solution</summary><div>The pendulum's future depends on angular velocity $\dot\theta$ as well as angle $\theta$. One frame determines $\theta$ but two different velocities produce the identical frame, so $p(o_{t+1}\mid o_t)$ is genuinely ambiguous: the same $o_t$ leads to different futures. No deterministic function of $o_t$ alone can be sufficient. You need at least two frames (or a recurrent encoder over history) to identify $\dot\theta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Suppose $z_t = e(o_t)$ is Markov and sufficient for the dynamics, and $f$ is any bijection on $\mathbb{R}^d$. Show $z'_t = f(z_t)$ is also Markov and sufficient. What does this say about the uniqueness of learned latents? <details class="sol"><summary>Solution</summary><div>Since $f$ is a bijection, conditioning on $z'_t = f(z_t)$ is exactly the same as conditioning on $z_t$ (the two generate the same $\sigma$-algebra / carry the same information). Hence $p(\text{future}\mid z'_t, a) = p(\text{future}\mid z_t, a)$, so $z'$ inherits the Markov and sufficiency properties. Consequence: latent representations are only identifiable up to invertible reparameterization — two runs of training can learn latents that look completely different as vectors yet encode the same state. Comparisons between world models must use behavior (predictions, returns), not raw latent coordinates.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="observation-models">
+ <h2>Observation models</h2>
+ <p>If the latent $z$ is the world model's private notion of "what is going on", the observation model is its rendering engine: it says which observations you would see if the latent were $z$. It closes the loop between the invented state and the measurable world, and it is the piece that lets a latent model be trained by maximum likelihood on raw data.</p>
+ <div class="box def"><span class="label">Definition</span> An observation model (decoder, emission model) is a conditional distribution $p_\theta(o_t \mid z_t)$. In a latent-variable world model the joint over a trajectory factorizes as
+ $$p_\theta(o_{1:T}, z_{1:T} \mid a_{1:T-1}) = p(z_1)\prod_{t=1}^{T-1} p_\theta(z_{t+1}\mid z_t, a_t)\prod_{t=1}^{T} p_\theta(o_t\mid z_t),$$
+ exactly the structure of the hidden Markov models of Chapter 12 and the state-space models of Chapter 28, with learned, nonlinear components.</div>
+ <div class="box ex"><span class="label">Worked example</span> Gaussian pixel decoder. Take $p_\theta(o\mid z) = \mathcal{N}(o; \mu_\theta(z), \sigma^2 I)$ with fixed $\sigma = 1$. The negative log-likelihood of one $64\times64$ image is
+ $$-\log p_\theta(o\mid z) = \tfrac{1}{2}\lVert o - \mu_\theta(z)\rVert^2 + \tfrac{D}{2}\log(2\pi), \quad D = 4096.$$
+ If the decoder's mean image is off by $0.1$ per pixel on average, the squared error term is $\tfrac12 \cdot 4096\cdot(0.1)^2 = 20.48$ nats, and the constant is $\tfrac{4096}{2}\log(2\pi)\approx 2048\cdot 1.8379 \approx 3764$ nats. So training a "reconstruction loss" is literally Gaussian log-likelihood up to a constant — the connection made for squared error in Chapter 19.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A pixel-space observation model spends its capacity where the pixels are, not where the task is. Leaves fluttering in the background cost as much likelihood as the position of the key the agent must pick up. This mis-allocation is the core motivation for the decoder-free JEPA approach later in this chapter.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $p(o\mid z)=\mathcal N(o;\mu(z),\sigma^2 I)$ in $D$ dimensions, write $-\log p(o\mid z)$ explicitly. <details class="sol"><summary>Solution</summary><div>$-\log p = \frac{1}{2\sigma^2}\lVert o-\mu(z)\rVert^2 + \frac{D}{2}\log(2\pi\sigma^2)$.</div></details></li>
+  <li><span class="lvl m">MED</span> A Bernoulli decoder outputs pixel probabilities $p_i$. An image has binary pixels $o_i$. Compute the log-likelihood of a $2$-pixel image $o=(1,0)$ under $p=(0.9, 0.2)$. <details class="sol"><summary>Solution</summary><div>$\log p(o) = \log 0.9 + \log(1-0.2) = \log 0.9 + \log 0.8 \approx -0.10536 - 0.22314 = -0.3285$ nats.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two latent models fit the same data. Model A has a powerful decoder and trivial dynamics ($z_{t+1}$ independent of $z_t$); model B has a simple decoder and dynamics that carry all temporal structure. Both can achieve the same likelihood on i.i.d.-looking data. Explain why B is the one useful for planning, and name a training-time lever that favors it. <details class="sol"><summary>Solution</summary><div>Planning needs to roll the future forward in latent space: value and reward predictions are functions of future $z$'s. In model A the latent carries no information about the future (dynamics are independent), so rollouts are uninformative even though per-frame likelihood is fine — the decoder just memorizes marginal frame statistics. Model B's latents actually determine the future. Levers that favor B: train with multi-step (overshooting) prediction losses so the dynamics must predict far ahead; restrict decoder capacity; or add a KL/information penalty on the per-step latent so information is forced through the dynamics rather than injected fresh at each step.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dynamics-models">
+ <h2>Dynamics models</h2>
+ <p>The dynamics model is the physics engine the agent writes for itself: given where the world is and what I do, where will it be next? Everything a world model is for — imagining, planning, counterfactuals — is repeated application of this one function.</p>
+ <div class="box def"><span class="label">Definition</span> A dynamics (transition) model is a learned map from state and action to the next state: deterministic $\hat s_{t+1} = f_\theta(s_t, a_t)$, or stochastic $s_{t+1} \sim p_\theta(\cdot\mid s_t, a_t)$. Trained on transitions $(s_t,a_t,s_{t+1})$ by regression, $\min_\theta \sum_t \lVert f_\theta(s_t,a_t) - s_{t+1}\rVert^2$, or by maximum likelihood $\max_\theta \sum_t \log p_\theta(s_{t+1}\mid s_t,a_t)$. A common, better-conditioned variant predicts the <em>change</em>: $\hat s_{t+1} = s_t + f_\theta(s_t,a_t)$ (a residual model, echoing Euler's method from Chapter 10).</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit linear dynamics to a point mass. True system: $x_{t+1} = x_t + 0.1 v_t$, $v_{t+1} = v_t + 0.1 a_t$. With state $s=(x,v)$ this is $s_{t+1} = A s_t + B a_t$ with $A = \begin{pmatrix}1 & 0.1\\ 0 & 1\end{pmatrix}$, $B=\begin{pmatrix}0\\0.1\end{pmatrix}$. From $s_0=(0,1)$, action $a=2$ held for two steps: $s_1 = (0 + 0.1\cdot 1,\; 1 + 0.1\cdot 2) = (0.1, 1.2)$; $s_2 = (0.1 + 0.12,\; 1.2 + 0.2) = (0.22, 1.4)$. A least-squares fit on enough noiseless transitions recovers $A, B$ exactly, because the regression problem is linear with a unique solution once the data matrix has full rank.</div>
+ <div class="box think"><span class="label">Think first</span> Your robot's dynamics data comes only from a policy that always drives slowly. You fit a model, then plan a fast maneuver with it. What goes wrong? <details class="sol"><summary>Reveal</summary><div>The model has never seen high-velocity states: they are outside the training distribution. Its predictions there are extrapolations with no data support, typically confidently wrong. The planner, searching for high reward, will happily exploit these fantasy regions (model exploitation). Fixes: quantify uncertainty (ensembles, next topics), penalize plans that enter high-uncertainty regions, or iterate data collection so the new policy's states enter the training set (as in iterated model-based RL).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Using the point-mass model above with $s_0=(1, 0)$ and $a=-1$ each step, compute $s_1$ and $s_2$. <details class="sol"><summary>Solution</summary><div>$s_1 = (1 + 0.1\cdot 0,\; 0 + 0.1(-1)) = (1, -0.1)$. $s_2 = (1 + 0.1(-0.1),\; -0.1 - 0.1) = (0.99, -0.2)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does predicting $\Delta s = s_{t+1}-s_t$ instead of $s_{t+1}$ often train better when the timestep is small? <details class="sol"><summary>Solution</summary><div>For small timesteps $s_{t+1}\approx s_t$, so the target $s_{t+1}$ is dominated by the identity map: the network wastes capacity relearning $s\mapsto s$, and the informative part (the change) is a tiny residual buried in the target's variance. Predicting $\Delta s$ makes the informative signal the whole target, centers targets near zero (better conditioning for optimization, Chapter 15), and builds in the correct behavior "nothing changes when $\Delta t\to 0$".</div></details></li>
+  <li><span class="lvl h">HARD</span> A stochastic environment moves right or left with probability $\tfrac12$ each: $s_{t+1} = s_t \pm 1$. You fit a <em>deterministic</em> model with squared error. What does it learn to predict, and why is that prediction dynamically meaningless? <details class="sol"><summary>Solution</summary><div>Squared error is minimized by the conditional mean: $\mathbb{E}[s_{t+1}\mid s_t] = \frac12(s_t+1) + \frac12(s_t-1) = s_t$. The model predicts "no movement" — a state the system never actually visits (it always moves by $\pm1$). Rolling this model forward predicts a frozen world; multi-step predictions of any function of the state (e.g. $|s_T - s_0|$, which grows like $\sqrt{T}$ in truth) are wrong. Deterministic models average over outcomes; genuinely stochastic dynamics need a distributional model (e.g. Gaussian mixture, categorical latent, or a stochastic latent variable per step).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A deterministic dynamics model trained with MSE on stochastic transitions converges to predicting:</div><button class="opt">The most likely next state (the mode)</button><button class="opt">The mean of the next-state distribution</button><button class="opt">A random sample from the next-state distribution</button><div class="why" hidden>Squared error $\mathbb E\lVert \hat s - s'\rVert^2$ is minimized by $\hat s = \mathbb E[s'\mid s,a]$ — the conditional mean, which may be a state that never occurs (e.g. midway between two modes). The mode would be the answer for 0-1 loss; sampling requires a stochastic model.</div></div>
+</section>
+
+<section class="topic" id="latent-dynamics">
+ <h2>Latent dynamics</h2>
+ <p>Put the encoder and the dynamics model together and you get latent dynamics: the world evolves as pixels, but the model steps forward a compact $z$. Imagination becomes cheap — stepping a 32-dimensional vector — and differentiable, so you can even backpropagate through imagined futures.</p>
+ <div class="box def"><span class="label">Definition</span> A latent dynamics model is the pair (encoder, transition): $z_t = e_\phi(o_{\le t})$ and $z_{t+1}\sim p_\theta(\cdot \mid z_t, a_t)$, usually with a reward head $\hat r_t = r_\theta(z_t, a_t)$. A common design (as in recurrent state-space models, RSSM) splits the latent into a deterministic recurrent path $h_{t+1} = f(h_t, z_t, a_t)$ and a stochastic part $z_{t+1} \sim p(\cdot\mid h_{t+1})$: the deterministic path carries memory reliably, the stochastic part models genuine unpredictability.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rollout cost. Suppose one environment step (render + physics) costs $5$ ms and one latent step (a small MLP on $z\in\mathbb{R}^{32}$) costs $0.02$ ms. Evaluating $1000$ candidate plans of horizon $15$: in the real environment, $1000\cdot 15\cdot 5\text{ ms} = 75$ s — and it would also <em>execute</em> the bad actions. In latent space: $1000\cdot 15\cdot 0.02\text{ ms} = 0.3$ s, purely in imagination, fully parallelizable on a GPU. This $250\times$ speedup (and total safety of imagined mistakes) is the practical reason world models exist.</div>
+ <div class="box link"><span class="label">Where this goes</span> Dreamer (this chapter) trains an actor-critic of Chapter 25 entirely inside these imagined latent rollouts.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A latent rollout of horizon $H$ from one start state, with $K$ sampled action sequences, needs how many transition-model calls? <details class="sol"><summary>Solution</summary><div>$K \cdot H$ calls (each of the $K$ sequences steps $H$ times). With batching these run as $H$ batched calls of batch size $K$.</div></details></li>
+  <li><span class="lvl m">MED</span> In an RSSM, why keep a deterministic path $h_t$ at all — why not make everything stochastic? <details class="sol"><summary>Solution</summary><div>If every bit of state is resampled through a stochastic bottleneck each step, information about the past survives $t$ steps only by being re-encoded $t$ times through noisy channels; the KL regularizer also pressures the model to discard it. Long-range memory then degrades exponentially. The deterministic recurrent path is a lossless conveyor belt for information the model is sure about, while the stochastic part represents only what is genuinely uncertain at each step. Empirically (Dreamer papers) removing either part hurts.</div></details></li>
+  <li><span class="lvl h">HARD</span> You train latent dynamics with only 1-step prediction loss. At test time you roll it out 30 steps. Give two distinct mathematical reasons the 30-step predictions can be poor even with tiny 1-step error. <details class="sol"><summary>Solution</summary><div>(1) Distribution shift / compounding error: after one imperfect step, $\hat z_1$ is slightly off the data manifold; the model was never trained on inputs like $\hat z_1$, so its error at step 2 is larger, and the errors feed back — the input distribution drifts from the training distribution (see the compounding-error topic: linear error growth $\varepsilon H$ at best, exponential $\varepsilon\frac{L^H-1}{L-1}$ if the map expands with Lipschitz constant $L>1$). (2) Objective mismatch under stochasticity: 1-step MSE fits conditional means; composing means is not the mean of the composition, $f(\mathbb E[z]) \neq \mathbb E[f(z)]$ for nonlinear $f$ (Jensen, Chapter 11), so even a perfect 1-step mean model gives biased multi-step predictions.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="predictive-representations">
+ <h2>Predictive representations</h2>
+ <p>Instead of asking "what is the state?", flip the question: represent the present by what it predicts about the future. Two histories that imply the same distribution over futures are, for an agent, the same situation. This turns representation into an operational notion — state is defined by its consequences.</p>
+ <div class="box def"><span class="label">Definition</span> A predictive representation encodes the present as a set of predictions about future observables. Canonical example, the <em>successor representation</em>: for a policy $\pi$ with state transition matrix $P_\pi$ and discount $\gamma\in[0,1)$,
+ $$\Psi = \sum_{k=0}^{\infty} \gamma^k P_\pi^k = (I-\gamma P_\pi)^{-1}, \qquad \Psi(s,s') = \mathbb{E}_\pi\Big[\sum_{k\ge 0}\gamma^k \,\mathbf 1[s_k = s']\,\Big|\, s_0 = s\Big],$$
+ the expected discounted number of future visits to each state. Values factor as $V^\pi = \Psi r$: change the reward vector $r$ and you get the new value function by one matrix–vector product, no re-learning of dynamics.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two-state chain, $\pi$ fixed: from state 1 go to 2 with prob. 1; from 2 stay at 2. $P_\pi = \begin{pmatrix}0&1\\0&1\end{pmatrix}$, $\gamma = 0.9$. Then $I-\gamma P_\pi = \begin{pmatrix}1&-0.9\\0&0.1\end{pmatrix}$, and inverting the upper-triangular matrix: $\Psi = \begin{pmatrix}1&9\\0&10\end{pmatrix}$. Check row 1: starting in state 1 you occupy state 1 only at $k=0$ (count $\gamma^0=1$) and state 2 forever after ($\sum_{k\ge1}0.9^k = 9$). ✓. With reward $r=(0,1)^\top$: $V = \Psi r = (9,10)^\top$ — and indeed $V(2) = \sum_{k\ge0} 0.9^k = 10$, $V(1) = 0.9\, V(2) = 9$. ✓</div>
+ <div class="box link"><span class="label">Where this goes</span> Self-supervised objectives that predict future latents (JEPA, below) are predictive representations at scale; successor features power fast transfer across reward functions in Chapter 36's transfer learning.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a single absorbing state ($P=1$, i.e. it transitions to itself) and $\gamma=0.5$, compute $\Psi$. <details class="sol"><summary>Solution</summary><div>$\Psi = (1-0.5)^{-1} = 2$: the state is visited at every step, discounted count $\sum_k 0.5^k = 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Using the worked example's $\Psi$, compute the value function for a new reward $r=(1,0)^\top$ without touching the dynamics. <details class="sol"><summary>Solution</summary><div>$V = \Psi r = \begin{pmatrix}1&9\\0&10\end{pmatrix}\begin{pmatrix}1\\0\end{pmatrix} = (1, 0)^\top$. Makes sense: from state 1 you collect reward 1 once at $k=0$ then leave forever; from state 2 you never visit state 1.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\Psi = (I-\gamma P_\pi)^{-1}$ from the series definition, including why the inverse exists for $\gamma&lt;1$. <details class="sol"><summary>Solution</summary><div>$P_\pi$ is row-stochastic, so its spectral radius is $\rho(P_\pi)\le \lVert P_\pi\rVert_\infty = 1$, hence $\rho(\gamma P_\pi)\le\gamma&lt;1$ and the Neumann series $\sum_{k\ge0}(\gamma P_\pi)^k$ converges (Chapter 8/18: geometric series of a matrix with spectral radius below 1). Multiplying the partial sums by $(I-\gamma P_\pi)$ telescopes: $(I-\gamma P_\pi)\sum_{k=0}^{n}(\gamma P_\pi)^k = I - (\gamma P_\pi)^{n+1} \to I$. So the series is a two-sided inverse of $I-\gamma P_\pi$, which in particular proves that matrix is invertible, and $\Psi = (I-\gamma P_\pi)^{-1}$. The $(s,s')$ entry of $(\gamma P_\pi)^k$ is $\gamma^k \Pr(s_k = s'\mid s_0=s)$, whose sum over $k$ is the expected discounted visit count by linearity of expectation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="representation-learning-for-dynamics">
+ <h2>Representation learning for dynamics</h2>
+ <p>How do you train the encoder so its latents are good for dynamics? Three families dominate: reconstruct the observations (generative), predict the future in latent space (self-predictive), or contrast true futures against fakes (contrastive). Each answers "what information must $z$ keep?" differently.</p>
+ <div class="box def"><span class="label">Definition</span> Given trajectories $(o_t, a_t)$, the three canonical objectives are:
+ <em>(i) Reconstruction:</em> $\mathcal L = \sum_t -\log p_\theta(o_t\mid z_t)$ (+ a latent KL, as in the VAE/ELBO of Chapter 22) — keep everything needed to redraw $o_t$.
+ <em>(ii) Latent self-prediction:</em> $\mathcal L = \sum_t \lVert g_\theta(z_t, a_t) - \bar e_\phi(o_{t+1})\rVert^2$ with a stop-gradient/EMA target encoder $\bar e_\phi$ — keep what is predictable.
+ <em>(iii) Contrastive (InfoNCE, Chapter 21):</em> $\mathcal L = -\sum_t \log \frac{\exp(\mathrm{sim}(g(z_t,a_t), z_{t+1})/\tau)}{\sum_{j}\exp(\mathrm{sim}(g(z_t,a_t), z_j)/\tau)}$ — keep what distinguishes the true next latent from negatives; this lower-bounds mutual information between $z_t, a_t$ and the future.</div>
+ <div class="box ex"><span class="label">Worked example</span> InfoNCE with 3 candidates. Similarities of the predicted embedding to (true next, negative 1, negative 2) are $(4.0, 1.0, 0.5)$, temperature $\tau=1$. Loss $= -\log\frac{e^{4}}{e^{4}+e^{1}+e^{0.5}} = -\log\frac{54.598}{54.598+2.718+1.649} = -\log\frac{54.598}{58.965} = -\log 0.9259 = 0.0770$ nats. If the encoder collapsed so all similarities are equal, the loss would be $-\log\frac13 = 1.0986$ — the gap is what training exploits.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Objective (ii) without a stop-gradient has a trivial global optimum: set $e_\phi \equiv 0$ (encode everything to a constant), making prediction error exactly zero. This is <em>representation collapse</em>. Remedies: stop-gradient + EMA target (BYOL/SimSiam-style), variance/covariance regularization (VICReg), or negatives (contrastive).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which of the three objectives is forced to model a cloudy sky's exact texture in a driving dataset? <details class="sol"><summary>Solution</summary><div>Reconstruction (i): it must redraw every pixel, clouds included. (ii) drops unpredictable texture (its best latent prediction is a mean); (iii) only needs enough to tell frames apart.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the collapse claim: show $\mathcal L = \sum_t\lVert g(z_t,a_t) - e(o_{t+1})\rVert^2 = 0$ is achievable with constant encoders when $g$ can represent constants, and explain why stop-gradient changes the gradient dynamics. <details class="sol"><summary>Solution</summary><div>Set $e(o)=c$ for all $o$ and $g(z,a)=c$. Every term is $\lVert c-c\rVert^2 = 0$, a global minimum — but useless. With a stop-gradient on the target, the loss as seen by the encoder is $\lVert g(e(o_t),a_t) - \mathrm{sg}[\bar e(o_{t+1})]\rVert^2$: the online encoder gets no gradient signal rewarding it for making the <em>target</em> easy; it is only pushed to predict a slowly-moving target (EMA), and the asymmetric predictor $g$ plus EMA dynamics empirically (and, in linear models, provably) avoids the collapsed fixed point being attractive.</div></details></li>
+  <li><span class="lvl h">HARD</span> In the InfoNCE example, recompute the loss at temperature $\tau = 0.5$ and explain the general effect of lowering $\tau$. <details class="sol"><summary>Solution</summary><div>Scaled similarities: $(8, 2, 1)$. Loss $=-\log\frac{e^8}{e^8+e^2+e^1} = -\log\frac{2980.96}{2980.96+7.389+2.718} = -\log(0.99662) = 0.00338$ nats. Lowering $\tau$ sharpens the softmax: the same similarity gaps produce more confident discrimination, smaller loss, and gradients concentrated on the hardest negatives (those with the highest similarity). Too small a $\tau$ makes training unstable and over-penalizes semantically-close negatives.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="latent-space-prediction">
+ <h2>Latent-space prediction</h2>
+ <p>Predicting the future in latent space rather than pixel space is a quiet revolution: the model never has to say what the leaves will look like, only what will matter. The target itself is learned — you predict your own encoder's summary of the future frame.</p>
+ <div class="box def"><span class="label">Definition</span> Latent-space prediction trains a predictor $g_\theta$ so that $g_\theta(z_t, a_t)\approx z_{t+1}$ where <em>both</em> sides are encoder outputs: $z_t = e_\phi(o_t)$, $z_{t+1} = \bar e_\phi(o_{t+1})$ (target network). The loss $\lVert g_\theta(z_t,a_t) - \bar e_\phi(o_{t+1})\rVert^2$ lives entirely in $\mathbb R^d$; no decoder to pixels exists. Deterministic latent prediction of a stochastic future fits the conditional mean <em>of the embedding</em>, which is far more benign than the mean of pixels: unpredictable detail can simply be excluded from the embedding.</div>
+ <div class="box ex"><span class="label">Worked example</span> Pixel mean vs latent mean. A ball at position 0 will jump to $+1$ or $-1$ with probability $\tfrac12$. Pixel-space mean prediction: a ghostly image with two half-intensity balls — a picture of nothing that ever happens; its MSE against either outcome is large. Latent space: let the encoder choose $z = (\text{ball present}, |{\rm position}|) = (1,1)$ for both outcomes. Then the future latent is <em>deterministic</em>: $z_{t+1}=(1,1)$ exactly, prediction error zero. By choosing what to represent, the model converts irreducible pixel stochasticity into latent determinism — keeping only the predictable abstraction. (Whether $(1,1)$ suffices depends on the task; if the sign matters for reward, the latent must keep it and represent uncertainty another way.)</div>
+ <div class="box think"><span class="label">Think first</span> If the encoder is free to choose what to encode and is scored only on latent prediction error, what is the failure mode, and what keeps a JEPA-style system from it? <details class="sol"><summary>Reveal</summary><div>Collapse: encode nothing (constant $z$), get zero error. Protections: stop-gradient + EMA target encoder, asymmetric predictor, and/or explicit variance–covariance regularization that forces embeddings to stay spread out (VICReg: keep each latent dimension's std above a threshold, decorrelate dimensions).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Latent prediction uses $z\in\mathbb R^{64}$; pixel prediction uses $96\times96\times3$ frames. What is the ratio of output dimensionalities the predictor must produce? <details class="sol"><summary>Solution</summary><div>Pixels: $96\cdot96\cdot3 = 27648$. Ratio $27648/64 = 432$.</div></details></li>
+  <li><span class="lvl m">MED</span> Give a concrete case where zero latent prediction error coexists with a representation useless for control, and the fix. <details class="sol"><summary>Solution</summary><div>Partial collapse: the encoder keeps only static features — e.g. it encodes the level's wall layout but not the agent's position. Walls don't change, so latent prediction is perfect, but a controller can't read where it is. Fix: tie the representation to the task — add a reward-prediction head, or a decoder, or require the latent to predict action-conditioned differences (if actions change the future latent, position must be encoded), plus variance regularization to keep information capacity.</div></details></li>
+  <li><span class="lvl h">HARD</span> Let $o_{t+1} = s_{t+1} + \eta$ where $s$ is predictable signal and $\eta$ is unpredictable noise with $\mathbb E[\eta]=0$, and suppose the encoder is linear, $e(o) = Wo$. Show the optimal latent predictor's error is $\mathbb E\lVert W\eta\rVert^2$ and interpret the encoder's incentive. <details class="sol"><summary>Solution</summary><div>Given $z_t, a_t$ (which determine $s_{t+1}$), the best predictor of $Wo_{t+1} = Ws_{t+1} + W\eta$ is its conditional mean $Ws_{t+1}$. Residual error $= \mathbb E\lVert W\eta\rVert^2 = \operatorname{tr}(W\Sigma_\eta W^\top)$ with $\Sigma_\eta = \operatorname{Cov}(\eta)$. The encoder minimizes error by choosing rows of $W$ orthogonal to the noise directions (small $W\Sigma_\eta W^\top$) while (under an anti-collapse constraint such as $WW^\top = I$ on signal variance) retaining signal directions: latent prediction literally selects the predictable subspace, filtering noise by construction — the formal version of "ignore the leaves".</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multi-step-prediction">
+ <h2>Multi-step prediction</h2>
+ <p>A world model earns its keep over many steps, so train it over many steps: unroll the model, compare against reality at every horizon, and let gradients flow back through the whole imagined trajectory. This aligns training with how the model will actually be used.</p>
+ <div class="box def"><span class="label">Definition</span> Given a transition model $f_\theta$, define iterated predictions $\hat z_{t+1} = f_\theta(\hat z_t, a_t)$ with $\hat z_t = e_\phi(o_t)$. The multi-step (overshooting) loss over horizon $H$ is
+ $$\mathcal L_H = \sum_{k=1}^{H} w_k \, \ell\big(\hat z_{t+k},\; \bar e_\phi(o_{t+k})\big),$$
+ where crucially $\hat z_{t+k}$ is computed from the model's <em>own previous prediction</em>, not from re-encoded ground truth. Teacher forcing (always stepping from ground truth) is the $H=1$ special case applied at each offset; it never exposes the model to its own errors.</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar system $z_{t+1} = 0.9\, z_t$, model $\hat f(z) = a z$ with parameter $a$. One-step loss from data at $z=1$: $(a - 0.9)^2$, minimized at $a=0.9$ regardless. Now suppose observation noise biases the 1-step fit to $a = 0.95$. Two-step prediction error from $z_0=1$: truth $0.81$, model $0.95^2 = 0.9025$, error $0.0925$ — more than twice the 1-step error $0.05$. A 2-step training term $(a^2 - 0.81)^2$ pushes $a$ toward $\sqrt{0.81} = 0.9$, directly penalizing the compounding. Multi-step losses make the optimizer feel the horizon.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Backpropagating through long unrolls can produce exploding/vanishing gradients exactly as in RNNs (Chapter 21): the gradient through $H$ steps contains the product $\prod_{k=1}^{H} \frac{\partial f}{\partial z}\big|_{\hat z_{t+k}}$ of $H$ Jacobians. Practical fixes: modest $H$ (5–15), discounted weights $w_k$, gradient clipping, and truncated backprop.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With true dynamics $z_{t+1}=0.9 z_t$ and model $\hat z_{t+1} = 0.95 \hat z_t$, both from $z_0 = 1$, compute the absolute error at steps 1, 2, 3. <details class="sol"><summary>Solution</summary><div>Truth: $0.9, 0.81, 0.729$. Model: $0.95, 0.9025, 0.857375$. Errors: $0.05,\ 0.0925,\ 0.128375$.</div></details></li>
+  <li><span class="lvl m">MED</span> Write the gradient of $\ell(\hat z_{t+2})$ w.r.t. $\theta$ for $\hat z_{t+2} = f_\theta(f_\theta(z_t, a_t), a_{t+1})$ and identify the two routes gradient takes to $\theta$. <details class="sol"><summary>Solution</summary><div>Let $\hat z_{t+1} = f_\theta(z_t,a_t)$. By the chain rule (Chapter 9), $\frac{\partial \ell}{\partial \theta} = \frac{\partial \ell}{\partial \hat z_{t+2}}\left[\frac{\partial f}{\partial \theta}\Big|_{(\hat z_{t+1},a_{t+1})} + \frac{\partial f}{\partial z}\Big|_{(\hat z_{t+1},a_{t+1})} \frac{\partial f}{\partial \theta}\Big|_{(z_t,a_t)}\right]$. Route 1: direct dependence of the second application on $\theta$. Route 2: through the first step's output — this is the route that multiplies Jacobians and can explode or vanish over long horizons.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that if the model is trained only by teacher forcing on a stochastic system, the training inputs are always exactly on-distribution, and explain why this guarantees nothing about inputs at rollout time. Relate to imitation learning's DAgger problem. <details class="sol"><summary>Solution</summary><div>Under teacher forcing, every input to $f_\theta$ is a ground-truth encoded state $e(o_{t})$ with $o_t$ drawn from the data distribution, so by construction training inputs $\sim$ data distribution. At rollout time inputs are $\hat z_{t+k}$, the model's own outputs; unless the model is exact, these differ from encoded true states, and the discrepancy has positive probability of leaving the training support — after which the model's behavior is unconstrained by training and errors can grow without bound. This is the same covariate-shift mechanism as behavior cloning vs. DAgger in imitation learning: a policy (here, the model) trained on the expert's (data's) state distribution is deployed on its own induced distribution. Overshooting losses are the DAgger analogue: they inject the model's own predictions into training inputs.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="compounding-error">
+ <h2>Compounding error</h2>
+ <p>A model that is 99% right per step is not 99% right over a hundred steps. Small errors move the rollout to slightly wrong states, where the model makes slightly bigger errors, and the drift feeds itself. Understanding how fast this snowball grows — linearly or exponentially — decides how far ahead you can trust imagination.</p>
+ <div class="box def"><span class="label">Definition (error growth bound)</span> Let $f$ be the true dynamics and $\hat f$ the model with one-step error $\sup_z\lVert \hat f(z)-f(z)\rVert \le \varepsilon$, and let $\hat f$ be $L$-Lipschitz: $\lVert\hat f(z)-\hat f(z')\rVert \le L\lVert z-z'\rVert$. Then the rollout error $\delta_k = \lVert \hat z_k - z_k\rVert$ obeys $\delta_{k+1} \le L\,\delta_k + \varepsilon$, hence
+ $$\delta_H \;\le\; \varepsilon\,(1 + L + \cdots + L^{H-1}) \;=\; \begin{cases}\varepsilon H, & L = 1,\\[2pt] \varepsilon\,\dfrac{L^H - 1}{L - 1}, & L \neq 1.\end{cases}$$
+ Contractive models ($L&lt;1$) have bounded error $\le \varepsilon/(1-L)$ forever; expansive ones ($L&gt;1$, e.g. chaotic systems, Chapter 28) blow up exponentially.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\varepsilon = 0.01$, horizon $H=20$. If $L=1$: $\delta_{20}\le 0.2$. If $L = 1.2$: $\delta_{20}\le 0.01\cdot\frac{1.2^{20}-1}{0.2} = 0.01\cdot\frac{38.34-1}{0.2} = 0.01\cdot 186.7 \approx 1.87$ — nearly ten times worse, from a modest 20% per-step expansion. If $L=0.8$: $\delta_{20} \le 0.01\cdot\frac{1-0.8^{20}}{0.2} \approx 0.01\cdot 4.94 = 0.049$, and never exceeds $0.05$ at any horizon.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the per-step error and the Lipschitz constant; watch the model rollout (dashed) peel away from the true trajectory and the error bound envelope grow.</p>
+  <canvas id="cv-comperr"></canvas>
+  <div class="ctl">
+   <label>one-step error ε <input type="range" id="ce-eps" min="0" max="0.05" step="0.005" value="0.01"></label>
+   <label>Lipschitz L <input type="range" id="ce-lip" min="0.7" max="1.3" step="0.05" value="1"></label>
+   <label>horizon H <input type="range" id="ce-h" min="5" max="60" step="1" value="30"></label>
+   <button class="btn" id="ce-reroll">Re-roll noise</button>
+  </div>
+  <div class="out" id="ce-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> This is why Dreamer imagines only ~15 steps, why MPC (Chapter 28) replans every step, and why MuZero backs its search with a learned value function instead of rolling to episode end.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $L=1$ and $\varepsilon = 0.02$, what horizon keeps the error bound below $0.5$? <details class="sol"><summary>Solution</summary><div>$\varepsilon H &lt; 0.5 \Rightarrow H &lt; 25$: up to $H = 24$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the recursion $\delta_{k+1}\le L\delta_k + \varepsilon$ from the triangle inequality. <details class="sol"><summary>Solution</summary><div>$\delta_{k+1} = \lVert \hat f(\hat z_k) - f(z_k)\rVert \le \lVert \hat f(\hat z_k) - \hat f(z_k)\rVert + \lVert \hat f(z_k) - f(z_k)\rVert \le L\lVert \hat z_k - z_k\rVert + \varepsilon = L\delta_k + \varepsilon$. Unrolling: $\delta_H \le L^H\delta_0 + \varepsilon\sum_{j=0}^{H-1}L^j$, and $\delta_0 = 0$ gives the stated bound.</div></details></li>
+  <li><span class="lvl h">HARD</span> Rewards are $L_r$-Lipschitz in state, discount $\gamma$, per-step state error bound $\delta_k \le \varepsilon k$ (case $L=1$). Bound the error of the imagined discounted return over horizon $H$ and evaluate for $L_r = 1$, $\gamma = 0.95$, $\varepsilon = 0.01$, $H\to\infty$. <details class="sol"><summary>Solution</summary><div>$|\hat R - R| \le \sum_{k=1}^{H}\gamma^k L_r \delta_k \le L_r\varepsilon\sum_{k=1}^{H} k\gamma^k$. As $H\to\infty$, $\sum_{k\ge1}k\gamma^k = \frac{\gamma}{(1-\gamma)^2}$ (differentiate the geometric series, Chapter 7). With the numbers: $\frac{0.95}{0.05^2} = 380$, so $|\hat R - R| \le 0.01\cdot380 = 3.8$ reward units. Note the $(1-\gamma)^{-2}$ dependence: long-horizon (high-$\gamma$) evaluation amplifies model error quadratically in the effective horizon — a core reason model-based return estimates are truncated and blended with learned values ($\lambda$-returns).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">A learned dynamics model has one-step error ε and Lipschitz constant L = 0.9 (a contraction). Its worst-case rollout error as H→∞:</div><button class="opt">Grows linearly, like εH</button><button class="opt">Grows exponentially</button><button class="opt">Stays bounded by ε/(1−L) = 10ε</button><div class="why" hidden>With $L&lt;1$ the recursion $\delta_{k+1}\le L\delta_k+\varepsilon$ has fixed point $\varepsilon/(1-L)$; the geometric series $\varepsilon\sum L^k$ converges to $\varepsilon/(1-0.9)=10\varepsilon$. Contractive dynamics forgive model error; expansive dynamics compound it.</div></div>
+</section>
+
+<section class="topic" id="counterfactual-rollouts">
+ <h2>Counterfactual rollouts</h2>
+ <p>The deepest thing a world model buys is the ability to ask "what if I had done otherwise?" — replay the same situation under a different action and compare. Real life gives you one branch; a model gives you all of them from the same root, which is precisely what credit assignment needs.</p>
+ <div class="box def"><span class="label">Definition</span> Given a model $p_\theta(z'\mid z,a)$ and a state $z_t$ reached in reality after taking $a_t$, a counterfactual rollout replays from the <em>same</em> $z_t$ with an alternative action sequence $\tilde a_{t:t+H-1}$: $\tilde z_{t+1}\sim p_\theta(\cdot\mid z_t,\tilde a_t)$, etc. The (model-estimated) advantage of the alternative is $\hat A = \hat R(\tilde a\text{-branch}) - \hat R(a\text{-branch})$. In stochastic systems, a sharper comparison holds the noise fixed across branches: with a reparameterized model $z' = f_\theta(z, a, \xi)$, $\xi\sim\mathcal N(0,I)$, use the <em>same</em> $\xi$ draws on both branches — the "abduct noise, intervene on action, predict" recipe of Chapter 27's counterfactuals.</div>
+ <div class="box ex"><span class="label">Worked example</span> Point mass $x_{t+1} = x_t + v_t$, $v_{t+1} = v_t + a_t + \xi_t$, from $(x,v)=(0,0)$; reward $=-|x_2 - 1|$ at $t=2$. Reality took $a_0 = a_1 = 0$ with realized noise $\xi_0 = 0.1, \xi_1 = -0.1$: then $v_1 = 0.1$, $x_1 = 0$, $v_2 = 0$, $x_2 = 0.1$, reward $-0.9$. Counterfactual "$a_0 = 1, a_1 = 0$" with the <em>same</em> noise: $v_1 = 0 + 1 + 0.1 = 1.1$, $x_1 = 0$, $x_2 = x_1 + v_1 = 1.1$, reward $-0.1$. Advantage $= -0.1 - (-0.9) = +0.8$: pushing at $t=0$ was worth $0.8$, holding everything else about the world fixed. Averaging over fresh noise instead would blur this into an interventional (not counterfactual) estimate — here $\mathbb E[x_2] = 1$ under the new actions, reward $\mathbb E[-|x_2-1|] &lt; 0$ depends on noise spread.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Counterfactuals are only as good as the model in the counterfactual region. If action $\tilde a$ drives the rollout into states the model never trained on, the computed advantage can be pure fiction — the model-exploitation problem again, now dressed as reasoning.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the worked example, evaluate the counterfactual "$a_0 = 0, a_1 = 1$" with the same noise. <details class="sol"><summary>Solution</summary><div>$v_1 = 0.1$, $x_1 = 0$; $v_2 = 0.1 + 1 - 0.1 = 1$ (not needed for $x_2$), $x_2 = x_1 + v_1 = 0.1$. Reward $-0.9$, advantage $0$ vs. reality: acting at $t=1$ is too late to change $x_2$, since $x_2$ depends only on $v_1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does holding the noise $\xi$ fixed across branches reduce the variance of the estimated advantage? <details class="sol"><summary>Solution</summary><div>With common noise, $\hat A = R(\tilde a,\xi) - R(a,\xi)$ and $\operatorname{Var}(\hat A) = \operatorname{Var}(R_{\tilde a}) + \operatorname{Var}(R_a) - 2\operatorname{Cov}(R_{\tilde a}, R_a)$. The two returns computed on the same noise are strongly positively correlated (the shared randomness affects both similarly), so the covariance term cancels most of the variance. This is the common random numbers trick from simulation, and the paired-sample logic of Chapter 13.</div></details></li>
+  <li><span class="lvl h">HARD</span> Connect the three rungs of Pearl's ladder (Chapter 27) to world-model operations: prediction, intervention, counterfactual. State exactly what extra structure each rung needs from the model. <details class="sol"><summary>Solution</summary><div>Rung 1 (association/prediction): sample $p_\theta(z_{t+1}\mid z_t, a_t)$ with actions from the data policy — needs only the learned conditional. Rung 2 (intervention): roll out with actions chosen by a <em>new</em> policy — needs the model to be a correct <em>causal</em> mechanism $p(z'\mid \mathrm{do}(a), z)$, i.e. trained such that action is not confounded with state in the data (true when actions were chosen by a known policy given $z$, since conditioning on $z$ blocks the backdoor). Rung 3 (counterfactual): replay a <em>specific realized</em> trajectory under different actions — additionally needs the noise decomposition $z' = f(z,a,\xi)$ and the ability to infer (abduct) the realized $\xi$ from the observed transition, then re-run $f$ with the same $\xi$ and new $a$. Distributional models without a reparameterized noise variable support rung 2 but not rung 3.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="uncertainty-in-world-models">
+ <h2>Uncertainty in world models</h2>
+ <p>A world model must know what it doesn't know, and there are two different kinds of not-knowing: the dice the world genuinely rolls (aleatoric), and the model's own ignorance from limited data (epistemic). Only the second shrinks with more data — and only the second should stop a planner from trusting a rollout.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Aleatoric</em> uncertainty is irreducible randomness in $p(z'\mid z,a)$ itself; a well-fit stochastic model represents it in its output distribution (e.g. predicted variance). <em>Epistemic</em> uncertainty is uncertainty over the model parameters $\theta$; a standard estimate uses an ensemble $\{\theta_i\}_{i=1}^{N}$ trained on the same data from different initializations (and/or bootstrapped data): the ensemble mean $\bar\mu = \frac1N\sum_i \mu_{\theta_i}(z,a)$ predicts, and the <em>disagreement</em>
+ $$u_{\text{epi}}(z,a) = \frac1N\sum_{i=1}^{N}\lVert \mu_{\theta_i}(z,a) - \bar\mu\rVert^2$$
+ estimates epistemic uncertainty. Total predictive variance decomposes (law of total variance, Chapter 11) as $\operatorname{Var}(z') = \underbrace{\mathbb E_\theta[\sigma^2_\theta]}_{\text{aleatoric}} + \underbrace{\operatorname{Var}_\theta(\mu_\theta)}_{\text{epistemic}}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ensemble of $N=4$ scalar models predicts next state: means $(1.0,\ 1.1,\ 0.9,\ 1.0)$, each with predicted variance $\sigma_i^2 = 0.04$. Ensemble mean $\bar\mu = 1.0$. Epistemic: $\frac14[(0)^2 + (0.1)^2 + (-0.1)^2 + 0^2] = 0.005$. Aleatoric: $\frac14\sum\sigma_i^2 = 0.04$. Total variance $0.045$. Interpretation: most uncertainty here is the world's dice ($0.04$), not ignorance ($0.005$) — more data won't help much, but the planner may still average over outcomes. If instead means were $(0.2, 1.8, 1.0, 1.0)$: epistemic $= \frac14[0.64+0.64+0+0] = 0.32 \gg 0.04$ — the models flatly disagree; this $(z,a)$ is off-distribution and imagined rewards there should be distrusted (or, for exploration, sought out).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>An ensemble of 5 cubic fits trained on the dots. Drag the data-region slider: inside the data the fits agree (thin band); outside they fan apart — epistemic uncertainty you can see.</p>
+  <canvas id="cv-ens"></canvas>
+  <div class="ctl">
+   <label>data region half-width <input type="range" id="en-w" min="0.5" max="3" step="0.1" value="1.5"></label>
+   <label>noise σ <input type="range" id="en-noise" min="0" max="0.5" step="0.05" value="0.15"></label>
+   <button class="btn" id="en-refit">Resample &amp; refit</button>
+  </div>
+  <div class="out" id="en-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Ensemble disagreement drives intrinsic-motivation exploration (Chapter 25) and pessimistic offline model-based RL; calibration of these uncertainties is Chapter 13's calibration story.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Ensemble means $(2.0, 2.2, 1.8)$, all $\sigma_i^2 = 0.01$. Compute epistemic and aleatoric components. <details class="sol"><summary>Solution</summary><div>$\bar\mu = 2.0$. Epistemic $= \frac13[0 + 0.04 + 0.04] = 0.0267$. Aleatoric $= 0.01$. Total $\approx 0.0367$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does epistemic uncertainty vanish (in principle) as data $\to\infty$ on-distribution, while aleatoric does not? <details class="sol"><summary>Solution</summary><div>Epistemic uncertainty is spread in the posterior over parameters; with identifiable models and i.i.d. data the posterior concentrates (consistency of Bayesian/ML estimation, Chapter 13), so all ensemble members converge to the same function on the data distribution and disagreement $\to 0$. Aleatoric variance is a property of the true conditional $p(z'\mid z,a)$ itself — the world's randomness — which no amount of data removes; a perfect model still predicts a spread.</div></details></li>
+  <li><span class="lvl h">HARD</span> A planner maximizes imagined return $\hat R$. Show with a 2-armed example how an unpenalized planner exploits epistemic error, and how the pessimistic objective $\hat R - \beta\, u_{\text{epi}}$ fixes it. <details class="sol"><summary>Solution</summary><div>Arm A: well-explored, all ensemble members predict reward $0.5$, disagreement $0$. Arm B: never tried; members predict $(-1.0, +2.0)$ (mean $0.5$, disagreement $\frac12[(1.5)^2+(1.5)^2] = 2.25$). True reward of B is, say, $-1$. A mean-maximizing planner is indifferent (both means $0.5$) and may pick B — its high mean is partly hallucinated. With $\beta = 0.5$: score(A) $= 0.5 - 0 = 0.5$, score(B) $= 0.5 - 1.125 = -0.625$; the planner picks A. Pessimism converts "the model might be wrong here" into "assume the worst plausible case here", which provably bounds regret in offline model-based RL (e.g. MOPO-style bounds: true return $\ge$ pessimistic model return when $\beta u$ upper-bounds the model error's effect).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="model-based-planning">
+ <h2>Model-based planning</h2>
+ <p>Once you can imagine futures, choose actions by search: propose many action sequences, imagine each, score them, and act on the best — then replan after one real step. The simplest version is random shooting; the workhorse refinement is the cross-entropy method (CEM), which iteratively focuses sampling on what worked.</p>
+ <div class="box def"><span class="label">Definition</span> Model-predictive control with a learned model: at state $z_t$, solve
+ $$a^*_{t:t+H-1} = \arg\max_{a_{t:t+H-1}} \; \mathbb E\Big[\sum_{k=0}^{H-1}\gamma^k \hat r(z_{t+k}, a_{t+k}) + \gamma^H \hat V(z_{t+H})\Big]$$
+ under $z_{k+1}\sim p_\theta(\cdot\mid z_k,a_k)$; execute $a^*_t$ only; replan at $t+1$. <em>CEM:</em> maintain a Gaussian over action sequences $\mathcal N(\mu,\sigma^2)$ (per-timestep, per-dimension); sample $K$ sequences, evaluate all by rollout, keep the top $M$ elites, refit $\mu,\sigma$ to the elites, repeat a few iterations. The terminal value $\hat V$ lets a short horizon stand in for the infinite future.</div>
+ <div class="box ex"><span class="label">Worked example</span> One CEM iteration, 1-step problem, scalar action. Prior $\mathcal N(0, 1)$. Samples: $a\in\{-1.2, -0.3, 0.4, 0.9, 1.6\}$; imagined rewards $r(a) = -(a-1)^2$ gives $(-4.84, -1.69, -0.36, -0.01, -0.36)$. Top-2 elites: $a = 0.9$ ($-0.01$) and $a = 0.4$ or $1.6$ (tie at $-0.36$; take $1.6$, sampled order). Refit: $\mu = (0.9+1.6)/2 = 1.25$, $\sigma^2 = \frac{(0.9-1.25)^2 + (1.6-1.25)^2}{2} = \frac{0.1225 + 0.1225}{2} = 0.1225$, $\sigma = 0.35$. The search contracted from $\mathcal N(0,1)$ to $\mathcal N(1.25, 0.35^2)$, closing in on the optimum $a^\ast = 1$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch a shooting planner steer a point mass to the flag through imagination. Increase horizon and samples; toggle model error to see planning quality degrade with a wrong model.</p>
+  <canvas id="cv-plan"></canvas>
+  <div class="ctl">
+   <label>horizon H <input type="range" id="pl-h" min="2" max="25" step="1" value="10"></label>
+   <label>samples K <input type="range" id="pl-k" min="10" max="400" step="10" value="100"></label>
+   <label>model bias <input type="range" id="pl-bias" min="0" max="0.5" step="0.05" value="0"></label>
+   <button class="btn" id="pl-run">Run</button>
+   <button class="btn" id="pl-reset">Reset</button>
+  </div>
+  <div class="out" id="pl-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Longer horizons are not monotonically better with a learned model: past some $H$, compounding model error outweighs the extra lookahead. The optimal horizon shrinks as model error grows — with a bad model, plan short and replan often.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Random shooting with $K = 64$ sequences, horizon $H=12$, one model call per step: how many model calls per replan, and per 100-step episode with replanning every step? <details class="sol"><summary>Solution</summary><div>Per replan: $64\times12 = 768$. Per episode: $768\times100 = 76{,}800$ calls (all batchable).</div></details></li>
+  <li><span class="lvl m">MED</span> Run the second CEM iteration of the worked example: sample $\{0.9, 1.1, 1.3, 1.5, 1.7\}$ from $\mathcal N(1.25, 0.35^2)$ (given), score with $r(a) = -(a-1)^2$, take top-2, refit. <details class="sol"><summary>Solution</summary><div>Rewards: $-0.01, -0.01, -0.09, -0.25, -0.49$. Elites: $0.9$ and $1.1$ (both $-0.01$). Refit: $\mu = 1.0$, $\sigma^2 = \frac{(0.9-1)^2+(1.1-1)^2}{2} = 0.01$, $\sigma = 0.1$. The distribution has locked onto the optimum $a^\ast = 1$ with sharply reduced spread — the signature geometric contraction of CEM.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does adding a learned terminal value $\hat V(z_{t+H})$ let MPC act near-optimally with short $H$, and what failure does an <em>overestimated</em> $\hat V$ cause? Tie both to the Bellman equation. <details class="sol"><summary>Solution</summary><div>The Bellman equation (Chapter 25) says the optimal value satisfies $V^*(z_t) = \max_a \mathbb E[r + \gamma V^*(z_{t+1})]$; unrolling $H$ times, the exact $H$-step lookahead objective with terminal $V^*$ recovers $V^*$ exactly — so if $\hat V \approx V^*$, even $H = 1$ planning is near-optimal, and the model only needs to be accurate for $H$ steps. If $\hat V$ overestimates in some region (classic with function approximation + max, Chapter 25's overestimation bias), the planner is <em>drawn</em> to trajectories ending in that region — it deliberately steers toward the value function's mistakes, a value-side twin of model exploitation. Fixes: conservative value training, ensembles with min-backup (as in double Q-learning), or longer horizons that dilute the terminal term by $\gamma^H$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="joint-embedding-predictive-architecture">
+ <h2>Joint Embedding Predictive Architecture (JEPA) <span style="font-weight:400;font-size:.7em">(merged: "Joint Embedding Predictive Architecture" + "JEPA")</span></h2>
+ <p>JEPA is latent-space prediction elevated to an architectural creed: never predict pixels, always predict embeddings. Encode the context, encode the target, and train a predictor to map one to the other — with the target encoder held out of the gradient's reach so the game can't be won by collapsing. LeCun's argument: this is how to learn abstraction, because the encoder is free to discard exactly the unpredictable detail generative models are forced to fabricate.</p>
+ <div class="box def"><span class="label">Definition</span> A JEPA consists of: a context encoder $z_x = e_\phi(x)$, a target encoder $z_y = \bar e_{\phi'}(y)$ (weights $\phi'$ an exponential moving average of $\phi$, no gradient), and a predictor $\hat z_y = g_\theta(z_x, m)$ conditioned on a variable $m$ describing the $x\to y$ relation (which patch location in I-JEPA; which future time and action in action-conditioned JEPA). Loss: $\mathcal L = \lVert g_\theta(e_\phi(x), m) - \mathrm{sg}[\bar e_{\phi'}(y)]\rVert_2^2$, with EMA update $\phi' \leftarrow \tau\phi' + (1-\tau)\phi$. In I-JEPA, $x$ = visible image patches, $y$ = masked target blocks of the <em>same</em> image; in V-JEPA, $y$ = masked spatio-temporal blocks of video — turning JEPA into a video world model without a pixel decoder.</div>
+ <div class="box ex"><span class="label">Worked example</span> EMA target update with $\tau = 0.99$. Suppose a particular weight is $\phi = 2.0$ in the online encoder and $\phi' = 1.0$ in the target. After one update: $\phi' \leftarrow 0.99\cdot1.0 + 0.01\cdot 2.0 = 1.01$. If $\phi$ stays at 2.0, after $n$ steps $\phi'_n = 2 - (2-1)\cdot 0.99^n$; reaching $\phi' = 1.9$ needs $0.99^n = 0.1$, $n = \log 0.1/\log 0.99 \approx 229$ steps. The target trails the online network with a time constant of $\approx 1/(1-\tau) = 100$ steps — slow enough to be a stable target, fast enough to track learning.</div>
+ <div class="box think"><span class="label">Think first</span> A generative video model must decide exactly where each leaf on a tree will be in the next frame. What does a JEPA-style video model do with the leaves instead, and why might that produce better representations for a robot that just needs to walk past the tree? <details class="sol"><summary>Reveal</summary><div>The target encoder can map both leaf configurations to (nearly) the same embedding, so the predictor's job — predict the embedding — is achievable without modeling leaf micro-dynamics; leaf detail simply never enters the representation. The robot needs "tree, here, static obstacle", not leaf positions; likelihood-trained pixel models spend most of their capacity on high-entropy texture (which dominates the bits of a video), starving the low-entropy, task-relevant structure. Predicting in representation space reallocates capacity to the predictable, abstract content.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> "No decoder" also means no free likelihood and no direct sample generation: evaluating a JEPA needs downstream probes (linear classification, planning performance), not perplexity, and JEPA is not by itself a generative model — comparisons with diffusion models (Chapter 22) on "sample quality" are category errors.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the three trainable/semi-trainable modules of a JEPA and which receives no gradient. <details class="sol"><summary>Solution</summary><div>Context encoder $e_\phi$ (gradient), predictor $g_\theta$ (gradient), target encoder $\bar e_{\phi'}$ (no gradient — updated only by EMA of $\phi$).</div></details></li>
+  <li><span class="lvl m">MED</span> With $\tau = 0.999$, roughly how many updates does the target need to move 63% of the way toward a stationary online network? Why do larger models use $\tau$ closer to 1? <details class="sol"><summary>Solution</summary><div>The EMA is a discrete low-pass filter with time constant $\approx 1/(1-\tau) = 1000$ updates ($(1 - (1-\tau))^n \approx e^{-n(1-\tau)}$, and $e^{-1}\approx 0.37$ remaining at $n = 1000$). Larger models with noisier, longer training benefit from a slower-moving target: it stabilizes the prediction problem (a nearly fixed regression target) and prevents fast co-adaptation loops between predictor and target that lead to partial collapse.</div></details></li>
+  <li><span class="lvl h">HARD</span> Contrast the information kept by (a) an autoencoder with reconstruction loss, (b) a contrastive encoder, (c) a JEPA, when the data is "robot arm + TV playing static noise in the background". Which representations are most useful for controlling the arm, and why? <details class="sol"><summary>Solution</summary><div>(a) Autoencoder: must reconstruct all pixels, so it encodes as much of the TV static as its capacity allows — static has maximal per-pixel entropy, so it can dominate the code; arm state gets squeezed. (b) Contrastive: needs features that discriminate frames; static differs on every frame, so static is a highly discriminative (but useless) signal — InfoNCE may happily latch onto it as a "timestamp". (c) JEPA: static is unpredictable from context, so any component of the target embedding that encodes static is unpredictable noise in the regression; the EMA target encoder is itself trained (implicitly, through the online encoder) toward embeddings the predictor can hit, pressuring static <em>out</em> of the representation, while the arm — predictable given context and action — stays in. For control, (c) is best aligned: it retains exactly the predictable, controllable structure. This is the informal core of the "JEPAs learn abstractions" argument.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dreamer-style-agents">
+ <h2>Dreamer-style agents</h2>
+ <p>Dreamer closes the loop: learn a latent world model from replayed experience, then train an actor and a critic entirely inside the model's dreams — thousands of imagined trajectories per real step, gradients flowing through the imagination. The real environment is touched only to collect fresh data with the improved policy.</p>
+ <div class="box def"><span class="label">Definition</span> Dreamer alternates three processes over a replay buffer:
+ (1) <em>World-model learning:</em> an RSSM $\{h_{t+1} = f(h_t, z_t, a_t);\; z_t\sim q(\cdot\mid h_t, o_t)\ \text{(posterior)};\; \hat z_t \sim p(\cdot\mid h_t)\ \text{(prior)}\}$, with reconstruction, reward, and continue heads, trained by an ELBO-style loss including $\mathrm{KL}[q(z_t\mid h_t,o_t)\,\Vert\, p(z_t\mid h_t)]$ — the KL both regularizes and trains the prior to match the posterior so imagination (which can only use the prior) is faithful.
+ (2) <em>Actor–critic in imagination:</em> from replayed states, roll out $H\!\approx\!15$ steps using the prior and the current actor; train the critic on $\lambda$-returns (Chapter 25) of imagined rewards; train the actor to maximize imagined $\lambda$-returns (by backprop-through-dynamics for continuous control, or REINFORCE for discrete), plus an entropy bonus.
+ (3) <em>Acting:</em> collect real experience with the actor; append to replay.</div>
+ <div class="box ex"><span class="label">Worked example</span> Imagined $\lambda$-return, $H = 3$, $\gamma = 0.9$, $\lambda = 0.8$. Imagined rewards $r_1 = 1, r_2 = 0, r_3 = 2$; critic values $v_1 = 5, v_2 = 4, v_3 = 3$ at the corresponding states, bootstrap value after step 3: $v_4^{} = 2$ (no termination). Compute backwards with $G_t^\lambda = r_t + \gamma\big[(1-\lambda)v_{t+1} + \lambda G_{t+1}^\lambda\big]$, $G_4^\lambda := v_4 = 2$:
+ $G_3^\lambda = 2 + 0.9[(0.2)(2) + 0.8(2)] = 2 + 0.9\cdot 2 = 3.8$.
+ $G_2^\lambda = 0 + 0.9[(0.2)(3) + 0.8(3.8)] = 0.9[0.6 + 3.04] = 3.276$.
+ $G_1^\lambda = 1 + 0.9[(0.2)(4) + 0.8(3.276)] = 1 + 0.9[0.8 + 2.6208] = 1 + 3.0787 = 4.0787$.
+ The critic regresses $v_1\to 4.0787$ etc.; the actor ascends $\nabla G_1^\lambda$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Dreamer's KL-balanced posterior/prior is the ELBO of Chapter 22 running as an online filter (Chapter 28's state estimation); its actor-critic is Chapter 25 transplanted into imagination. DreamerV3 solved Minecraft diamond collection from sparse rewards with a single hyperparameter set.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Dreamer imagines from every replayed state in a batch of 64 sequences × 16 timesteps, horizon 15. How many imagined transitions per world-model update? <details class="sol"><summary>Solution</summary><div>$64\times16 = 1024$ start states, each rolled 15 steps: $15{,}360$ imagined transitions.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must imagination use the prior $p(z_t\mid h_t)$ rather than the posterior $q(z_t\mid h_t, o_t)$, and what does the KL term do about the resulting mismatch? <details class="sol"><summary>Solution</summary><div>During imagination there are no observations — future $o_t$ don't exist — so only the observation-free prior can generate $z_t$. Training uses the posterior (which peeks at $o_t$) to infer accurate states. If prior and posterior diverge, imagined trajectories are distributed differently from inferred ones and the actor trains on the wrong distribution. The KL term $\mathrm{KL}[q\Vert p]$ explicitly pulls the prior toward the posterior (training the prior to predict what inference will conclude) and the posterior toward the prior (keeping states predictable), typically with asymmetric weighting ("KL balancing") so the prior does most of the moving.</div></details></li>
+  <li><span class="lvl h">HARD</span> Backprop-through-dynamics actor gradients (Dreamer) vs. REINFORCE/likelihood-ratio gradients (Chapter 25): compare bias and variance, and explain why Dreamer can use the former while model-free methods cannot. <details class="sol"><summary>Solution</summary><div>Pathwise/backprop gradients differentiate the return along the imagined trajectory: $\nabla_\psi \mathbb E[G] = \mathbb E[\nabla_\psi G]$ via reparameterization — low variance (no score-function noise) but biased whenever the <em>model's</em> dynamics/reward gradients are wrong, and they require a differentiable simulator of the transition. REINFORCE needs only the ability to sample and evaluate returns — unbiased for the sampled system, but high variance ($G\,\nabla\log\pi$ multiplies whole-return noise into every gradient). Model-free methods interact with the non-differentiable real environment, so pathwise gradients through it are unavailable; Dreamer's environment <em>is</em> its own network, differentiable by construction, so it gets the low-variance path — paying with model bias, which the short horizon ($H\approx15$) and $\lambda$-return bootstrapping keep contained.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">In Dreamer, the actor is trained on:</div><button class="opt">Trajectories generated by the learned model's prior, starting from replayed states</button><button class="opt">Real environment trajectories only</button><button class="opt">Trajectories generated by the posterior, which conditions on real future observations</button><div class="why" hidden>The actor learns in imagination: rollouts under the prior (no observations available in dreams) from states inferred out of replayed real data. Real trajectories only feed world-model learning and replay; the posterior can't be used forward in time since future observations don't exist during imagination.</div></div>
+</section>
+
+<section class="topic" id="muzero-style-agents">
+ <h2>MuZero-style agents</h2>
+ <p>MuZero learns a model with no obligation to predict the world at all — only what matters for the game: reward, value, policy. Its latent "state" never decodes to pixels and its dynamics may be a poor simulator, yet tree search through it plays superhuman Go, chess, shogi and Atari. It is the purest statement of value-equivalent modeling.</p>
+ <div class="box def"><span class="label">Definition</span> MuZero learns three functions: representation $s^0 = h_\theta(o_{1:t})$; dynamics $(r^k, s^k) = g_\theta(s^{k-1}, a^k)$; prediction $(p^k, v^k) = f_\theta(s^k)$. It plans with MCTS (Chapter 26): at each search node, children are expanded via $g_\theta$, leaves evaluated by $v$, and action selection uses PUCT $\;a = \arg\max_a\big[Q(s,a) + c\, p(s,a)\frac{\sqrt{\sum_b N(s,b)}}{1+N(s,a)}\big]$. Training unrolls the model $K$ steps along real trajectories and matches: predicted policy $p^k$ to the search policy $\pi_{t+k}$ (visit-count distribution), predicted value $v^k$ to bootstrapped returns $z_{t+k}$, predicted reward $r^k$ to real rewards $u_{t+k}$. <em>No observation-reconstruction loss anywhere</em>: the model is trained to be equivalent to the world only in reward/value/policy — "value equivalence".</div>
+ <div class="box ex"><span class="label">Worked example</span> PUCT choice. At the root, two actions; $c = 1.25$. Counts so far $N = (3, 1)$ (total 4), mean values $Q = (0.5, 0.6)$, priors $p = (0.7, 0.3)$. Scores: $U_1 = 0.5 + 1.25\cdot0.7\cdot\frac{\sqrt4}{1+3} = 0.5 + 1.25\cdot0.7\cdot0.5 = 0.9375$. $U_2 = 0.6 + 1.25\cdot0.3\cdot\frac{2}{2} = 0.6 + 0.375 = 0.975$. Action 2 is visited despite the lower prior — its higher observed value and low visit count win. After this visit, suppose the leaf evaluates to $v = 0.4$: $N_2 \to 2$, $Q_2 \to \frac{0.6\cdot1 + 0.4}{2} = 0.5$, and the search's final policy target is the normalized visit counts, e.g. $\pi = (3/6\; \text{vs}\; \dots)$ after more simulations.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Because MuZero's latent states are trained only through reward/value/policy, they are <em>not</em> transferable world knowledge: change the reward function and the "model" may be useless (contrast successor representations and reconstruction-based models, which separate dynamics from reward). Value equivalence buys efficiency at the price of reward-specificity.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which three quantities does MuZero's training loss match, and which conspicuous quantity is absent? <details class="sol"><summary>Solution</summary><div>Matches: reward $r^k \to u_{t+k}$, value $v^k \to z_{t+k}$, policy $p^k \to \pi_{t+k}$ (MCTS visit distribution). Absent: any observation/pixel reconstruction — the model never predicts $o$.</div></details></li>
+  <li><span class="lvl m">MED</span> Recompute the PUCT scores of the worked example after action 2's update ($N = (3,2)$, $Q = (0.5, 0.5)$, total $N=5$), and say which action is picked next. <details class="sol"><summary>Solution</summary><div>$\sqrt5 \approx 2.236$. $U_1 = 0.5 + 1.25\cdot 0.7\cdot\frac{2.236}{4} = 0.5 + 0.489 = 0.989$. $U_2 = 0.5 + 1.25\cdot0.3\cdot\frac{2.236}{3} = 0.5 + 0.2795 = 0.7795$. Action 1 is picked: with values now equal, the prior and lower relative visit pressure dominate.</div></details></li>
+  <li><span class="lvl h">HARD</span> Dreamer vs MuZero: both learn latent models, but they answer "what should the model predict?" oppositely. Lay out the trade-off, and give one environment where each choice is clearly better. <details class="sol"><summary>Solution</summary><div>Dreamer: predict the <em>world</em> (observations, via ELBO) — reward-agnostic, reusable across tasks, provides rich learning signal from every pixel (good in sparse-reward settings: the model learns even before reward is seen), but wastes capacity on task-irrelevant detail and struggles when observations are dominated by noise/distractors. MuZero: predict only <em>decision-relevant</em> quantities — maximal capacity efficiency, immune to distractors by construction, ideal where reward/value structure is rich and the observation is combinatorial (Go: reconstructing the board is trivial but pointless; value is everything). Clear wins: MuZero for board games / dense strategic signal with exact rules and a fixed objective; Dreamer for pixel-based robotics with sparse rewards and multiple downstream tasks (its model transfers; MuZero's value-equivalent latents don't survive a reward change). The synthesis question — reconstruction-free but reward-general models — is open research (e.g. self-predictive + successor-feature hybrids).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="visual-world-models">
+ <h2>Visual world models</h2>
+ <p>When the observation is a camera image, the world model must marry a vision backbone to a dynamics core. The standard shape: a convolutional or ViT encoder squeezes each frame into an embedding, a recurrent or transformer core carries state across time, and (optionally) a decoder renders imagination back to pixels for training signal or human inspection.</p>
+ <div class="box def"><span class="label">Definition</span> A visual world model is a latent dynamics model whose encoder $e_\phi$ is an image network: $x_t = \mathrm{CNN/ViT}(o_t) \in \mathbb R^{d}$, fused into latent state $z_t$ by the sequence core. Design axes: <em>discrete vs continuous latents</em> (DreamerV2/V3 and many video models use vectors of categorical latents — e.g. 32 categoricals × 32 classes — trained with straight-through gradients, which resist the blurriness of Gaussian latents); <em>decoder vs decoder-free</em> (reconstruction vs JEPA-style); <em>frame-level vs patch-level</em> tokens (transformer world models tokenize each frame into patches, as Chapter 21's ViT).</div>
+ <div class="box ex"><span class="label">Worked example</span> Latent budget of a DreamerV3-style state. Stochastic latent: 32 categorical variables, each over 32 classes $\Rightarrow$ information capacity $32\cdot\log_2 32 = 32\cdot 5 = 160$ bits per step. Compare to the raw $64\times64\times3$ frame at 8 bits per channel: $98{,}304$ bits. The model compresses each frame's <em>new</em> information into at most 160 bits — everything else must either be carried by the deterministic path or discarded. That is a designed information bottleneck (Chapter 16): the KL term prices those bits, and 160 is plenty for "positions and velocities of the few things that matter".</div>
+ <div class="box think"><span class="label">Think first</span> Why might categorical latents beat Gaussian latents for representing a scene where an object is either behind the left or the right occluder? <details class="sol"><summary>Reveal</summary><div>The posterior belief is bimodal: left or right, nothing in between. A Gaussian latent must place mass in between (its density is unimodal), and a decoder fed the mean produces a ghost at both locations. A categorical latent represents "left vs right" natively as two symbols; sampling commits to one hypothesis per imagined trajectory, keeping rollouts self-consistent. Multimodality is the norm in partially observed vision, which is a large part of why discrete latents won empirically in DreamerV2.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A ViT-based world model tokenizes $64\times64$ frames into $8\times8$ patches. How many tokens per frame, and per 16-frame clip? <details class="sol"><summary>Solution</summary><div>$(64/8)^2 = 64$ tokens per frame; $64\times16 = 1024$ tokens per clip.</div></details></li>
+  <li><span class="lvl m">MED</span> The straight-through estimator passes gradients through a categorical sample as if it were the identity on the probabilities. Why is some such trick needed at all for discrete latents? <details class="sol"><summary>Solution</summary><div>Sampling a categorical is a discontinuous operation: an infinitesimal change in class probabilities usually does not change the sampled one-hot vector, so the exact derivative of the sample w.r.t. the logits is zero almost everywhere (and undefined at jumps) — gradient descent gets no signal. There is no reparameterization with a smooth path for discrete draws (contrast the Gaussian trick of Chapter 22). Straight-through substitutes a surrogate Jacobian (identity, or the softmax's Jacobian as in Gumbel-softmax annealing): biased but low-variance, and empirically sufficient to train the encoder.</div></details></li>
+  <li><span class="lvl h">HARD</span> Your visual world model is trained in an environment whose background contains a large TV playing an unrelated video ("noisy TV"). Predict what happens to (a) a reconstruction-trained model's latent capacity and imagined rollouts, and (b) a curiosity signal defined as prediction error. Propose one fix for each. <details class="sol"><summary>Solution</summary><div>(a) Reconstruction loss charges every mispredicted TV pixel, so the encoder/latent allocates most of its 160-bit budget to TV content; task-relevant state gets crowded out, and imagined rollouts spend their stochasticity hallucinating TV frames — degrading both representation and planning. Fix: decoder-free latent prediction (JEPA-style) or a task-informed loss (reward-predictive latent, value-equivalent training) so unpredictable-and-irrelevant content is dropped. (b) Prediction-error curiosity (Chapter 25's intrinsic motivation) is maximal at the TV forever — it is a source of irreducible (aleatoric) error — so the agent stares at the TV. Fix: use <em>epistemic</em> novelty instead: ensemble disagreement or learning-progress signals, which decay at the TV (models agree it's unpredictable) but stay high where more data genuinely helps.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="video-prediction-models">
+ <h2>Video prediction models</h2>
+ <p>Scale a visual dynamics model up — internet-scale video, billions of parameters, generative decoding — and you get video prediction models: systems that continue a video, optionally conditioned on text or actions. The bet behind "video generation as world simulation" is that predicting video well enough forces an implicit physics.</p>
+ <div class="box def"><span class="label">Definition</span> A video prediction model learns $p(o_{t+1:T}\mid o_{1:t}, c)$ over frame sequences, with conditioning $c$ (text, actions, camera pose). Two dominant recipes: <em>(i) autoregressive over tokens</em> — a VQ tokenizer (Chapter 22's vector quantization) maps frames to discrete tokens, a transformer models them left-to-right like language; <em>(ii) diffusion</em> — denoise entire clips (or latents of clips, via a pretrained autoencoder) with spatio-temporal attention, as in Sora-class models. Action-conditioned versions ($p(o_{t+1}\mid o_{\le t}, a_t)$, e.g. Genie-style latent-action models, GameNGen) make the model a playable simulator.</div>
+ <div class="box ex"><span class="label">Worked example</span> Token budget. A 16-frame, $256\times256$ clip through a VQ tokenizer with $16\times$ spatial downsampling gives $(256/16)^2 = 256$ tokens per frame, $4096$ tokens per clip. With a codebook of size $1024$, each token carries $\log_2 1024 = 10$ bits $\Rightarrow$ $40{,}960$ bits per clip vs raw $16\cdot256\cdot256\cdot3\cdot8 \approx 25.2$ Mbit — a $\sim$615× compression the transformer models autoregressively. Generating one second of 16-fps video is then one 4096-token sequence: the same machinery as an LLM emitting a paragraph (Chapter 23), which is why scaling laws and sampling tricks port over.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Beautiful samples ≠ correct physics. Video models notoriously produce plausible-looking clips with object permanence failures, mass/contact violations, and inconsistent 3D — the likelihood objective rewards perceptual plausibility per clip, not counterfactual correctness under intervention. Evaluating them <em>as world models</em> requires action-conditioned probes (does the imagined outcome of an action match reality?), not FVD scores alone.</div>
+ <div class="box link"><span class="label">Where this goes</span> Diffusion machinery is Chapter 22; the autoregressive token recipe is Chapter 23's; whether video pretraining yields reusable world knowledge for agents is a live question feeding Chapter 36.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> At 256 tokens per frame, what context length does a transformer need to attend over 4 seconds of 16-fps video? <details class="sol"><summary>Solution</summary><div>$4\times16 = 64$ frames $\times 256 = 16{,}384$ tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> Self-attention cost scales as $O(n^2)$ in token count $n$. By what factor is a full-attention pass more expensive for the 4-second clip (16,384 tokens) than for one frame (256 tokens), and name two mitigations used by video architectures. <details class="sol"><summary>Solution</summary><div>$(16384/256)^2 = 64^2 = 4096\times$ more expensive. Mitigations: factorized spatio-temporal attention (attend spatially within frames and temporally across same-position patches: cost $O(n\cdot(hw + T))$ instead of $O(n\cdot hwT)$), windowed/sparse attention, deeper spatial downsampling in the tokenizer/latent autoencoder, and frame-causal attention with KV caching for autoregressive generation (Chapter 23).</div></details></li>
+  <li><span class="lvl h">HARD</span> Genie-style models learn <em>latent actions</em>: from unlabeled video alone, they infer a small discrete action $\hat a_t$ between consecutive frames such that $o_{t+1}$ is predictable from $(o_{\le t}, \hat a_t)$. Why must the latent action's capacity be tightly bottlenecked (e.g. 8 discrete values), and what happens if it is not? <details class="sol"><summary>Solution</summary><div>The latent action is inferred from the very frame pair it is supposed to help predict — an information side-channel. Without a bottleneck, the optimizer's best move is to stuff the entire next frame (or its residual) into $\hat a_t$: prediction becomes perfect, but $\hat a$ is a copy machine, not an action — it varies with every pixel change, is uncontrollable, and the "playable" model just replays whatever you encode. A tiny discrete bottleneck (say $\log_2 8 = 3$ bits) forces $\hat a$ to capture only the few most future-determining bits of the transition — which, in games and manipulation video, is the agent's control input. This is a rate-distortion argument (Chapter 16): constrain the rate, and the code specializes to the highest-value information.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multimodal-world-models">
+ <h2>Multimodal world models</h2>
+ <p>The world announces itself in several channels at once — sight, sound, touch, language, proprioception — and a world model that fuses them is more than the sum: each modality disambiguates the others, and language in particular lets the model be <em>told</em> about dynamics it has never seen.</p>
+ <div class="box def"><span class="label">Definition</span> A multimodal world model learns a joint latent state from multiple observation streams: $z_t \sim q(\cdot \mid h_t, o_t^{(1)}, \dots, o_t^{(M)})$, with per-modality encoders and (optionally) per-modality decoders/prediction heads, and dynamics on the shared $z$. Fusion strategies: early (concatenate embeddings before the core), cross-attention (tokens from all modalities attend to each other, Chapter 21), or product-of-experts posteriors $q(z\mid o^{(1)},o^{(2)}) \propto p(z)\,\prod_m \tilde q_m(z\mid o^{(m)})$ — which handles <em>missing</em> modalities by simply dropping factors.</div>
+ <div class="box ex"><span class="label">Worked example</span> Gaussian product of experts. Vision expert: $z \sim \mathcal N(2.0, 1.0)$ ("object roughly 2m away, unsure"). Depth-sensor expert: $z\sim\mathcal N(2.6, 0.25)$. Product of two Gaussians is Gaussian with precision-weighted fusion: precisions $1$ and $4$; posterior precision $5$, variance $0.2$; mean $= \frac{1\cdot 2.0 + 4\cdot 2.6}{5} = \frac{12.4}{5} = 2.48$. The fused belief $\mathcal N(2.48, 0.2)$ is sharper than either expert and closer to the more confident one — the same precision-weighting as the Kalman update of Chapter 28. If the depth sensor drops out, the posterior gracefully reverts to $\mathcal N(2.0, 1.0)$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Vision-language-action models for robotics and Chapter 31's agents use exactly this fusion; language-conditioned imagination ("what happens if I pour this?") is a bridge to Chapter 30's reasoning.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Fuse experts $\mathcal N(0, 1)$ and $\mathcal N(4, 1)$ by product. What are the fused mean and variance? <details class="sol"><summary>Solution</summary><div>Equal precisions 1 and 1: fused precision 2, variance $0.5$, mean $\frac{0+4}{2} = 2$. (Note both experts find the fused mean unlikely — strong disagreement between confident experts signals a miscalibrated model or a faulty sensor.)</div></details></li>
+  <li><span class="lvl m">MED</span> Why does a product-of-experts posterior handle missing modalities more gracefully than a concatenation encoder? <details class="sol"><summary>Solution</summary><div>PoE is defined per modality: $q \propto p(z)\prod_{m\in\text{observed}} \tilde q_m$; dropping a modality just removes its factor, leaving a valid (wider) posterior — the math of "less evidence, more uncertainty" is automatic. A concatenation encoder was trained on fixed-size inputs; a missing modality must be faked (zeros, learned mask token), producing inputs off the training distribution unless missingness was explicitly simulated during training (modality dropout — which is in effect training the network to approximate the marginalized posterior).</div></details></li>
+  <li><span class="lvl h">HARD</span> Language is a peculiar "modality" for a world model: it describes dynamics rather than sampling them ("glass shatters when dropped"). Explain, in terms of sample complexity, why language conditioning can substitute for experience, and one associated risk. <details class="sol"><summary>Solution</summary><div>Learning "dropped glass shatters" from vision alone needs many observed drop events to pin down the conditional $p(\text{shattered}\mid \text{dropped, glass})$ against all confounders; each event is one sample. A language statement is a direct, compressed constraint on the model's conditionals — closer to receiving the sufficient statistics than the samples — so a model that grounds language into its dynamics prior can get the conditional approximately right with <em>zero</em> visual shatter examples (the LLM pretraining already paid the sample cost, amortized across the internet). Risk: language encodes folk physics, typicality and outright error ("heavy objects fall faster"), and its abstractions may not bind correctly to the perceptual state (symbol grounding); a model that trusts text over its own observations can hold confidently wrong dynamics that no amount of contradicting sensory data was trained to override.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="world-model-based-reinforcement-learning">
+ <h2>World-model-based reinforcement learning</h2>
+ <p>Put everything together: collect a little real experience, fit a world model, improve the policy against the model (by imagination-gradients, Dyna-style synthetic replay, or online planning), then act again. Done right, this is the most sample-efficient way we know to learn control; done wrong, the policy becomes an expert at exploiting the model's bugs.</p>
+ <div class="box def"><span class="label">Definition</span> Model-based RL (MBRL) loop: (1) act in the environment with the current policy/planner, store $(o,a,r,o')$; (2) fit $p_\theta(z'\!,r\mid z,a)$; (3) improve the policy using the model — variants: <em>Dyna</em> (train model-free RL on imagined transitions mixed with real ones), <em>imagination actor-critic</em> (Dreamer), <em>decision-time planning</em> (MPC/MCTS, MuZero); (4) repeat. The central theoretical object is the <em>return gap</em>: for a policy $\pi$ evaluated in model $\hat p$ vs truth $p$, a simulation-lemma-style bound gives
+ $$\big|J_{p}(\pi) - J_{\hat p}(\pi)\big| \;\le\; \frac{2\gamma\, R_{\max}}{(1-\gamma)^2}\; \mathbb E\big[\mathrm{TV}\big(p(\cdot\mid s,a),\hat p(\cdot\mid s,a)\big)\big],$$
+ so improving the policy in the model provably improves it in reality when model error (on the visited distribution) is small relative to the improvement.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sample-efficiency arithmetic. A model-free agent needs $10^7$ environment steps to reach a score; frames cost $50$ ms of robot time each $\Rightarrow$ $\approx 139$ hours of wear. An MBRL agent reaches it in $2\times10^5$ real steps ($\approx 2.8$ hours), plus $10^8$ imagined steps that cost only GPU time. With the bound above: $\gamma = 0.99$, $R_{\max} = 1$, average model TV error $0.001$ on-distribution $\Rightarrow$ return gap $\le \frac{2\cdot0.99}{(0.01)^2}\cdot 0.001 = 19.8$… which is huge — the bound's $(1-\gamma)^{-2}$ makes it vacuous at long horizons. This is honest: worst-case bounds are loose, and practical MBRL relies on keeping errors small <em>where the policy goes</em> and on short-horizon value bootstrapping rather than on the raw bound.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The policy optimizer is an adversary of the model: optimization pressure finds precisely the state-action regions where the model is wrong and optimistic (model exploitation / reward hacking of the model, cousin of Chapter 25's reward hacking). Countermeasures are load-bearing, not optional: uncertainty penalties, short rollouts branched from real states, ensembles, and continual retraining on fresh on-policy data.</div>
+ <div class="box link"><span class="label">Where this goes</span> This loop is the engine room for Chapter 31's agent architectures (the world model as the agent's "imagination module") and the substrate for Chapter 36's debates on whether prediction is sufficient for general intelligence.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In Dyna with a ratio of 15 imagined transitions per real transition and $10^5$ real steps, how many total training transitions does the value learner see? <details class="sol"><summary>Solution</summary><div>Real $10^5$ + imagined $1.5\times10^6$ = $1.6\times10^6$ transitions.</div></details></li>
+  <li><span class="lvl m">MED</span> Why do modern MBRL methods branch short imagined rollouts from <em>real replayed states</em> instead of imagining whole episodes from $t=0$? <details class="sol"><summary>Solution</summary><div>Two reasons. (1) Compounding error: error grows with rollout length (this chapter's bound), so $H$ short rollouts have far smaller worst-case bias than one length-$H\!\times\!k$ rollout; branching from real states re-anchors imagination to the true state distribution every rollout. (2) Coverage: replayed real states are guaranteed on-distribution starting points spread over the visited state space, so the policy trains broadly rather than only along the model's drifting imagination of full episodes.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch why the simulation-lemma bound has a $(1-\gamma)^{-2}$ factor, not $(1-\gamma)^{-1}$: where do the two horizon factors come from? <details class="sol"><summary>Solution</summary><div>Write the value difference via a telescoping/perturbation decomposition: $J_p - J_{\hat p} = \sum_{t\ge0} \gamma^t\,\mathbb E_{\text{states at } t}\big[(P - \hat P)V^{\hat p}\big]$ — each timestep contributes the one-step model discrepancy applied to the future value. Factor 1: the sum over timesteps of $\gamma^t$ contributes $\frac{1}{1-\gamma}$ (errors accumulate over the effective horizon). Factor 2: each one-step discrepancy is weighted by the downstream value function, whose magnitude is itself up to $\frac{R_{\max}}{1-\gamma}$ (a wrong transition misroutes the entire discounted future, and TV distance converts to value error via $|\int (p-\hat p)V| \le 2\,\mathrm{TV}\cdot\lVert V\rVert_\infty$). Multiply: $\frac{2\gamma R_{\max}}{(1-\gamma)^2}\cdot\overline{\mathrm{TV}}$. One horizon factor for how often you err, one for how much each error costs.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">"Model exploitation" in MBRL means:</div><button class="opt">The model is used to exploit the environment's dynamics for higher reward</button><button class="opt">Policy optimization seeks out states where the model is erroneously optimistic, earning imagined reward that reality won't pay</button><button class="opt">The model overfits its replay buffer</button><div class="why" hidden>The optimizer maximizes the model's predicted return, so any region where the model overestimates reward or mispredicts dynamics favorably becomes an attractor for the policy — high imagined return, poor real return. Uncertainty penalties, ensembles and short anchored rollouts are the standard defenses.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Chain world, end to end.</b> A 3-state chain: from $s_1$, action R moves to $s_2$; from $s_2$, R moves to $s_3$; $s_3$ absorbs. Action L reverses (from $s_1$, L stays). Reward $+1$ only on entering $s_3$, $\gamma = 0.9$. (a) Compute the successor representation $\Psi$ for the policy "always R" (restricted to states $s_1,s_2,s_3$). (b) Use $\Psi$ to get $V^\pi$ for this reward, where the reward vector assigns $r(s_3)=1$ per timestep in $s_3$... instead use $r = (0,0,1)^\top$ as reward-on-state. (c) A learned model mispredicts "from $s_2$, R stays in $s_2$ with prob 0.2". Recompute $V^{\hat\pi}(s_1)$ under the wrong model and quantify the value error. <details class="sol"><summary>Solution</summary><div>(a) $P_\pi = \begin{pmatrix}0&1&0\\0&0&1\\0&0&1\end{pmatrix}$. $I - 0.9P_\pi = \begin{pmatrix}1&-0.9&0\\0&1&-0.9\\0&0&0.1\end{pmatrix}$. Invert (back-substitution): $\Psi = \begin{pmatrix}1&0.9&8.1\\0&1&9\\0&0&10\end{pmatrix}$. Check row 2: from $s_2$: at $s_2$ at $k=0$ (1), then $s_3$ forever: $\sum_{k\ge1}0.9^k = 9$. ✓ Row 1: $s_1$ at $k=0$; $s_2$ at $k=1$ ($0.9$); $s_3$ from $k=2$: $\sum_{k\ge2}0.9^k = 8.1$. ✓ (b) $V = \Psi r = (8.1,\ 9,\ 10)^\top$. (c) Wrong model: from $s_2$, R goes to $s_3$ w.p. 0.8, stays w.p. 0.2. New value at $s_2$: $\hat V(s_2) = 0.9[0.8\hat V(s_3) + 0.2 \hat V(s_2)]$ with reward-on-state convention $\hat V(s_2) = 0 + 0.9[0.8\cdot10 + 0.2\hat V(s_2)] \Rightarrow \hat V(s_2) = 7.2 + 0.18\hat V(s_2) \Rightarrow \hat V(s_2) = 7.2/0.82 = 8.780$. ($\hat V(s_3) = 1 + 0.9\hat V(s_3) = 10$ unchanged.) $\hat V(s_1) = 0.9\,\hat V(s_2) = 7.902$. Error at $s_1$: $9\cdot0.9 = 8.1$ true vs $7.902$: absolute error $0.198$, i.e. 2.4% — a 20% one-step model error diluted by discounting and the chain structure.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>How far can you trust a dream?</b> A world model has one-step latent error $\varepsilon = 0.02$ (in a normalized latent space), model Lipschitz constant $L = 1.05$, reward head Lipschitz $L_r = 2$, $\gamma = 0.97$. Imagined rollouts of horizon $H$ are scored by $\hat R_H = \sum_{k=1}^{H}\gamma^k \hat r_k$. (a) Bound the state error at step $k$. (b) Bound the total imagined-return error $\Delta(H) = \sum_{k=1}^{H}\gamma^k L_r \delta_k$ for $H = 5, 15, 40$ (numeric). (c) The true return advantage of the better of two candidate plans is $0.5$; up to which $H$ can the planner still provably rank them correctly (i.e. $2\Delta(H) &lt; 0.5$)? <details class="sol"><summary>Solution</summary><div>(a) $\delta_k \le \varepsilon\frac{L^k - 1}{L-1} = 0.02\cdot\frac{1.05^k - 1}{0.05} = 0.4(1.05^k - 1)$. (b) $\Delta(H) = \sum_{k=1}^{H}\gamma^k L_r \delta_k = 2\cdot0.4\sum_{k=1}^H 0.97^k(1.05^k - 1) = 0.8\Big[\sum_{k=1}^H (1.0185)^k - \sum_{k=1}^H 0.97^k\Big]$ using $0.97\cdot1.05 = 1.0185$. Geometric sums: $\sum_{k=1}^H a^k = a\frac{a^H - 1}{a - 1}$. For $H=5$: $\sum(1.0185)^k = 1.0185\cdot\frac{1.0961 - 1}{0.0185} \approx 1.0185\cdot5.195 = 5.291$; $\sum 0.97^k = 0.97\cdot\frac{1 - 0.8587}{0.03} = 0.97\cdot 4.7094 = 4.568$. $\Delta(5) \approx 0.8(5.291 - 4.568) = 0.578$. For $H=15$: $1.0185^{15} = e^{15\ln1.0185} = e^{0.2750} \approx 1.3165$; sum $= 1.0185\cdot\frac{0.3165}{0.0185} = 1.0185\cdot17.108 = 17.42$; $0.97^{15} = e^{15\ln0.97} = e^{-0.4569} = 0.6333$; sum $= 0.97\cdot\frac{0.3667}{0.03} = 0.97\cdot12.223 = 11.86$. $\Delta(15)\approx 0.8(17.42 - 11.86) = 4.45$. For $H=40$: $1.0185^{40} = e^{0.7333} = 2.082$; sum $=1.0185\cdot\frac{1.082}{0.0185} = 59.57$; $0.97^{40} = e^{-1.2184}=0.2957$; sum $= 0.97\cdot\frac{0.7043}{0.03} = 22.77$. $\Delta(40)\approx 0.8(59.57-22.77) = 29.4$. (c) Need $2\Delta(H)&lt;0.5 \Rightarrow \Delta(H) &lt; 0.25$. $\Delta(1) = 0.8[1.0185 - 0.97] = 0.0388$; $\Delta(2) = 0.8[(1.0185+1.0373) - (0.97+0.9409)] = 0.8[2.0558 - 1.9109] = 0.116$; $\Delta(3) = 0.8[(2.0558+1.0565) - (1.9109+0.9127)] \cdot$ — accumulate: third terms $1.0185^3 = 1.0565$, $0.97^3 = 0.9127$: $\Delta(3) = 0.8[3.1123 - 2.8236] = 0.231 &lt; 0.25$. Fourth terms: $1.0185^4 = 1.0761$, $0.97^4 = 0.8853$: $\Delta(4) = 0.8[4.1884 - 3.7089] = 0.384 &gt; 0.25$. So only up to $H = 3$ is the ranking provable. Moral: worst-case guarantees die fast with expansive dynamics; practical planners rely on errors being far below worst case, on replanning, and on learned terminal values instead of long rollouts.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Design a world model for a warehouse robot.</b> Observations: two RGB cameras + wheel odometry + a natural-language task ("bring pallet 7 to bay 3"). Dynamics: mostly deterministic, but humans walk through unpredictably. Requirements: plan 10 s ahead, run on one GPU, and be reusable when the reward (task) changes daily. For each design axis, choose and justify: (a) generative (Dreamer-style) vs value-equivalent (MuZero-style) vs JEPA-style representation; (b) deterministic vs stochastic vs ensemble dynamics, and what each handles here; (c) planning method and horizon; (d) one concrete mechanism to prevent the planner from exploiting model error near humans. <details class="sol"><summary>Solution</summary><div>(a) JEPA-style or reconstruction-lite latent prediction beats both extremes: MuZero-style value equivalence is disqualified by the daily-changing reward (its latents are reward-specific); full pixel reconstruction wastes capacity on warehouse clutter and human appearance. A latent-predictive representation with a reward head <em>added per task</em> (or successor features over the latent, so new rewards are a linear read-out) gives reward-transferability plus abstraction. Language conditions the reward/goal head, not the dynamics. (b) Split by cause: deterministic (or low-variance stochastic) latent dynamics for the robot and static scene — it is nearly deterministic and a point prediction is well-posed; an ensemble on top for <em>epistemic</em> gaps (novel aisles, lighting); an explicitly stochastic (e.g. categorical-latent) branch for human motion, which is aleatoric — no amount of data makes a person's next step certain, so the model must predict distributions/multiple modes over human trajectories. (c) MPC with CEM (or a Dreamer-style learned policy proposal warm-starting CEM) at ~10 Hz replanning; 10 s at a 0.5 s latent step = horizon 20, feasible in latent space on one GPU (thousands of parallel rollouts), with a learned value as terminal bonus so effective lookahead exceeds 10 s. Replanning every step contains compounding error. (d) Uncertainty-penalized planning: score $= \hat R - \beta\,u_{\text{epi}} - \text{barrier}(d_{\min})$, where $u_{\text{epi}}$ is ensemble disagreement along the rollout and the barrier is a hard constraint on minimum predicted distance to any predicted-human-mode (constraint applied against the <em>worst</em> sampled human trajectory, not the mean — planning against the mean human path is exactly the deterministic-averaging fallacy). This makes hallucinated shortcuts through uncertain regions and optimistic human predictions unprofitable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: watch error compound, learn latent dynamics on a real system, and plan with your learned model.</p>
+ <div class="box ex"><span class="label">Lab 1 — Compounding error, measured</span> Simulate the damped pendulum $\ddot\theta = -\sin\theta - 0.1\dot\theta$ with small-step RK4 as ground truth. Fit a one-step neural model on 5,000 transitions from random states, then measure rollout error vs horizon for models trained with 1-step loss and with 5-step overshooting loss. Plot both curves.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np, torch, torch.nn as nn
+
+def f(s):  # s = (theta, omega)
+    th, om = s[..., 0], s[..., 1]
+    return np.stack([om, -np.sin(th) - 0.1*om], -1)
+
+def rk4(s, dt=0.05):
+    k1 = f(s); k2 = f(s + dt/2*k1); k3 = f(s + dt/2*k2); k4 = f(s + dt*k3)
+    return s + dt/6*(k1 + 2*k2 + 2*k3 + k4)
+
+rng = np.random.default_rng(0)
+S = np.stack([rng.uniform(-np.pi, np.pi, 20000), rng.uniform(-2, 2, 20000)], -1)
+# build length-6 ground-truth snippets for overshooting targets
+traj = [S]
+for _ in range(5): traj.append(rk4(traj[-1]))
+traj = np.stack(traj, 1)                     # (N, 6, 2)
+X = torch.tensor(traj, dtype=torch.float32)
+
+def make(): return nn.Sequential(nn.Linear(2, 128), nn.SiLU(),
+                                 nn.Linear(128, 128), nn.SiLU(), nn.Linear(128, 2))
+
+def train(K):                                 # K-step overshooting
+    net = make(); opt = torch.optim.Adam(net.parameters(), 1e-3)
+    for it in range(3000):
+        idx = torch.randint(0, len(X), (256,))
+        b = X[idx]; s = b[:, 0]; loss = 0.
+        for k in range(1, K+1):
+            s = s + net(s)                    # residual prediction
+            loss = loss + ((s - b[:, k])**2).mean()
+        opt.zero_grad(); (loss/K).backward(); opt.step()
+    return net
+
+net1, net5 = train(1), train(5)
+
+s0 = np.stack([rng.uniform(-np.pi, np.pi, 500), rng.uniform(-2, 2, 500)], -1)
+true = [s0.copy()]
+for _ in range(60): true.append(rk4(true[-1]))
+for name, net in [('1-step', net1), ('5-step', net5)]:
+    with torch.no_grad():
+        s = torch.tensor(s0, dtype=torch.float32); errs = []
+        for h in range(60):
+            s = s + net(s)
+            errs.append(float(((s.numpy() - true[h+1])**2).sum(-1).mean()**0.5))
+    print(name, 'err @h=1,10,30,60:', [round(errs[i], 4) for i in [0, 9, 29, 59]])
+# Expected: similar h=1 error; the 5-step model is several times better at h=30-60.</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Lab 2 — Latent dynamics with an anti-collapse guard</span> Observations are 24-pixel 1-D "retina" renderings of the pendulum (you never see $\theta,\omega$ directly; stack 2 frames so velocity is recoverable). Train an encoder + latent predictor with the loss $\lVert g(e(o_t)) - \mathrm{sg}[e(o_{t+1})]\rVert^2$ plus a variance regularizer, then verify the latents linearly decode $(\cos\theta,\sin\theta,\omega)$.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np, torch, torch.nn as nn
+
+def render(th):                               # 24-pixel soft blob at angle
+    px = np.linspace(-np.pi, np.pi, 24)
+    d = np.angle(np.exp(1j*(px - th[..., None])))
+    return np.exp(-(d/0.4)**2).astype(np.float32)
+
+# reuse rk4/f from Lab 1
+rng = np.random.default_rng(1)
+S = np.stack([rng.uniform(-np.pi, np.pi, 30000), rng.uniform(-2, 2, 30000)], -1)
+S1 = rk4(S); S2 = rk4(S1)
+O  = np.concatenate([render(S[:, 0]),  render(S1[:, 0])], -1)   # frames t-1,t
+O1 = np.concatenate([render(S1[:, 0]), render(S2[:, 0])], -1)   # frames t,t+1
+O, O1 = torch.tensor(O), torch.tensor(O1)
+
+enc = nn.Sequential(nn.Linear(48, 128), nn.SiLU(), nn.Linear(128, 8))
+prd = nn.Sequential(nn.Linear(8, 64), nn.SiLU(), nn.Linear(64, 8))
+opt = torch.optim.Adam([*enc.parameters(), *prd.parameters()], 1e-3)
+for it in range(4000):
+    i = torch.randint(0, len(O), (512,))
+    z, z1 = enc(O[i]), enc(O1[i])
+    pred = ((prd(z) - z1.detach())**2).mean()          # stop-grad target
+    std = z.std(0)                                      # VICReg-style variance guard
+    var = torch.relu(1.0 - std).mean()
+    zc = z - z.mean(0); cov = (zc.T @ zc)/len(zc)
+    off = (cov - torch.diag(torch.diag(cov))).pow(2).mean()
+    loss = pred + 10.0*var + 1.0*off
+    opt.zero_grad(); loss.backward(); opt.step()
+
+with torch.no_grad(): Z = enc(O).numpy()
+Y = np.stack([np.cos(S1[:, 0]), np.sin(S1[:, 0]), S1[:, 1]], -1)
+W, *_ = np.linalg.lstsq(np.c_[Z, np.ones(len(Z))], Y, rcond=None)
+pred = np.c_[Z, np.ones(len(Z))] @ W
+r2 = 1 - ((Y - pred)**2).sum(0)/((Y - Y.mean(0))**2).sum(0)
+print('linear-probe R^2 for cos, sin, omega:', np.round(r2, 3))
+# Expect R^2 > 0.9 each. Set the variance weight to 0 and watch z.std -> 0 (collapse).</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Lab 3 — CEM planning in your learned model</span> Add actions (torque $a\in[-1,1]$, $\ddot\theta = -\sin\theta - 0.1\dot\theta + a$) and a reward $r = -(\theta^2 + 0.1\omega^2 + 0.01a^2)$ (wrap $\theta$ to $[-\pi,\pi]$). Train an action-conditioned dynamics model on state (not latent, for simplicity), then swing the pendulum up with CEM-MPC and report total reward against a random policy.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np, torch, torch.nn as nn
+
+def step(s, a, dt=0.05):                       # true env, semi-implicit Euler
+    th, om = s[..., 0], s[..., 1]
+    om = om + dt*(-np.sin(th) - 0.1*om + a)
+    th = np.angle(np.exp(1j*(th + dt*om)))     # wrap
+    return np.stack([th, om], -1)
+
+def reward(s, a): return -(s[..., 0]**2 + 0.1*s[..., 1]**2 + 0.01*a**2)
+
+rng = np.random.default_rng(2)
+S = np.stack([rng.uniform(-np.pi, np.pi, 60000), rng.uniform(-4, 4, 60000)], -1)
+A = rng.uniform(-1, 1, 60000)
+S1 = step(S, A)
+inp = torch.tensor(np.c_[np.cos(S[:,0]), np.sin(S[:,0]), S[:,1], A], dtype=torch.float32)
+tgt = torch.tensor(S1 - S, dtype=torch.float32)          # residual; note wrap makes
+tgt[:, 0] = torch.tensor(np.angle(np.exp(1j*(S1[:,0]-S[:,0]))), dtype=torch.float32)
+net = nn.Sequential(nn.Linear(4, 200), nn.SiLU(), nn.Linear(200, 200),
+                    nn.SiLU(), nn.Linear(200, 2))
+opt = torch.optim.Adam(net.parameters(), 1e-3)
+for it in range(5000):
+    i = torch.randint(0, len(inp), (512,))
+    loss = ((net(inp[i]) - tgt[i])**2).mean()
+    opt.zero_grad(); loss.backward(); opt.step()
+
+def model_step(s, a):                          # torch rollout step
+    x = torch.stack([torch.cos(s[:,0]), torch.sin(s[:,0]), s[:,1], a], -1)
+    d = net(x)
+    th = torch.atan2(torch.sin(s[:,0]+d[:,0]), torch.cos(s[:,0]+d[:,0]))
+    return torch.stack([th, s[:,1]+d[:,1]], -1)
+
+def cem_plan(s0, H=25, K=500, iters=4, elite=50):
+    mu, sd = torch.zeros(H), torch.ones(H)*0.8
+    for _ in range(iters):
+        a = (mu + sd*torch.randn(K, H)).clamp(-1, 1)
+        s = torch.tensor(s0, dtype=torch.float32).repeat(K, 1)
+        R = torch.zeros(K)
+        for h in range(H):
+            R += -(s[:,0]**2 + 0.1*s[:,1]**2 + 0.01*a[:,h]**2)
+            s = model_step(s, a[:,h])
+        e = a[R.topk(elite).indices]
+        mu, sd = e.mean(0), e.std(0) + 1e-3
+    return float(mu[0])
+
+for policy in ['cem', 'random']:
+    s = np.array([np.pi, 0.0]); total = 0.0    # start hanging down
+    for t in range(200):
+        a = cem_plan(s) if policy == 'cem' else rng.uniform(-1, 1)
+        total += float(reward(s, a)); s = step(s, np.array(a))
+    print(policy, 'total reward:', round(total, 1))
+# CEM should swing up and balance (total ≈ -100 to -300); random stays near -2000.</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://arxiv.org/abs/1803.10122">Ha &amp; Schmidhuber, "World Models" (2018)</a> — the paper that named the field; VAE + RNN + tiny controller, trained partly inside its own dream.</li>
+  <li><a href="https://arxiv.org/abs/2301.04104">Hafner et al., "Mastering Diverse Domains through World Models" (DreamerV3)</a> — the full RSSM + imagination actor-critic recipe, one hyperparameter set across 150+ tasks.</li>
+  <li><a href="https://arxiv.org/abs/1911.08265">Schrittwieser et al., "Mastering Atari, Go, Chess and Shogi by Planning with a Learned Model" (MuZero)</a> — value-equivalent models + MCTS.</li>
+  <li><a href="https://openreview.net/forum?id=BZ5a1r-kVsf">LeCun, "A Path Towards Autonomous Machine Intelligence" (2022)</a> — the JEPA position paper: why predict in representation space.</li>
+  <li><a href="https://arxiv.org/abs/2301.08243">Assran et al., "Self-Supervised Learning from Images with a Joint-Embedding Predictive Architecture" (I-JEPA)</a> — the concrete image JEPA with masked-block prediction.</li>
+  <li><a href="https://arxiv.org/abs/1906.08253">Janner et al., "When to Trust Your Model: Model-Based Policy Optimization" (MBPO)</a> — short branched rollouts and the return-gap analysis behind them.</li>
+  <li><a href="https://arxiv.org/abs/1802.10592">Kurutach et al., "Model-Ensemble Trust-Region Policy Optimization"</a> — ensembles against model exploitation; see also Chua et al., PETS (arXiv:1805.12114) for probabilistic ensembles + CEM.</li>
+  <li><a href="http://incompleteideas.net/book/the-book-2nd.html">Sutton &amp; Barto, <em>Reinforcement Learning: An Introduction</em>, Ch. 8 (free PDF)</a> — Dyna, planning with learned models, and the classic treatment of model errors.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch28.html">← 28 · Dynamical Systems and Control</a>
+ <a class="btn" href="ch30.html">30 · Reasoning →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function axes(g, w, h, pad){
+  g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1; g.globalAlpha = 0.5;
+  g.beginPath(); g.moveTo(pad, pad/2); g.lineTo(pad, h - pad); g.lineTo(w - pad/2, h - pad); g.stroke();
+  g.globalAlpha = 1; g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+}
+
+/* ---- Explorer 1: compounding error ---- */
+var ceNoise = null;
+function ceRoll(H){ ceNoise = []; for(var i = 0; i < H + 1; i++) ceNoise.push(Math.random()*2 - 1); }
+function drawCE(){
+  var c = document.getElementById('cv-comperr'); if(!c) return;
+  var s = setupCanvas(c, 280), g = s.g, w = s.w, h = s.h, pad = 40;
+  g.clearRect(0, 0, w, h);
+  var eps = val('ce-eps'), L = val('ce-lip'), H = Math.round(val('ce-h'));
+  if(!ceNoise || ceNoise.length < H + 1) ceRoll(60);
+  // true trajectory: z_{k+1} = cos(0.25k) style reference curve; model adds per-step error then maps with same shape but drift amplified by L
+  var truez = [0.8], modz = [0.8], bound = [0];
+  for(var k = 0; k < H; k++){
+    var t = truez[k]*0.98 + 0.12*Math.sin(0.5*k);
+    truez.push(t);
+    // model step: same nominal map applied to model state, discrepancy grows via Lipschitz factor on the deviation
+    var dev = modz[k] - truez[k];
+    modz.push(t + L*dev + eps*ceNoise[k]);
+    bound.push(Math.min(3, L === 1 ? eps*(k+1) : eps*(Math.pow(L, k+1) - 1)/(L - 1)));
+  }
+  var ymin = -1.6, ymax = 1.6;
+  function X(k){ return pad + (w - pad*1.5)*k/H; }
+  function Y(v){ return h - pad - (h - pad*1.5)*(v - ymin)/(ymax - ymin); }
+  axes(g, w, h, pad);
+  g.fillText('step k', w - pad - 40, h - pad + 18);
+  g.save(); g.translate(12, h/2); g.rotate(-Math.PI/2); g.fillText('z', 0, 0); g.restore();
+  // bound envelope around truth
+  g.fillStyle = cssVar('--cobalt'); g.globalAlpha = 0.12;
+  g.beginPath();
+  for(var k = 0; k <= H; k++){ var x = X(k), y = Y(truez[k] + bound[k]); k === 0 ? g.moveTo(x, y) : g.lineTo(x, y); }
+  for(k = H; k >= 0; k--) g.lineTo(X(k), Y(truez[k] - bound[k]));
+  g.closePath(); g.fill(); g.globalAlpha = 1;
+  // truth
+  g.strokeStyle = cssVar('--ink'); g.lineWidth = 2; g.beginPath();
+  for(k = 0; k <= H; k++){ k === 0 ? g.moveTo(X(k), Y(truez[k])) : g.lineTo(X(k), Y(truez[k])); } g.stroke();
+  // model (dashed)
+  g.strokeStyle = cssVar('--cobalt'); g.setLineDash([6, 4]); g.beginPath();
+  for(k = 0; k <= H; k++){ k === 0 ? g.moveTo(X(k), Y(Math.max(ymin, Math.min(ymax, modz[k])))) : g.lineTo(X(k), Y(Math.max(ymin, Math.min(ymax, modz[k])))); }
+  g.stroke(); g.setLineDash([]);
+  g.fillStyle = cssVar('--ink'); g.fillText('true', pad + 6, Y(truez[0]) - 8);
+  g.fillStyle = cssVar('--cobalt'); g.fillText('model', pad + 6, Y(truez[0]) + 16);
+  var fin = Math.abs(modz[H] - truez[H]);
+  var out = document.getElementById('ce-out');
+  if(out) out.textContent = 'ε=' + eps.toFixed(3) + '  L=' + L.toFixed(2) + '  |error at H|=' + fin.toFixed(3) +
+    '  worst-case bound=' + bound[H].toFixed(3) + (L > 1 ? '  (exponential regime)' : L < 1 ? '  (contractive: bounded forever)' : '  (linear regime)');
+}
+
+/* ---- Explorer 2: ensemble uncertainty ---- */
+var enData = null, enCoefs = null;
+function enFit(){
+  var wD = val('en-w'), ns = val('en-noise');
+  var f = function(x){ return Math.sin(1.5*x); };
+  enData = [];
+  for(var i = 0; i < 24; i++){ var x = (Math.random()*2 - 1)*wD; enData.push([x, f(x) + ns*(Math.random()+Math.random()+Math.random()+Math.random()-2)]); }
+  enCoefs = [];
+  for(var m = 0; m < 5; m++){
+    // bootstrap sample + ridge cubic fit via normal equations
+    var pts = []; for(i = 0; i < enData.length; i++) pts.push(enData[Math.floor(Math.random()*enData.length)]);
+    var A = [[0,0,0,0],[0,0,0,0],[0,0,0,0],[0,0,0,0]], b = [0,0,0,0];
+    for(i = 0; i < pts.length; i++){
+      var x = pts[i][0], y = pts[i][1], phi = [1, x, x*x, x*x*x];
+      for(var r = 0; r < 4; r++){ b[r] += phi[r]*y; for(var cc = 0; cc < 4; cc++) A[r][cc] += phi[r]*phi[cc]; }
+    }
+    for(r = 0; r < 4; r++) A[r][r] += 1e-3;
+    // gaussian elimination 4x4
+    var M = A.map(function(row, ri){ return row.concat([b[ri]]); });
+    for(var col = 0; col < 4; col++){
+      var piv = col; for(r = col + 1; r < 4; r++) if(Math.abs(M[r][col]) > Math.abs(M[piv][col])) piv = r;
+      var tmp = M[col]; M[col] = M[piv]; M[piv] = tmp;
+      for(r = 0; r < 4; r++){ if(r === col || Math.abs(M[col][col]) < 1e-12) continue;
+        var fct = M[r][col]/M[col][col];
+        for(cc = col; cc < 5; cc++) M[r][cc] -= fct*M[col][cc]; }
+    }
+    var w4 = []; for(r = 0; r < 4; r++) w4.push(Math.abs(M[r][r]) < 1e-12 ? 0 : M[r][4]/M[r][r]);
+    enCoefs.push(w4);
+  }
+}
+function drawEN(){
+  var c = document.getElementById('cv-ens'); if(!c) return;
+  if(!enCoefs) enFit();
+  var s = setupCanvas(c, 280), g = s.g, w = s.w, h = s.h, pad = 40;
+  g.clearRect(0, 0, w, h);
+  var xmin = -3.2, xmax = 3.2, ymin = -2.5, ymax = 2.5;
+  function X(x){ return pad + (w - pad*1.5)*(x - xmin)/(xmax - xmin); }
+  function Y(y){ return h - pad - (h - pad*1.5)*(y - ymin)/(ymax - ymin); }
+  axes(g, w, h, pad); g.fillText('x', w - pad, h - pad + 18);
+  var wD = val('en-w');
+  // shade data region
+  g.fillStyle = cssVar('--ink-2'); g.globalAlpha = 0.08;
+  g.fillRect(X(-wD), pad/2, X(wD) - X(-wD), h - pad*1.5); g.globalAlpha = 1;
+  // ensemble curves
+  for(var m = 0; m < 5; m++){
+    g.strokeStyle = cssVar('--cobalt'); g.globalAlpha = 0.55; g.lineWidth = 1.5; g.beginPath();
+    for(var px = 0; px <= 200; px++){
+      var x = xmin + (xmax - xmin)*px/200, cf = enCoefs[m];
+      var y = cf[0] + cf[1]*x + cf[2]*x*x + cf[3]*x*x*x;
+      y = Math.max(ymin, Math.min(ymax, y));
+      px === 0 ? g.moveTo(X(x), Y(y)) : g.lineTo(X(x), Y(y));
+    }
+    g.stroke();
+  }
+  g.globalAlpha = 1;
+  // true function
+  g.strokeStyle = cssVar('--ink'); g.lineWidth = 2; g.beginPath();
+  for(px = 0; px <= 200; px++){ var x = xmin + (xmax - xmin)*px/200; px === 0 ? g.moveTo(X(x), Y(Math.sin(1.5*x))) : g.lineTo(X(x), Y(Math.sin(1.5*x))); }
+  g.stroke();
+  // data points
+  g.fillStyle = cssVar('--ink');
+  for(var i = 0; i < enData.length; i++){ g.beginPath(); g.arc(X(enData[i][0]), Y(Math.max(ymin, Math.min(ymax, enData[i][1]))), 3, 0, 7); g.fill(); }
+  // disagreement at x = 2.8
+  var xs = [0, 2.8], msg = [];
+  for(var j = 0; j < 2; j++){
+    var vals = enCoefs.map(function(cf){ var x = xs[j]; return cf[0] + cf[1]*x + cf[2]*x*x + cf[3]*x*x*x; });
+    var mean = vals.reduce(function(a, b){ return a + b; }, 0)/5;
+    var dis = vals.reduce(function(a, b){ return a + (b - mean)*(b - mean); }, 0)/5;
+    msg.push('disagreement@x=' + xs[j] + ': ' + dis.toFixed(3));
+  }
+  var out = document.getElementById('en-out'); if(out) out.textContent = msg.join('   ') + '   (shaded = training data region)';
+}
+
+/* ---- Explorer 3: shooting planner ---- */
+var plState = null, plTraj = [], plAnim = null;
+function plReset(){
+  if(plAnim){ cancelAnimationFrame(plAnim); plAnim = null; }
+  plState = { x: 0.1, v: 0, t: 0 }; plTraj = [{x: 0.1, v: 0}]; drawPL();
+  var out = document.getElementById('pl-out'); if(out) out.textContent = 'Reset. Goal at x = 0.85 (flag). Press Run.';
+}
+function plModelStep(st, a, bias){ // planner's (possibly biased) model
+  return { x: st.x + 0.05*st.v, v: st.v + 0.05*(a + bias) };
+}
+function plTrueStep(st, a){ // true dynamics: slight drag
+  return { x: st.x + 0.05*st.v, v: st.v + 0.05*(a - 0.3*st.v) };
+}
+function plPlan(st){
+  var H = Math.round(val('pl-h')), K = Math.round(val('pl-k')), bias = val('pl-bias');
+  var best = -1e9, bestA = 0, goal = 0.85;
+  for(var i = 0; i < K; i++){
+    var seq = []; for(var k = 0; k < H; k++) seq.push(Math.random()*2 - 1);
+    var s2 = { x: st.x, v: st.v }, R = 0;
+    for(k = 0; k < H; k++){ s2 = plModelStep(s2, seq[k], bias); R -= Math.abs(s2.x - goal) + 0.01*seq[k]*seq[k]; }
+    R -= 2*Math.abs(s2.v); // want to stop at flag
+    if(R > best){ best = R; bestA = seq[0]; }
+  }
+  return bestA;
+}
+function drawPL(){
+  var c = document.getElementById('cv-plan'); if(!c) return;
+  var s = setupCanvas(c, 220), g = s.g, w = s.w, h = s.h, pad = 40;
+  g.clearRect(0, 0, w, h);
+  function X(x){ return pad + (w - pad*1.5)*x; }
+  var ty = h/2;
+  g.strokeStyle = cssVar('--ink-2'); g.globalAlpha = 0.5;
+  g.beginPath(); g.moveTo(pad, ty + 14); g.lineTo(w - pad/2, ty + 14); g.stroke(); g.globalAlpha = 1;
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('0', X(0) - 4, ty + 32); g.fillText('1', X(1) - 4, ty + 32);
+  // flag
+  g.strokeStyle = cssVar('--ink'); g.beginPath(); g.moveTo(X(0.85), ty + 14); g.lineTo(X(0.85), ty - 26); g.stroke();
+  g.fillStyle = cssVar('--cobalt'); g.beginPath(); g.moveTo(X(0.85), ty - 26); g.lineTo(X(0.85) + 14, ty - 20); g.lineTo(X(0.85), ty - 14); g.closePath(); g.fill();
+  // trail
+  g.fillStyle = cssVar('--cobalt'); g.globalAlpha = 0.35;
+  for(var i = 0; i < plTraj.length; i += 2){ g.beginPath(); g.arc(X(Math.max(0, Math.min(1, plTraj[i].x))), ty + 4, 2, 0, 7); g.fill(); }
+  g.globalAlpha = 1;
+  // mass
+  if(plState){ g.fillStyle = cssVar('--ink'); g.beginPath(); g.arc(X(Math.max(0, Math.min(1, plState.x))), ty + 4, 8, 0, 7); g.fill(); }
+}
+function plRun(){
+  if(!plState) plReset();
+  if(plAnim) cancelAnimationFrame(plAnim);
+  function tick(){
+    if(plState.t >= 120){ plAnim = null; return; }
+    var a = plPlan(plState);
+    plState = plTrueStep(plState, a); plState.t = (plState.t || 0) + 1;
+    plTraj.push({ x: plState.x, v: plState.v });
+    drawPL();
+    var out = document.getElementById('pl-out');
+    if(out) out.textContent = 't=' + plState.t + '  x=' + plState.x.toFixed(3) + '  v=' + plState.v.toFixed(3) +
+      '  |x-goal|=' + Math.abs(plState.x - 0.85).toFixed(3) + (val('pl-bias') > 0 ? '  (planner’s model has thrust bias +' + val('pl-bias') + ')' : '');
+    plAnim = requestAnimationFrame(tick);
+  }
+  plAnim = requestAnimationFrame(tick);
+}
+
+function redrawAll(){ drawCE(); drawEN(); drawPL(); }
+['ce-eps','ce-lip','ce-h'].forEach(function(id){ on(id, 'input', drawCE); });
+on('ce-reroll', 'click', function(){ ceRoll(60); drawCE(); });
+['en-w','en-noise'].forEach(function(id){ on(id, 'input', function(){ enFit(); drawEN(); }); });
+on('en-refit', 'click', function(){ enFit(); drawEN(); });
+['pl-h','pl-k','pl-bias'].forEach(function(id){ on(id, 'input', drawPL); });
+on('pl-run', 'click', plRun);
+on('pl-reset', 'click', plReset);
+window.addEventListener('resize', redrawAll);
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function(){ ceRoll(60); enFit(); plReset(); redrawAll(); });
+else { ceRoll(60); enFit(); plReset(); redrawAll(); }
+})();
+</script>
+
+</body></html>

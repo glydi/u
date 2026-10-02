@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 25 Reinforcement Learning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','25')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">25</div><h1>Reinforcement Learning</h1><p class="lede">Learning to act from reward.</p>
+   <div class="meta"><span class="chip">38 topics</span><span class="chip">needs: chapters 11, 12, 15, 21, 24</span><span class="chip">feeds: chapters 26, 29, 30, 35</span></div>
+  </div>
+
+<section class="topic" id="markov-processes">
+ <h2>Markov processes</h2>
+ <p>Picture a frog hopping between lily pads, where the next hop depends only on the pad it is on now, not on the path it took to get there. That memorylessness is the Markov property, and a Markov process is just a set of states plus the rule for random hops between them. Everything in reinforcement learning is built on this scaffold.</p>
+ <div class="box def"><span class="label">Definition</span> A (discrete-time) <em>Markov process</em> is a pair $(\mathcal{S}, P)$: a state set $\mathcal{S}$ and a transition kernel $P(s' \mid s) = \Pr(S_{t+1}=s' \mid S_t=s)$ satisfying the Markov property $$\Pr(S_{t+1}=s' \mid S_t, S_{t-1}, \dots, S_0) = \Pr(S_{t+1}=s' \mid S_t).$$ For finite $\mathcal{S}$, $P$ is a row-stochastic matrix: rows are nonnegative and sum to 1.</div>
+ <div class="box ex"><span class="label">Worked example</span> Weather with states {Sunny, Rainy} and $P = \begin{pmatrix} 0.9 & 0.1 \\ 0.5 & 0.5 \end{pmatrix}$ (row = today, column = tomorrow). Starting Sunny, the chance of Sunny two days later is $\Pr(\text{S}\to\text{S}\to\text{S}) + \Pr(\text{S}\to\text{R}\to\text{S}) = 0.9\cdot0.9 + 0.1\cdot0.5 = 0.81+0.05 = 0.86$, which is exactly $(P^2)_{11}$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Add rewards to get Markov reward processes (next topic), then actions to get MDPs — the arena for every RL algorithm in this chapter, and for POMDPs in Ch 26.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the weather chain above, what is the probability of Rainy tomorrow given Rainy today? Given Sunny today?<details class="sol"><summary>Solution</summary><div>Read row 2: $P(\text{R}\mid\text{R}) = 0.5$. Read row 1: $P(\text{R}\mid\text{S}) = 0.1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the stationary distribution $\pi$ of the weather chain ($\pi P = \pi$, $\pi_1+\pi_2=1$).<details class="sol"><summary>Solution</summary><div>$\pi_1 = 0.9\pi_1 + 0.5\pi_2 \Rightarrow 0.1\pi_1 = 0.5\pi_2 \Rightarrow \pi_1 = 5\pi_2$. With $\pi_1+\pi_2=1$: $\pi_2 = 1/6$, $\pi_1 = 5/6$. So $\pi = (5/6, 1/6)$. Check: $5/6\cdot0.9 + 1/6\cdot0.5 = 0.75+0.0833=5/6$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> A process records $X_t = $ (today's weather, yesterday's weather). Show that $X_t$ is Markov even if we had defined tomorrow's weather to depend on the last two days.<details class="sol"><summary>Solution</summary><div>Suppose $\Pr(W_{t+1}\mid W_t, W_{t-1}, \dots) = \Pr(W_{t+1}\mid W_t, W_{t-1})$. Define $X_t=(W_t,W_{t-1})$. Then $X_{t+1}=(W_{t+1},W_t)$ and $\Pr(X_{t+1}\mid X_t, X_{t-1},\dots) = \Pr(W_{t+1}\mid W_t,W_{t-1})\cdot\mathbf{1}[\text{second coord of }X_{t+1}=\text{first of }X_t]$, which depends only on $X_t$. So state augmentation restores the Markov property — a trick used constantly (frame stacking in Atari, recurrent state in agents).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="markov-reward-processes">
+ <h2>Markov reward processes</h2>
+ <p>Now let each visited state pay you money. A Markov reward process is a Markov chain where every transition drops a scalar reward, and we care about the discounted total you collect. The single question it lets us ask is: "how good is it to be standing here?"</p>
+ <div class="box def"><span class="label">Definition</span> A <em>Markov reward process</em> (MRP) is $(\mathcal{S}, P, R, \gamma)$ with reward function $R(s) = \mathbb{E}[R_{t+1}\mid S_t=s]$ and discount $\gamma\in[0,1]$. The value of a state is $$v(s) = \mathbb{E}\!\left[\sum_{k=0}^{\infty} \gamma^k R_{t+k+1} \,\Big|\, S_t = s\right],$$ which satisfies the linear Bellman equation $v = R + \gamma P v$, solvable in closed form as $v = (I-\gamma P)^{-1}R$ when $\gamma<1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two states: Work pays $R=2$, Rest pays $R=0$; from Work you stay with prob 0.5 or go to Rest with 0.5; Rest is absorbing ($P(\text{Rest}\mid\text{Rest})=1$). Take $\gamma=0.9$. Then $v(\text{Rest}) = 0 + 0.9\,v(\text{Rest}) \Rightarrow v(\text{Rest})=0$, and $v(\text{Work}) = 2 + 0.9(0.5\,v(\text{Work}) + 0.5\cdot 0) = 2 + 0.45\,v(\text{Work})$, so $v(\text{Work}) = 2/0.55 \approx 3.636$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Conventions differ: reward on the state you leave, the state you enter, or the transition. All give the same theory but different numbers. Fix one convention (we use: $R_{t+1}$ received upon leaving $S_t$) and stick to it — mixing conventions is the classic source of off-by-one-step bugs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the Work/Rest MRP, recompute $v(\text{Work})$ for $\gamma=0$.<details class="sol"><summary>Solution</summary><div>With $\gamma=0$, value is just the immediate expected reward: $v(\text{Work})=2$, $v(\text{Rest})=0$.</div></details></li>
+  <li><span class="lvl m">MED</span> A single state loops to itself with reward 1 each step, $\gamma=0.99$. What is $v$?<details class="sol"><summary>Solution</summary><div>$v = 1 + 0.99v \Rightarrow v = 1/(1-0.99) = 100$. In general a constant reward $r$ forever is worth $r/(1-\gamma)$ — the geometric series from Ch 7.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $(I-\gamma P)$ is invertible for any row-stochastic $P$ and $\gamma\in[0,1)$.<details class="sol"><summary>Solution</summary><div>$P$ is row-stochastic so $\|Pv\|_\infty \le \|v\|_\infty$, i.e. its $\infty$-norm is 1, and every eigenvalue $\lambda$ of $P$ has $|\lambda|\le 1$. Eigenvalues of $I-\gamma P$ are $1-\gamma\lambda$, and $|1-\gamma\lambda| \ge 1-\gamma|\lambda| \ge 1-\gamma > 0$, so none is zero and the matrix is invertible. Equivalently, the Neumann series $\sum_k (\gamma P)^k$ converges since $\|\gamma P\|_\infty = \gamma < 1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="markov-decision-processes">
+ <h2>Markov decision processes</h2>
+ <p>Give the wanderer a steering wheel. In a Markov decision process, at every state you choose an action, and both the reward and the next state depend on that choice. The MDP is the formal model of "an agent in an environment": everything else in this chapter is a way to act well inside one.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>MDP</em> is $(\mathcal{S}, \mathcal{A}, P, R, \gamma)$ with transition kernel $P(s' \mid s, a)$, reward $R(s,a) = \mathbb{E}[R_{t+1}\mid S_t=s, A_t=a]$, and discount $\gamma$. The Markov property now reads $\Pr(S_{t+1}\mid S_t, A_t, S_{t-1}, A_{t-1}, \dots) = \Pr(S_{t+1}\mid S_t, A_t)$. The goal: choose actions to maximize expected discounted return.</div>
+ <div class="box ex"><span class="label">Worked example</span> Recycling robot (Sutton &amp; Barto): states {high, low} battery; actions {search, wait, recharge}. Searching from high pays $+2$ but drops battery to low with prob $0.3$; searching from low pays $+2$ but with prob $0.4$ the battery dies (reward $-3$, reset to high); recharging pays 0 and returns to high. Then $R(\text{low},\text{search}) = 0.6\cdot 2 + 0.4\cdot(-3) = 1.2 - 1.2 = 0$: searching on low battery has zero expected immediate value — the MDP formalism turns a fuzzy trade-off into arithmetic.</div>
+ <div class="box think"><span class="label">Think first</span> A chess position plus whose turn it is: is that a Markov state? What about a single video frame of Pong?<details class="sol"><summary>Reveal</summary><div>Chess position + side to move (+ castling/en-passant/repetition counters) is Markov: the future depends only on it. A single Pong frame is <em>not</em> — you can't tell ball velocity from one frame. Stack two frames (or add velocity to the state) and it becomes Markov. Whether a problem "is" an MDP is really a question about how you define the state.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List the five components you must specify to define an MDP for a gridworld robot.<details class="sol"><summary>Solution</summary><div>States (grid cells), actions (up/down/left/right), transitions $P(s'\mid s,a)$ (e.g. move succeeds with prob 0.8, slips sideways with 0.2), rewards $R(s,a)$ (e.g. $-1$ per step, $+10$ at goal), and discount $\gamma$.</div></details></li>
+  <li><span class="lvl m">MED</span> In the recycling robot, compute $R(\text{high},\text{search})$ and $R(\text{high},\text{wait})$ if waiting pays $+1$ and never changes the battery.<details class="sol"><summary>Solution</summary><div>Searching from high always pays $+2$ regardless of where the battery ends up, so $R(\text{high},\text{search})=2$. Waiting: $R(\text{high},\text{wait})=1$. (The catch is in the transitions: search risks ending in low, which is worth less in the long run.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that any finite-horizon MDP (episode ends at fixed time $T$) can be written as an infinite-horizon discounted MDP.<details class="sol"><summary>Solution</summary><div>Augment the state with the time index: $\tilde{s} = (s,t)$ for $t=0,\dots,T$, plus an absorbing terminal state $\top$ with reward 0 that $(s,T)$ transitions into. Transitions $(s,t)\to(s',t+1)$ copy $P(s'\mid s,a)$. Set $\gamma=1$ inside the episode; since $\top$ pays 0 forever, all returns are finite sums and the discounted theory (with any $\gamma\le1$) applies. Time-dependent policies on the original MDP become stationary policies on the augmented one.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="state-transitions">
+ <h2>State transitions</h2>
+ <p>The transition kernel is the physics engine of the MDP: it says where the world goes when you push it. It is a conditional probability distribution over next states, one distribution per (state, action) pair, and its structure — deterministic, noisy, sparse — dictates which algorithms are practical.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>transition function</em> $P(s' \mid s, a) \ge 0$ with $\sum_{s'} P(s' \mid s, a) = 1$ for every $(s,a)$. For finite MDPs it is a 3-tensor of shape $|\mathcal{S}|\times|\mathcal{A}|\times|\mathcal{S}|$; each $P(\cdot\mid s,a)$ slice is a probability vector. A <em>deterministic</em> MDP has $P(s'\mid s,a)\in\{0,1\}$, i.e. a function $s' = f(s,a)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> "Slippery" gridworld: action <em>right</em> moves right with prob 0.8, up with 0.1, down with 0.1 (bumping a wall means staying put). From an interior cell $s$, $P(\text{right-neighbor}\mid s,\text{right})=0.8$, $P(\text{up-neighbor}\mid s,\text{right})=0.1$, $P(\text{down-neighbor}\mid s,\text{right})=0.1$, everything else 0. The probability of moving two cells right in two "right" actions is $0.8\times0.8=0.64$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Sample-based RL never sees $P$; it only sees draws $s' \sim P(\cdot\mid s,a)$. Algorithms that need $P$ explicitly (value iteration, policy iteration) are called <em>model-based planning</em>; algorithms that use only samples (Q-learning, policy gradients) are <em>model-free</em>. Confusing "I can simulate the environment" with "I know $P$" leads to using the wrong family.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the slippery gridworld, what is the probability of not moving right when you press right (interior cell)?<details class="sol"><summary>Solution</summary><div>$1-0.8 = 0.2$ (0.1 up + 0.1 down).</div></details></li>
+  <li><span class="lvl m">MED</span> Given a fixed policy $\pi(a\mid s)$, show the induced state process is a Markov chain and write its transition matrix.<details class="sol"><summary>Solution</summary><div>$P^\pi(s'\mid s) = \sum_a \pi(a\mid s)\,P(s'\mid s,a)$. Each row sums to $\sum_{s'}\sum_a \pi(a\mid s)P(s'\mid s,a) = \sum_a \pi(a\mid s)\cdot 1 = 1$, so $P^\pi$ is row-stochastic and the state sequence under $\pi$ is a Markov chain (an MRP once we add $R^\pi(s)=\sum_a \pi(a\mid s)R(s,a)$).</div></details></li>
+  <li><span class="lvl h">HARD</span> An environment adds i.i.d. Gaussian noise to a robot arm: $s' = f(s,a) + \varepsilon$, $\varepsilon\sim\mathcal{N}(0,\sigma^2 I)$. Write $P(s'\mid s,a)$ and explain why tabular methods fail here.<details class="sol"><summary>Solution</summary><div>$P(s'\mid s,a) = (2\pi\sigma^2)^{-d/2}\exp\!\big(-\|s'-f(s,a)\|^2/(2\sigma^2)\big)$ — a density, not a table. The state space is continuous ($\mathbb{R}^d$), so there is no finite table of values to fill in; you need function approximation (a later topic) to represent $v$ or $Q$, or discretization, which blows up exponentially in $d$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="policies">
+ <h2>Policies</h2>
+ <p>A policy is the agent's entire behavior compressed into one object: a rule mapping each state to an action (or to a distribution over actions). Learning in RL <em>is</em> searching the space of policies. Remarkably, for any finite MDP an optimal policy exists that is stationary and deterministic — you never need to remember the past or flip coins to act optimally.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>stochastic policy</em> is $\pi(a \mid s) = \Pr(A_t = a \mid S_t = s)$; a <em>deterministic policy</em> is a function $a = \pi(s)$. A policy is <em>stationary</em> if it does not depend on $t$. For a finite MDP there are $|\mathcal{A}|^{|\mathcal{S}|}$ deterministic stationary policies, and at least one of them is optimal for the discounted criterion.</div>
+ <div class="box ex"><span class="label">Worked example</span> A $2\times2$ gridworld with 4 actions has $4^4 = 256$ deterministic policies. Brute-force policy search is already hopeless at $10\times10$ with 4 actions: $4^{100}\approx 1.6\times10^{60}$ policies. This is why dynamic programming (which exploits structure) and gradient methods (which search locally) exist.</div>
+ <div class="box link"><span class="label">Where this goes</span> Value-based methods (Q-learning) get a policy implicitly as $\arg\max_a Q(s,a)$; policy-gradient methods parameterize $\pi_\theta$ directly and climb $\nabla_\theta J$. In Ch 23, an LLM generating tokens is exactly a stochastic policy over a vocabulary, which is why RLHF is policy-gradient RL.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many deterministic stationary policies does an MDP with 3 states and 2 actions have? List the count.<details class="sol"><summary>Solution</summary><div>$2^3 = 8$: one independent binary choice per state.</div></details></li>
+  <li><span class="lvl m">MED</span> Give a situation where a <em>stochastic</em> policy is strictly better than every deterministic one.<details class="sol"><summary>Solution</summary><div>Any setting that breaks the MDP assumptions. Classic case: partial observability. In rock–paper–scissors against an adaptive opponent, any deterministic policy is exploitable; the uniform mixed policy guarantees value 0. Similarly, in a POMDP where two different states look identical, randomizing at the ambiguous observation can beat any deterministic response. (In a fully observed finite MDP, determinism suffices.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if two deterministic policies $\pi_1,\pi_2$ satisfy $v^{\pi_1}(s)\ge v^{\pi_2}(s)$ for some states and the reverse for others, the "combined" policy $\pi(s) = \arg\max_{i} v^{\pi_i}(s)$'s policy choice at $s$ achieves $v^{\pi}(s) \ge \max_i v^{\pi_i}(s)$ everywhere.<details class="sol"><summary>Solution</summary><div>Let $w(s) = \max_i v^{\pi_i}(s)$ and let $\pi$ follow, in state $s$, the action of the better policy at $s$. Applying the Bellman operator for $\pi$: $(T^\pi w)(s) = R(s,\pi(s)) + \gamma\sum_{s'}P(s'\mid s,\pi(s))\,w(s') \ge R(s,\pi(s)) + \gamma\sum_{s'}P(s'\mid s,\pi(s))\,v^{\pi_{i(s)}}(s') = v^{\pi_{i(s)}}(s) = w(s)$, where $i(s)$ is the best index at $s$. So $T^\pi w \ge w$; iterating, $v^\pi = \lim_k (T^\pi)^k w \ge w$ (monotonicity of $T^\pi$). Hence you can always splice policies and lose nothing — the germ of the policy improvement theorem.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rewards">
+ <h2>Rewards</h2>
+ <p>The reward is a single number the environment hands the agent each step: the entire specification of "what we want" squeezed through a scalar channel. The reward hypothesis says that all goals can be phrased as maximizing expected cumulative reward. Designing that scalar well is one of the hardest parts of applied RL — get it wrong and the agent will maximize exactly what you wrote, not what you meant.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>reward function</em> is $R(s,a) = \mathbb{E}[R_{t+1}\mid S_t=s,A_t=a]$ (or $R(s,a,s')$ per transition). The agent's objective is the expected return $J(\pi) = \mathbb{E}_\pi\!\left[\sum_{t=0}^\infty \gamma^t R_{t+1}\right]$. Rewards are the <em>only</em> training signal the RL problem provides about the goal.</div>
+ <div class="box ex"><span class="label">Worked example</span> Maze escape, two candidate designs: (a) $+1$ at exit, 0 elsewhere; (b) $-1$ per step, 0 at exit. With $\gamma = 1$ and a 10-step vs 20-step path, design (a) gives return 1 for both — the agent has no incentive to hurry; design (b) gives $-10$ vs $-20$, so the shortest path is optimal. With $\gamma<1$, design (a) also prefers short paths ($\gamma^{9}$ vs $\gamma^{19}$), showing discounting itself creates urgency.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Rewarding a <em>proxy</em> (e.g. "distance to goal decreased") instead of the goal invites loops that farm the proxy. The safe pattern is potential-based shaping (see <a href="#reward-shaping">Reward shaping</a>), which provably preserves the optimal policy.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An agent gets $+1$ per step it stays balanced (CartPole). What behavior is being rewarded, and what is the return of balancing for exactly 200 steps with $\gamma=1$?<details class="sol"><summary>Solution</summary><div>Staying upright as long as possible; return $= 200$.</div></details></li>
+  <li><span class="lvl m">MED</span> Multiply every reward in an MDP by $c>0$ and add nothing. Prove the optimal policy is unchanged.<details class="sol"><summary>Solution</summary><div>Returns scale: $G' = \sum_t \gamma^t (cR_{t+1}) = cG$. Hence $v'^\pi = c\,v^\pi$ for every $\pi$, and $\arg\max_\pi v'^\pi(s) = \arg\max_\pi v^\pi(s)$ since $c>0$ preserves order. (Adding a constant $b$ per step is <em>not</em> always neutral in episodic tasks: it changes the relative value of ending episodes early vs late.)</div></details></li>
+  <li><span class="lvl h">HARD</span> A boat-racing agent is rewarded for hitting score targets on the track rather than finishing the race, and learns to circle forever hitting respawning targets. Formalize why the learned behavior is optimal for the given MDP.<details class="sol"><summary>Solution</summary><div>Let target hits pay $r>0$ and finishing pay $F$ once. Circling collects $r$ every $k$ steps forever: return $\approx r\gamma^{k}/(1-\gamma^{k})$ per cycle summed $= \frac{r\gamma^k}{1-\gamma^k}$ scaled appropriately, which $\to \infty$ as $\gamma\to1$ (or is large for $\gamma$ near 1), while finishing yields at most $F$ plus termination. Whenever $\frac{r\gamma^k}{1-\gamma^k} > F$, circling is the optimal policy of the MDP <em>as specified</em>. The agent did not fail; the specification did. This is the canonical reward-hacking example (CoastRunners), formalized.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="returns">
+ <h2>Returns</h2>
+ <p>The return is the total reward from now onward, with the future shrunk by the discount factor. It converts an endless stream of rewards into one random variable we can take expectations of. The discount $\gamma$ acts like a soft horizon: rewards about $1/(1-\gamma)$ steps ahead still matter, rewards much beyond that effectively don't.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>discounted return</em> from time $t$ is $$G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1},$$ with the fundamental recursion $G_t = R_{t+1} + \gamma\, G_{t+1}$. If $|R_t| \le R_{\max}$ then $|G_t| \le R_{\max}/(1-\gamma)$, so $G_t$ is well defined for $\gamma<1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rewards $3, 1, 4, 1, 5$ then zeros, $\gamma = 0.5$: $$G_0 = 3 + 0.5(1) + 0.25(4) + 0.125(1) + 0.0625(5) = 3 + 0.5 + 1 + 0.125 + 0.3125 = 4.9375.$$ Check via recursion: $G_4 = 5$, $G_3 = 1 + 0.5\cdot5 = 3.5$, $G_2 = 4+0.5\cdot3.5 = 5.75$, $G_1 = 1+0.5\cdot5.75 = 3.875$, $G_0 = 3+0.5\cdot3.875 = 4.9375$. ✓</div>
+  </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Reward $+1$ every step forever, $\gamma = 0.9$. Compute $G_0$.<details class="sol"><summary>Solution</summary><div>$G_0 = \sum_{k\ge0} 0.9^k = 1/(1-0.9) = 10$.</div></details></li>
+  <li><span class="lvl m">MED</span> Rewards alternate $+1, -1, +1, -1, \dots$ with $\gamma = 0.8$. Compute $G_0$.<details class="sol"><summary>Solution</summary><div>$G_0 = \sum_{k\ge0} (-0.8)^k\cdot(+1)$... careful: $G_0 = 1 - 0.8 + 0.64 - \cdots = \sum_k(-0.8)^k = \frac{1}{1+0.8} = \frac{5}{9} \approx 0.556$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for a reward of $+1$ delivered only at step $k$ (i.e. $R_{k+1}=1$, rest 0), the return $G_0=\gamma^k$, and find the $k$ at which a reward is worth less than $1\%$ of an immediate one when $\gamma = 0.99$.<details class="sol"><summary>Solution</summary><div>$G_0 = \gamma^k$ directly from the definition. Need $0.99^k < 0.01 \Rightarrow k > \ln(0.01)/\ln(0.99) = (-4.605)/(-0.01005) \approx 458.2$, so $k \ge 459$. The effective horizon $1/(1-\gamma) = 100$ steps is where weight has decayed to $\approx e^{-1} \approx 37\%$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="value-functions">
+ <h2>Value functions</h2>
+ <p>The value function is a map of the state space where altitude means "expected future reward if I follow my policy from here." It collapses the entire probabilistic future into one number per state. Almost every RL algorithm is, at heart, a scheme for estimating this map or its action-indexed sibling $Q$.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>state-value function</em> of policy $\pi$ is $$v^\pi(s) = \mathbb{E}_\pi[G_t \mid S_t = s] = \mathbb{E}_\pi\!\left[\sum_{k=0}^\infty \gamma^k R_{t+k+1}\,\Big|\, S_t=s\right].$$ The <em>optimal value function</em> is $v^*(s) = \max_\pi v^\pi(s)$, and a policy $\pi^*$ is optimal iff $v^{\pi^*} = v^*$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Corridor $s_1\!-\!s_2\!-\!G$ where the policy always moves right, each move pays $-1$, and reaching goal $G$ ends the episode; $\gamma = 1$. Then $v^\pi(s_2) = -1$ (one step to goal) and $v^\pi(s_1) = -1 + v^\pi(s_2) = -2$. The value function literally reads out "(negative) distance to goal" — for shortest-path rewards, value maps are distance fields.</div>
+ <div class="box link"><span class="label">Where this goes</span> $v$ is the critic in Actor-Critic, the baseline in REINFORCE, and the thing MuZero's learned model predicts (Ch 29). Advantage estimation (later this chapter) is built from $v$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the corridor example with 5 non-goal states, what is $v^\pi$ of the farthest state?<details class="sol"><summary>Solution</summary><div>$-5$: five $-1$ steps to reach the goal (with $\gamma=1$).</div></details></li>
+  <li><span class="lvl m">MED</span> Same corridor but $\gamma = 0.9$. Compute $v^\pi(s_1)$ (two steps from goal).<details class="sol"><summary>Solution</summary><div>$v^\pi(s_1) = -1 + 0.9(-1) = -1.9$. In general, $k$ steps out: $v = -(1-\gamma^k)/(1-\gamma)$; for $k=2$: $-(1-0.81)/0.1 = -1.9$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $v^\pi$ is the unique fixed point of $T^\pi v = R^\pi + \gamma P^\pi v$ for $\gamma<1$ using the contraction mapping theorem.<details class="sol"><summary>Solution</summary><div>For any $u, v$: $\|T^\pi u - T^\pi v\|_\infty = \gamma\|P^\pi(u-v)\|_\infty \le \gamma\|u-v\|_\infty$ since $P^\pi$ is an expectation (a convex average never exceeds the max). So $T^\pi$ is a $\gamma$-contraction on the complete space $(\mathbb{R}^{|\mathcal{S}|},\|\cdot\|_\infty)$; by Banach's fixed-point theorem it has a unique fixed point, and expanding the definition of $v^\pi$ shows $v^\pi$ satisfies $T^\pi v^\pi = v^\pi$. Hence $v^\pi$ is that unique fixed point, and iterating $T^\pi$ from anywhere converges to it geometrically.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="action-value-functions">
+ <h2>Action-value functions</h2>
+ <p>$Q(s,a)$ answers a sharper question than $v(s)$: "what if I take action $a$ right now, and only afterwards follow the policy?" Its killer feature: if you know $Q^*$, acting optimally requires no model of the world — just pick the action with the biggest $Q$ value. That is why model-free control revolves around $Q$.</p>
+ <div class="box def"><span class="label">Definition</span> $$q^\pi(s,a) = \mathbb{E}_\pi[G_t \mid S_t=s, A_t=a], \qquad q^*(s,a) = \max_\pi q^\pi(s,a).$$ Relations: $v^\pi(s) = \sum_a \pi(a\mid s)\, q^\pi(s,a)$, and $v^*(s) = \max_a q^*(s,a)$; the greedy policy $\pi(s) = \arg\max_a q^*(s,a)$ is optimal.</div>
+ <div class="box ex"><span class="label">Worked example</span> At a state $s$, a policy picks $a_1$ with prob 0.7 and $a_2$ with 0.3, with $q^\pi(s,a_1) = 4$ and $q^\pi(s,a_2) = 10$. Then $v^\pi(s) = 0.7\cdot4 + 0.3\cdot10 = 5.8$. Note $v^\pi(s) < \max_a q^\pi(s,a) = 10$: the gap $10 - 5.8 = 4.2$ is exactly the improvement available by switching to greedy — the engine of policy iteration.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $q^\pi(s,a)$ assumes you follow $\pi$ <em>after</em> the first step, not that you keep taking $a$. And $v^*(s) = \max_a q^*(s,a)$ holds only for the optimal pair; for a general $\pi$, $v^\pi(s)$ is the $\pi$-weighted <em>average</em> of $q^\pi(s,\cdot)$, not the max.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Given $q^*(s,\text{left}) = 3$, $q^*(s,\text{right}) = 7$, what is $v^*(s)$ and the optimal action?<details class="sol"><summary>Solution</summary><div>$v^*(s) = \max(3,7) = 7$; take <em>right</em>.</div></details></li>
+  <li><span class="lvl m">MED</span> Express $q^\pi(s,a)$ in terms of $v^\pi$ using one-step lookahead.<details class="sol"><summary>Solution</summary><div>$q^\pi(s,a) = R(s,a) + \gamma \sum_{s'} P(s'\mid s,a)\, v^\pi(s')$: immediate reward plus discounted expected value of wherever you land, then following $\pi$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $\pi'$ is greedy with respect to $q^\pi$, then $v^{\pi'} \ge v^\pi$ (policy improvement theorem).<details class="sol"><summary>Solution</summary><div>Greediness gives $q^\pi(s,\pi'(s)) = \max_a q^\pi(s,a) \ge \sum_a \pi(a\mid s)q^\pi(s,a) = v^\pi(s)$ for all $s$. Then
+    $v^\pi(s) \le q^\pi(s,\pi'(s)) = \mathbb{E}[R_{t+1} + \gamma v^\pi(S_{t+1}) \mid S_t=s, A_t=\pi'(s)]$. Substitute the inequality $v^\pi(S_{t+1}) \le q^\pi(S_{t+1},\pi'(S_{t+1}))$ inside the expectation and unroll repeatedly: $v^\pi(s) \le \mathbb{E}_{\pi'}[R_{t+1} + \gamma R_{t+2} + \gamma^2 v^\pi(S_{t+2})\mid S_t = s] \le \cdots \le v^{\pi'}(s)$, since $\gamma^k v^\pi(S_{t+k})\to$ contributes vanishingly ($\gamma<1$, bounded $v$). Strict improvement somewhere unless $\pi$ was already greedy w.r.t. its own $q$, i.e. optimal.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">Knowing which function lets you act optimally <em>without</em> knowing the transition model $P$?</div><button class="opt">$v^*(s)$</button><button class="opt">$q^*(s,a)$</button><button class="opt">$R(s,a)$</button><div class="why" hidden>With $v^*$ alone you need $P$ to do the one-step lookahead $\arg\max_a \sum_{s'}P(s'\mid s,a)[R+\gamma v^*(s')]$. With $q^*$ you just take $\arg\max_a q^*(s,a)$ — the lookahead is baked in.</div></div>
+</section>
+
+<section class="topic" id="bellman-expectation-equation">
+ <h2>Bellman expectation equation</h2>
+ <p>Values obey a self-consistency law: the value of here equals the expected immediate reward plus the discounted value of wherever you go next. This turns an infinite sum over futures into a local, one-step equation — the single most important identity in RL.</p>
+ <div class="box def"><span class="label">Definition</span> For a fixed policy $\pi$: $$v^\pi(s) = \sum_a \pi(a\mid s)\Big[R(s,a) + \gamma \sum_{s'} P(s'\mid s,a)\, v^\pi(s')\Big],$$ $$q^\pi(s,a) = R(s,a) + \gamma \sum_{s'} P(s'\mid s,a) \sum_{a'} \pi(a'\mid s')\, q^\pi(s',a').$$ In matrix form $v^\pi = R^\pi + \gamma P^\pi v^\pi$, hence $v^\pi = (I-\gamma P^\pi)^{-1} R^\pi$ — a <em>linear</em> system.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two states A, B; policy fixed. From A: reward 1, go to B. From B: reward 2, stay in B with prob 0.5, go to A with 0.5. $\gamma=0.5$. Equations: $v_A = 1 + 0.5\,v_B$; $v_B = 2 + 0.5(0.5 v_B + 0.5 v_A)$. Substitute: $v_B = 2 + 0.25 v_B + 0.25(1+0.5 v_B) = 2.25 + 0.375 v_B$, so $v_B = 2.25/0.625 = 3.6$ and $v_A = 1 + 1.8 = 2.8$. Verify B: $2 + 0.25(3.6) + 0.25(2.8) = 2+0.9+0.7 = 3.6$. ✓</div>
+ <div class="box think"><span class="label">Think first</span> The Bellman expectation equation is linear in $v$. What does that buy you computationally that the <em>optimality</em> equation (next topic) doesn't have?<details class="sol"><summary>Reveal</summary><div>Linear means exact solution by Gaussian elimination in $O(|\mathcal{S}|^3)$ — policy evaluation is "just" solving $Ax=b$. The optimality equation contains a $\max$, making it piecewise-linear and nonlinear overall; no direct linear solve exists, so we iterate (value iteration) or alternate solves with greedy improvement (policy iteration).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the Bellman expectation equation for a deterministic policy $a=\pi(s)$ in a deterministic environment $s'=f(s,a)$.<details class="sol"><summary>Solution</summary><div>$v^\pi(s) = R(s,\pi(s)) + \gamma\, v^\pi(f(s,\pi(s)))$ — no sums needed.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve: single state $s$, two actions; $\pi$ picks each with prob $\tfrac12$; action 1 pays 4, action 2 pays 0; both return to $s$; $\gamma = 0.9$.<details class="sol"><summary>Solution</summary><div>$R^\pi = \tfrac12(4)+\tfrac12(0) = 2$; $v = 2 + 0.9v \Rightarrow v = 20$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive $q^\pi = R + \gamma P \Pi q^\pi$ in operator form, where $\Pi$ maps $q\mapsto v$ via $(\Pi q)(s') = \sum_{a'}\pi(a'\mid s')q(s',a')$, and give the closed-form solution.<details class="sol"><summary>Solution</summary><div>Condition on $(s,a)$: $q^\pi(s,a) = R(s,a) + \gamma\,\mathbb{E}_{s'}[v^\pi(s')]$ and $v^\pi = \Pi q^\pi$. Stacking $(s,a)$ pairs, $q^\pi = R + \gamma P\,\Pi\, q^\pi$ where $P\in\mathbb{R}^{|\mathcal S||\mathcal A|\times|\mathcal S|}$ and $\Pi\in\mathbb{R}^{|\mathcal S|\times|\mathcal S||\mathcal A|}$. $P\Pi$ is row-stochastic (composition of expectations), so $I - \gamma P\Pi$ is invertible for $\gamma<1$ and $q^\pi = (I-\gamma P\Pi)^{-1}R$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bellman-optimality-equation">
+ <h2>Bellman optimality equation</h2>
+ <p>Replace "average over my policy's actions" with "take the best action" and you get the equation that the <em>optimal</em> value function — and no other function — satisfies. The max makes it nonlinear, but it is still a contraction, so iterating it from any starting guess converges to $v^*$.</p>
+ <div class="box def"><span class="label">Definition</span> $$v^*(s) = \max_a \Big[ R(s,a) + \gamma \sum_{s'} P(s'\mid s,a)\, v^*(s') \Big], \qquad q^*(s,a) = R(s,a) + \gamma \sum_{s'} P(s'\mid s,a) \max_{a'} q^*(s',a').$$</div>
+ <div class="box thm"><span class="label">Theorem</span> The Bellman optimality operator $(T v)(s) = \max_a [R(s,a) + \gamma\sum_{s'}P(s'\mid s,a)v(s')]$ is a $\gamma$-contraction in $\|\cdot\|_\infty$; $v^*$ is its unique fixed point; and any policy greedy w.r.t. $v^*$ is optimal. Key lemma: $|\max_a f(a) - \max_a g(a)| \le \max_a |f(a)-g(a)|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> One state, two actions, both loop back: action 1 pays 1, action 2 pays 3; $\gamma = 0.5$. Optimality equation: $v^* = \max(1 + 0.5v^*,\; 3 + 0.5v^*)$. The max clearly picks action 2 (same continuation, bigger reward), giving $v^* = 3 + 0.5v^* \Rightarrow v^* = 6$. Compare the always-action-1 policy: $v = 2$. The equation encodes "be greedy against your own optimal future."</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\max$ and expectation do not commute: $\mathbb{E}[\max] \ge \max[\mathbb{E}]$ (Jensen, Ch 11). Estimating $\max_{a'} \hat q(s',a')$ from noisy $\hat q$ therefore overestimates $q^*$ systematically — the maximization bias that Double Q-learning (see <a href="#q-learning">Q-learning</a>) is built to fix.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify $v^*=6$ satisfies the optimality equation in the worked example.<details class="sol"><summary>Solution</summary><div>$\max(1+0.5\cdot6,\; 3+0.5\cdot6) = \max(4, 6) = 6$. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> State $s$ has two actions: risky (reward 10 w.p. 0.5, else 0, then terminate) and safe (reward 4, terminate). Compute $q^*$ for each and $v^*(s)$.<details class="sol"><summary>Solution</summary><div>Termination means no future term: $q^*(s,\text{risky}) = 0.5\cdot10 = 5$, $q^*(s,\text{safe}) = 4$, $v^*(s) = 5$. Optimal policy is risk-neutral: it maximizes expectation regardless of variance.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the contraction property of $T$ using the max lemma.<details class="sol"><summary>Solution</summary><div>For any $u,v$ and any $s$: $|(Tu)(s)-(Tv)(s)| = |\max_a f_u(a) - \max_a f_v(a)|$ where $f_v(a) = R(s,a)+\gamma\sum_{s'}P(s'\mid s,a)v(s')$. By the lemma this is $\le \max_a |f_u(a)-f_v(a)| = \gamma \max_a |\sum_{s'}P(s'\mid s,a)(u-v)(s')| \le \gamma\|u-v\|_\infty$. Taking sup over $s$: $\|Tu-Tv\|_\infty \le \gamma\|u-v\|_\infty$. (Lemma proof: $\max_a f(a) = \max_a [g(a) + (f-g)(a)] \le \max_a g(a) + \max_a(f-g)(a)$; symmetrize.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dynamic-programming">
+ <h2>Dynamic programming</h2>
+ <p>When you know the full model $(P, R)$, you can compute values by sweeping over states and repeatedly applying Bellman equations as update rules — solving a big problem by reusing solutions to overlapping subproblems ("what is each next state worth?"). DP is exact but demands the model and touches every state, so it's the gold standard on small MDPs and the conceptual template everywhere else.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Dynamic programming</em> for MDPs = iterative application of Bellman operators: policy evaluation iterates $v \leftarrow T^\pi v$; value iteration iterates $v \leftarrow T v$. Each full sweep costs $O(|\mathcal{S}|^2|\mathcal{A}|)$ and, being applications of $\gamma$-contractions, shrinks the $\infty$-distance to the fixed point by at least $\gamma$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Corridor $s_1 - s_2 - G$, reward $-1$ per move, $\gamma = 1$, deterministic "move right" policy. Start $v_0 = (0, 0)$. Sweep 1: $v(s_2) = -1 + v_0(G) = -1$; $v(s_1) = -1 + v_0(s_2) = -1$. Sweep 2: $v(s_2) = -1$; $v(s_1) = -1 + (-1) = -2$. Sweep 3: unchanged. Values propagate backwards from the goal one sweep per step of distance — you can watch information flow.</div>
+ <div class="box link"><span class="label">Where this goes</span> TD learning is DP with expectations replaced by samples; MCTS (Ch 26) is DP focused on the states you actually visit; and the Bellman backup reappears as the "backup" step of AlphaZero's search.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does DP require knowing $P$ and $R$?<details class="sol"><summary>Solution</summary><div>Each backup computes an exact expectation over next states, $\sum_{s'}P(s'\mid s,a)[\cdots]$, which you cannot evaluate without the model. Sample-based methods (MC, TD) replace this expectation with observed transitions.</div></details></li>
+  <li><span class="lvl m">MED</span> After $k$ sweeps of value iteration, bound $\|v_k - v^*\|_\infty$ in terms of $\|v_0 - v^*\|_\infty$.<details class="sol"><summary>Solution</summary><div>Contraction gives $\|v_k - v^*\|_\infty = \|T^k v_0 - T^k v^*\|_\infty \le \gamma^k \|v_0 - v^*\|_\infty$. E.g. $\gamma = 0.9$: 22 sweeps per factor of 10 ($0.9^{22}\approx0.098$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Asynchronous DP updates one state at a time in arbitrary order. State the condition for convergence and sketch why it holds.<details class="sol"><summary>Solution</summary><div>Condition: every state is updated infinitely often. Sketch: each single-state backup cannot increase $\|v - v^*\|_\infty$ (the updated coordinate moves to within $\gamma\|v-v^*\|_\infty$ of $v^*$ there, others unchanged). After every state has been updated at least once — a "covering block" — the error is multiplied by at most $\gamma$. Infinitely many covering blocks force error $\to 0$. This licenses prioritized sweeping and in-place updates.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="policy-evaluation">
+ <h2>Policy evaluation</h2>
+ <p>Given a policy, how good is it? Policy evaluation answers by computing $v^\pi$, either exactly (solve the linear system) or iteratively (sweep the Bellman expectation backup until values stop changing). It is the "prediction" half of RL, and the inner loop of policy iteration.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Iterative policy evaluation</em>: initialize $v_0$ arbitrarily; repeat $$v_{k+1}(s) = \sum_a \pi(a\mid s)\Big[R(s,a) + \gamma\sum_{s'}P(s'\mid s,a)\,v_k(s')\Big] \quad \forall s$$ until $\max_s |v_{k+1}(s)-v_k(s)| < \varepsilon$. Converges to $v^\pi$ at rate $\gamma^k$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two states, random policy. A: reward 0, goes to B. B: reward 1, terminates. $\gamma=0.9$. $v_0 = (0,0)$. $k{=}1$: $v(B) = 1$, $v(A) = 0 + 0.9\cdot v_0(B) = 0$. $k{=}2$: $v(B)=1$, $v(A) = 0.9\cdot1 = 0.9$. $k{=}3$: no change. Exact: $v^\pi(A) = 0.9$, $v^\pi(B) = 1$. Two sweeps sufficed because information only had to travel two steps.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Policy evaluation is solving which equation? Is it linear or nonlinear?<details class="sol"><summary>Solution</summary><div>The Bellman expectation equation $v = R^\pi + \gamma P^\pi v$; it is linear (no max), so exact solution $= (I-\gamma P^\pi)^{-1}R^\pi$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $|\mathcal{S}| = 1000$, compare the cost of the direct solve vs 100 iterative sweeps.<details class="sol"><summary>Solution</summary><div>Direct: $O(n^3) = 10^9$ flops. Sweeps: $O(k\,n^2\,|\mathcal A|)$; with $|\mathcal A|$ small, $100 \times 10^6 = 10^8$ flops — cheaper, and each sweep can exploit sparsity of $P^\pi$. For large sparse MDPs, iteration wins decisively.</div></details></li>
+  <li><span class="lvl h">HARD</span> Suppose sweeps use "in-place" updates (new values used immediately within a sweep). Does convergence still hold, and can it be faster?<details class="sol"><summary>Solution</summary><div>Yes: in-place evaluation is asynchronous DP with a fixed order, each coordinate update is still a partial application of the contraction, and every state updates each sweep, so error contracts by at least $\gamma$ per sweep. It is often faster (Gauss–Seidel vs Jacobi): fresh values propagate within a sweep — in the corridor example, sweeping from the goal backwards converges in one sweep instead of $n$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="policy-iteration">
+ <h2>Policy iteration</h2>
+ <p>Alternate two moves: evaluate the current policy fully, then act greedily against those values. Each round produces a policy at least as good as the last, and since a finite MDP has finitely many deterministic policies, the ping-pong must stop — at an optimal policy. It typically converges in astonishingly few rounds.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Policy iteration</em>: start with any $\pi_0$; repeat (1) <em>evaluation</em>: compute $v^{\pi_k}$; (2) <em>improvement</em>: $\pi_{k+1}(s) = \arg\max_a \big[R(s,a) + \gamma\sum_{s'}P(s'\mid s,a)v^{\pi_k}(s')\big]$. Stop when $\pi_{k+1} = \pi_k$; then $\pi_k$ is optimal. Monotone: $v^{\pi_0} \le v^{\pi_1} \le \cdots \le v^*$.</div>
+ <div class="box ex"><span class="label">Worked example</span> One state, actions loop back: $a_1$ pays 1, $a_2$ pays 3, $\gamma = 0.5$. $\pi_0 = a_1$: evaluation gives $v = 1/(1-0.5) = 2$. Improvement: compare $q(s,a_1) = 1+0.5\cdot2 = 2$ vs $q(s,a_2) = 3+0.5\cdot2 = 4$; switch to $a_2$. Evaluate $\pi_1 = a_2$: $v = 3/0.5 = 6$. Improvement: $q(s,a_1) = 1+3 = 4 < q(s,a_2) = 3+3 = 6$; no change. Done: $\pi^* = a_2$, $v^* = 6$ — matching the Bellman-optimality example exactly.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Full evaluation between improvements is overkill: truncating evaluation to a few sweeps (generalized policy iteration) still converges. Value iteration is the extreme case — exactly one sweep of evaluation fused with improvement.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must policy iteration terminate on a finite MDP?<details class="sol"><summary>Solution</summary><div>There are finitely many ($|\mathcal A|^{|\mathcal S|}$) deterministic policies; each iteration strictly improves the value somewhere or stops; no policy can repeat (values are monotone), so it halts — at a policy that is greedy w.r.t. its own value, i.e. satisfies Bellman optimality, i.e. optimal.</div></details></li>
+  <li><span class="lvl m">MED</span> Run one round of policy iteration: states $\{s, G\}$, actions from $s$: <em>stay</em> (reward 0, remain in $s$) or <em>go</em> (reward $-1$, reach terminal $G$ worth 0... but $G$ also grants $+5$ on entry). Use $R(s,\text{go}) = 4$ net; $\gamma = 0.9$; $\pi_0 = $ stay.<details class="sol"><summary>Solution</summary><div>Evaluate $\pi_0$: $v(s) = 0 + 0.9v(s) \Rightarrow v(s) = 0$. Improve: $q(s,\text{stay}) = 0 + 0.9\cdot0 = 0$; $q(s,\text{go}) = 4 + 0.9\cdot0 = 4$. Switch to go. Evaluate: $v(s) = 4$. Improve: $q(s,\text{stay}) = 0+0.9\cdot4 = 3.6 < 4$; stable. $\pi^* = $ go.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if improvement produces no change ($\pi_{k+1}=\pi_k$), then $v^{\pi_k} = v^*$.<details class="sol"><summary>Solution</summary><div>No change means $\pi_k$ is greedy w.r.t. $v^{\pi_k}$: for all $s$, $v^{\pi_k}(s) = \max_a [R(s,a)+\gamma\sum_{s'}P(s'\mid s,a)v^{\pi_k}(s')]$ (the greedy action achieves the max and equals the policy's own backup). So $v^{\pi_k}$ satisfies the Bellman <em>optimality</em> equation. Since $v^*$ is that equation's unique fixed point, $v^{\pi_k} = v^*$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="value-iteration">
+ <h2>Value iteration</h2>
+ <p>Skip the policies entirely: iterate the Bellman optimality backup on the values themselves. Each sweep imagines "act best for one step, then use my current guess of the future" and the guesses spiral into $v^*$. Read the greedy policy off at the end. It's DP distilled to one line.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Value iteration</em>: $v_0$ arbitrary; $$v_{k+1}(s) = \max_a \Big[R(s,a) + \gamma \sum_{s'} P(s'\mid s,a)\, v_k(s')\Big].$$ Then $\|v_k - v^*\|_\infty \le \gamma^k \|v_0 - v^*\|_\infty$, and if $\|v_{k+1}-v_k\|_\infty < \varepsilon$, the greedy policy w.r.t. $v_{k+1}$ has value within $\frac{2\varepsilon\gamma}{1-\gamma}$ of optimal.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two states: at $s_1$, action <em>go</em> pays 0 and reaches $s_2$; at $s_2$, <em>cash</em> pays 10 and terminates; each state also has <em>idle</em>: pay 0, stay. $\gamma = 0.9$, $v_0 = (0,0)$. Sweep 1: $v(s_2) = \max(10, 0+0.9\cdot0) = 10$; $v(s_1) = \max(0+0.9\cdot0, 0) = 0$. Sweep 2: $v(s_1) = \max(0 + 0.9\cdot10,\; 0+0.9\cdot0) = 9$; $v(s_2) = \max(10,\, 9) = 10$. Sweep 3: $v(s_1) = \max(9, 8.1) = 9$ — converged. Greedy policy: go, then cash.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch value iteration solve a slippery gridworld: press Run to sweep; cell shade = value, arrows = greedy policy. Move the slip probability and discount and see the route bend away from the cliff (dark row, reward −10).</p>
+  <canvas id="cv-vi"></canvas>
+  <div class="ctl">
+   <label>slip prob <input type="range" id="vi-slip" min="0" max="0.4" step="0.05" value="0.2"></label>
+   <label>γ <input type="range" id="vi-gamma" min="0.5" max="0.99" step="0.01" value="0.95"></label>
+   <button class="btn" id="vi-run">Run sweep</button>
+   <button class="btn" id="vi-reset">Reset</button>
+  </div>
+  <div class="out" id="vi-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Value iteration fuses which two steps of policy iteration?<details class="sol"><summary>Solution</summary><div>One sweep of policy evaluation and the greedy improvement, merged into a single max-backup per state.</div></details></li>
+  <li><span class="lvl m">MED</span> With $\gamma = 0.99$ and $\|v_0 - v^*\|_\infty = 100$, how many sweeps until the value error is below 1?<details class="sol"><summary>Solution</summary><div>Need $0.99^k \cdot 100 < 1 \Rightarrow k > \ln(0.01)/\ln(0.99) \approx 458.2$, so 459 sweeps. High $\gamma$ is expensive: the number of sweeps scales like $\frac{1}{1-\gamma}\ln\frac{1}{\varepsilon}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that the greedy policy can become optimal long before $v_k$ converges (give the mechanism).<details class="sol"><summary>Solution</summary><div>The greedy policy depends only on the <em>argmax</em> over actions, not the values themselves. Once $v_k$ is within half the smallest action gap $\Delta(s) = q^*(s,a^*) - \max_{a\ne a^*}q^*(s,a)$ (scaled by the backup's Lipschitz constant), the argmax at every state matches the optimal action and never changes again, even though $v_k$ keeps drifting toward $v^*$. Formally, $\|v_k - v^*\|_\infty < \min_s \Delta(s)\cdot\frac{1-\gamma}{2\gamma}$ suffices, since backup errors are bounded by $\frac{2\gamma}{1-\gamma}\|v_k-v^*\|_\infty$... more directly: $|q_k(s,a)-q^*(s,a)| \le \gamma\|v_k-v^*\|_\infty$, so $\|v_k-v^*\|_\infty < \Delta_{\min}/(2\gamma)$ guarantees the optimal action stays strictly best in the backup. Hence finite-time exact policy from inexact values.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="monte-carlo-methods">
+ <h2>Monte Carlo methods</h2>
+ <p>No model? Then just play. Monte Carlo methods estimate values by running whole episodes and averaging the actual returns observed from each state. The estimate is unbiased and dead simple, at the cost of high variance and having to wait until an episode ends before learning anything.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Monte Carlo policy evaluation</em>: for each visited state $s$, record the return $G_t$ that followed and estimate $\hat v(s) = \frac{1}{N(s)}\sum_i G^{(i)}(s)$. Incremental form: $\hat v(s) \leftarrow \hat v(s) + \alpha\,[G_t - \hat v(s)]$. <em>First-visit</em> MC averages only the first occurrence per episode (unbiased); <em>every-visit</em> uses all occurrences (biased but consistent).</div>
+ <div class="box ex"><span class="label">Worked example</span> Three episodes pass through state $s$ with subsequent returns $8, 6, 10$. MC estimate: $\hat v(s) = (8+6+10)/3 = 8$. Incrementally with $\alpha = 1/N$: $\hat v = 8$; then $8 + \tfrac12(6-8) = 7$; then $7 + \tfrac13(10-7) = 8$. Same answer — the running-average update is exact averaging.</div>
+ <div class="box pit"><span class="label">Pitfall</span> MC needs episodes to terminate: for continuing tasks the return never finishes accumulating. And because $G_t$ sums many random rewards, its variance can be enormous — variance $\propto$ horizon — which is exactly the axis on which TD (next topic) trades: bias for variance.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Returns observed from state $s$: $4, 4, 7, 5$. First-visit MC estimate of $v^\pi(s)$?<details class="sol"><summary>Solution</summary><div>$(4+4+7+5)/4 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> An episode visits $s$ at $t{=}1$ and $t{=}3$, with rewards $r_2{=}0, r_3{=}0, r_4{=}8$ (episode ends), $\gamma = 0.5$. Compute the first-visit and every-visit MC targets for $s$.<details class="sol"><summary>Solution</summary><div>$G_3 = 8$. $G_1 = 0 + 0.5\cdot0 + 0.25\cdot 8 = 2$. First-visit uses $G_1 = 2$ only. Every-visit uses both: average $(2 + 8)/2 = 5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show MC estimation of $v^\pi(s)$ is unbiased (first-visit) and give its variance in terms of the return distribution.<details class="sol"><summary>Solution</summary><div>Each first-visit return $G^{(i)}$ is an i.i.d. draw of the random variable $G_t \mid S_t = s$ under $\pi$, whose mean is by definition $v^\pi(s)$; hence $\mathbb{E}[\hat v(s)] = v^\pi(s)$: unbiased. Variance of the mean of $N$ i.i.d. draws: $\mathrm{Var}[\hat v(s)] = \sigma^2_G(s)/N$ where $\sigma^2_G(s) = \mathrm{Var}[G_t\mid S_t = s]$. Since $G_t$ sums $\sim 1/(1-\gamma)$ noisy terms, $\sigma^2_G$ grows with the effective horizon — the price of zero bias.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="temporal-difference-learning">
+ <h2>Temporal-difference learning</h2>
+ <p>TD learning is the idea most people call the heart of RL: update your estimate of a state's value toward <em>reward plus your own estimate of the next state</em>, without waiting for the episode to end. You learn a guess from a guess — bootstrapping — trading MC's variance for a little bias, and learning online, every single step.</p>
+ <div class="box def"><span class="label">Definition</span> <em>TD(0)</em> update after observing $(s_t, r_{t+1}, s_{t+1})$: $$v(s_t) \leftarrow v(s_t) + \alpha\,\delta_t, \qquad \delta_t = r_{t+1} + \gamma\, v(s_{t+1}) - v(s_t),$$ where $\delta_t$ is the <em>TD error</em>. The target $r_{t+1}+\gamma v(s_{t+1})$ is a sampled, bootstrapped stand-in for the Bellman backup.</div>
+ <div class="box ex"><span class="label">Worked example</span> $v(A) = 2$, $v(B) = 5$; transition $A \to B$ with reward 1; $\gamma = 0.9$, $\alpha = 0.1$. TD error: $\delta = 1 + 0.9\cdot5 - 2 = 3.5$. Update: $v(A) \leftarrow 2 + 0.1\cdot3.5 = 2.35$. One transition, one update — no waiting for the episode's end, and the size of $\delta$ tells you how "surprised" the value function was.</div>
+ <div class="box think"><span class="label">Think first</span> You drive home and hit unexpected traffic halfway. MC and TD both revise your "time remaining" predictions afterwards. Which one lets you revise your <em>start-of-trip</em> estimate the moment you see the traffic, and why?<details class="sol"><summary>Reveal</summary><div>TD. It backs up the newly-pessimistic halfway estimate into earlier states immediately ($\delta$ flows one step per update). MC must wait until you're actually home to know the true total time, then updates everything at once. Sutton's driving example: TD learns during the trip, MC after it.</div></details></div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A random walk on 5 states (A–E) between two terminals; right terminal pays +1. Run episodes of TD(0) and watch estimates approach the true values (1/6 … 5/6, dashed). Try different α.</p>
+  <canvas id="cv-td"></canvas>
+  <div class="ctl">
+   <label>α <input type="range" id="td-alpha" min="0.01" max="0.5" step="0.01" value="0.1"></label>
+   <button class="btn" id="td-run">Run 10 episodes</button>
+   <button class="btn" id="td-reset">Reset</button>
+  </div>
+  <div class="out" id="td-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> The TD error $\delta$ is the dopamine signal in neuroscience's reward-prediction-error theory, the advantage estimate in Actor-Critic, and (summed with decay) GAE later this chapter.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $v(s) = 4$, observe reward 2 into a terminal state, $\alpha = 0.5$, $\gamma = 0.9$. New $v(s)$?<details class="sol"><summary>Solution</summary><div>Terminal has value 0: $\delta = 2 + 0 - 4 = -2$; $v(s) = 4 + 0.5(-2) = 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain: TD target is biased but lower-variance than the MC target. Identify the source of each property.<details class="sol"><summary>Solution</summary><div>Bias: the target uses the current estimate $v(s_{t+1})$, which is wrong during learning, so the expected target $\ne v^\pi(s_t)$ until convergence. Lower variance: the target contains only <em>one</em> random reward and one random transition, versus the MC target's entire episode of randomness; randomness beyond one step is absorbed into the deterministic quantity $v(s_{t+1})$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Batch setting: episodes A,0,B,0 and B,1 / B,1 / B,1 / B,0 / B,0 / B,1 / B,0 (i.e., one episode A→B with rewards 0 then 0; plus six more episodes starting at B, three ending 1... use Sutton's classic: A,0,B,0 and six B-episodes with returns 1,1,1,1,1,1 minus—) Take the classic data: one episode $A \xrightarrow{0} B \xrightarrow{0} \text{end}$, and 6 episodes from B: five end with reward 1... Simplify: episodes from B end with reward 1 in 6 of 8 cases, 0 in 2 (including the A episode's ending). What do batch MC and batch TD(0) converge to for $v(A)$ ($\gamma=1$)?<details class="sol"><summary>Solution</summary><div>Batch MC minimizes squared error on observed returns: $v(A)$ = average return observed from A = 0 (its single episode returned 0). Batch TD(0) finds the maximum-likelihood Markov model: A always goes to B (reward 0), and $v(B) = 6/8 = 0.75$, so $v(A) = 0 + v(B) = 0.75$. TD generalizes through the Markov structure; MC memorizes the sample returns. On Markov problems, TD's answer usually predicts future data better.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="q-learning">
+ <h2>Q-learning</h2>
+ <p>Q-learning is TD applied to the Bellman <em>optimality</em> equation: update $Q(s,a)$ toward reward plus the best next-action value. The magic is that it learns the optimal $Q^*$ while following any sufficiently exploratory behavior — an <em>off-policy</em> method. It is the ancestor of DQN and half of deep RL.</p>
+ <div class="box def"><span class="label">Definition</span> After $(s, a, r, s')$: $$Q(s,a) \leftarrow Q(s,a) + \alpha\Big[r + \gamma \max_{a'} Q(s', a') - Q(s,a)\Big].$$ With all pairs visited infinitely often and step sizes satisfying $\sum\alpha_t = \infty, \sum\alpha_t^2 < \infty$, $Q \to q^*$ with probability 1, regardless of the behavior policy.</div>
+ <div class="box ex"><span class="label">Worked example</span> $Q(s,a) = 3$; taking $a$ yields $r = 1$ and lands in $s'$ where $Q(s',\cdot) = \{2, 6\}$; $\gamma = 0.9$, $\alpha = 0.5$. Target: $1 + 0.9\cdot\max(2,6) = 1 + 5.4 = 6.4$. Update: $Q(s,a) \leftarrow 3 + 0.5(6.4 - 3) = 4.7$. Note the max: even if the behavior policy would have picked the action worth 2, the update assumes best-play from $s'$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Maximization bias: $\mathbb{E}[\max_{a'} \hat Q(s',a')] \ge \max_{a'} \mathbb{E}[\hat Q(s',a')]$, so noisy estimates get systematically over-valued. <em>Double Q-learning</em> keeps two tables and uses one to choose the argmax, the other to evaluate it: $r+\gamma Q_2(s', \arg\max_{a'}Q_1(s',a'))$ — killing the upward bias.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Q-learning on the cliff gridworld: run episodes and watch the greedy path form. Higher ε makes the learned (greedy) path swing wider from the cliff during training runs — compare with SARSA's safe path in the next section.</p>
+  <canvas id="cv-q"></canvas>
+  <div class="ctl">
+   <label>ε <input type="range" id="q-eps" min="0" max="0.5" step="0.05" value="0.1"></label>
+   <label>α <input type="range" id="q-alpha" min="0.05" max="1" step="0.05" value="0.5"></label>
+   <label>agent <select id="q-agent"><option value="q">Q-learning</option><option value="sarsa">SARSA</option></select></label>
+   <button class="btn" id="q-run">Run 100 episodes</button>
+   <button class="btn" id="q-reset">Reset</button>
+  </div>
+  <div class="out" id="q-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $Q(s,a) = 0$, observe $r = 5$ into terminal, $\alpha = 0.1$. New value?<details class="sol"><summary>Solution</summary><div>Target $= 5 + 0 = 5$; $Q \leftarrow 0 + 0.1(5-0) = 0.5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is Q-learning called off-policy? Name the two policies involved.<details class="sol"><summary>Solution</summary><div>The <em>behavior</em> policy (e.g. ε-greedy) generates the data; the <em>target</em> policy is the greedy policy implicit in the $\max_{a'}$ of the update. Q-learning evaluates/improves the greedy target policy using data from the different behavior policy — learning about one policy while following another.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two-armed terminal bandit as an MDP: from $s$, both actions terminate; arm 1 pays $\mathcal N(0, 1)$, arm 2 pays exactly $0.1$. With few samples per arm, show why vanilla Q-learning's implied policy at $s'$-style maxes would misbehave in a preceding state, and how Double Q-learning fixes it.<details class="sol"><summary>Solution</summary><div>Let a predecessor state $p$ lead to $s$. Its target contains $\max(\hat Q(s,1), \hat Q(s,2))$. With $n$ samples, $\hat Q(s,1) \sim \mathcal N(0, 1/n)$, so $\mathbb{E}[\max(\hat Q(s,1), 0.1)] > 0.1$ strictly (the Gaussian exceeds 0.1 with positive probability and those exceedances aren't offset in a max). E.g. $n=1$: $\mathbb{E}[\max(Z, 0.1)] \approx 0.45$. So $p$ overestimates the value of reaching $s$ and may prefer it over genuinely better routes. Double Q: $Q_2(s, \arg\max_a Q_1(s,a))$ — the selector's noise is independent of the evaluator's, so conditional on any selection, the evaluation is unbiased for that arm's true mean, and the expected target is $\le \max_a q(s,a)$ i.e. no systematic overestimate.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">Q-learning's update uses $\max_{a'}Q(s',a')$. What would make it an on-policy algorithm instead?</div><button class="opt">Removing the discount factor</button><button class="opt">Using $v(s')$ instead of $Q$</button><button class="opt">Using $Q(s',a')$ for the action $a'$ actually taken next</button><div class="why" hidden>Replacing the max with the value of the action the behavior policy actually takes gives SARSA — the on-policy TD control method, next section.</div></div>
+</section>
+
+<section class="topic" id="sarsa">
+ <h2>SARSA</h2>
+ <p>SARSA is Q-learning's cautious sibling: it updates toward the value of the action it will <em>actually take next</em>, exploration noise and all. Its name is the transition tuple it consumes — State, Action, Reward, State, Action. Because it evaluates the policy it truly follows (including its ε-blunders), it learns paths that stay safe under exploration.</p>
+ <div class="box def"><span class="label">Definition</span> After $(s, a, r, s', a')$ where $a'$ is sampled from the current (e.g. ε-greedy) policy: $$Q(s,a) \leftarrow Q(s,a) + \alpha\big[r + \gamma\, Q(s', a') - Q(s,a)\big].$$ On-policy: converges to $q^\pi$ of the policy being followed; if ε decays appropriately (GLIE), it converges to $q^*$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Same numbers as the Q-learning example — $Q(s,a) = 3$, $r = 1$, $Q(s',\cdot) = \{2,6\}$, $\gamma = 0.9$, $\alpha = 0.5$ — but the ε-greedy policy happens to pick the action worth 2 next. SARSA target: $1 + 0.9\cdot2 = 2.8$. Update: $Q(s,a) \leftarrow 3 + 0.5(2.8-3) = 2.9$. Q-learning got 4.7 from the same experience; SARSA's estimate accounts for the exploratory mistake it actually made.</div>
+ <div class="box ex"><span class="label">Worked example — cliff walking</span> Gridworld along a cliff: falling costs $-100$, each step $-1$, ε = 0.1 fixed. Q-learning learns the <em>optimal</em> path hugging the cliff edge (and keeps falling off during ε-exploration, so its online return is poor). SARSA learns a path one row further from the edge — suboptimal in steps, but its value estimates include the 10% chance of a random lurch, so the safe path genuinely has higher on-policy value. Try it in the explorer above by switching the agent.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which five pieces of data does one SARSA update need?<details class="sol"><summary>Solution</summary><div>$(s_t, a_t, r_{t+1}, s_{t+1}, a_{t+1})$ — the next action must already be chosen before updating.</div></details></li>
+  <li><span class="lvl m">MED</span> Expected SARSA replaces $Q(s',a')$ with $\sum_{a'}\pi(a'\mid s')Q(s',a')$. What does this change about variance and about the on/off-policy distinction?<details class="sol"><summary>Solution</summary><div>Variance drops: the random draw of $a'$ is replaced by its exact expectation under $\pi$, removing one source of noise (deterministic given $s'$). And Expected SARSA can be run off-policy: $\pi$ in the expectation can differ from the behavior policy; choosing $\pi$ = greedy recovers Q-learning exactly, so Q-learning is a special case of Expected SARSA.</div></details></li>
+  <li><span class="lvl h">HARD</span> With fixed ε = 0.1 on the cliff task, explain quantitatively why the cliff-hugging path has lower <em>on-policy</em> value than the safe path for SARSA. Take the cliff-edge path: 12 steps along the edge, each with a 0.1 chance of choosing a random action (4 actions), one of which (down) falls off ($-100$, restart); safe path: 14 steps, no fall risk. Estimate expected episode return of each roughly ($\gamma=1$).<details class="sol"><summary>Solution</summary><div>Edge path: per edge step, P(fall) = ε × (1/4) = 0.025 (random action chosen and it's "down"). Over ~12 edge steps, P(at least one fall) ≈ $1-(0.975)^{12} \approx 0.26$. Ignoring multiple falls, expected return ≈ $0.74(-12) + 0.26(-100 - \text{extra steps}) \lesssim -35$. Safe path: about $-14$ plus small detour noise ≈ $-15$. So $q^\pi$ of the safe route is much higher <em>for the ε-greedy policy actually run</em>, and SARSA, which estimates exactly that, correctly prefers it. Q-learning estimates $q^*$ (a policy that never explores) for which the edge path's $-12$ beats $-14$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eligibility-traces">
+ <h2>Eligibility traces</h2>
+ <p>When a surprise arrives, which of the many states you visited earlier deserves credit? Eligibility traces answer: all of them, with exponentially fading responsibility. Each state carries a decaying "eligibility" marker; every TD error is broadcast to all marked states at once. The decay rate λ smoothly interpolates between TD(0) (λ=0) and Monte Carlo (λ=1).</p>
+ <div class="box def"><span class="label">Definition</span> <em>TD(λ), accumulating traces</em>: keep $e(s)$ per state, initially 0. Each step: $e(s) \leftarrow \gamma\lambda\, e(s)$ for all $s$, then $e(s_t) \leftarrow e(s_t) + 1$; update <strong>all</strong> states $v(s) \leftarrow v(s) + \alpha\,\delta_t\, e(s)$. Equivalently (forward view), the target for $s_t$ is the <em>λ-return</em> $G_t^\lambda = (1-\lambda)\sum_{n=1}^{\infty}\lambda^{n-1}G_t^{(n)}$, a geometric mixture of $n$-step returns $G_t^{(n)} = r_{t+1}+\cdots+\gamma^{n-1}r_{t+n}+\gamma^n v(s_{t+n})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> States visited $s_1 \to s_2 \to s_3$, with $\gamma = 0.9$, $\lambda = 0.5$, so per-step decay $\gamma\lambda = 0.45$. Traces just after arriving at $s_3$ and taking a step: $e(s_1) = 0.45^2 = 0.2025$, $e(s_2) = 0.45$, $e(s_3) = 1$. If the TD error there is $\delta = 2$ and $\alpha = 0.1$: $\Delta v(s_1) = 0.1\cdot2\cdot0.2025 = 0.0405$, $\Delta v(s_2) = 0.09$, $\Delta v(s_3) = 0.2$. One surprise, three updates, graded by recency.</div>
+ <div class="box link"><span class="label">Where this goes</span> The same exponential mixing of $n$-step errors, applied to advantages instead of values, is exactly GAE (later this chapter) — the credit-assignment engine inside PPO.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What algorithms do λ = 0 and λ = 1 recover?<details class="sol"><summary>Solution</summary><div>λ = 0: only the current state has trace 1 (others decayed instantly) → TD(0). λ = 1 (episodic, offline): total update equals the MC update toward the full return.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that the λ-return weights sum to 1, i.e. $(1-\lambda)\sum_{n\ge1}\lambda^{n-1} = 1$.<details class="sol"><summary>Solution</summary><div>Geometric series: $\sum_{n\ge1}\lambda^{n-1} = \sum_{k\ge0}\lambda^k = \frac{1}{1-\lambda}$ for $|\lambda|<1$; multiplying by $(1-\lambda)$ gives 1. So $G^\lambda$ is a proper convex mixture of the $n$-step returns.</div></details></li>
+  <li><span class="lvl h">HARD</span> A state is visited once at time 0; the episode lasts $T$ steps with TD errors $\delta_0,\dots,\delta_{T-1}$. Show the total TD(λ) update to that state is $\alpha\sum_{t=0}^{T-1}(\gamma\lambda)^t \delta_t$, and verify for λ = 1 this telescopes to the MC error $\alpha(G_0 - v(s_0))$ (values held fixed).<details class="sol"><summary>Solution</summary><div>Its trace at time $t$ is $(\gamma\lambda)^t$ (one increment then pure decay), so summed updates give $\alpha\sum_t(\gamma\lambda)^t\delta_t$. For λ = 1: $\sum_t \gamma^t \delta_t = \sum_t \gamma^t\big(r_{t+1} + \gamma v(s_{t+1}) - v(s_t)\big)$. The value terms telescope: $\sum_t [\gamma^{t+1}v(s_{t+1}) - \gamma^t v(s_t)] = \gamma^T v(s_T) - v(s_0) = -v(s_0)$ (terminal value 0). What remains is $\sum_t \gamma^t r_{t+1} - v(s_0) = G_0 - v(s_0)$: exactly the Monte Carlo error. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-approximation">
+ <h2>Function approximation</h2>
+ <p>Real state spaces — pixels, board positions, sentences — are far too big for tables. So we represent $v$ or $Q$ with a parameterized function $\hat v(s; \mathbf{w})$ (linear features, or a neural net) and do TD on the parameters. Generalization is the point: updating one state now moves similar states too. It is also the peril: the "deadly triad" of function approximation + bootstrapping + off-policy data can diverge.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Semi-gradient TD(0)</em>: $$\mathbf{w} \leftarrow \mathbf{w} + \alpha\big[r + \gamma\,\hat v(s'; \mathbf{w}) - \hat v(s; \mathbf{w})\big]\nabla_\mathbf{w}\hat v(s; \mathbf{w}).$$ "Semi" because the gradient ignores the target's dependence on $\mathbf{w}$. For linear $\hat v = \mathbf{w}^\top\phi(s)$, $\nabla_\mathbf{w}\hat v = \phi(s)$, and on-policy semi-gradient TD converges to within $\frac{1}{1-\gamma}$ of the best linear fit.</div>
+ <div class="box ex"><span class="label">Worked example</span> Features $\phi(s) = (1, x)$ where $x$ is position; $\mathbf w = (0.5, 1)$. Transition: $x = 2 \to x' = 3$, $r = 0$, $\gamma = 0.9$, $\alpha = 0.1$. Values: $\hat v(s) = 0.5 + 2 = 2.5$; $\hat v(s') = 0.5+3 = 3.5$. $\delta = 0 + 0.9(3.5) - 2.5 = 0.65$. Update: $\mathbf w \leftarrow (0.5,1) + 0.1\cdot0.65\cdot(1,2) = (0.565, 1.13)$. Every state's value just moved, because the parameters are shared.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The deadly triad. Baird's counterexample: a 7-state MDP with linear features where off-policy semi-gradient TD's weights blow up to infinity, even though a perfect solution exists in the feature span. Any two of {approximation, bootstrapping, off-policy} are safe; all three together void the convergence warranty. DQN's target networks and replay are engineering mitigations, not proofs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Tabular TD is a special case of linear function approximation with which features?<details class="sol"><summary>Solution</summary><div>One-hot features: $\phi(s) = e_s$ (indicator of the state). Then $\mathbf w^\top \phi(s) = w_s$: one independent weight per state, and the semi-gradient update reduces exactly to the tabular rule.</div></details></li>
+  <li><span class="lvl m">MED</span> Why "semi"-gradient? Write the true gradient of the squared TD error $\tfrac12\delta^2$ w.r.t. $\mathbf w$ and identify the dropped term.<details class="sol"><summary>Solution</summary><div>$\nabla_\mathbf{w}\tfrac12\delta^2 = \delta\,\nabla_\mathbf{w}\big(r + \gamma\hat v(s';\mathbf w) - \hat v(s;\mathbf w)\big) = \delta\big(\gamma\nabla\hat v(s') - \nabla\hat v(s)\big)$. Semi-gradient keeps only $-\delta\nabla\hat v(s)$ (and flips sign to ascend the target), dropping $\gamma\delta\nabla\hat v(s')$. Full-gradient methods ("residual gradient") minimize the wrong objective (Bellman residual under sampled noise) and are slow; semi-gradient follows the expected Bellman backup instead.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two states with identical feature $\phi = (1)$; the true values are $v(s_1) = 0$, $v(s_2) = 10$; on-policy visitation is 90% $s_1$, 10% $s_2$. What does linear MC (gradient of squared return error) converge to, and what loss is minimized?<details class="sol"><summary>Solution</summary><div>The approximator must give both states the same value $w$. MC does SGD on $\mathbb{E}_\mu[(G - w)^2]$, weighted by visitation $\mu$. The minimizer is the μ-weighted mean of targets: $w = 0.9\cdot0 + 0.1\cdot10 = 1$. The loss minimized is the μ-weighted mean-squared value error $\overline{VE}(\mathbf w) = \sum_s \mu(s)(v^\pi(s)-\hat v(s;\mathbf w))^2$. Moral: function approximation makes value error explicitly distribution-dependent — states you rarely visit, you fit poorly.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="deep-q-networks">
+ <h2>Deep Q-networks</h2>
+ <p>DQN made Q-learning work with a convolutional network reading raw Atari pixels — one architecture, one set of hyperparameters, dozens of games at human level. Its two stabilizing tricks are now folklore: a <em>replay buffer</em> that de-correlates the training data, and a frozen <em>target network</em> that stops the bootstrap target from chasing its own tail.</p>
+ <div class="box def"><span class="label">Definition</span> DQN minimizes, over minibatches sampled uniformly from replay buffer $\mathcal D$: $$L(\theta) = \mathbb{E}_{(s,a,r,s')\sim\mathcal D}\Big[\big(r + \gamma \max_{a'} Q(s',a';\theta^-) - Q(s,a;\theta)\big)^2\Big],$$ where $\theta^-$ is a copy of $\theta$ updated only every $C$ steps. Double DQN replaces the target with $r + \gamma\, Q\big(s', \arg\max_{a'}Q(s',a';\theta);\,\theta^-\big)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Buffer holds a transition $(s, a{=}\text{right}, r{=}1, s')$. Online net: $Q(s,\text{right};\theta) = 2.0$. Target net at $s'$: $Q(s',\cdot;\theta^-) = \{3.0, 5.0\}$; $\gamma = 0.99$. Target $y = 1 + 0.99\cdot5.0 = 5.95$; loss contribution $(5.95-2.0)^2 = 15.6$; the gradient pushes $Q(s,\text{right})$ up toward 5.95. Because $\theta^-$ is frozen, $y$ stays fixed while $\theta$ trains — a sequence of well-posed regression problems instead of a moving target.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Without replay, consecutive frames are nearly identical, so SGD sees highly correlated data and forgets old situations (catastrophic interference). Without a target network, increasing $Q(s,a)$ typically also increases the target $\max_{a'}Q(s',a')$ for nearby $s'$, creating a positive feedback loop of overestimation. Turn either off and Atari scores collapse.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name DQN's two key stabilization mechanisms and one sentence each on what they fix.<details class="sol"><summary>Solution</summary><div>Experience replay: breaks temporal correlation in training data and reuses experience. Target network: holds the regression target fixed for $C$ steps, preventing the self-referential feedback loop of bootstrapping against a net being updated.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the Double DQN target for the worked example if the <em>online</em> net at $s'$ gives $\{4.0, 3.9\}$ (target net still $\{3.0, 5.0\}$).<details class="sol"><summary>Solution</summary><div>Online argmax = action 1 (4.0 &gt; 3.9). Evaluate with target net: $Q(s',a_1;\theta^-) = 3.0$. Target $y = 1 + 0.99\cdot3.0 = 3.97$ — versus vanilla DQN's 5.95. Decoupling selection from evaluation drops the optimistic max.</div></details></li>
+  <li><span class="lvl h">HARD</span> DQN is function approximation + bootstrapping + off-policy — the deadly triad. Why does it (usually) work anyway? Give three mechanisms.<details class="sol"><summary>Solution</summary><div>(1) Target networks make each phase a supervised regression toward a <em>fixed</em> target, so instability can only creep in at the periodic target swaps rather than compounding each gradient step. (2) Uniform replay keeps the training distribution broad and slowly-changing, closer to the on-policy-mixture conditions under which TD is stable. (3) The behavior policy is ε-greedy w.r.t. the learned Q itself, so the data distribution tracks the target policy — "mildly" off-policy, far from Baird-style adversarial mismatch. None is a convergence proof; divergence ("soft" or hard) is still observed and mitigated by clipping rewards/gradients and small learning rates.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="policy-gradients">
+ <h2>Policy gradients</h2>
+ <p>Instead of learning values and deriving a policy, parameterize the policy itself — a differentiable $\pi_\theta(a\mid s)$ — and do gradient ascent on expected return. The policy gradient theorem gives the remarkable formula: push up the log-probability of actions in proportion to how good their consequences were. No model, no argmax, works with continuous actions.</p>
+ <div class="box def"><span class="label">Definition</span> With $J(\theta) = \mathbb{E}_{\pi_\theta}[G_0]$, the <em>policy gradient theorem</em>: $$\nabla_\theta J(\theta) = \mathbb{E}_{\pi_\theta}\!\Big[\sum_{t} \nabla_\theta \log \pi_\theta(A_t\mid S_t)\; q^{\pi_\theta}(S_t, A_t)\Big].$$ Any state-dependent baseline $b(s)$ may be subtracted from $q$ without changing the expectation, because $\mathbb{E}_{a\sim\pi_\theta(\cdot\mid s)}[\nabla_\theta\log\pi_\theta(a\mid s)] = 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Softmax policy over two actions with logits $(\theta_1, \theta_2) = (0,0)$, so $\pi = (0.5, 0.5)$. Sample $a_1$, receive return $G = 4$. $\nabla_{\theta}\log\pi(a_1) = (1-\pi_1, -\pi_2) = (0.5, -0.5)$. Gradient estimate: $4\cdot(0.5,-0.5) = (2,-2)$. With step 0.1: logits become $(0.2, -0.2)$, $\pi_1 = \sigma(0.4) \approx 0.599$. Good outcome → that action becomes more probable. That's the whole idea.</div>
+ <div class="box think"><span class="label">Think first</span> Why does subtracting a baseline $b(s)$ leave the gradient unbiased but change its variance?<details class="sol"><summary>Reveal</summary><div>Unbiased: $\mathbb{E}_a[\nabla\log\pi(a\mid s)\,b(s)] = b(s)\sum_a \nabla\pi(a\mid s) = b(s)\nabla\sum_a\pi(a\mid s) = b(s)\nabla 1 = 0$. Variance: the estimator's second moment involves $(q(s,a)-b(s))^2$; choosing $b(s)\approx v^\pi(s)$ centers the coefficient near zero, shrinking the magnitude of the random per-sample updates without shifting their mean. Baseline = free variance reduction.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> RLHF (Ch 23) is a policy gradient on an LLM: tokens are actions, $\nabla\log\pi$ is the gradient of the language model's log-likelihood, and the reward model supplies $q$'s stand-in.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a softmax policy $\pi_\theta(a) \propto e^{\theta_a}$ over 3 actions, write $\nabla_{\theta}\log\pi_\theta(a_2)$.<details class="sol"><summary>Solution</summary><div>$\partial \log\pi(a_2)/\partial\theta_k = \mathbf 1[k{=}2] - \pi_k$, so the gradient vector is $(-\pi_1,\; 1-\pi_2,\; -\pi_3)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the score-function ("log-derivative") trick: $\nabla_\theta \mathbb{E}_{x\sim p_\theta}[f(x)] = \mathbb{E}_{x\sim p_\theta}[f(x)\nabla_\theta\log p_\theta(x)]$.<details class="sol"><summary>Solution</summary><div>$\nabla_\theta \int f(x)p_\theta(x)dx = \int f(x)\nabla_\theta p_\theta(x)\,dx = \int f(x)\,p_\theta(x)\frac{\nabla_\theta p_\theta(x)}{p_\theta(x)}dx = \int f(x)\,p_\theta(x)\nabla_\theta\log p_\theta(x)\,dx = \mathbb{E}[f\,\nabla\log p_\theta]$, using $\nabla\log p = \nabla p / p$ and exchanging $\nabla$ with $\int$ (dominated convergence). Note $f$ need not be differentiable — rewards can be black boxes.</div></details></li>
+  <li><span class="lvl h">HARD</span> A Gaussian policy $\pi_\theta(a\mid s) = \mathcal N(a;\, \mu_\theta(s), \sigma^2)$ with fixed σ. Compute $\nabla_{\mu}\log\pi$ and explain what the policy gradient does geometrically for a good action.<details class="sol"><summary>Solution</summary><div>$\log\pi = -\frac{(a-\mu)^2}{2\sigma^2} + \text{const}$, so $\nabla_\mu \log\pi = \frac{a - \mu}{\sigma^2}$. The update $\Delta\mu \propto (q - b)\,\frac{a-\mu}{\sigma^2}$ moves the mean <em>toward</em> actions that outperformed the baseline and away from those that underperformed, scaled by how far the sampled action was from the current mean. It is stochastic hill-climbing in action space steered by advantage. As $\sigma\to0$ the estimator's variance blows up like $1/\sigma^2$ — why entropy/σ floors matter in practice.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reinforce">
+ <h2>REINFORCE</h2>
+ <p>REINFORCE is the policy gradient theorem turned into the simplest possible algorithm: run an episode, then for each step nudge the log-probability of the taken action by the return that followed it. Unbiased, easy to implement, and famously noisy — its variance is what everything after it (baselines, critics, GAE, PPO) is trying to tame.</p>
+ <div class="box def"><span class="label">Definition</span> <em>REINFORCE (with baseline)</em>: for each episode step $t$, $$\theta \leftarrow \theta + \alpha\,\gamma^t\,\big(G_t - b(S_t)\big)\,\nabla_\theta\log\pi_\theta(A_t\mid S_t),$$ where $G_t$ is the observed return from $t$ and $b$ is any learned baseline (commonly $\hat v(s;\mathbf w)$, trained by regression on $G_t$). Unbiased estimate of $\nabla J$ (in practice the $\gamma^t$ factor is usually dropped).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two-armed bandit, softmax logits $(0,0)$, no baseline, $\alpha = 0.1$, arm rewards deterministic: arm 1 → 1, arm 2 → 0. Episode 1: sample arm 1 (p = 0.5), $G = 1$, gradient $(0.5, -0.5)$, logits $\to (0.05, -0.05)$. Episode 2: sample arm 2 (p = $\sigma(-0.1)\approx0.475$), $G = 0$: no update at all — zero return means zero learning, even though "arm 2 is bad" is real information. A baseline $b = 0.5$ would have turned that into a $-0.5$-weighted update pushing arm 2 down. This is variance/inefficiency you can feel.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>REINFORCE on a 2-armed bandit (arm 1 pays 1 w.p. 0.8, arm 2 w.p. 0.2). Watch π(arm 1) evolve over episodes, with and without a baseline — the baseline run (orange) is visibly steadier. Run repeatedly to feel the variance.</p>
+  <canvas id="cv-pg"></canvas>
+  <div class="ctl">
+   <label>α <input type="range" id="pg-alpha" min="0.01" max="0.5" step="0.01" value="0.1"></label>
+   <button class="btn" id="pg-run">Run 300 episodes</button>
+  </div>
+  <div class="out" id="pg-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is REINFORCE called a Monte Carlo policy gradient method?<details class="sol"><summary>Solution</summary><div>It uses the full sampled episode return $G_t$ as its estimate of $q^\pi(s_t,a_t)$ — no bootstrapping, complete episodes required, unbiased and high-variance: the MC trade, applied to the policy gradient.</div></details></li>
+  <li><span class="lvl m">MED</span> Using "reward-to-go" $G_t$ instead of the whole-episode return $G_0$ in the update for step $t$ is valid and lowers variance. Why is it valid?<details class="sol"><summary>Solution</summary><div>Rewards earned <em>before</em> time $t$ are independent of action $A_t$ given $S_t$... more precisely, $\mathbb{E}[\nabla\log\pi(A_t\mid S_t)\cdot R_k] = 0$ for $k \le t$, by the same argument as the baseline (condition on the history through $S_t, A_t$'s distribution: past rewards are a constant times the score, which has zero mean). Removing those terms subtracts zero-mean noise: same expectation, less variance.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the one-step bandit with softmax policy $\pi_1 = p$, rewards $r_1 = 1, r_2 = 0$ deterministic, compute the variance of the REINFORCE gradient estimate for $\theta_1$ (score component $1-p$ or $-p$) without baseline, and with the optimal constant baseline $b = p$ (the mean reward). Evaluate both at $p = 0.5$.<details class="sol"><summary>Solution</summary><div>Estimator for $\partial/\partial\theta_1$: pick arm 1 (prob $p$): $g = 1\cdot(1-p)$; arm 2 (prob $1-p$): $g = 0\cdot(-p) = 0$. Mean: $p(1-p)$ ✓ (true gradient). No baseline: $\mathbb E[g^2] = p(1-p)^2$; $\mathrm{Var} = p(1-p)^2 - p^2(1-p)^2 = p(1-p)^3\cdot\frac{1}{1}$… compute: $p(1-p)^2[1 - p]$ = $p(1-p)^3$. At $p{=}0.5$: $0.5\cdot0.125 = 0.0625$. With baseline $b{=}p{=}0.5$: arm 1: $g = (1-b)(1-p) = 0.25$; arm 2: $g = (0-b)(-p) = 0.25$. The estimator is <em>constant</em> 0.25 — mean $0.25 = p(1-p)$ ✓, variance <strong>zero</strong>. A good baseline can remove all the variance in this toy; in general it removes a lot.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="actor-critic">
+ <h2>Actor-Critic</h2>
+ <p>Marry the two halves of RL: an <em>actor</em> (the policy) decides what to do, a <em>critic</em> (a learned value function) judges how it went — immediately, via the TD error — so the actor doesn't have to wait for episode ends or suffer full-return variance. Nearly every modern policy-based agent, from A2C to PPO to RLHF pipelines, is some flavor of actor-critic.</p>
+ <div class="box def"><span class="label">Definition</span> <em>One-step actor-critic</em>: after $(s, a, r, s')$, compute $\delta = r + \gamma\,\hat v(s';\mathbf w) - \hat v(s;\mathbf w)$, then $$\text{critic: } \mathbf w \leftarrow \mathbf w + \alpha_w\,\delta\,\nabla_\mathbf{w}\hat v(s;\mathbf w), \qquad \text{actor: } \theta \leftarrow \theta + \alpha_\theta\,\delta\,\nabla_\theta \log\pi_\theta(a\mid s).$$ Here $\delta$ is an estimate of the advantage $A^\pi(s,a) = q^\pi(s,a) - v^\pi(s)$: in fact $\mathbb E[\delta \mid s,a] = A^\pi(s,a)$ when $\hat v = v^\pi$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\hat v(s) = 1.0$, $\hat v(s') = 2.0$, $r = 0.5$, $\gamma = 0.9$: $\delta = 0.5 + 1.8 - 1.0 = 1.3 > 0$ — the action turned out better than the critic expected. Actor: increase $\log\pi(a\mid s)$ with weight 1.3. Critic: raise $\hat v(s)$ by $\alpha_w\cdot1.3$ (it was too pessimistic). Had $\delta$ been negative, the same machinery would suppress the action and lower the value. Judgement and behavior improve in lock-step.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Using $\delta$ (a biased advantage estimate, since $\hat v \ne v^\pi$ during training) makes the policy gradient biased. A broken critic silently poisons the actor: if the critic diverges or lags, the actor optimizes garbage. Watch the critic's loss, use slower actor learning rates ($\alpha_\theta < \alpha_w$), and prefer multi-step or GAE targets.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In actor-critic, which component replaces REINFORCE's Monte Carlo return, and what do we gain?<details class="sol"><summary>Solution</summary><div>The critic's TD error $\delta$ replaces $G_t - b(s_t)$. Gains: online updates every step (no waiting for episode end) and much lower variance; cost: bias from the imperfect critic.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\mathbb E[\delta_t \mid s_t, a_t] = A^\pi(s_t,a_t)$ when the critic is exact ($\hat v = v^\pi$).<details class="sol"><summary>Solution</summary><div>$\mathbb E[\delta\mid s,a] = \mathbb E[r + \gamma v^\pi(s')\mid s,a] - v^\pi(s) = q^\pi(s,a) - v^\pi(s) = A^\pi(s,a)$, using the one-step expansion of $q^\pi$. So the TD error is an unbiased single-sample estimate of the advantage — the cleanest justification for plugging it into the policy gradient.</div></details></li>
+  <li><span class="lvl h">HARD</span> A2C runs $N$ parallel environment copies and updates on synchronized batches. Explain two distinct statistical benefits over a single environment, and why parallelism partially substitutes for a replay buffer.<details class="sol"><summary>Solution</summary><div>(1) Variance reduction: the gradient estimate averages $N$ independent trajectories, cutting gradient variance by $\approx 1/N$ per update. (2) Decorrelation: samples within a batch come from different states of different episodes, so the batch distribution is closer to the stationary on-policy distribution — the same decorrelation replay buys DQN, but achieved with <em>fresh on-policy</em> data, which policy-gradient methods require (replayed old-policy data would bias $\nabla J$ without importance corrections). Hence on-policy deep RL scales by parallel actors where off-policy methods scale by replay.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="advantage-estimation">
+ <h2>Advantage estimation</h2>
+ <p>The advantage asks the only question the actor cares about: "was this action better or worse than my average behavior from here?" Subtracting $v(s)$ from $q(s,a)$ removes the part of the value that the action had nothing to do with — being in a good state — leaving pure credit for the choice itself.</p>
+ <div class="box def"><span class="label">Definition</span> $$A^\pi(s,a) = q^\pi(s,a) - v^\pi(s).$$ Properties: $\mathbb E_{a\sim\pi(\cdot\mid s)}[A^\pi(s,a)] = 0$ for every $s$; and the policy gradient can be written $\nabla_\theta J = \mathbb E_\pi[\nabla_\theta\log\pi_\theta(a\mid s)\,A^\pi(s,a)]$. Common estimators: one-step TD error $\hat A = \delta_t$; $n$-step $\hat A = \sum_{k=0}^{n-1}\gamma^k r_{t+k+1} + \gamma^n \hat v(s_{t+n}) - \hat v(s_t)$; Monte Carlo $\hat A = G_t - \hat v(s_t)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> At state $s$: $q^\pi(s,a_1) = 8$, $q^\pi(s,a_2) = 5$, policy picks each with probability $\tfrac12$. Then $v^\pi(s) = 6.5$, so $A(s,a_1) = +1.5$ and $A(s,a_2) = -1.5$ — they sum to zero under the policy weights, as they must. The gradient will push probability from $a_2$ toward $a_1$ even though <em>both</em> actions have positive value: only relative quality matters.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Using raw returns instead of advantages couples the gradient's scale to the reward's arbitrary offset: add +100 to every reward and REINFORCE's per-sample updates explode in magnitude (though their mean is unchanged). Advantages are invariant to constant reward shifts absorbed by $v$, which is why every serious implementation normalizes or centers them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $q^\pi(s,a) = 3$, $v^\pi(s) = 5$. Advantage, and what should the actor do with action $a$?<details class="sol"><summary>Solution</summary><div>$A = -2$: the action is worse than the policy's average from $s$; decrease its probability.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $\sum_a \pi(a\mid s)A^\pi(s,a) = 0$.<details class="sol"><summary>Solution</summary><div>$\sum_a \pi(a\mid s)[q^\pi(s,a) - v^\pi(s)] = v^\pi(s) - v^\pi(s)\sum_a\pi(a\mid s) = v^\pi(s) - v^\pi(s) = 0$, using $v^\pi(s)=\sum_a\pi(a\mid s)q^\pi(s,a)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compare bias and variance of the three estimators ($\delta_t$, $n$-step, MC) of $A^\pi(s_t,a_t)$ during training, when $\hat v \ne v^\pi$.<details class="sol"><summary>Solution</summary><div>MC: $G_t - \hat v(s_t)$ — the $G_t$ part is unbiased for $q^\pi$ and $\hat v(s_t)$ is a baseline (no bias for the <em>gradient</em>), but variance is highest: full-episode noise. One-step $\delta_t$: variance lowest (one reward, one transition) but biased because it contains $\hat v(s_{t+1})$; the bias is $\gamma\,\mathbb E[\hat v(s_{t+1}) - v^\pi(s_{t+1})]$. $n$-step: interpolates — bias shrinks like $\gamma^n$ (the erroneous bootstrap is discounted $n$ steps away) while variance grows with the $n$ sampled rewards. GAE (next) mixes all $n$ geometrically to tune this dial with one knob.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="generalized-advantage-estimation">
+ <h2>Generalized Advantage Estimation</h2>
+ <p>GAE is eligibility traces reborn for advantages: take every $n$-step advantage estimate and blend them with geometrically decaying weights $\lambda$. One knob then slides you continuously from the low-variance, biased one-step TD error to the unbiased, noisy Monte Carlo advantage. It is the default credit-assignment machinery inside PPO.</p>
+ <div class="box def"><span class="label">Definition</span> With TD errors $\delta_t = r_{t+1} + \gamma\hat v(s_{t+1}) - \hat v(s_t)$, $$\hat A_t^{\text{GAE}(\gamma,\lambda)} = \sum_{k=0}^{\infty} (\gamma\lambda)^k\, \delta_{t+k},$$ computed backwards over a trajectory as $\hat A_t = \delta_t + \gamma\lambda\,\hat A_{t+1}$. λ = 0 gives $\hat A_t = \delta_t$; λ = 1 gives $\hat A_t = G_t - \hat v(s_t)$ (telescoping).</div>
+ <div class="box ex"><span class="label">Worked example</span> Trajectory of 3 steps with $\delta = (1.0,\ -0.5,\ 2.0)$, $\gamma = 0.99$, $\lambda = 0.95$, so $\gamma\lambda = 0.9405$. Backwards: $\hat A_2 = 2.0$; $\hat A_1 = -0.5 + 0.9405\cdot2.0 = 1.381$; $\hat A_0 = 1.0 + 0.9405\cdot1.381 = 2.299$. Forward check for $\hat A_0$: $1.0 + 0.9405(-0.5) + 0.9405^2(2.0) = 1.0 - 0.470 + 1.769 = 2.299$. ✓</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide λ and watch the weights $(\gamma\lambda)^k$ that GAE places on future TD errors — and the resulting bias–variance trade sketched as two curves. λ near 1 = long memory, low bias, high variance.</p>
+  <canvas id="cv-gae"></canvas>
+  <div class="ctl">
+   <label>λ <input type="range" id="gae-lam" min="0" max="1" step="0.01" value="0.95"></label>
+   <label>γ <input type="range" id="gae-gam" min="0.8" max="1" step="0.01" value="0.99"></label>
+  </div>
+  <div class="out" id="gae-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What do λ = 0 and λ = 1 reduce GAE to?<details class="sol"><summary>Solution</summary><div>λ = 0: the one-step TD error $\delta_t$ (biased, low variance). λ = 1: $\sum_k\gamma^k\delta_{t+k} = G_t - \hat v(s_t)$, the Monte Carlo advantage (unbiased if we treat $\hat v(s_t)$ as a baseline; high variance).</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the λ = 1 telescoping identity $\sum_{k\ge0}\gamma^k\delta_{t+k} = G_t - \hat v(s_t)$ for an episode ending at $T$ (terminal value 0).<details class="sol"><summary>Solution</summary><div>$\sum_k \gamma^k[r_{t+k+1} + \gamma\hat v(s_{t+k+1}) - \hat v(s_{t+k})]$: the reward terms sum to $G_t$; the value terms pair up as $\sum_k[\gamma^{k+1}\hat v(s_{t+k+1}) - \gamma^k \hat v(s_{t+k})]$, a telescoping sum equal to $\gamma^{T-t}\hat v(s_T) - \hat v(s_t) = -\hat v(s_t)$. Total: $G_t - \hat v(s_t)$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Show GAE is the exponentially-weighted average of $n$-step advantage estimators: $\hat A^{\text{GAE}} = (1-\lambda)\sum_{n\ge1}\lambda^{n-1}\hat A^{(n)}_t$ where $\hat A^{(n)}_t = \sum_{k=0}^{n-1}\gamma^k\delta_{t+k}$.<details class="sol"><summary>Solution</summary><div>Note first $\hat A^{(n)}_t = \sum_{k=0}^{n-1}\gamma^k\delta_{t+k}$ (each $n$-step advantage is a partial sum of discounted TD errors — provable by the same telescoping). Then $(1-\lambda)\sum_{n\ge1}\lambda^{n-1}\sum_{k=0}^{n-1}\gamma^k\delta_{t+k}$; swap sums: coefficient of $\gamma^k\delta_{t+k}$ is $(1-\lambda)\sum_{n\ge k+1}\lambda^{n-1} = (1-\lambda)\frac{\lambda^{k}}{1-\lambda} = \lambda^k$. So the total is $\sum_k(\gamma\lambda)^k\delta_{t+k}$: GAE. ∎ Same algebra as the λ-return, one level up.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="trust-region-and-ppo">
+ <h2>Trust region and PPO</h2>
+ <p>Policy gradients have a treacherous property: one over-large step can change the policy so much that the data it was computed from no longer applies, and performance collapses. Trust-region methods bound how far each update may move the policy — measured in KL divergence, not parameter space. PPO gets the same protection with a one-line trick: clip the incentive to change any action's probability ratio beyond $1\pm\epsilon$.</p>
+ <div class="box def"><span class="label">Definition</span> With probability ratio $r_t(\theta) = \frac{\pi_\theta(a_t\mid s_t)}{\pi_{\theta_{\text{old}}}(a_t\mid s_t)}$, <em>TRPO</em> solves $\max_\theta\ \mathbb E[r_t\hat A_t]$ s.t. $\mathbb E[\mathrm{KL}(\pi_{\theta_\text{old}}\|\pi_\theta)] \le \delta$. <em>PPO-clip</em> instead maximizes $$L^{\text{CLIP}}(\theta) = \mathbb E\Big[\min\big(r_t\hat A_t,\ \operatorname{clip}(r_t,\,1-\epsilon,\,1+\epsilon)\,\hat A_t\big)\Big],$$ typically $\epsilon = 0.2$, optimized with several epochs of minibatch SGD on the same batch.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\epsilon = 0.2$. Case 1: $\hat A = +2$, $r = 1.5$. Unclipped: $1.5\times2 = 3$; clipped: $1.2\times2 = 2.4$; min = 2.4, and since $r$ is in the flat clipped region, $\partial L/\partial r = 0$ — no further push to raise this action's probability. Case 2: $\hat A = -1$, $r = 0.6$. Unclipped $= -0.6$; clipped $= 0.8\times(-1) = -0.8$; min $= -0.8$... note the min picks the <em>more pessimistic</em> value, whose gradient is again zero in $r$: the probability has already been cut enough. Case 3: $\hat A = +2$, $r = 0.9$: min$(1.8, 1.8) = 1.8$, gradient alive — ordinary policy gradient inside the trust region.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The clip is asymmetric in a subtle way: for a <em>negative</em> advantage and $r \gg 1+\epsilon$ (the policy drifted toward a bad action during the epochs), the min takes the <em>unclipped</em> term $r\hat A$, which is very negative — the objective still punishes it, without limit. Clipping only removes the incentive to move <em>further in the beneficial direction</em>; it never caps the penalty for having moved the wrong way.</div>
+ <div class="box link"><span class="label">Where this goes</span> PPO with a per-token KL penalty against the pretrained model is the workhorse of RLHF (Ch 23). The KL term there plays the same role as the trust region here: don't move the policy far from where your (reward) model's judgments are trustworthy.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\epsilon = 0.2$, $\hat A = 1$, compute $L^{\text{CLIP}}$ for $r = 1.0, 1.3, 0.7$.<details class="sol"><summary>Solution</summary><div>$r{=}1.0$: min$(1, 1) = 1$. $r{=}1.3$: min$(1.3, 1.2) = 1.2$. $r{=}0.7$: min$(0.7, 0.8) = 0.7$ (unclipped is smaller). </div></details></li>
+  <li><span class="lvl m">MED</span> Why does PPO get away with multiple optimization epochs on one batch, while vanilla policy gradient must throw data away after one step?<details class="sol"><summary>Solution</summary><div>Vanilla PG's estimator is only valid at $\theta = \theta_\text{old}$ (data was sampled from $\pi_{\theta_\text{old}}$). PPO's ratio $r_t$ is an importance weight that re-corrects the expectation for the moved policy — valid as long as the policies stay close — and the clip removes the incentive to leave the region where that importance correction (and the advantage estimates) remain trustworthy. Hence several safe epochs of reuse: better sample efficiency.</div></details></li>
+  <li><span class="lvl h">HARD</span> TRPO's constraint uses $\mathrm{KL}(\pi_\text{old}\|\pi_\theta) \le \delta$. Using the performance-difference lemma $J(\pi') - J(\pi) = \frac{1}{1-\gamma}\mathbb E_{s\sim d^{\pi'},a\sim\pi'}[A^\pi(s,a)]$, explain why bounding the KL yields a monotone improvement guarantee.<details class="sol"><summary>Solution</summary><div>The surrogate $L_\pi(\pi') = J(\pi) + \frac{1}{1-\gamma}\mathbb E_{s\sim d^{\pi},a\sim\pi'}[A^\pi(s,a)]$ replaces the unknown new-state-distribution $d^{\pi'}$ with the current $d^\pi$. The TRPO/CPI bound says the replacement error is controlled by how much the policies differ: $J(\pi') \ge L_\pi(\pi') - C\cdot\max_s\mathrm{KL}(\pi(\cdot\mid s)\,\|\,\pi'(\cdot\mid s))$ with $C = \frac{4\gamma\max|A|}{(1-\gamma)^2}$. So if you improve the surrogate by more than $C\cdot\mathrm{KL}$, true performance improves: maximizing the surrogate under a small-KL constraint gives (approximately) guaranteed monotone improvement. Small policy change ⇒ small state-distribution change ⇒ surrogate ≈ truth.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">In PPO-clip with $\hat A_t > 0$, what happens to the gradient from a sample whose ratio has already reached $r_t = 1 + \epsilon$?</div><button class="opt">It becomes zero — no incentive to push further</button><button class="opt">It reverses sign to pull the ratio back</button><button class="opt">It grows linearly with $r_t$</button><div class="why" hidden>The min selects the clipped branch, which is constant in $\theta$, so the gradient vanishes. PPO does not actively pull ratios back; it just stops rewarding further movement.</div></div>
+</section>
+
+<section class="topic" id="exploration-strategies">
+ <h2>Exploration strategies</h2>
+ <p>An agent that always exploits its current knowledge can lock onto a mediocre habit forever; one that always explores never cashes in. Exploration strategies are principled ways to spend some actions on information. The spectrum runs from blind noise (ε-greedy) through optimism (UCB) and posterior sampling (Thompson, Ch 24) to curiosity bonuses that reward novelty itself.</p>
+ <div class="box def"><span class="label">Definition</span> An exploration strategy is a rule for choosing actions that guarantees sufficient coverage of the state–action space. Key formal property for convergence of Q-learning/SARSA: <em>GLIE</em> — Greedy in the Limit with Infinite Exploration: every $(s,a)$ is visited infinitely often, and the policy converges to greedy (e.g. $\epsilon_k = 1/k$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Deep-sea-exploration chain: $N$ states in a row; moving right pays 0 until the final state pays $+1$; moving left ends the episode with $+0.01$. A uniformly random explorer reaches the far end of an $N$-state chain with probability about $2^{-N}$ per episode — for $N = 50$, effectively never — while the greedy agent immediately learns to grab the $0.01$ and stops. Dithering exploration fails exponentially; you need <em>directed</em> exploration (optimism or curiosity) that systematically probes the unvisited.</div>
+ <div class="box think"><span class="label">Think first</span> Why is exploration a fundamentally harder problem in RL than in supervised learning?<details class="sol"><summary>Reveal</summary><div>In supervised learning the data distribution is given; in RL the agent's own policy determines what data it will ever see. Bad early choices ⇒ never seeing the good region ⇒ never learning it exists — a feedback loop between behavior and knowledge. Exploration is how the agent controls its own training distribution.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give the two GLIE conditions and one schedule satisfying them.<details class="sol"><summary>Solution</summary><div>(1) All state–action pairs are tried infinitely often; (2) the policy becomes greedy in the limit. $\epsilon_k = 1/k$ works: $\sum 1/k = \infty$ keeps exploring forever, yet $\epsilon\to0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Boltzmann (softmax) exploration picks $a$ with probability $\propto e^{Q(s,a)/\tau}$. Compare its behavior with ε-greedy when one action is catastrophically bad.<details class="sol"><summary>Solution</summary><div>ε-greedy spreads its exploration mass uniformly: the catastrophic action still gets probability $\epsilon/|\mathcal A|$ forever. Boltzmann suppresses it exponentially in its Q-deficit: probability $\propto e^{Q/\tau}$, so clearly-bad actions are almost never retried while near-ties keep getting explored — graded exploration. Cost: sensitive to Q's scale and to τ tuning, and can still lock out an underestimated action if τ decays too fast.</div></details></li>
+  <li><span class="lvl h">HARD</span> In the chain example, an optimistic initialization sets $Q_0(s,a) = 1/(1-\gamma)$ (the maximum possible). Explain why a purely greedy agent with this initialization systematically explores the whole chain.<details class="sol"><summary>Solution</summary><div>Every untried action looks like the best possible outcome, so greedy action selection preferentially picks untried (or rarely-tried) actions; each visit that disappoints lowers that Q toward reality, and the argmax rotates to the next most-optimistic (least-explored) option. The agent is driven down the chain by residual optimism until all reachable pairs have been sampled enough for true values to dominate. Optimism converts exploration into exploitation of "optimistic ghosts" — the principle behind UCB and R-MAX, with sample-efficiency guarantees that dithering lacks. Caveat: with function approximation, initial optimism is quickly generalized away, which is why deep RL needs explicit bonuses instead.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="epsilon-greedy">
+ <h2>Epsilon-greedy</h2>
+ <p>The simplest exploration rule that works: flip a biased coin; with probability $1-\epsilon$ take the best-looking action, with probability $\epsilon$ take a uniformly random one. Crude, ubiquitous, and surprisingly hard to beat as a baseline when paired with decay.</p>
+ <div class="box def"><span class="label">Definition</span> $$\pi(a\mid s) = \begin{cases} 1-\epsilon + \dfrac{\epsilon}{|\mathcal A|} & a = \arg\max_{a'} Q(s,a')\\[4pt] \dfrac{\epsilon}{|\mathcal A|} & \text{otherwise.}\end{cases}$$ Note the greedy action also receives its share of the random mass.</div>
+ <div class="box ex"><span class="label">Worked example</span> 4 actions, $\epsilon = 0.2$. Greedy action probability: $0.8 + 0.2/4 = 0.85$; each other action: $0.05$. Over 1000 steps you expect $\approx 150$ non-greedy choices — enough to keep estimates of all four actions alive, at the cost of $\sim$15% deliberate suboptimality.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Fixed ε never stops paying the exploration tax: average regret per step stays $\Omega(\epsilon)$ forever, and (per the SARSA cliff example) it changes which policy is actually optimal to follow. Decay ε — but not too fast, or you can freeze onto an error before correcting it (violating GLIE's infinite-exploration condition).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\epsilon = 0.1$ and 5 actions, what is the probability of taking the greedy action?<details class="sol"><summary>Solution</summary><div>$0.9 + 0.1/5 = 0.92$.</div></details></li>
+  <li><span class="lvl m">MED</span> Two-armed bandit, true means $\mu_1 = 1, \mu_2 = 0$, estimates already correct, fixed $\epsilon = 0.1$. Compute the expected per-step regret.<details class="sol"><summary>Solution</summary><div>Regret per pull of arm 2 is $\mu_1-\mu_2 = 1$. Arm 2 is chosen with probability $\epsilon/2 = 0.05$. Expected per-step regret $= 0.05$, forever — linear total regret $0.05\,T$. Compare UCB's $O(\log T)$ total regret.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that ε-greedy with $\epsilon_t = \min(1,\, c/t)$ on a 2-armed bandit gives total expected regret $O(\log T)$ for suitable $c$ (sketch).<details class="sol"><summary>Solution</summary><div>Exploration regret: $\sum_{t\le T}\epsilon_t\cdot\Delta/2 \le \frac{c\Delta}{2}(1+\ln T) = O(\log T)$, where $\Delta$ is the arm gap. Exploitation errors: arm 2's pull count by time $t$ is $\Theta(c\ln t)$ with high probability; by Hoeffding, the probability its empirical mean beats arm 1's decays polynomially in $t$ once counts are $\Omega(\ln t)$; choosing $c \ge$ const$/\Delta^2$ makes $\sum_t \Pr(\text{wrong greedy at } t)\cdot\Delta$ converge or grow only logarithmically. Total: $O(\log T)$ — decayed ε-greedy is asymptotically respectable, though its constants and burn-in are worse than UCB's.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="upper-confidence-bounds">
+ <h2>Upper Confidence Bounds</h2>
+ <p>Optimism in the face of uncertainty, made quantitative: score every action by its estimated value <em>plus</em> a bonus that grows with how rarely you've tried it, and always pick the top score. Uncertain actions get benefit of the doubt; each trial shrinks their bonus; provably, you waste only a logarithmic number of pulls on bad arms.</p>
+ <div class="box def"><span class="label">Definition</span> <em>UCB1</em> (bandits): pull $$a_t = \arg\max_a\ \hat\mu_a + \sqrt{\frac{2\ln t}{N_a}},$$ where $\hat\mu_a$ is the empirical mean of arm $a$ and $N_a$ its pull count. For rewards in $[0,1]$, expected regret after $T$ rounds is $O\!\big(\sum_{a:\Delta_a>0}\frac{\ln T}{\Delta_a}\big)$, matching the Lai–Robbins lower bound up to constants.</div>
+ <div class="box ex"><span class="label">Worked example</span> $t = 100$; arm A: $\hat\mu = 0.60$, $N = 90$; arm B: $\hat\mu = 0.50$, $N = 10$. Bonuses ($\ln 100 \approx 4.605$): A: $\sqrt{2\cdot4.605/90} = \sqrt{0.1023} \approx 0.320$; B: $\sqrt{2\cdot4.605/10} = \sqrt{0.921} \approx 0.960$. Scores: A $\approx 0.920$, B $\approx 1.460$ — pull B despite its worse mean: ten samples aren't enough to write it off. After enough pulls B's bonus shrinks below the mean gap and A takes over for good.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Race ε-greedy against UCB1 on a 3-armed Bernoulli bandit (means 0.5 / 0.6 / 0.7). Curves show cumulative regret — UCB's flattens (logarithmic) while fixed-ε keeps climbing (linear). Run several times: the difference survives the noise.</p>
+  <canvas id="cv-ucb"></canvas>
+  <div class="ctl">
+   <label>ε <input type="range" id="ucb-eps" min="0.01" max="0.4" step="0.01" value="0.1"></label>
+   <button class="btn" id="ucb-run">Run 2000 pulls</button>
+  </div>
+  <div class="out" id="ucb-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Add UCB to tree search and you get UCT, the selection rule inside Monte Carlo Tree Search and AlphaZero — Ch 26.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What happens to an arm's UCB score as (a) it keeps being pulled, (b) time passes without pulling it?<details class="sol"><summary>Solution</summary><div>(a) $N_a$ grows, the bonus shrinks toward 0 and the score approaches the empirical mean. (b) $\ln t$ grows while $N_a$ stays fixed, so its bonus — and score — slowly rises until it must be re-tried. No arm is ever permanently abandoned.</div></details></li>
+  <li><span class="lvl m">MED</span> At $t = 50$, arms have $(\hat\mu, N)$: $(0.8, 30)$, $(0.7, 15)$, $(0.2, 5)$. Which does UCB1 pull? ($\ln 50 \approx 3.912$.)<details class="sol"><summary>Solution</summary><div>Bonuses: $\sqrt{7.824/30} = 0.511$; $\sqrt{7.824/15} = 0.722$; $\sqrt{7.824/5} = 1.251$. Scores: $1.311$, $1.422$, $1.451$. Pull arm 3 — its terrible mean is still dominated by its uncertainty at only 5 pulls.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch why UCB1 pulls a suboptimal arm $a$ (gap $\Delta_a$) only $O(\ln T/\Delta_a^2)$ times.<details class="sol"><summary>Solution</summary><div>By Hoeffding, $|\hat\mu_a - \mu_a| \le \sqrt{2\ln t / N_a}$ holds for all arms and times except with probability decaying like $t^{-4}$ (union bound over the confidence radius built into the bonus). On this good event, if $N_a \ge 8\ln T/\Delta_a^2$ then arm $a$'s upper bound $\hat\mu_a + \sqrt{2\ln t/N_a} \le \mu_a + 2\sqrt{2\ln t/N_a} \le \mu_a + \Delta_a = \mu^* \le \hat\mu_{a^*} + \text{bonus}_{a^*}$, so $a$ cannot be the argmax and is never pulled again. Failures of the confidence event contribute only $\sum_t O(t^{-4}) = O(1)$ extra pulls. Hence $\mathbb E[N_a(T)] = O(\ln T/\Delta_a^2)$ and regret $= \sum_a \Delta_a\mathbb E[N_a] = O(\sum_a \ln T/\Delta_a)$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="intrinsic-motivation">
+ <h2>Intrinsic motivation</h2>
+ <p>When external reward is absent or absurdly sparse — a game where only the final door pays — give the agent an inner reward for being surprised, for visiting the new, for improving its own predictions. Curiosity as a training signal: the agent pays itself to learn about the world, and stumbles onto the external reward along the way.</p>
+ <div class="box def"><span class="label">Definition</span> Augment the reward: $r_t^{\text{total}} = r_t^{\text{ext}} + \beta\, r_t^{\text{int}}$. Common intrinsic bonuses: <em>count-based</em> $r^{\text{int}} = 1/\sqrt{N(s)}$ (or pseudo-counts from a density model); <em>prediction-error / curiosity</em> (ICM) $r^{\text{int}} = \|\hat f(s_t, a_t) - \phi(s_{t+1})\|^2$, the error of a learned forward model in feature space; <em>Random Network Distillation</em> $r^{\text{int}} = \|\hat g(s) - g(s)\|^2$, the error of a trained network predicting a fixed random network — large exactly on states never trained on.</div>
+ <div class="box ex"><span class="label">Worked example</span> Count-based bonus $\beta/\sqrt{N(s)}$ with $\beta = 1$: first visit to a state pays intrinsic $1.0$, the 4th visit $0.5$, the 100th $0.1$, the 10,000th $0.01$. Novelty income decays automatically, so once a region is familiar the agent's attention (gradient) shifts to wherever counts are still low — a self-extinguishing exploration subsidy. Montezuma's Revenge, where DQN scored 0, became tractable with exactly such bonuses (and RND).</div>
+ <div class="box pit"><span class="label">Pitfall</span> The noisy-TV problem: a source of irreducible randomness (a TV showing static) yields permanent prediction error, so a naive curiosity agent stares at it forever. Fixes: predict in a learned feature space that ignores uncontrollable noise (ICM's inverse-dynamics features), or use RND, whose target is deterministic so pure stochasticity eventually stops paying.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does a prediction-error bonus vanish in well-explored regions?<details class="sol"><summary>Solution</summary><div>The forward model is trained on visited transitions; where data is plentiful its error is small, so the bonus is small. Error — hence reward — persists only where the model hasn't learned yet, i.e. the frontier.</div></details></li>
+  <li><span class="lvl m">MED</span> An agent gets $r^{\text{int}} = 1/\sqrt{N(s)}$ summed over a trajectory that visits 3 fresh states and then one state for the 25th time. Compute the intrinsic return ($\gamma = 1$).<details class="sol"><summary>Solution</summary><div>Fresh states: $N$ becomes 1 at visit, bonus $1/\sqrt1 = 1$ each → 3. The 25th visit: $1/\sqrt{25} = 0.2$. Total $= 3.2$. Almost all the incentive lies on the fresh frontier, as designed.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain precisely why RND defeats the noisy TV where a forward-dynamics bonus does not.<details class="sol"><summary>Solution</summary><div>Forward-dynamics bonus rewards error in predicting $s_{t+1}$ from $(s_t, a_t)$. If $s_{t+1}$ contains inherent randomness (TV static), the Bayes-optimal predictor still has positive error — <em>aleatoric</em> uncertainty — so the bonus never decays no matter how much data is gathered: an infinite reward fountain. RND rewards error in predicting $g(s_t)$, a <em>fixed deterministic function of the current state</em>. That target has zero aleatoric uncertainty; prediction error is purely <em>epistemic</em> (has this state region been trained on?) and provably shrinks with visits, even to the TV. The design principle: intrinsic rewards must track reducible uncertainty only.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reward-shaping">
+ <h2>Reward shaping</h2>
+ <p>Sparse rewards make learning slow, so we add hints — extra reward for progress. The danger is that hints change the problem: reward "distance to goal decreased" naively and circling behavior can farm it. Potential-based shaping is the fix with a theorem attached: derive the bonus from a potential function over states, and the optimal policy provably cannot change.</p>
+ <div class="box def"><span class="label">Definition</span> A shaping reward $F(s, a, s')$ is <em>potential-based</em> if $$F(s,a,s') = \gamma\,\Phi(s') - \Phi(s)$$ for some $\Phi:\mathcal S\to\mathbb R$. <span class="label" style="display:inline">Theorem (Ng, Harada, Russell 1999):</span> potential-based shaping preserves the set of optimal policies (indeed all policy orderings by return... precisely: $q^*_{\text{shaped}}(s,a) = q^*(s,a) - \Phi(s)$), and it is the <em>only</em> shaping form that guarantees this for every MDP.</div>
+ <div class="box ex"><span class="label">Worked example</span> Gridworld with goal $G$; set $\Phi(s) = -d(s, G)$ (negative Manhattan distance), $\gamma = 1$. A step toward the goal: $F = \Phi(s') - \Phi(s) = -(d-1) - (-d) = +1$; a step away: $-1$; sideways: 0. Any closed loop's shaping rewards telescope to exactly 0 — that is why no circling strategy can farm them: $\sum_{\text{loop}} [\Phi(s_{k+1}) - \Phi(s_k)] = 0$.</div>
+ <div class="box think"><span class="label">Think first</span> A robot-soccer team rewarded +0.1 for touching the ball learned to "vibrate" against it rapidly instead of scoring. Was that shaping potential-based? What potential would have been safe?<details class="sol"><summary>Reveal</summary><div>No — "reward per touch" is an event bonus, not a difference of potentials, so repeated touching accumulates unbounded shaped return without progress: it changed the optimal policy. Safe version: $\Phi(s) = -\text{(distance from ball to opponent goal)}$ or similar progress potential; repeatedly touching without moving the ball yields $\Phi$-differences of zero.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $F = +5$ whenever the agent enters the goal-adjacent cell potential-based?<details class="sol"><summary>Solution</summary><div>No: entering and leaving and re-entering that cell pays +5 each entry; a difference of potentials would refund $-5$ on exit ($\gamma=1$). It can be made potential-based by setting $\Phi = 5$ on that cell and 0 elsewhere, which pays +5 on entry <em>and</em> −5 on exit.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove that with $\gamma = 1$ (episodic, $\Phi(\text{terminal}) = 0$), potential shaping adds exactly $-\Phi(s_0)$ to every episode's return.<details class="sol"><summary>Solution</summary><div>$\sum_{t=0}^{T-1} [\Phi(s_{t+1}) - \Phi(s_t)] = \Phi(s_T) - \Phi(s_0) = -\Phi(s_0)$: a telescoping constant that depends only on the start state, identical for every policy — hence no policy ordering changes.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $q^*_{\text{shaped}}(s,a) = q^*(s,a) - \Phi(s)$ for general $\gamma$, and conclude the greedy policies coincide.<details class="sol"><summary>Solution</summary><div>Let $\tilde q(s,a) = q^*(s,a) - \Phi(s)$. Check it satisfies the shaped Bellman optimality equation: $R(s,a) + F + \gamma\mathbb E\max_{a'}\tilde q(s',a') = R(s,a) + \gamma\mathbb E[\Phi(s')] - \Phi(s) + \gamma\,\mathbb E[\max_{a'}q^*(s',a') - \Phi(s')] = R(s,a) + \gamma\,\mathbb E[\max_{a'} q^*(s',a')] - \Phi(s) = q^*(s,a) - \Phi(s) = \tilde q(s,a)$. ✓ By uniqueness of the fixed point, $q^*_\text{shaped} = \tilde q$. Since the shift $-\Phi(s)$ is action-independent, $\arg\max_a q^*_\text{shaped}(s,a) = \arg\max_a q^*(s,a)$: identical optimal policies. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reward-hacking">
+ <h2>Reward hacking</h2>
+ <p>The agent optimizes the reward you wrote, not the intention behind it — and a strong optimizer will find every gap between the two. Reward hacking (specification gaming) is when maximizing the literal reward produces behavior that defeats the purpose: the boat that circles for targets instead of racing, the cleaner that hides mess instead of removing it, the chatbot tuned into sycophancy.</p>
+ <div class="box def"><span class="label">Definition</span> Let $R_{\text{proxy}}$ be the implemented reward and $R_{\text{true}}$ the intended objective. <em>Reward hacking</em> is a policy $\pi$ with $J_{\text{proxy}}(\pi) \gg J_{\text{proxy}}(\pi_{\text{intended}})$ while $J_{\text{true}}(\pi) \ll J_{\text{true}}(\pi_{\text{intended}})$. Goodhart's law is the umbrella phenomenon: optimization pressure on a proxy decouples it from the target it once correlated with.</div>
+ <div class="box ex"><span class="label">Worked example</span> A reward model for helpfulness is a learned $\hat R$ with errors: suppose $\hat R = R_{\text{true}} + \varepsilon$, and the policy can push into regions where $\varepsilon$ is large (e.g. confident-sounding but false answers rate well). Optimizing $\hat R$ hard selects precisely the inputs where $\varepsilon$ is most positive — adversarially mining the reward model's mistakes. This is why RLHF adds a KL penalty $\hat R(x) - \beta\,\mathrm{KL}(\pi\|\pi_{\text{ref}})$: it bounds how far the policy may wander into the reward model's off-distribution error zone. Concretely with $\beta = 0.1$: a completion whose reward gain is $+0.5$ but which requires drifting 10 nats of KL from the reference nets $0.5 - 1.0 < 0$ — not worth it.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "We'll just fix the reward when we see hacking" underestimates the search: the agent explores far more of policy space than your test suite explores of behavior space, so novel hacks appear after deployment, under distribution shift, or at greater scale. Treat any hand-written or learned reward as an adversarially-probed approximation.</div>
+ <div class="box link"><span class="label">Where this goes</span> Reward hacking is the concrete, already-observed instance of the specification problem at the heart of alignment — Ch 35 (specification gaming, goal misgeneralization, scalable oversight), and the reason Ch 23's RLHF pipelines monitor reward-model overoptimization.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify: an agent rewarded per piece of trash collected learns to knock over the bin and re-collect the same trash. Hack or intended?<details class="sol"><summary>Solution</summary><div>Hack: proxy (pieces collected) up, true objective (clean room) down or flat. Fix: reward net cleanliness (a state potential), not the collection <em>event</em>.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain the difference between reward hacking and the exploration problem, though both involve the agent doing "unintended" things.<details class="sol"><summary>Solution</summary><div>Exploration is <em>instrumentally</em> suboptimal behavior in service of learning the given objective — a means, temporary, self-correcting. Hacking is <em>optimal</em> behavior for the given objective that is wrong because the objective itself is wrong — it gets worse, not better, as the agent gets stronger. Exploration failures fix themselves with more data; hacking failures amplify with more optimization.</div></details></li>
+  <li><span class="lvl h">HARD</span> Model overoptimization: suppose true quality and reward-model score relate as $R_{\text{true}} = \hat R - c\cdot d(\pi, \pi_0)$ where $d$ is KL from the reference policy and $\hat R$ increases concavely in $d$ as $\hat R(d) = a\sqrt d$. Find the $d^*$ maximizing true quality and show optimizing $\hat R$ alone overshoots it.<details class="sol"><summary>Solution</summary><div>$R_{\text{true}}(d) = a\sqrt d - c\,d$. Maximize: $\frac{a}{2\sqrt d} = c \Rightarrow d^* = \left(\frac{a}{2c}\right)^2$, giving $R_{\text{true}}^{\max} = \frac{a^2}{4c}$. Optimizing $\hat R = a\sqrt d$ alone drives $d\to\infty$ (monotone), past $d^*$, where $R_{\text{true}}\to-\infty$: proxy performance rises forever while true performance peaks and then collapses — the empirical overoptimization curve (Gao et al. 2023) in miniature. The KL penalty with coefficient $\beta = c$ makes the optimized objective equal $R_{\text{true}}$, stopping exactly at $d^*$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="offline-reinforcement-learning">
+ <h2>Offline reinforcement learning</h2>
+ <p>Learn a policy from a fixed logged dataset — no environment interaction at all. Medicine, driving, dialogue: places where experimenting is costly or unsafe but logs are plentiful. The core difficulty is distribution shift you cannot correct by acting: the moment your policy prefers actions the dataset never took, your value estimates for them are fantasy, and the max operator loves fantasy.</p>
+ <div class="box def"><span class="label">Definition</span> Given $\mathcal D = \{(s_i, a_i, r_i, s'_i)\}$ collected by unknown behavior policy $\pi_\beta$, find $\pi$ maximizing $J(\pi)$ <em>without further sampling</em>. Failure mode: for out-of-distribution actions, $\hat Q(s,a)$ is unconstrained by data, and $\max_a \hat Q$ selects its overestimates — errors compound through bootstrapping. Remedies: <em>policy constraints</em> (keep $\pi$ close to $\pi_\beta$, e.g. behavior-regularized $\max J - \alpha\mathrm{KL}(\pi\|\pi_\beta)$), or <em>conservative values</em> (CQL: penalize $Q$ on actions the dataset doesn't support, learning a lower bound).</div>
+ <div class="box ex"><span class="label">Worked example</span> Dataset from a cautious driver: it contains thousands of "brake at yellow light" transitions and zero "accelerate through" ones. A fitted Q network, asked to extrapolate $Q(s, \text{accelerate})$, might output anything — say 12.3 versus braking's honest 4.1 — and offline Q-learning would enthusiastically choose the never-observed action. CQL adds a term $\alpha\,(\mathbb E_{a\sim\mu}[\hat Q(s,a)] - \mathbb E_{a\sim\mathcal D}[\hat Q(s,a)])$ to the loss, pushing down Q on un-logged actions until only data-supported behavior can win the max.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Evaluating an offline-trained policy is itself an offline problem (off-policy evaluation): you can't just run it. Importance-sampling estimates have variance exponential in horizon; a policy that looks great by model-based evaluation may be exploiting the model. Real deployments need staged, guarded online validation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can't you fix offline RL's exploration problem by decaying ε?<details class="sol"><summary>Solution</summary><div>There is no acting at all — ε-greedy is a rule for choosing actions in the environment, and offline RL never gets to choose one. The data distribution is frozen; whatever $\pi_\beta$ didn't try, you will never observe.</div></details></li>
+  <li><span class="lvl m">MED</span> Behavior cloning (supervised imitation of the dataset's actions) is trivially safe from OOD-action overestimation. What does offline RL offer beyond it, and when does BC win?<details class="sol"><summary>Solution</summary><div>Offline RL can <em>stitch</em>: combine the good halves of mediocre trajectories (using value bootstrapping to splice a good route-A-first-half with a good route-B-second-half) and thus outperform every trajectory in the data. BC can at best match the behavior policy (or its better quantiles, with filtering). BC wins when data is expert-quality and plentiful — then matching it is enough and RL's extrapolation risk buys nothing.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show with a 2-state chain why naive offline Q-learning's error compounds: suppose $\hat Q(s_2, a_{\text{ood}})$ is overestimated by $+E$ and $s_1 \to s_2$ appears in data. How does the error propagate to $s_1$, and what does a CQL-style pessimism term change?<details class="sol"><summary>Solution</summary><div>The backup for the logged pair $(s_1, a)$ uses target $r + \gamma\max_{a'}\hat Q(s_2, a') = r + \gamma(Q^{\text{true}} + E)$ if the OOD action's inflated value wins the max — so $\hat Q(s_1,a)$ inherits $\gamma E$ of pure fiction, then predecessors of $s_1$ inherit $\gamma^2 E$, and with function approximation the fiction also generalizes sideways; iterating backups can even amplify it (each round re-selects the largest error). CQL subtracts a penalty on unsupported actions, making $\hat Q(s_2, a_{\text{ood}})$ a <em>lower</em> bound instead of an overestimate; the max then falls back to data-supported actions, whose targets are anchored by real rewards — errors stay bounded instead of compounding. Pessimism is the offline substitute for exploration's error-correction.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="model-based-reinforcement-learning">
+ <h2>Model-based reinforcement learning</h2>
+ <p>Learn the world, then plan in it: fit a model $\hat P, \hat R$ from experience, and generate cheap imagined experience or explicit plans inside the model. Real interactions are the scarce currency of RL; a model lets you mint more. The catch is that plans exploit model errors as happily as model truths — and multi-step rollouts compound both.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Model-based RL</em>: learn $\hat P(s'\mid s,a)$ and $\hat R(s,a)$ (supervised, from transitions), then either (a) plan: run value iteration / MPC / tree search in the model; or (b) Dyna: interleave real steps with model-generated ("imagined") transitions fed to a model-free learner: $Q$ updates on both real and simulated $(s,a,r,s')$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Dyna-Q with $n = 10$ planning steps: after each real transition, the agent performs 1 real Q-update plus 10 updates on transitions replayed from its learned (here: memorized deterministic) model. In Sutton's 9×6 maze, plain Q-learning needs ~25 episodes to find a good policy; Dyna-Q with $n=50$ needs ~3 — the model turns one real step into dozens of backups, propagating value through the state space between environment interactions.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Model exploitation: the planner maximizes reward <em>in the model</em>, so it steers toward regions where the model is optimistically wrong (predicting states never seen). Mitigations: short rollout horizons (truncate before error compounds), uncertainty-aware models (ensembles — penalize or replan where members disagree), and branching rollouts from real states only (MBPO). Compounding error analysis: one-step error ε grows to $O(\varepsilon H)$ per step of an $H$-step rollout in state error, and value error can grow as $O(\varepsilon H^2)$ or $\frac{\varepsilon\gamma}{(1-\gamma)^2}$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Learned latent dynamics + planning is the whole of Ch 29 (world models, Dreamer, MuZero); planning algorithms themselves are Ch 26.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the sample-efficiency argument for model-based RL in one sentence.<details class="sol"><summary>Solution</summary><div>Fitting dynamics is supervised learning (dense signal: every transition is a label), and once fitted, unlimited imagined experience is free — so far fewer real environment steps are needed per unit of policy improvement.</div></details></li>
+  <li><span class="lvl m">MED</span> A learned model has one-step prediction error $\varepsilon$ in total variation. Bound the error of an $H$-step rollout's state distribution.<details class="sol"><summary>Solution</summary><div>Per-step, TV distance between real and model next-state distributions grows by at most $\varepsilon$ (triangle inequality on the coupled chains): $d_{TV}(t+1) \le d_{TV}(t) + \varepsilon$, so after $H$ steps $d_{TV} \le H\varepsilon$ — linear compounding. Rewards bounded by $R_{\max}$ give rollout return error $\le \sum_{t\le H} \gamma^t\, t\,\varepsilon\, \cdot 2R_{\max} = O(\varepsilon H^2 R_{\max})$ undiscounted — why short rollouts and frequent regrounding in real states matter.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a decision rule using a bootstrap ensemble of $K$ dynamics models that makes a planner conservative where the model is unsure. Justify why disagreement tracks epistemic (not aleatoric) uncertainty.<details class="sol"><summary>Solution</summary><div>Train $K$ models on bootstrap-resampled data (different init + data). During planning, for candidate $(s,a)$ compute the ensemble's predictions $\{\hat s'_k\}$; use disagreement $u(s,a) = \frac1K\sum_k\|\hat s'_k - \bar s'\|^2$ and plan against a penalized reward $\hat R(s,a) - \lambda\,u(s,a)$ (or terminate imagined rollouts when $u$ exceeds a threshold). Justification: aleatoric noise is present in <em>all</em> training data, so all members learn the same predictive distribution and agree even where noise is high; epistemic uncertainty — regions with little or no data — leaves each member free to extrapolate differently (different bootstraps/inits), so disagreement is large precisely off-distribution. Penalizing $u$ therefore steers plans away from where "reward in the model" is fantasy, directly countering model exploitation (this is MOPO/pessimistic MBRL).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="distributional-reinforcement-learning">
+ <h2>Distributional reinforcement learning</h2>
+ <p>Why learn only the <em>mean</em> of the return when you can learn its whole distribution? Distributional RL replaces $Q(s,a)$ with the random return's full law $Z(s,a)$ — capturing that an action might be "usually +1, occasionally −50." The distributional Bellman equation still contracts, the extra learning signal empirically stabilizes deep RL (C51, QR-DQN), and the distribution enables risk-sensitive control.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>return distribution</em> $Z^\pi(s,a) \stackrel{D}{=} R(s,a) + \gamma\, Z^\pi(S', A')$, $S'\sim P(\cdot\mid s,a),\ A'\sim\pi(\cdot\mid S')$ — equality in distribution; $Q^\pi = \mathbb E[Z^\pi]$. The distributional Bellman operator is a $\gamma$-contraction in the maximal Wasserstein metric $\bar W_p$. <em>C51</em> parameterizes $Z$ as a categorical distribution on 51 fixed atoms and minimizes cross-entropy to the projected target; <em>QR-DQN</em> learns quantiles by quantile regression.</div>
+ <div class="box ex"><span class="label">Worked example</span> Terminal action: reward $+10$ w.p. 0.5, else $0$. Scalar view: $Q = 5$. Distributional view: $Z = \{10: 0.5,\ 0: 0.5\}$. Now compose: a prior state reaches this one deterministically with reward 0, $\gamma = 0.9$: its return distribution is $\{9: 0.5,\ 0: 0.5\}$ (shift-and-scale of atoms), mean 4.5 = $0 + 0.9\cdot5$ ✓. A risk-averse controller using CVaR$_{0.5}$ (mean of the worst half) values it at 0 — and might prefer a certain +3 that the mean-based agent would reject.</div>
+ <div class="box think"><span class="label">Think first</span> If the greedy policy only ever uses the mean, $\arg\max_a\mathbb E[Z(s,a)]$, why would learning the whole distribution help even risk-<em>neutral</em> agents?<details class="sol"><summary>Reveal</summary><div>Several reasons observed in practice: (1) richer targets act as an auxiliary task, shaping representations with more signal per sample; (2) the categorical/quantile losses are better-conditioned than squared error on scalar targets with outliers; (3) distribution parameters average over noise differently, reducing the harmful interaction between bootstrapping noise and the max. Empirically C51/QR-DQN beat DQN substantially on Atari at the same compute — the mean learned via the distribution is a better mean.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two actions: A returns exactly 5; B returns 0 or 10 with probability ½ each. What does a mean-greedy agent do, and what extra choice does distributional RL enable?<details class="sol"><summary>Solution</summary><div>Means are equal (5): mean-greedy is indifferent. With distributions, a risk-averse rule (e.g. maximize CVaR or mean − λ·std) picks A; a risk-seeking one picks B. The distribution makes risk posture a choosable policy, not an accident.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the distributional backup: next-state return distribution is $\{2: 0.5,\ 4: 0.5\}$, immediate reward 1, $\gamma = 0.5$. Give the resulting atoms and probabilities.<details class="sol"><summary>Solution</summary><div>$Z \stackrel{D}{=} 1 + 0.5\,Z'$: atoms $1 + 0.5\cdot2 = 2$ and $1 + 0.5\cdot4 = 3$, probabilities 0.5 each: $\{2: 0.5,\ 3: 0.5\}$. Mean 2.5 $= 1 + 0.5\cdot3$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> The distributional optimality operator (greedy w.r.t. means, then distributional backup) is <em>not</em> a contraction in Wasserstein distance, yet C51 works. Explain the subtlety and what actually converges.<details class="sol"><summary>Solution</summary><div>Counterexamples exist where a tiny change in distributions flips the mean-argmax, switching which next-action's distribution gets backed up — a discontinuity, so no contraction and even non-convergence (cycling) of the distributions in general. What is guaranteed: the <em>means</em> embedded in the process follow the ordinary optimality backup, so $\mathbb E[Z_k] \to q^*$ under the usual conditions; control remains sound even if higher moments dance. In practice ties/flips are rare and the projected categorical updates behave stably; theory for the control case uses notions like "Bellman closedness" and analyzes the mean process separately.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multi-agent-reinforcement-learning">
+ <h2>Multi-agent reinforcement learning</h2>
+ <p>Put several learners in one environment and the ground shifts: each agent's "environment" now contains other agents that change as they learn, so the world is non-stationary from every seat, and the very notion of optimality becomes game-theoretic (Ch 24). MARL spans self-play chess, robot teams sharing a goal, and mixed-motive negotiation — three different problems wearing one name.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>Markov (stochastic) game</em>: $(\mathcal S, \{\mathcal A^i\}_{i=1}^n, P, \{R^i\}, \gamma)$ with joint-action transitions $P(s'\mid s, a^1,\dots,a^n)$ and per-agent rewards $R^i$. Settings: fully cooperative (shared $R$), zero-sum ($\sum_i R^i = 0$), mixed. Solution concept: (Markov perfect) Nash equilibrium — no agent can improve by unilateral deviation. Note: with other agents fixed, each agent faces an ordinary MDP; the trouble is nobody stays fixed.</div>
+ <div class="box ex"><span class="label">Worked example</span> Independent Q-learning on a 2-player cooperative "climb" matrix game with payoffs (both agents get the same): $a{=}(A,A)\!:11$, $(A,B)\!:-30$, $(B,A)\!:-30$, $(B,B)\!:7$. While partner behavior is exploratory, agent 1's estimate of action A averages over the partner's mix: with a 50/50 partner, $\hat Q(A) \approx \tfrac12(11) + \tfrac12(-30) = -9.5 < \hat Q(B) \approx \tfrac12(-30 + 7) = -11.5$... both look terrible, and the safer-looking coordination on $(B,B)$ (payoff 7) frequently wins out over the optimal $(A,A)$ (11): relative overgeneralization. Centralized training (learning joint-action values) fixes this by evaluating A <em>with</em> the partner playing A.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Non-stationarity breaks single-agent convergence guarantees: from agent $i$'s viewpoint the transition kernel $P(s'\mid s, a^i)$ drifts as others learn, so Q-learning's fixed-point argument no longer applies, and experience replay serves stale opponents. The standard workaround is <em>centralized training with decentralized execution</em> (CTDE): critics see everything during training; actors act on local observations at run time.</div>
+ <div class="box link"><span class="label">Where this goes</span> Self-play MARL is the training engine of AlphaZero (Ch 26); multi-LLM-agent coordination, debate and collusion risks are Ch 33.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is an opponent who is also learning different from a stochastic environment?<details class="sol"><summary>Solution</summary><div>A stochastic environment has a <em>fixed</em> conditional law $P(s'\mid s,a)$ — stationary randomness. A learning opponent's behavior distribution changes systematically over time in response to your own play, so the effective transition law is non-stationary and even adaptive-adversarial; past data misrepresents the present.</div></details></li>
+  <li><span class="lvl m">MED</span> In two-player zero-sum games, self-play RL has a sound target. What is it, and why does the zero-sum structure help?<details class="sol"><summary>Solution</summary><div>The minimax (Nash) value and a minimax-optimal policy — by von Neumann's theorem (Ch 24) the game has a well-defined value, maximin = minimax, and Nash strategies are interchangeable and safe against <em>any</em> opponent. So "improve against current opponent" has a stable fixed target, and fictitious-play-style averaging or Nash-value backups (minimax-Q) converge. In general-sum games, equilibria are non-unique and non-interchangeable, so "which equilibrium?" makes naive self-play circular.</div></details></li>
+  <li><span class="lvl h">HARD</span> QMIX (cooperative CTDE) represents the joint value as $Q_{\text{tot}}(s,\mathbf a) = f\big(Q_1(o_1,a_1),\dots,Q_n(o_n,a_n); s\big)$ with $f$ monotone increasing in each $Q_i$. Show monotonicity makes decentralized greedy actions jointly optimal for $Q_{\text{tot}}$, and give a payoff matrix it cannot represent.<details class="sol"><summary>Solution</summary><div>Monotonicity ($\partial Q_{\text{tot}}/\partial Q_i \ge 0$) implies $\arg\max_{\mathbf a} Q_{\text{tot}} = (\arg\max_{a_1}Q_1, \dots, \arg\max_{a_n}Q_n)$: raising any individual $Q_i$ never lowers $Q_{\text{tot}}$, so each agent independently maximizing its own $Q_i$ maximizes the mixture — the Individual-Global-Max property, letting execution be fully decentralized. Limit: payoffs needing coordination-dependent rankings violate monotone mixing, e.g. the matrix $Q(a,b)$ with rows/cols {A,B}: $(A,A)=2, (A,B)=0, (B,A)=0, (B,B)=1$ is fine, but $(A,A)=2, (A,B)=-1, (B,A)=-1, (B,B)=2$ with a required tie-break, or the climb game above with $(A,A)=11$ optimal yet $A$ dominated <em>given a uniform partner</em>, cannot be expressed: representing it needs $Q_{\text{tot}}$ to rank agent 1's A above B when partner plays A but below when partner plays B — a non-monotone interaction. QMIX then converges to the best monotone approximation, often the safe suboptimal equilibrium.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>Two-state MDP, solved four ways.</strong> States $\{1, 2\}$, actions $\{\text{stay}, \text{go}\}$, deterministic: <em>stay</em> keeps you put, <em>go</em> switches state. Rewards: $R(1,\text{stay}) = 1$, $R(1,\text{go}) = 0$, $R(2,\text{stay}) = 2$, $R(2,\text{go}) = 0$. $\gamma = 0.5$. (a) Guess the optimal policy. (b) Verify with the Bellman optimality equations. (c) Run two sweeps of value iteration from $v_0 = (0,0)$. (d) What is $q^*(1, \text{go})$?<details class="sol"><summary>Solution</summary><div>(a) In state 2, staying pays 2 forever: $v^*(2) = 2/(1-0.5) = 4$. From state 1: stay forever $= 1/0.5 = 2$; or go (0) then live at state 2: $0 + 0.5\cdot4 = 2$. Both give 2! (b) Check: $v^*(1) = \max(1 + 0.5v^*(1),\ 0 + 0.5v^*(2)) = \max(1+1,\ 2) = 2$ ✓; $v^*(2) = \max(2 + 0.5\cdot4,\ 0 + 0.5\cdot2) = \max(4, 1) = 4$ ✓. Both actions in state 1 are optimal — optimal policies need not be unique. (c) Sweep 1: $v_1(1) = \max(1+0,\ 0+0) = 1$; $v_1(2) = \max(2+0,\ 0+0) = 2$. Sweep 2: $v_2(1) = \max(1+0.5,\ 0+1) = 1.5$; $v_2(2) = \max(2+1,\ 0+0.5) = 3$. Converging toward $(2,4)$ as $\gamma^k$ shrinks. (d) $q^*(1,\text{go}) = 0 + 0.5\,v^*(2) = 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>TD vs MC vs TD(λ) on one episode.</strong> A policy generates the episode $s_1 \xrightarrow{r=0} s_2 \xrightarrow{r=0} s_3 \xrightarrow{r=6} \text{end}$, with current estimates $v(s_1) = 1, v(s_2) = 2, v(s_3) = 3$, $\gamma = 1$, $\alpha = 0.5$. Compute the post-episode values under (a) first-visit MC, (b) TD(0) applied online in order, (c) offline TD(λ) with λ = 0.5 (updates computed from the original values, applied at the end, using the forward-view λ-returns).<details class="sol"><summary>Solution</summary><div>Returns: $G_3 = 6$, $G_2 = 6$, $G_1 = 6$. (a) MC: each $v \leftarrow v + 0.5(6 - v)$: $v(s_1) = 3.5$, $v(s_2) = 4$, $v(s_3) = 4.5$. (b) TD(0) online: step 1: $\delta = 0 + v(s_2) - v(s_1) = 1$, $v(s_1) = 1.5$. Step 2: $\delta = 0 + 3 - 2 = 1$, $v(s_2) = 2.5$. Step 3: $\delta = 6 + 0 - 3 = 3$, $v(s_3) = 4.5$. (c) λ-returns from original values. For $s_3$: $G^\lambda_3 = 6$. For $s_2$: $n{=}1$ return $= 0 + v(s_3) = 3$; $n{=}2$: $= 6$. $G^\lambda_2 = (1-\lambda)[G^{(1)}] + \lambda G^{(2)} = 0.5\cdot3 + 0.5\cdot6 = 4.5$. For $s_1$: $G^{(1)} = 0 + v(s_2) = 2$; $G^{(2)} = 0 + 0 + v(s_3) = 3$; $G^{(3)} = 6$. Weights: $(1-\lambda) = 0.5$ on $G^{(1)}$, $(1-\lambda)\lambda = 0.25$ on $G^{(2)}$, remaining $\lambda^2 = 0.25$ on the terminal $G^{(3)}$. $G^\lambda_1 = 0.5\cdot2 + 0.25\cdot3 + 0.25\cdot6 = 1 + 0.75 + 1.5 = 3.25$. Updates: $v(s_1) = 1 + 0.5(3.25-1) = 2.125$; $v(s_2) = 2 + 0.5(4.5-2) = 3.25$; $v(s_3) = 3 + 0.5(6-3) = 4.5$. TD(λ) lands between TD(0) and MC on the early states, exactly as designed.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Policy gradient with a learned critic, one full step.</strong> Softmax policy over 2 actions with logits $\theta = (0, 0)$; linear critic $\hat v(s) = w$, $w = 1$ (single state features $\phi = 1$). From state $s$: action $a_1$ pays $r = 3$, action $a_2$ pays $r = 0$; both lead back to $s$; $\gamma = 0.9$. The agent samples $a_1$. (a) Compute the TD error. (b) Update the critic ($\alpha_w = 0.2$) and actor ($\alpha_\theta = 0.1$) and give the new action probabilities. (c) Show the actor update's direction agrees with the true advantage under the uniform policy. (d) Explain what would go wrong if we used $r$ alone (no critic) as the actor's weight, over many updates.<details class="sol"><summary>Solution</summary><div>(a) $\delta = r + \gamma\hat v(s) - \hat v(s) = 3 + 0.9(1) - 1 = 2.9$. (b) Critic: $w \leftarrow 1 + 0.2\cdot2.9\cdot1 = 1.58$. Actor: $\nabla_\theta\log\pi(a_1) = (1-\pi_1, -\pi_2) = (0.5, -0.5)$; $\theta \leftarrow (0,0) + 0.1\cdot2.9\cdot(0.5,-0.5) = (0.145, -0.145)$. New $\pi_1 = \sigma(0.29) = 1/(1+e^{-0.29}) \approx 0.572$. (c) True values under uniform policy: average reward per step $= 1.5$, so $v^\pi = 1.5/(1-0.9) = 15$; $q^\pi(s,a_1) = 3 + 0.9\cdot15 = 16.5$; advantage $= +1.5 > 0$. Our $\delta = 2.9 > 0$: same sign, so the update direction (boost $a_1$) is correct even though the critic is far from converged. (d) With weight $r$ alone: both actions have nonnegative weights (3 and 0), so sampled $a_1$'s get pushed up and sampled $a_2$'s are never pushed down — learning relies purely on the asymmetric strength of positive pushes, and, worse, adding any constant $c$ to both rewards (e.g. +10) would push <em>whichever action is sampled</em> up by ~10, making the update's direction depend on the sampling noise, with variance $\propto c^2$. The critic-centered weight ($\delta \approx$ advantage) is invariant to the offset and gives two-sided, low-variance credit.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: exact DP, tabular model-free control, and REINFORCE with a baseline. NumPy only.</p>
+ <div class="box ex"><span class="label">Task 1 — Value iteration on a gridworld</span> Implement value iteration for a 4×4 gridworld: start anywhere, terminal goal at (3,3) with reward +10 on arrival, step reward −1, actions UDLR with 10% slip to each perpendicular direction (80% intended). γ = 0.95. Return the value grid and greedy policy; verify values are within 1e−6 of a fixed point.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+N = 4; GOAL = (3, 3); GAMMA = 0.95
+ACTS = [(-1,0),(1,0),(0,-1),(0,1)]          # U D L R
+PERP = {0:(2,3), 1:(2,3), 2:(0,1), 3:(0,1)} # slip directions
+
+def step_dist(s, a):
+    """distribution over next states for state s, action a"""
+    if s == GOAL: return {s: 1.0}
+    out = {}
+    for d, p in [(a, 0.8), (PERP[a][0], 0.1), (PERP[a][1], 0.1)]:
+        dr, dc = ACTS[d]
+        r = min(max(s[0]+dr, 0), N-1); c = min(max(s[1]+dc, 0), N-1)
+        out[(r,c)] = out.get((r,c), 0.0) + p
+    return out
+
+def reward(s, s2):
+    if s == GOAL: return 0.0
+    return 10.0 if s2 == GOAL else -1.0
+
+V = np.zeros((N, N))
+while True:
+    V2 = np.zeros_like(V)
+    for r in range(N):
+        for c in range(N):
+            s = (r, c)
+            if s == GOAL: continue
+            q = [sum(p*(reward(s,s2) + GAMMA*V[s2]) for s2,p in step_dist(s,a).items())
+                 for a in range(4)]
+            V2[s] = max(q)
+    if np.max(np.abs(V2 - V)) &lt; 1e-6:
+        V = V2; break
+    V = V2
+
+policy = np.full((N,N), -1)
+for r in range(N):
+    for c in range(N):
+        s = (r,c)
+        if s == GOAL: continue
+        q = [sum(p*(reward(s,s2) + GAMMA*V[s2]) for s2,p in step_dist(s,a).items())
+             for a in range(4)]
+        policy[s] = int(np.argmax(q))
+
+print(np.round(V, 2))
+print(policy)   # 0=U 1=D 2=L 3=R; arrows should point toward (3,3)</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Q-learning vs SARSA on the cliff</span> Implement the 4×12 cliff-walking task (start bottom-left, goal bottom-right, bottom row between them is the cliff: reward −100 and teleport to start; otherwise −1 per step). Train both Q-learning and SARSA with ε = 0.1, α = 0.5, γ = 1.0 for 500 episodes; report each agent's average online return over the last 100 episodes and print each greedy path. Expect SARSA's online return to be better and its path to run one row higher.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+H, W = 4, 12
+START, GOAL = (3, 0), (3, 11)
+ACTS = [(-1,0),(1,0),(0,-1),(0,1)]
+rng = np.random.default_rng(0)
+
+def step(s, a):
+    r = min(max(s[0]+ACTS[a][0], 0), H-1)
+    c = min(max(s[1]+ACTS[a][1], 0), W-1)
+    s2 = (r, c)
+    if r == 3 and 0 &lt; c &lt; 11:      # cliff
+        return START, -100.0, False
+    if s2 == GOAL:
+        return s2, -1.0, True
+    return s2, -1.0, False
+
+def eps_greedy(Q, s, eps):
+    if rng.random() &lt; eps: return rng.integers(4)
+    return int(np.argmax(Q[s]))
+
+def train(kind, episodes=500, eps=0.1, alpha=0.5, gamma=1.0):
+    Q = np.zeros((H, W, 4)); returns = []
+    for _ in range(episodes):
+        s, G, done = START, 0.0, False
+        a = eps_greedy(Q, s, eps)
+        while not done:
+            s2, r, done = step(s, a); G += r
+            if kind == 'q':
+                target = r + (0 if done else gamma*np.max(Q[s2]))
+                Q[s][a] += alpha*(target - Q[s][a])
+                a2 = eps_greedy(Q, s2, eps)
+            else:  # sarsa
+                a2 = eps_greedy(Q, s2, eps)
+                target = r + (0 if done else gamma*Q[s2][a2])
+                Q[s][a] += alpha*(target - Q[s][a])
+            s, a = s2, a2
+        returns.append(G)
+    return Q, returns
+
+for kind in ['q', 'sarsa']:
+    Q, rets = train(kind)
+    # greedy rollout
+    s, path, done, steps = START, [START], False, 0
+    while not done and steps &lt; 100:
+        s, _, done = step(s, int(np.argmax(Q[s]))); path.append(s); steps += 1
+    print(kind, 'avg online return (last 100):', np.mean(rets[-100:]))
+    print('  greedy path rows used:', sorted({p[0] for p in path}))</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — REINFORCE with baseline on CartPole-style dynamics</span> Implement REINFORCE with a learned value baseline for a small softmax policy on a discretized mountain-of-noise task — or, simplest faithful version: the 5-state random-walk MDP where <em>left/right</em> actions bias the walk (P(move right) = 0.7 if action right, 0.3 if left), right terminal pays +1, left pays 0, γ = 1. Learn state-dependent logits and a per-state baseline; show π(right) → 1 in all states and that the baseline reduces gradient variance (log the std of per-episode gradients with and without baseline).
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+NS = 5                      # states 0..4, terminals at -1 (left) and 5 (right)
+
+def episode(theta):
+    s, traj = 2, []
+    while True:
+        p_right = 1/(1 + np.exp(-theta[s]))     # policy: P(action=right)
+        a = 1 if rng.random() &lt; p_right else 0
+        move = 1 if rng.random() &lt; (0.7 if a == 1 else 0.3) else -1
+        s2 = s + move
+        r = 1.0 if s2 == NS else 0.0
+        traj.append((s, a, r))
+        if s2 &lt; 0 or s2 == NS: return traj
+        s = s2
+
+def train(use_baseline, iters=3000, alpha=0.2, alpha_b=0.1):
+    theta = np.zeros(NS); b = np.zeros(NS); gnorms = []
+    for _ in range(iters):
+        traj = episode(theta)
+        G = 0.0; grad = np.zeros(NS)
+        for (s, a, r) in reversed(traj):
+            G = r + G                             # gamma = 1
+            p = 1/(1 + np.exp(-theta[s]))
+            score = (1 - p) if a == 1 else -p     # d/dtheta log pi
+            adv = G - (b[s] if use_baseline else 0.0)
+            grad[s] += adv * score
+            if use_baseline: b[s] += alpha_b * (G - b[s])
+        theta += alpha * grad
+        gnorms.append(np.linalg.norm(grad))
+    return theta, np.std(gnorms)
+
+for ub in [False, True]:
+    theta, gstd = train(ub)
+    p = 1/(1 + np.exp(-theta))
+    print('baseline' if ub else 'no baseline',
+          '| pi(right) per state:', np.round(p, 3), '| grad std:', round(gstd, 3))
+# expected: all pi(right) &gt; 0.95; grad std smaller with baseline</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="http://incompleteideas.net/book/the-book-2nd.html">Sutton &amp; Barto, <em>Reinforcement Learning: An Introduction</em> (2nd ed., free)</a> — the canonical text; Chs 3–13 cover everything from MDPs through eligibility traces and policy gradients.</li>
+  <li><a href="https://www.davidsilver.uk/teaching/">David Silver's UCL RL course (slides + videos)</a> — the classic 10-lecture path from MDPs to function approximation and games.</li>
+  <li><a href="https://spinningup.openai.com/">OpenAI Spinning Up in Deep RL</a> — precise derivations of policy gradients, GAE and PPO with runnable code.</li>
+  <li><a href="https://arxiv.org/abs/1312.5602">Mnih et al., "Playing Atari with Deep Reinforcement Learning" (2013)</a> — the DQN paper: replay buffers and target networks.</li>
+  <li><a href="https://arxiv.org/abs/1506.02438">Schulman et al., "High-Dimensional Continuous Control Using Generalized Advantage Estimation" (2015)</a> — GAE and the bias–variance dial.</li>
+  <li><a href="https://arxiv.org/abs/1707.06347">Schulman et al., "Proximal Policy Optimization Algorithms" (2017)</a> — the PPO-clip objective, four pages of it.</li>
+  <li><a href="https://arxiv.org/abs/2005.01643">Levine et al., "Offline Reinforcement Learning: Tutorial, Review, and Perspectives" (2020)</a> — the definitive survey of learning from fixed datasets.</li>
+  <li><a href="https://arxiv.org/abs/1606.06565">Amodei et al., "Concrete Problems in AI Safety" (2016)</a> — reward hacking and safe exploration framed as research problems.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch24.html">← 24 · Decision and Game Theory</a>
+ <a class="btn" href="ch26.html">26 · Planning and Search →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function txt(id, s){ var el = document.getElementById(id); if(el) el.textContent = s; }
+
+/* ---------- 2. value iteration gridworld ---------- */
+(function(){
+ var c = document.getElementById('cv-vi'); if(!c) return;
+ var ROWS = 4, COLS = 8, GOAL = [0, 7];
+ var V, sweeps;
+ function isCliff(r,ch){ return r === 3 && ch > 0 && ch < 7; }
+ function reset(){ V = []; for(var r = 0; r < ROWS; r++){ V.push([]); for(var ch = 0; ch < COLS; ch++) V[r].push(0); } sweeps = 0; draw(); }
+ var A = [[-1,0],[1,0],[0,-1],[0,1]], PERP = [[2,3],[2,3],[0,1],[0,1]];
+ function clamp(x, lo, hi){ return Math.min(Math.max(x, lo), hi); }
+ function nextStates(r, ch, a, slip){
+  var outs = [], choices = [[a, 1-slip],[PERP[a][0], slip/2],[PERP[a][1], slip/2]];
+  for(var i = 0; i < 3; i++){
+   var d = choices[i][0], p = choices[i][1];
+   if(p <= 0) continue;
+   var nr = clamp(r + A[d][0], 0, ROWS-1), nc = clamp(ch + A[d][1], 0, COLS-1);
+   outs.push([nr, nc, p]);
+  }
+  return outs;
+ }
+ function backup(r, ch, gamma, slip){
+  if(r === GOAL[0] && ch === GOAL[1]) return {v: 0, a: -1};
+  var best = -1e18, ba = 0;
+  for(var a = 0; a < 4; a++){
+   var q = 0, outs = nextStates(r, ch, a, slip);
+   for(var i = 0; i < outs.length; i++){
+    var nr = outs[i][0], nc = outs[i][1], p = outs[i][2];
+    var rew = -1;
+    if(isCliff(nr, nc)) rew = -10;
+    if(nr === GOAL[0] && nc === GOAL[1]) rew = 10;
+    q += p*(rew + gamma*V[nr][nc]);
+   }
+   if(q > best){ best = q; ba = a; }
+  }
+  return {v: best, a: ba};
+ }
+ function sweep(){
+  var gamma = val('vi-gamma'), slip = val('vi-slip'), V2 = [], delta = 0;
+  for(var r = 0; r < ROWS; r++){ V2.push([]);
+   for(var ch = 0; ch < COLS; ch++){ var b = backup(r, ch, gamma, slip); V2[r].push(b.v); delta = Math.max(delta, Math.abs(b.v - V[r][ch])); } }
+  V = V2; sweeps++;
+  draw();
+  txt('vi-out', 'sweeps: ' + sweeps + '   max change: ' + delta.toFixed(3));
+ }
+ function draw(){
+  var s = setupCanvas(c, 240), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var gamma = val('vi-gamma'), slip = val('vi-slip');
+  var cw = Math.min((W-20)/COLS, (H-20)/ROWS), x0 = (W - cw*COLS)/2, y0 = (H - cw*ROWS)/2;
+  var lo = 1e18, hi = -1e18;
+  for(var r = 0; r < ROWS; r++) for(var ch = 0; ch < COLS; ch++){ lo = Math.min(lo, V[r][ch]); hi = Math.max(hi, V[r][ch]); }
+  if(hi - lo < 1e-9){ hi = lo + 1; }
+  var ink2 = cssVar('--ink-2');
+  var arr = ['↑','↓','←','→'];
+  for(var r = 0; r < ROWS; r++){
+   for(var ch = 0; ch < COLS; ch++){
+    var x = x0 + ch*cw, y = y0 + r*cw;
+    var t = (V[r][ch] - lo)/(hi - lo);
+    if(isCliff(r, ch)) g.fillStyle = 'rgba(180,40,40,0.55)';
+    else g.fillStyle = 'rgba(40,90,200,' + (0.08 + 0.55*t).toFixed(3) + ')';
+    g.fillRect(x, y, cw-2, cw-2);
+    if(r === GOAL[0] && ch === GOAL[1]){ g.fillStyle = 'rgba(30,160,80,0.8)'; g.fillRect(x, y, cw-2, cw-2); }
+    g.fillStyle = ink2; g.font = '11px JetBrains Mono';
+    g.fillText(V[r][ch].toFixed(1), x + 4, y + 14);
+    if(sweeps > 0 && !(r === GOAL[0] && ch === GOAL[1])){
+     var b = backup(r, ch, gamma, slip);
+     g.font = '15px JetBrains Mono'; g.fillText(arr[b.a], x + cw/2 - 6, y + cw - 8);
+    }
+   }
+  }
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('goal: green (top right) · cliff: red row', 10, 14);
+ }
+ on('vi-run','click',sweep); on('vi-reset','click',reset);
+ on('vi-slip','input',draw); on('vi-gamma','input',draw);
+ window.addEventListener('resize',draw); reset();
+})();
+
+/* ---------- 3. TD(0) random walk ---------- */
+(function(){
+ var c = document.getElementById('cv-td'); if(!c) return;
+ var NS = 5, Vv, episodes;
+ var truth = [1/6, 2/6, 3/6, 4/6, 5/6];
+ function reset(){ Vv = [0.5,0.5,0.5,0.5,0.5]; episodes = 0; draw(); }
+ function runEp(alpha){
+  var s = 2;
+  while(true){
+   var s2 = s + (Math.random() < 0.5 ? -1 : 1);
+   var r = (s2 === NS) ? 1 : 0;
+   var v2 = (s2 < 0 || s2 === NS) ? 0 : Vv[s2];
+   Vv[s] += alpha*(r + v2 - Vv[s]);
+   if(s2 < 0 || s2 === NS) break;
+   s = s2;
+  }
+  episodes++;
+ }
+ function draw(){
+  var s = setupCanvas(c, 260), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var pad = 44, ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  function X(i){ return pad + i*(W-2*pad)/(NS-1); }
+  function Y(v){ return H-36 - v*(H-70); }
+  g.strokeStyle = ink2; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(pad, H-36); g.lineTo(W-pad, H-36); g.moveTo(pad, H-36); g.lineTo(pad, 18); g.stroke();
+  g.setLineDash([4,4]); g.strokeStyle = ink2;
+  g.beginPath(); for(var i = 0; i < NS; i++){ var x = X(i), y = Y(truth[i]); i ? g.lineTo(x,y) : g.moveTo(x,y); } g.stroke(); g.setLineDash([]);
+  g.strokeStyle = cobalt; g.lineWidth = 2;
+  g.beginPath(); for(var i = 0; i < NS; i++){ var x = X(i), y = Y(Vv[i]); i ? g.lineTo(x,y) : g.moveTo(x,y); } g.stroke();
+  g.fillStyle = cobalt;
+  for(var i = 0; i < NS; i++){ g.beginPath(); g.arc(X(i), Y(Vv[i]), 4, 0, 7); g.fill(); }
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  var names = ['A','B','C','D','E'];
+  for(var i = 0; i < NS; i++) g.fillText(names[i], X(i)-4, H-16);
+  g.fillText('dashed = true values k/6', pad, 14);
+  var rmse = 0; for(var i = 0; i < NS; i++) rmse += Math.pow(Vv[i]-truth[i],2);
+  rmse = Math.sqrt(rmse/NS);
+  txt('td-out', 'episodes: ' + episodes + '   RMSE: ' + rmse.toFixed(3));
+ }
+ on('td-run','click',function(){ var a = val('td-alpha'); for(var i = 0; i < 10; i++) runEp(a); draw(); });
+ on('td-reset','click',reset);
+ window.addEventListener('resize',draw); reset();
+})();
+
+/* ---------- 4. Q-learning / SARSA cliff world ---------- */
+(function(){
+ var c = document.getElementById('cv-q'); if(!c) return;
+ var ROWS = 4, COLS = 10, START = [3,0], GOAL = [3,9];
+ var Q, eps, alpha, episodesRun;
+ var A = [[-1,0],[1,0],[0,-1],[0,1]];
+ function isCliff(r,ch){ return r === 3 && ch > 0 && ch < 9; }
+ function reset(){
+  Q = []; for(var r = 0; r < ROWS; r++){ Q.push([]); for(var ch = 0; ch < COLS; ch++){ Q[r].push([0,0,0,0]); } }
+  episodesRun = 0; draw();
+ }
+ function clamp(x, lo, hi){ return Math.min(Math.max(x, lo), hi); }
+ function stepEnv(r, ch, a){
+  var nr = clamp(r + A[a][0], 0, ROWS-1), nc = clamp(ch + A[a][1], 0, COLS-1);
+  if(isCliff(nr, nc)) return {r: START[0], c: START[1], rew: -100, done: false};
+  if(nr === GOAL[0] && nc === GOAL[1]) return {r: nr, c: nc, rew: -1, done: true};
+  return {r: nr, c: nc, rew: -1, done: false};
+ }
+ function greedy(r, ch){ var q = Q[r][ch], b = 0; for(var i = 1; i < 4; i++) if(q[i] > q[b]) b = i; return b; }
+ function pick(r, ch){ return Math.random() < eps ? Math.floor(Math.random()*4) : greedy(r, ch); }
+ function runEpisodes(n, kind){
+  for(var e = 0; e < n; e++){
+   var r = START[0], ch = START[1], a = pick(r, ch), steps = 0;
+   while(steps++ < 500){
+    var o = stepEnv(r, ch, a);
+    var a2 = pick(o.r, o.c);
+    var boot;
+    if(o.done) boot = 0;
+    else if(kind === 'q') boot = Q[o.r][o.c][greedy(o.r, o.c)];
+    else boot = Q[o.r][o.c][a2];
+    Q[r][ch][a] += alpha*(o.rew + boot - Q[r][ch][a]);
+    if(o.done) break;
+    r = o.r; ch = o.c; a = a2;
+   }
+   episodesRun++;
+  }
+ }
+ function draw(){
+  var s = setupCanvas(c, 220), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var cw = Math.min((W-20)/COLS, (H-30)/ROWS), x0 = (W - cw*COLS)/2, y0 = 24;
+  var ink2 = cssVar('--ink-2');
+  var arr = ['↑','↓','←','→'];
+  for(var r = 0; r < ROWS; r++){
+   for(var ch = 0; ch < COLS; ch++){
+    var x = x0 + ch*cw, y = y0 + r*cw;
+    var m = Math.max.apply(null, Q[r][ch]);
+    if(isCliff(r,ch)) g.fillStyle = 'rgba(180,40,40,0.55)';
+    else { var t = Math.max(0, Math.min(1, (m + 30)/30)); g.fillStyle = 'rgba(40,90,200,' + (0.06 + 0.5*t).toFixed(3) + ')'; }
+    if(r === GOAL[0] && ch === GOAL[1]) g.fillStyle = 'rgba(30,160,80,0.8)';
+    g.fillRect(x, y, cw-2, cw-2);
+    if(!isCliff(r,ch) && !(r===GOAL[0]&&ch===GOAL[1]) && episodesRun > 0){
+     g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+     g.fillText(arr[greedy(r,ch)], x + cw/2 - 5, y + cw/2 + 4);
+    }
+   }
+  }
+  // trace greedy path
+  if(episodesRun > 0){
+   g.strokeStyle = cssVar('--cobalt') || '#2050c0'; g.lineWidth = 2.5;
+   var r = START[0], ch = START[1], n = 0;
+   g.beginPath(); g.moveTo(x0 + ch*cw + cw/2, y0 + r*cw + cw/2);
+   while(n++ < 40){
+    var o = stepEnv(r, ch, greedy(r, ch));
+    g.lineTo(x0 + o.c*cw + cw/2, y0 + o.r*cw + cw/2);
+    if(o.done || (o.r === START[0] && o.c === START[1] && n > 1)) break;
+    r = o.r; ch = o.c;
+   }
+   g.stroke();
+  }
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('S bottom-left · G green · cliff red · line = greedy path', 10, 14);
+ }
+ on('q-run','click',function(){
+  eps = val('q-eps'); alpha = val('q-alpha');
+  var kind = document.getElementById('q-agent').value;
+  runEpisodes(100, kind); draw();
+  txt('q-out', 'episodes: ' + episodesRun + ' (' + (kind === 'q' ? 'Q-learning' : 'SARSA') + ')');
+ });
+ on('q-reset','click',reset);
+ window.addEventListener('resize',draw); reset();
+})();
+
+/* ---------- 5. REINFORCE bandit ---------- */
+(function(){
+ var c = document.getElementById('cv-pg'); if(!c) return;
+ var hist = null;
+ function run(){
+  var alpha = val('pg-alpha'), T = 300;
+  hist = {nb: [], b: []};
+  var th = 0, thb = 0, base = 0;
+  for(var t = 0; t < T; t++){
+   // no baseline
+   var p = 1/(1+Math.exp(-th));
+   var a = Math.random() < p ? 1 : 2;
+   var r = Math.random() < (a === 1 ? 0.8 : 0.2) ? 1 : 0;
+   var score = (a === 1 ? 1-p : -p);
+   th += alpha * r * score;
+   hist.nb.push(1/(1+Math.exp(-th)));
+   // with baseline
+   var pb = 1/(1+Math.exp(-thb));
+   var ab = Math.random() < pb ? 1 : 2;
+   var rb = Math.random() < (ab === 1 ? 0.8 : 0.2) ? 1 : 0;
+   var scoreb = (ab === 1 ? 1-pb : -pb);
+   thb += alpha * (rb - base) * scoreb;
+   base += 0.05 * (rb - base);
+   hist.b.push(1/(1+Math.exp(-thb)));
+  }
+  draw();
+  txt('pg-out', 'final π(arm1): no-baseline ' + hist.nb[T-1].toFixed(3) + ' · baseline ' + hist.b[T-1].toFixed(3));
+ }
+ function draw(){
+  var s = setupCanvas(c, 260), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var pad = 44, ink2 = cssVar('--ink-2');
+  g.strokeStyle = ink2; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(pad, H-30); g.lineTo(W-16, H-30); g.moveTo(pad, H-30); g.lineTo(pad, 16); g.stroke();
+  g.font = '13px JetBrains Mono'; g.fillStyle = ink2;
+  g.fillText('π(arm 1) over episodes', pad, 14);
+  g.fillText('1.0', 8, 24); g.fillText('0.5', 8, (H-30+20)/2); g.fillText('0.0', 8, H-32);
+  if(!hist) { txt('pg-out','press Run'); return; }
+  var T = hist.nb.length;
+  function plot(arr, col){
+   g.strokeStyle = col; g.lineWidth = 2; g.beginPath();
+   for(var t = 0; t < T; t++){
+    var x = pad + t*(W-pad-20)/T, y = H-30 - arr[t]*(H-50);
+    t ? g.lineTo(x,y) : g.moveTo(x,y);
+   }
+   g.stroke();
+  }
+  plot(hist.nb, cssVar('--cobalt') || '#2050c0');
+  plot(hist.b, cssVar('--orange') || '#d07020');
+  g.fillStyle = cssVar('--cobalt') || '#2050c0'; g.fillText('no baseline', W-180, 24);
+  g.fillStyle = cssVar('--orange') || '#d07020'; g.fillText('baseline', W-180, 42);
+ }
+ on('pg-run','click',run);
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 6. GAE weights ---------- */
+(function(){
+ var c = document.getElementById('cv-gae'); if(!c) return;
+ function draw(){
+  var s = setupCanvas(c, 260), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var lam = val('gae-lam'), gam = val('gae-gam'), gl = gam*lam;
+  var n = 40, pad = 40, bw = (W-2*pad)/n;
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  g.strokeStyle = ink2; g.beginPath(); g.moveTo(pad, H-30); g.lineTo(W-pad+8, H-30); g.moveTo(pad, H-30); g.lineTo(pad, 16); g.stroke();
+  g.fillStyle = cobalt;
+  for(var k = 0; k < n; k++){
+   var w = Math.pow(gl, k), h = w*(H-56);
+   g.fillRect(pad + k*bw + 1, H-30-h, Math.max(bw-2,1), h);
+  }
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('weight (γλ)^k on δ(t+k)', pad, 14);
+  g.fillText('k=0', pad, H-12); g.fillText('k='+n, W-pad-32, H-12);
+  var memory = gl < 1 ? 1/(1-gl) : Infinity;
+  txt('gae-out', 'γλ = ' + gl.toFixed(3) + '   credit horizon 1/(1−γλ) ≈ ' + (gl < 1 ? memory.toFixed(1) + ' steps' : '∞') + '   (λ→0: low variance, more bias · λ→1: unbiased, noisy)');
+ }
+ on('gae-lam','input',draw); on('gae-gam','input',draw);
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 7. UCB vs epsilon-greedy regret ---------- */
+(function(){
+ var c = document.getElementById('cv-ucb'); if(!c) return;
+ var data = null;
+ function run(){
+  var eps = val('ucb-eps'), T = 2000, mus = [0.5, 0.6, 0.7], best = 0.7;
+  function pull(a){ return Math.random() < mus[a] ? 1 : 0; }
+  // epsilon-greedy
+  var cnt1 = [0,0,0], sum1 = [0,0,0], reg1 = [], R1 = 0;
+  // ucb
+  var cnt2 = [0,0,0], sum2 = [0,0,0], reg2 = [], R2 = 0;
+  for(var t = 1; t <= T; t++){
+   var a1;
+   if(Math.random() < eps || t <= 3) a1 = Math.floor(Math.random()*3);
+   else { a1 = 0; for(var i = 1; i < 3; i++) if(sum1[i]/Math.max(cnt1[i],1) > sum1[a1]/Math.max(cnt1[a1],1)) a1 = i; }
+   cnt1[a1]++; sum1[a1] += pull(a1); R1 += best - mus[a1]; reg1.push(R1);
+   var a2;
+   if(t <= 3) a2 = t-1;
+   else { a2 = 0; var bv = -1;
+    for(var i = 0; i < 3; i++){ var u = sum2[i]/cnt2[i] + Math.sqrt(2*Math.log(t)/cnt2[i]); if(u > bv){ bv = u; a2 = i; } } }
+   cnt2[a2]++; sum2[a2] += pull(a2); R2 += best - mus[a2]; reg2.push(R2);
+  }
+  data = {e: reg1, u: reg2};
+  draw();
+  txt('ucb-out', 'final regret — ε-greedy: ' + R1.toFixed(1) + ' · UCB1: ' + R2.toFixed(1));
+ }
+ function draw(){
+  var s = setupCanvas(c, 260), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var pad = 44, ink2 = cssVar('--ink-2');
+  g.strokeStyle = ink2; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(pad, H-30); g.lineTo(W-16, H-30); g.moveTo(pad, H-30); g.lineTo(pad, 16); g.stroke();
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('cumulative regret', pad, 14);
+  if(!data){ txt('ucb-out','press Run'); return; }
+  var T = data.e.length, mx = Math.max(data.e[T-1], data.u[T-1], 1);
+  function plot(arr, col){
+   g.strokeStyle = col; g.lineWidth = 2; g.beginPath();
+   for(var t = 0; t < T; t += 4){
+    var x = pad + t*(W-pad-20)/T, y = H-30 - (arr[t]/mx)*(H-50);
+    t ? g.lineTo(x,y) : g.moveTo(x,y);
+   }
+   g.stroke();
+  }
+  plot(data.e, cssVar('--red') || '#c03030');
+  plot(data.u, cssVar('--cobalt') || '#2050c0');
+  g.fillStyle = cssVar('--red') || '#c03030'; g.fillText('ε-greedy', W-150, 24);
+  g.fillStyle = cssVar('--cobalt') || '#2050c0'; g.fillText('UCB1', W-150, 42);
+ }
+ on('ucb-run','click',run);
+ window.addEventListener('resize',draw); draw();
+})();
+})();
+</script>
+
+</body></html>

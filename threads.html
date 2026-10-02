@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · Threads</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="book.css">
+<script src="book.js"></script>
+<style>
+.onecol{max-width:760px;margin:0 auto;padding:28px 16px 90px}
+.page-head{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+.page-head h1{font-size:clamp(34px,5vw,52px);margin:.2em 0 .25em}
+.page-head .lede{font-size:20px;color:var(--ink-2);margin:0}
+.chain{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0 6px;font:600 13px var(--mono)}
+.chain a{border:1px solid var(--rule);background:var(--paper);border-radius:99px;padding:5px 11px;text-decoration:none;color:var(--cobalt)}
+.chain a:hover{border-color:var(--cobalt)}
+.chain a b{color:var(--ink-2);font-weight:600;margin-right:5px}
+.chain .sep{color:var(--ink-2)}
+section.topic>h2{font-size:26px}
+</style>
+<header class="topbar"><div class="in">
+ <a class="brand" href="index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="index.html">Contents</a><a class="btn" href="formulas.html">Formula sheet</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="onecol">
+ <div class="page-head">
+  <h1>Concept Threads</h1>
+  <p class="lede">Ten ideas that run the whole length of the book. Each thread is a single concept seen at increasing altitude; follow the chain and you cross a dozen chapters without ever changing subject.</p>
+ </div>
+
+<section class="topic" id="thread-gradient">
+ <h2>1 · The gradient</h2>
+ <p>The most consequential idea in this book is also the simplest: a slope. In Chapter 4 slope is rise over run — one number describing a straight line. Chapter 7 sharpens it into the derivative: the slope of the best straight-line approximation at a point, defined by a limit. That alone would earn it a chapter, but the derivative comes with an algebra — the chain rule — that lets you differentiate through arbitrarily long compositions of functions. Hold onto that; it is the seed of everything.</p>
+ <p>Chapter 9 moves to many dimensions. With several inputs you take one partial derivative per input and stack them into a vector: the gradient. Geometrically the gradient points in the direction of steepest increase, so its negative is the direction of steepest descent — a compass that always knows which way is downhill. The multivariable chain rule composes Jacobians by matrix multiplication, and when you write out that composition efficiently — reusing shared intermediate terms, sweeping from outputs back to inputs — you get backpropagation. Backprop is not a new idea on top of calculus; it is the chain rule scheduled cleverly on a computational graph, which is why Chapter 9 states it as a theorem and Chapter 21 implements it in a network.</p>
+ <p>Chapter 15 turns the compass into a vehicle. Gradient descent repeats "step downhill" until the gradient vanishes; stochastic gradient descent estimates that gradient from a mini-batch, trading exactness for speed, and its noise turns out to be a feature, nudging trajectories out of sharp minima. Every optimizer you will meet — momentum, Adam, AdamW — is a decoration on this loop.</p>
+ <p>The thread ends in Chapter 25 with a twist. In reinforcement learning the objective is an expectation over trajectories you can only sample, not differentiate directly. The policy gradient theorem rescues the compass: the gradient of expected return equals an expectation of (return × gradient of log-probability), something you can estimate by acting. From rise-over-run to REINFORCE, it is one idea: to improve, measure how the output tilts when you nudge the input, and step that way.</p>
+ <div class="chain">
+  <a href="chapters/ch04.html#slope"><b>04</b>Slope</a><span class="sep">→</span>
+  <a href="chapters/ch07.html#derivative-definition"><b>07</b>Derivative</a><span class="sep">→</span>
+  <a href="chapters/ch07.html#chain-rule"><b>07</b>Chain rule</a><span class="sep">→</span>
+  <a href="chapters/ch09.html#partial-derivatives"><b>09</b>Partial derivatives</a><span class="sep">→</span>
+  <a href="chapters/ch09.html#gradient"><b>09</b>Gradient</a><span class="sep">→</span>
+  <a href="chapters/ch09.html#backpropagation-as-the-chain-rule"><b>09</b>Backprop = chain rule</a><span class="sep">→</span>
+  <a href="chapters/ch15.html#gradient-descent"><b>15</b>Gradient descent</a><span class="sep">→</span>
+  <a href="chapters/ch15.html#stochastic-gradient-descent"><b>15</b>SGD</a><span class="sep">→</span>
+  <a href="chapters/ch21.html#backpropagation"><b>21</b>Backpropagation</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#policy-gradients"><b>25</b>Policy gradients</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-kl">
+ <h2>2 · KL divergence</h2>
+ <p>Chapter 16 defines entropy as average surprise: how many bits it costs, on average, to encode draws from a distribution using the best possible code. Cross-entropy asks a meaner question: how many bits does it cost if you code for distribution $q$ while the data actually come from $p$? The difference between the two is the Kullback–Leibler divergence — the price, in bits, of believing the wrong distribution. KL is not a distance (it is asymmetric), but it is always nonnegative and zero only when the distributions agree, which makes it the canonical measure of "how wrong is my model."</p>
+ <p>Once you see KL, you see it everywhere. The log loss of Chapter 19 — the loss function of logistic regression and of every language model — is cross-entropy, and since the data's entropy is fixed, minimizing cross-entropy is exactly minimizing KL from truth to model. Maximum likelihood estimation is KL minimization wearing a statistics hat.</p>
+ <p>Chapter 13's variational inference turns KL into a tool for approximation. When a posterior is intractable, pick a tractable family and find its member closest in KL to the true posterior. You cannot compute that KL directly, but you can maximize the evidence lower bound (ELBO), which equals the log evidence minus that very KL — so pushing the ELBO up squeezes the gap shut. Chapter 22's variational autoencoder is this idea with neural networks for encoder and decoder: its loss is reconstruction plus a KL term keeping the latent code honest.</p>
+ <p>The thread reaches the frontier in Chapter 23. RLHF fine-tunes a language model against a learned reward, but unconstrained reward maximization would tear the model away from coherent language. The fix is a KL penalty: maximize reward minus $\beta\,\mathrm{KL}(\pi \,\|\, \pi_{\text{ref}})$, keeping the tuned policy within a bit-budget of the pretrained one. The same quantity that priced a bad code now leashes a trillion-parameter model.</p>
+ <div class="chain">
+  <a href="chapters/ch16.html#entropy"><b>16</b>Entropy</a><span class="sep">→</span>
+  <a href="chapters/ch16.html#cross-entropy"><b>16</b>Cross-entropy</a><span class="sep">→</span>
+  <a href="chapters/ch16.html#kl-divergence"><b>16</b>KL divergence</a><span class="sep">→</span>
+  <a href="chapters/ch19.html#log-loss"><b>19</b>Log loss</a><span class="sep">→</span>
+  <a href="chapters/ch13.html#variational-inference"><b>13</b>Variational inference</a><span class="sep">→</span>
+  <a href="chapters/ch13.html#elbo"><b>13</b>ELBO</a><span class="sep">→</span>
+  <a href="chapters/ch22.html#variational-autoencoders"><b>22</b>VAEs</a><span class="sep">→</span>
+  <a href="chapters/ch23.html#rlhf"><b>23</b>RLHF's KL penalty</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-eigen">
+ <h2>3 · Eigenvalues</h2>
+ <p>A matrix mixes coordinates; an eigenvector is a direction the matrix refuses to mix. Along it, the transformation is pure stretching: $Av = \lambda v$. Chapter 8 builds the machinery — characteristic polynomial, eigenspaces — and then cashes it in with diagonalization: if a matrix has a full set of eigenvectors, then in that basis it is just a list of numbers. Powers, exponentials, and long-run behavior all become trivial once you change into the eigenbasis. For symmetric matrices the spectral theorem sweetens the deal: the eigenvectors can be chosen orthonormal, so the basis change is a rotation.</p>
+ <p>Principal Component Analysis is the spectral theorem applied to a covariance matrix. Data scatter in some cloud; the covariance matrix's eigenvectors are the cloud's natural axes, and its eigenvalues are the variance along each. Keeping the top few eigenvectors compresses the data along the directions that matter — the same eigen-machinery, pointed at statistics.</p>
+ <p>Dynamics is where eigenvalues earn their keep. A linear system $\dot{x} = Ax$ evolves as $e^{At}$, and diagonalizing shows each eigendirection grows or decays like $e^{\lambda t}$: negative real parts decay, positive ones explode. Chapter 10 uses this to classify equilibria of ODE systems, and Chapter 28 makes it the definition of stability — linearize at a fixed point and read the eigenvalues of the Jacobian. Imaginary parts spin; the spectrum is the system's fate written in advance.</p>
+ <p>Finally, optimization. The convergence rate of gradient descent on a quadratic is governed by the Hessian's eigenvalues: the condition number $\kappa = \lambda_{\max}/\lambda_{\min}$ measures how elongated the loss valley is, and badly conditioned problems zig-zag for ages. Chapter 15's conditioning discussion and Chapter 18's power iteration (which finds the top eigenvalue by just multiplying repeatedly) close the loop: the spectrum you met as an algebra exercise is what decides whether training converges in a hundred steps or a million.</p>
+ <div class="chain">
+  <a href="chapters/ch08.html#eigenvalues"><b>08</b>Eigenvalues</a><span class="sep">→</span>
+  <a href="chapters/ch08.html#diagonalization"><b>08</b>Diagonalization</a><span class="sep">→</span>
+  <a href="chapters/ch08.html#spectral-theorem"><b>08</b>Spectral theorem</a><span class="sep">→</span>
+  <a href="chapters/ch08.html#principal-component-analysis"><b>08</b>PCA</a><span class="sep">→</span>
+  <a href="chapters/ch10.html#equilibria-and-linearization"><b>10</b>Equilibria of ODEs</a><span class="sep">→</span>
+  <a href="chapters/ch28.html#stability"><b>28</b>Stability</a><span class="sep">→</span>
+  <a href="chapters/ch18.html#power-iteration"><b>18</b>Power iteration</a><span class="sep">→</span>
+  <a href="chapters/ch15.html#conditioning"><b>15</b>Conditioning of optimization</a><span class="sep">→</span>
+  <a href="chapters/ch15.html#gradient-descent-convergence"><b>15</b>GD convergence</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-gaussian">
+ <h2>4 · The Gaussian</h2>
+ <p>Why does one bell-shaped curve rule statistics, filtering, and image generation alike? The Central Limit Theorem is the origin story: sum many small independent effects, normalize, and the result approaches a Gaussian no matter what the pieces looked like. The Gaussian is not one distribution among many; it is the attractor that aggregation flows toward, which is why measurement noise, thermal jitter, and mini-batch fluctuations all wear the same shape.</p>
+ <p>Its algebra is what makes it usable. The multivariate Gaussian is closed under linear maps, under marginalization, and — crucially — under conditioning: slice a Gaussian and you get another Gaussian, with a mean and covariance you can write in closed form. Least squares is the first payoff: assuming Gaussian noise, maximum likelihood for a linear model becomes "minimize squared error," and the normal equations of Chapters 13 and 19 drop out. Squared loss is the Gaussian assumption in disguise.</p>
+ <p>The Kalman filter of Chapter 28 is the conditioning property run as a machine. Belief about a hidden state is a Gaussian; the dynamics push it forward (still Gaussian); an observation arrives and Bayes' rule conditions on it (still Gaussian). Because the family is closed at every step, the whole infinite-dimensional inference problem collapses to updating a mean vector and a covariance matrix — optimal state estimation in a few matrix multiplications.</p>
+ <p>The thread's newest chapter is generative. Brownian motion (Chapter 12) has Gaussian increments; a diffusion model (Chapter 22) destroys an image by adding Gaussian noise step by step until only $\mathcal{N}(0, I)$ remains, then learns to run the process backwards. The reverse-time SDE needs the score — the gradient of the log density — and the training target is tractable precisely because Gaussian noise makes the conditional distributions Gaussian. The curve that the CLT gives you for free turns out to be the raw material images are grown from.</p>
+ <div class="chain">
+  <a href="chapters/ch11.html#central-limit-theorem"><b>11</b>CLT</a><span class="sep">→</span>
+  <a href="chapters/ch11.html#gaussian-distribution"><b>11</b>Gaussian</a><span class="sep">→</span>
+  <a href="chapters/ch11.html#multivariate-gaussian"><b>11</b>Multivariate Gaussian</a><span class="sep">→</span>
+  <a href="chapters/ch13.html#least-squares"><b>13</b>Least squares</a><span class="sep">→</span>
+  <a href="chapters/ch28.html#kalman-filtering"><b>28</b>Kalman filter</a><span class="sep">→</span>
+  <a href="chapters/ch12.html#brownian-motion"><b>12</b>Brownian motion</a><span class="sep">→</span>
+  <a href="chapters/ch22.html#diffusion-models"><b>22</b>Diffusion models</a><span class="sep">→</span>
+  <a href="chapters/ch22.html#ddpm"><b>22</b>DDPM</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-bellman">
+ <h2>5 · Bellman</h2>
+ <p>Some problems are easiest to solve by assuming you have already solved the rest of them. Chapter 17 introduces recursion and recurrence relations: define a quantity in terms of smaller instances of itself, then either unroll or solve. Dynamic programming adds one insight — when subproblems overlap, cache them — and suddenly exponential searches become polynomial table-fills.</p>
+ <p>Richard Bellman applied this to acting over time, and the result organizes all of Chapter 25. The value of a state is the reward you collect now plus the discounted value of where you land next: $V(s) = \mathbb{E}[r + \gamma V(s')]$. That one line — the Bellman equation — turns an infinite-horizon planning problem into a self-consistency condition. The optimality version replaces the expectation over your policy with a max over actions, and its unique fixed point is the best achievable value. Value iteration just applies the equation repeatedly; because the Bellman operator is a contraction, it must converge.</p>
+ <p>Q-learning is the Bellman optimality equation made model-free. You do not know the transition probabilities, but every experienced transition $(s, a, r, s')$ is a sample of the right-hand side, so nudge $Q(s,a)$ toward $r + \gamma \max_{a'} Q(s', a')$ and repeat. The recursion that began as a homework trick now learns from raw experience, and with a network approximating $Q$ it plays Atari.</p>
+ <p>Chapter 26 shows the same recursion running forward instead of backward. Monte Carlo Tree Search estimates values by recursive simulation: the value of a node is backed up from the values of its children, discovered by sampling. AlphaZero closes the loop between the two chapters — a learned value function (Bellman, backward) guides a tree search (recursion, forward), and the search results retrain the value function. One idea, four altitudes: recurse, memoize, bootstrap, search.</p>
+ <div class="chain">
+  <a href="chapters/ch17.html#recursion"><b>17</b>Recursion</a><span class="sep">→</span>
+  <a href="chapters/ch17.html#recurrence-relations"><b>17</b>Recurrences</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#bellman-expectation-equation"><b>25</b>Bellman expectation</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#bellman-optimality-equation"><b>25</b>Bellman optimality</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#dynamic-programming"><b>25</b>Dynamic programming</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#value-iteration"><b>25</b>Value iteration</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#q-learning"><b>25</b>Q-learning</a><span class="sep">→</span>
+  <a href="chapters/ch26.html#monte-carlo-tree-search"><b>26</b>MCTS</a><span class="sep">→</span>
+  <a href="chapters/ch26.html#alphazero-style-search"><b>26</b>AlphaZero</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-convolution">
+ <h2>6 · Convolution</h2>
+ <p>You have been convolving since school without the name. Multiply two polynomials and the coefficient of $x^k$ in the product is $\sum_i a_i b_{k-i}$ — every pair of terms whose degrees sum to $k$. That sliding sum-of-products is convolution, and Chapter 17's generating functions exploit it deliberately: encode a sequence as coefficients, and convolution of sequences becomes plain multiplication of functions.</p>
+ <p>Chapter 14 gives the idea its physical meaning and its superpower. A linear time-invariant system is completely described by its impulse response, and its output is the input convolved with that response — echoes, blurs, and filters are all convolutions. The superpower is the convolution theorem: the Fourier transform turns convolution into pointwise multiplication. Slide-and-sum in the time domain is just multiply in the frequency domain. This is not merely elegant; it is fast. The FFT computes the transform in $O(n \log n)$, so large convolutions — including polynomial multiplication, closing the loop with algebra — are done by transforming, multiplying, and transforming back.</p>
+ <p>Chapter 21 puts convolution to work as an inductive bias. An image's statistics are translation-invariant: an edge is an edge wherever it sits. A convolutional layer bakes this in by sliding one small learned kernel across the whole image, sharing its weights everywhere. Compared with a fully connected layer this slashes parameters by orders of magnitude and guarantees that a feature detector works at every location. Stacked layers grow receptive fields, so early layers see edges, later layers see textures and objects — a hierarchy that falls out of composing sliding windows.</p>
+ <p>Read the thread backwards and it is one sentence long: a CNN is a bank of learned impulse responses; its layers are the same operation that multiplies polynomials; and when you need it fast, the Fourier transform is waiting. Few ideas connect an algebra exercise to a vision system this directly.</p>
+ <div class="chain">
+  <a href="chapters/ch02.html#binomial-theorem"><b>02</b>Multiplying polynomials</a><span class="sep">→</span>
+  <a href="chapters/ch17.html#generating-functions"><b>17</b>Generating functions</a><span class="sep">→</span>
+  <a href="chapters/ch14.html#convolution"><b>14</b>Convolution</a><span class="sep">→</span>
+  <a href="chapters/ch14.html#fourier-transform"><b>14</b>Fourier transform</a><span class="sep">→</span>
+  <a href="chapters/ch14.html#convolution-theorem"><b>14</b>Convolution theorem</a><span class="sep">→</span>
+  <a href="chapters/ch14.html#fast-fourier-transform"><b>14</b>FFT</a><span class="sep">→</span>
+  <a href="chapters/ch21.html#convolution"><b>21</b>Conv layers</a><span class="sep">→</span>
+  <a href="chapters/ch21.html#cnns"><b>21</b>CNNs</a><span class="sep">→</span>
+  <a href="chapters/ch21.html#receptive-fields"><b>21</b>Receptive fields</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-bayes">
+ <h2>7 · Bayes</h2>
+ <p>Conditional probability is just a renormalization: $P(A \mid B)$ restricts the world to where $B$ happened and rescales. Bayes' theorem is that definition read in both directions — $P(H \mid E) \propto P(E \mid H)\,P(H)$ — and it answers the question science actually asks: not "how likely is this evidence given my hypothesis" but "how should this evidence change what I believe." Chapter 11 sets it up as arithmetic; Bayesian updating turns it into a discipline, with today's posterior serving as tomorrow's prior.</p>
+ <p>Chapter 13 scales the arithmetic into inference. Priors and posteriors over parameters, conjugate families where the update stays in closed form, and — when closed form fails — MCMC and variational methods that approximate the posterior by sampling or by optimization. The Bayesian view also explains its rivals: MAP estimation is a posterior mode, and regularization is a prior wearing a penalty term's clothing.</p>
+ <p>Run the update repeatedly through time and you get filtering. A hidden Markov model alternates predict (push belief through the dynamics) and update (condition on the new observation) — Bayes' rule on a conveyor belt. Chapter 28's Kalman filter is this recursion when everything is linear-Gaussian; the particle filter is the same recursion with samples standing in for densities when nothing is nice.</p>
+ <p>The destination is agency. Chapter 24's Bayesian decision theory says: to act well under uncertainty, maximize expected utility under your posterior. Chapter 26's POMDPs make the point structural — when an agent cannot see the state, the correct "state" to plan over is its belief, the posterior itself, and information-gathering actions become valuable because they sharpen it. An agent's belief state is not a metaphor: it is Bayes' theorem, iterated, given a seat in the planner.</p>
+ <div class="chain">
+  <a href="chapters/ch11.html#conditional-probability"><b>11</b>Conditional probability</a><span class="sep">→</span>
+  <a href="chapters/ch11.html#bayes-theorem"><b>11</b>Bayes' theorem</a><span class="sep">→</span>
+  <a href="chapters/ch11.html#bayesian-updating"><b>11</b>Bayesian updating</a><span class="sep">→</span>
+  <a href="chapters/ch13.html#bayesian-inference"><b>13</b>Bayesian inference</a><span class="sep">→</span>
+  <a href="chapters/ch12.html#hidden-markov-models"><b>12</b>HMMs</a><span class="sep">→</span>
+  <a href="chapters/ch28.html#kalman-filtering"><b>28</b>Kalman filter</a><span class="sep">→</span>
+  <a href="chapters/ch28.html#particle-filtering"><b>28</b>Particle filter</a><span class="sep">→</span>
+  <a href="chapters/ch24.html#bayesian-decision-theory"><b>24</b>Bayesian decisions</a><span class="sep">→</span>
+  <a href="chapters/ch26.html#pomdps"><b>26</b>Belief states in POMDPs</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-fixed-points">
+ <h2>8 · Fixed points</h2>
+ <p>A fixed point is a value an operation cannot change: $f(x^*) = x^*$. The surprise is how much of applied mathematics consists of (a) recognizing that the thing you want is a fixed point of some map, and (b) finding it by iterating that map. Chapter 18 states the pattern plainly: fixed-point iteration computes $x_{n+1} = f(x_n)$, and if $f$ is a contraction — it shrinks distances by a factor below one — the Banach principle guarantees a unique fixed point and convergence from anywhere. Newton's method is the pattern's overachiever: it rewrites root-finding as a fixed-point problem whose iteration map has zero derivative at the solution, buying quadratic convergence.</p>
+ <p>Probability offers a stately example. The stationary distribution of a Markov chain (Chapter 12) is a fixed point of the transition operator: $\pi = \pi P$. Run the chain and, under mild conditions, it forgets its start and settles into $\pi$ — iteration converging to the fixed point, with mixing time measuring how fast.</p>
+ <p>Reinforcement learning's value iteration is the same theorem with a different operator. The Bellman optimality operator is a $\gamma$-contraction in the sup norm, so it has exactly one fixed point — the optimal value function — and repeated application converges geometrically. The convergence guarantee you learned for numerical root-finding is, verbatim, the convergence guarantee for planning.</p>
+ <p>Two more appearances close the thread. In dynamical systems (Chapter 28), equilibria are fixed points of the flow, and stability asks whether nearby trajectories fall in or spiral out — answered by eigenvalues of the linearization, tying this thread to Thread 3. And in game theory (Chapter 24), a Nash equilibrium is a fixed point of every player's best-response map at once; Nash's proof that one always exists is a fixed-point theorem (Kakutani's). Solve-by-iterate is not a numerical trick. It is a worldview: define the answer as what survives the process.</p>
+ <div class="chain">
+  <a href="chapters/ch18.html#fixed-point-iteration"><b>18</b>Fixed-point iteration</a><span class="sep">→</span>
+  <a href="chapters/ch18.html#newtons-method"><b>18</b>Newton's method</a><span class="sep">→</span>
+  <a href="chapters/ch12.html#stationary-distributions"><b>12</b>Stationary distributions</a><span class="sep">→</span>
+  <a href="chapters/ch25.html#value-iteration"><b>25</b>Value iteration</a><span class="sep">→</span>
+  <a href="chapters/ch28.html#fixed-points"><b>28</b>Fixed points of dynamics</a><span class="sep">→</span>
+  <a href="chapters/ch28.html#stability"><b>28</b>Stability</a><span class="sep">→</span>
+  <a href="chapters/ch24.html#nash-equilibrium"><b>24</b>Nash equilibrium</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-compression">
+ <h2>9 · Compression is intelligence</h2>
+ <p>To compress data you must find its regularities; to find regularities is to understand. Chapter 16 makes the first half precise: Shannon's source coding theorem says data from a source cannot be compressed below its entropy, and any code that approaches that limit embodies a probability model of the source. Arithmetic coding makes the equivalence exact — give it a predictor, and it turns each prediction into $-\log_2 p$ bits. Better prediction is better compression, bit for bit.</p>
+ <p>Minimum Description Length turns the equivalence into an epistemology. The best hypothesis for your data is the one that minimizes (bits to describe the hypothesis) plus (bits to describe the data given the hypothesis). That is Occam's razor with units: an over-complex model wastes bits on itself, an over-simple one wastes bits on residuals. Regularized model fitting, seen from this angle, is two-part code optimization.</p>
+ <p>Now look at a language model. Its training objective — next-token cross-entropy — is literally its compressed size of the corpus in bits per token. A trained LLM plus an arithmetic coder is a compressor, and a state-of-the-art one. The scaling laws of Chapters 21 and 23 are compression curves: loss falls as a power law in parameters and data, and compute-optimal training (Chinchilla) is asking how to buy the most compression per FLOP. What we call capability gains are movements down a compression curve.</p>
+ <p>The most suggestive link is in-context learning (Chapter 23). A model that compresses text well must model the process generating whatever document it is in — so when a prompt shows it a few input-output pairs, predicting the next token forces it to infer and apply the pattern. Nobody trained it to learn from examples; learning-from-examples is what optimal prediction of patterned text is. Chapter 36 asks whether generality itself can be measured this way. This thread is the book's boldest claim: the loss function of intelligence may just be description length.</p>
+ <div class="chain">
+  <a href="chapters/ch16.html#entropy"><b>16</b>Entropy limit</a><span class="sep">→</span>
+  <a href="chapters/ch16.html#source-coding"><b>16</b>Source coding</a><span class="sep">→</span>
+  <a href="chapters/ch16.html#arithmetic-coding"><b>16</b>Arithmetic coding</a><span class="sep">→</span>
+  <a href="chapters/ch16.html#minimum-description-length"><b>16</b>MDL</a><span class="sep">→</span>
+  <a href="chapters/ch16.html#compression-as-prediction"><b>16</b>Compression = prediction</a><span class="sep">→</span>
+  <a href="chapters/ch21.html#scaling-laws"><b>21</b>Scaling laws</a><span class="sep">→</span>
+  <a href="chapters/ch23.html#compute-optimal-scaling"><b>23</b>Compute-optimal scaling</a><span class="sep">→</span>
+  <a href="chapters/ch23.html#in-context-learning"><b>23</b>In-context learning</a><span class="sep">→</span>
+  <a href="chapters/ch36.html#universal-intelligence-and-aixi"><b>36</b>Universal intelligence</a>
+ </div>
+</section>
+
+<section class="topic" id="thread-verification">
+ <h2>10 · Verification</h2>
+ <p>Generating an answer and checking an answer are different skills, and the second is often cheaper, sharper, and more trustworthy. The thread begins in Chapter 3, where a proof is precisely a checkable certificate: each step follows from the last by a rule anyone — or any machine — can verify. Induction is the template for verifying infinitely many cases with finitely many steps: prove the base, prove the step preserves the property, done.</p>
+ <p>Chapter 34 industrializes this. Hoare logic attaches preconditions and postconditions to code and proves that if the former hold, the latter follow; loop invariants are induction hypotheses for programs. Model checking exhausts a system's state space against a temporal-logic specification, and SMT solvers decide huge logical formulas automatically, turning "is there a bad input?" into a satisfiability query. The common shape: state the property, then let a checker — not hope — establish it.</p>
+ <p>Machine-generated reasoning needs the same discipline, because language models produce fluent chains of thought that can be confidently wrong. Chapter 30's answer is to verify the process, not just the outcome. Tool-verified reasoning routes claims through checkers that cannot be sweet-talked — a calculator, a compiler, a proof assistant. Process reward models score each reasoning step rather than only the final answer, so search at test time (self-consistency, tree-of-thought) can prune bad branches early. The asymmetry that powers NP — verifying is easier than finding — becomes a training signal.</p>
+ <p>The thread ends where the stakes are highest. Chapter 32 treats every tool output an agent ingests as untrusted until validated, and Chapter 34's runtime monitors and safety shields sit between an agent's proposed action and the world, blocking anything that would violate a stated safety property. From Euclid to agent sandboxes, it is one conviction: do not trust the generator — check the certificate.</p>
+ <div class="chain">
+  <a href="chapters/ch03.html#direct-proof"><b>03</b>Proof</a><span class="sep">→</span>
+  <a href="chapters/ch03.html#proof-by-induction"><b>03</b>Induction</a><span class="sep">→</span>
+  <a href="chapters/ch34.html#hoare-logic"><b>34</b>Hoare logic</a><span class="sep">→</span>
+  <a href="chapters/ch34.html#model-checking"><b>34</b>Model checking</a><span class="sep">→</span>
+  <a href="chapters/ch34.html#smt-solving"><b>34</b>SMT solving</a><span class="sep">→</span>
+  <a href="chapters/ch30.html#tool-verified-reasoning"><b>30</b>Tool-verified reasoning</a><span class="sep">→</span>
+  <a href="chapters/ch30.html#process-reward-models"><b>30</b>Process reward models</a><span class="sep">→</span>
+  <a href="chapters/ch32.html#output-validation"><b>32</b>Output validation</a><span class="sep">→</span>
+  <a href="chapters/ch34.html#safety-shields"><b>34</b>Safety shields</a>
+ </div>
+</section>
+
+</div>
+</body></html>

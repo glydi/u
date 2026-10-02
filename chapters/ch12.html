@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 12 Stochastic Processes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','12')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">12</div><h1>Stochastic Processes</h1>
+   <p class="lede">Randomness that unfolds in time, up to the math of diffusion models.</p>
+   <div class="meta"><span class="chip">18 topics</span><span class="chip">needs: chapters 10, 11</span><span class="chip">feeds: chapters 13, 22, 25</span></div>
+  </div>
+
+<section class="topic" id="stochastic-processes">
+ <h2>Stochastic processes</h2>
+ <p>A random variable is one roll of the dice; a stochastic process is dice rolled through time — a whole random <em>trajectory</em>. Stock prices, queue lengths, token sequences, the noising of an image in a diffusion model: each is a family of random variables indexed by time, and the interesting questions are about the paths, not single values.</p>
+ <div class="box def"><span class="label">Definition</span> A stochastic process is a collection $\{X_t\}_{t\in T}$ of random variables on one probability space, indexed by time $T$ (discrete: $T=\{0,1,2,\dots\}$; continuous: $T=[0,\infty)$). A <em>sample path</em> is the function $t\mapsto X_t(\omega)$ for one outcome $\omega$. The process is <em>stationary</em> if all joint distributions are invariant under time shifts.</div>
+ <div class="box ex"><span class="label">Worked example</span> Let $X_t=A\cos(t+\Theta)$ where $A,\Theta$ are random ($\Theta$ uniform on $[0,2\pi)$, independent of $A$ with $\mathbb{E}[A^2]&lt;\infty$). Each path is a smooth cosine; the randomness lies in amplitude and phase. Mean: $\mathbb{E}[X_t]=\mathbb{E}[A]\,\mathbb{E}[\cos(t+\Theta)]=0$ for all $t$. Autocovariance: $\mathbb{E}[X_tX_s]=\mathbb{E}[A^2]\,\mathbb{E}[\cos(t+\Theta)\cos(s+\Theta)]=\tfrac12\mathbb{E}[A^2]\cos(t-s)$ — depends only on the lag: (wide-sense) stationary.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify each by index and state space: (a) daily closing price; (b) number of requests by time $t$; (c) temperature as a function of continuous time. <details class="sol"><summary>Solution</summary><div>(a) discrete time, continuous state; (b) continuous time, discrete state (a counting process); (c) continuous time, continuous state.</div></details></li>
+  <li><span class="lvl m">MED</span> $X_t=Z$ for all $t$ (one Gaussian frozen in time) vs $X_t$ i.i.d. Gaussians. Both are stationary — contrast their sample paths and autocovariances. <details class="sol"><summary>Solution</summary><div>Frozen: flat constant paths, $\operatorname{Cov}(X_t,X_s)=\sigma^2$ for all lags (perfect memory). i.i.d.: wildly jagged paths, $\operatorname{Cov}=0$ for $t\neq s$ (no memory). Stationarity constrains distributions, not smoothness.</div></details></li>
+  <li><span class="lvl h">HARD</span> Is the random walk $S_n=\sum_{i=1}^n\xi_i$ ($\xi_i$ i.i.d., mean 0, variance 1) stationary? Are its <em>increments</em> stationary? <details class="sol"><summary>Solution</summary><div>Not stationary: $\operatorname{Var}(S_n)=n$ grows. But increments $S_{n+k}-S_n$ depend only on $k$ in distribution (sum of $k$ i.i.d. terms): stationary <em>increments</em>, and independent ones too — the defining pattern of walks and Brownian motion.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="random-walks">
+ <h2>Random walks</h2>
+ <p>Flip a coin, step left or right, repeat: the random walk is the fruit fly of stochastic processes. It spreads like $\sqrt n$, revisits the origin in 1 and 2 dimensions but escapes forever in 3, and rescaled properly it becomes Brownian motion.</p>
+ <div class="box def"><span class="label">Definition</span> Simple random walk: $S_0=0$, $S_n=\sum_{i=1}^n\xi_i$ with i.i.d. steps $\xi_i=\pm1$, $P(\xi=+1)=p$. Symmetric case $p=\tfrac12$: $\mathbb{E}[S_n]=0$, $\operatorname{Var}(S_n)=n$, and by the CLT $S_n/\sqrt n\xrightarrow{d}N(0,1)$. Pólya: recurrent in dimensions 1 and 2, transient in $\ge3$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Symmetric walk, 100 steps. Typical distance from start: $\sqrt{100}=10$, not 100. $P(S_{100}=0)=\binom{100}{50}2^{-100}\approx\frac{1}{\sqrt{50\pi}}\approx0.0796$ (Stirling): even after 100 fair steps, returning exactly to zero happens only ~8% of the time — yet return <em>eventually</em> is certain in 1-D.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Sample fresh 1-D walks and watch the $\pm\sqrt n$ envelope contain the typical spread. Nudge the bias $p$ and see drift take over.</p>
+  <canvas id="cv-walk"></canvas>
+  <div class="ctl"><label>p(step +1) <input type="range" id="rw-p" min="0.3" max="0.7" step="0.01" value="0.5"></label>
+  <button class="btn" id="rw-go">Resample</button></div>
+  <div class="out" id="rw-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Rescaled walks become Brownian motion (below); walks on graphs power PageRank and MCMC (Ch 13); gambler's-ruin logic reappears in bandits (Ch 24).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a symmetric walk, compute $\mathbb{E}[S_{400}]$ and the standard deviation of $S_{400}$. <details class="sol"><summary>Solution</summary><div>$0$ and $\sqrt{400}=20$.</div></details></li>
+  <li><span class="lvl m">MED</span> Biased walk $p=0.6$: mean and sd of $S_{100}$, and the probability of being at or below 0 (normal approximation). <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[\xi]=0.2$, $\operatorname{Var}(\xi)=1-0.04=0.96$. Mean $20$, sd $\sqrt{96}\approx9.8$. $P(S_{100}\le0)\approx\Phi(-20/9.8)=\Phi(-2.04)\approx2.1\%$ — drift beats diffusion at scale $n$ vs $\sqrt n$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gambler's ruin: start with $k$ chips, absorb at $0$ or $N$, fair coin. Show $P(\text{reach }N)=k/N$ using the martingale property $\mathbb{E}[S_{n+1}\mid S_n]=S_n$. <details class="sol"><summary>Solution</summary><div>The stopped fair walk is a martingale, so $\mathbb{E}[S_\tau]=S_0=k$ (optional stopping; stopping time bounded in expectation). At absorption $S_\tau\in\{0,N\}$: $k=N\cdot P(\text{hit }N)+0\cdot(1-P)$, hence $P=k/N$. A one-line answer to a nontrivial question — the martingale method's signature move.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="markov-chains">
+ <h2>Markov chains</h2>
+ <p>A process with amnesia: the future depends on the present state only, not on how you got there. That single assumption — the Markov property — makes everything computable with matrices, and it is the modeling backbone of queues, PageRank, MCMC, RL environments and (approximately) language.</p>
+ <div class="box def"><span class="label">Definition</span> A (discrete-time, finite-state) Markov chain has $$P(X_{n+1}=j\mid X_n=i,X_{n-1},\dots,X_0)=P(X_{n+1}=j\mid X_n=i)=P_{ij},$$ time-homogeneous transition probabilities collected in the matrix $P$ (rows sum to 1). Multi-step: $P(X_{n+m}=j\mid X_n=i)=(P^m)_{ij}$ (Chapman–Kolmogorov).</div>
+ <div class="box ex"><span class="label">Worked example</span> Weather: Sunny→Sunny 0.8, Sunny→Rainy 0.2; Rainy→Sunny 0.4, Rainy→Rainy 0.6. $P=\begin{pmatrix}0.8&0.2\\0.4&0.6\end{pmatrix}$. Two-day forecast from Sunny: $P^2=\begin{pmatrix}0.72&0.28\\0.56&0.44\end{pmatrix}$ — $P(\text{rain in 2 days}\mid\text{sunny now})=0.28$. Note the rows already drifting toward each other: memory of today fading.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Markov" is relative to the chosen state. A process that looks non-Markov (yesterday matters too) becomes Markov if you enlarge the state to (today, yesterday). Modeling skill is choosing a state that carries just enough memory — the same idea as the state in RL (Ch 25).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the weather chain starting Rainy, compute the distribution after one day. <details class="sol"><summary>Solution</summary><div>$(0.4,\,0.6)$ over (Sunny, Rainy).</div></details></li>
+  <li><span class="lvl m">MED</span> From Sunny, what is the probability of the exact sequence Sunny, Sunny, Rainy, Rainy over the next three days? <details class="sol"><summary>Solution</summary><div>$0.8\times0.2\times0.6=0.096$ — multiply along the path; the Markov property factorizes sequence probabilities exactly like an autoregressive model with a one-step context.</div></details></li>
+  <li><span class="lvl h">HARD</span> A mouse moves between rooms $\{1,2,3\}$ arranged in a line (from 1 or 3 it must move to 2; from 2 it moves to 1 or 3 equally). Write $P$, find $P^2$, and explain the period-2 behavior. <details class="sol"><summary>Solution</summary><div>$P=\begin{pmatrix}0&1&0\\ \tfrac12&0&\tfrac12\\0&1&0\end{pmatrix}$, $P^2=\begin{pmatrix}\tfrac12&0&\tfrac12\\0&1&0\\ \tfrac12&0&\tfrac12\end{pmatrix}$. The chain alternates between $\{2\}$ and $\{1,3\}$: period 2, so $P^n$ never converges (it oscillates), although a stationary distribution $(\tfrac14,\tfrac12,\tfrac14)$ exists. Periodicity is one of the two obstructions to convergence (the other: disconnected states).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="transition-matrices">
+ <h2>Transition matrices</h2>
+ <p>The chain's entire law in one matrix: row $i$ is the next-state distribution from state $i$. Evolution of beliefs is a vector–matrix product, $n$-step behavior is a matrix power, and the long-run fate of the chain is an eigenvalue question (Ch 8, meet Ch 11).</p>
+ <div class="box def"><span class="label">Definition</span> $P\in\mathbb{R}^{S\times S}$ is <em>row-stochastic</em>: $P_{ij}\ge0$, $\sum_jP_{ij}=1$. If the row vector $\boldsymbol\mu_n$ is the distribution at time $n$, then $\boldsymbol\mu_{n+1}=\boldsymbol\mu_nP$ and $\boldsymbol\mu_n=\boldsymbol\mu_0P^n$. Eigenvalues satisfy $|\lambda|\le1$, and $\lambda=1$ always (eigenvector $\mathbf 1$ on the right).</div>
+ <div class="box ex"><span class="label">Worked example</span> Weather chain, start 50/50: $\boldsymbol\mu_1=(0.5,0.5)P=(0.6,0.4)$; $\boldsymbol\mu_2=(0.6,0.4)P=(0.64,0.36)$; $\boldsymbol\mu_3=(0.656,0.344)$ — marching toward $(\tfrac23,\tfrac13)$. Eigenvalues of $P$: $1$ and $0.8+0.6-1=0.4$; the gap $1-0.4$ sets the convergence rate: error shrinks by 0.4× per step.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which are valid transition matrices? $A=\begin{pmatrix}0.5&0.5\\0.3&0.6\end{pmatrix}$, $B=\begin{pmatrix}0&1\\1&0\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$A$: no (second row sums to 0.9). $B$: yes (a deterministic swap).</div></details></li>
+  <li><span class="lvl m">MED</span> Show that the product of two row-stochastic matrices is row-stochastic. <details class="sol"><summary>Solution</summary><div>Nonnegativity is clear. Rows: $\sum_j(PQ)_{ij}=\sum_j\sum_kP_{ik}Q_{kj}=\sum_kP_{ik}\sum_jQ_{kj}=\sum_kP_{ik}=1$. Hence $P^n$ is a legitimate $n$-step transition matrix.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove every eigenvalue of a row-stochastic $P$ satisfies $|\lambda|\le1$. <details class="sol"><summary>Solution</summary><div>Let $P\mathbf v=\lambda\mathbf v$, and pick $i$ with $|v_i|$ maximal. Then $|\lambda||v_i|=|\sum_jP_{ij}v_j|\le\sum_jP_{ij}|v_j|\le|v_i|\sum_jP_{ij}=|v_i|$, so $|\lambda|\le1$. (Gershgorin's take: all rows have center $P_{ii}$ and radius $1-P_{ii}$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="stationary-distributions">
+ <h2>Stationary distributions</h2>
+ <p>Some belief vectors don't move: run the chain one step and the distribution comes back unchanged. That fixed point $\boldsymbol\pi=\boldsymbol\pi P$ is where the chain spends its long-run time — the resting profile of a queue, the PageRank of the web, the target density of an MCMC sampler.</p>
+ <div class="box def"><span class="label">Definition</span> $\boldsymbol\pi$ is stationary if $\boldsymbol\pi P=\boldsymbol\pi$, $\pi_i\ge0$, $\sum_i\pi_i=1$ — a left eigenvector for $\lambda=1$. For finite, irreducible chains it exists and is unique, and $\pi_i=1/\mathbb{E}_i[\text{return time to }i]$. <em>Detailed balance</em> ($\pi_iP_{ij}=\pi_jP_{ji}$ for all $i,j$) implies stationarity and is the design principle of MCMC.</div>
+ <div class="box ex"><span class="label">Worked example</span> Weather chain: solve $(\pi_S,\pi_R)\begin{pmatrix}0.8&0.2\\0.4&0.6\end{pmatrix}=(\pi_S,\pi_R)$: $0.8\pi_S+0.4\pi_R=\pi_S\Rightarrow0.4\pi_R=0.2\pi_S\Rightarrow\pi_S=2\pi_R$. Normalize: $\boldsymbol\pi=(\tfrac23,\tfrac13)$: two sunny days for every rainy one, whatever today looks like. Check detailed balance: $\tfrac23\cdot0.2=\tfrac{2}{15}=\tfrac13\cdot0.4$ ✓ (two-state chains always satisfy it).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A 3-state chain: adjust the "stickiness" of each state and watch the distribution bars flow to the stationary profile step by step.</p>
+  <canvas id="cv-stat"></canvas>
+  <div class="ctl"><label>stickiness A <input type="range" id="st-a" min="0.05" max="0.95" step="0.05" value="0.7"></label>
+  <label>stickiness B <input type="range" id="st-b" min="0.05" max="0.95" step="0.05" value="0.5"></label>
+  <label>stickiness C <input type="range" id="st-c" min="0.05" max="0.95" step="0.05" value="0.2"></label>
+  <button class="btn" id="st-step">Step</button><button class="btn" id="st-run">Run</button><button class="btn" id="st-reset">Reset to (1,0,0)</button></div>
+  <div class="out" id="st-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the stationary distribution of $P=\begin{pmatrix}0.5&0.5\\0.5&0.5\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$(\tfrac12,\tfrac12)$ — in fact the chain reaches it in one step from anywhere.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the stationary distribution of $P=\begin{pmatrix}0.9&0.1\\0.5&0.5\end{pmatrix}$ and interpret via return times. <details class="sol"><summary>Solution</summary><div>$0.1\pi_1=0.5\pi_2\Rightarrow\pi_1=5\pi_2$: $\boldsymbol\pi=(\tfrac56,\tfrac16)$. Mean return time to state 2: $1/\pi_2=6$ steps.</div></details></li>
+  <li><span class="lvl h">HARD</span> Random walk on an undirected graph moves to a uniformly random neighbor. Show $\pi_i\propto\deg(i)$ via detailed balance, and compute $\boldsymbol\pi$ for a path graph 1–2–3. <details class="sol"><summary>Solution</summary><div>$P_{ij}=\frac{1}{\deg i}$ for neighbors. Try $\pi_i=\frac{\deg i}{2|E|}$: $\pi_iP_{ij}=\frac{\deg i}{2|E|}\cdot\frac{1}{\deg i}=\frac{1}{2|E|}=\pi_jP_{ji}$ ✓ symmetric — detailed balance holds, so $\boldsymbol\pi$ is stationary. Path 1–2–3: degrees $(1,2,1)$, $\boldsymbol\pi=(\tfrac14,\tfrac12,\tfrac14)$ — matching the mouse chain earlier.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">A stationary distribution $\boldsymbol\pi$ of a chain $P$ is…</div><button class="opt">the state the chain gets stuck in</button><button class="opt">any eigenvector of $P$</button><button class="opt">a distribution with $\boldsymbol\pi P=\boldsymbol\pi$ — invariant under one step</button><div class="why" hidden>It is a <em>distribution</em> fixed by the dynamics (left eigenvector for $\lambda=1$, normalized, nonnegative). The chain keeps moving between states; it's the probability profile that stands still.</div></div>
+</section>
+
+<section class="topic" id="ergodicity">
+ <h2>Ergodicity</h2>
+ <p>When is "time average = space average"? An ergodic chain forgets its start and visits states in proportion to $\boldsymbol\pi$, so one long trajectory reveals the whole stationary law. This is precisely the property MCMC banks on: simulate long enough and sample averages converge to expectations under the target.</p>
+ <div class="box def"><span class="label">Definition</span> A finite chain is <em>irreducible</em> (every state reachable from every other) and <em>aperiodic</em> (return times to some state have gcd 1) ⟹ <em>ergodic</em>: $P(X_n=j\mid X_0=i)\to\pi_j$ for all $i,j$, and for any function $f$, $$\frac{1}{N}\sum_{n=1}^Nf(X_n)\ \longrightarrow\ \sum_i\pi_if(i)\quad\text{almost surely (ergodic theorem).}$$</div>
+ <div class="box ex"><span class="label">Worked example</span> The weather chain is irreducible (both states reachable) and aperiodic ($P_{SS}=0.8&gt;0$ gives period 1): ergodic. Simulating $10^5$ days from any start, the fraction of sunny days converges to $\tfrac23$ — one run suffices, no ensemble needed. Counterexamples: the mouse chain (periodic — averages converge but $P^n$ oscillates), and a chain with two disconnected islands (time average depends on where you start).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the deterministic swap $B=\begin{pmatrix}0&1\\1&0\end{pmatrix}$ ergodic? <details class="sol"><summary>Solution</summary><div>Irreducible yes, but period 2: not ergodic; $P^n$ alternates and never converges (time averages still hit $(\tfrac12,\tfrac12)$).</div></details></li>
+  <li><span class="lvl m">MED</span> Give the standard one-line fix that makes any irreducible chain aperiodic, and why it preserves $\boldsymbol\pi$... does it? <details class="sol"><summary>Solution</summary><div>Lazy chain: $P'=\tfrac12(I+P)$ — flip a coin, stay or move. Self-loops kill periodicity; and $\boldsymbol\pi P'=\tfrac12\boldsymbol\pi+\tfrac12\boldsymbol\pi P=\boldsymbol\pi$: same stationary distribution, at half the speed.</div></details></li>
+  <li><span class="lvl h">HARD</span> An MCMC practitioner runs one chain for $10^6$ steps but the target has two modes separated by a region the proposal essentially never crosses. Relate to ergodicity and explain the failure mode. <details class="sol"><summary>Solution</summary><div>Formally the chain is irreducible (crossing has tiny positive probability), so the ergodic theorem applies — but its convergence time exceeds any feasible run: <em>practical</em> non-ergodicity. The trajectory explores one mode; time averages estimate the wrong (conditional) distribution with deceptively small error bars. Remedies: tempering, better proposals, multiple chains with dispersed starts and $\hat R$ diagnostics (Ch 13); the quantitative version is mixing time (next).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mixing-time">
+ <h2>Mixing time</h2>
+ <p>Ergodicity says the chain converges; mixing time asks <em>how fast</em> — how many steps until the distribution is within ε of stationary, from the worst start. The answer is governed by the spectral gap: the distance from the second eigenvalue to 1. Shuffling cards, MCMC burn-in, and diffusion model noising schedules are all mixing-time questions.</p>
+ <div class="box def"><span class="label">Definition</span> Total variation distance: $\|\mu-\nu\|_{TV}=\tfrac12\sum_i|\mu_i-\nu_i|$. Mixing time: $$t_{\mathrm{mix}}(\epsilon)=\min\{n:\max_{i}\|P^n(i,\cdot)-\boldsymbol\pi\|_{TV}\le\epsilon\}.$$ For reversible chains with eigenvalues $1=\lambda_1&gt;\lambda_2\ge\cdots$: convergence is geometric with rate $\lambda_\star=\max_{k\ge2}|\lambda_k|$, and $t_{\mathrm{mix}}(\epsilon)\approx\frac{\ln(1/\epsilon)+\ln(1/\pi_{\min})/2}{1-\lambda_\star}$ up to constants; $1-\lambda_\star$ is the <em>spectral gap</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Weather chain: $\lambda_2=0.4$, so distance to stationarity shrinks by $0.4$ per step. From Sunny: initial TV distance $\|(1,0)-(\tfrac23,\tfrac13)\|_{TV}=\tfrac13$. After $n$ steps: $\tfrac13(0.4)^n$. For $\epsilon=0.01$: $n\ge\frac{\ln(100/3)}{\ln(1/0.4)}\approx\frac{3.51}{0.916}\approx3.8$: 4 steps. A sticky chain with $\lambda_2=0.99$ would need ~350 steps for the same accuracy — gap 60× smaller, mixing ~90× slower.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two chains have spectral gaps 0.5 and 0.01. Roughly how do their mixing times compare? <details class="sol"><summary>Solution</summary><div>Mixing time scales like $1/\text{gap}$: the second is ~50× slower.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\|\mu-\nu\|_{TV}$ for $\mu=(0.7,0.2,0.1)$, $\nu=(0.3,0.3,0.4)$, and state its meaning. <details class="sol"><summary>Solution</summary><div>$\tfrac12(0.4+0.1+0.3)=0.4$ — the maximum disagreement over any event: some event's probability differs by 0.4 between the two laws.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the two-state chain $P=\begin{pmatrix}1-a&a\\b&1-b\end{pmatrix}$, show $\lambda_2=1-a-b$ and find the fastest-mixing choice. <details class="sol"><summary>Solution</summary><div>Trace $=2-a-b=\lambda_1+\lambda_2=1+\lambda_2$, so $\lambda_2=1-a-b$. Fastest mixing: $\lambda_2=0$ at $a+b=1$ — e.g. $a=b=\tfrac12$, which reaches stationarity in one step. Overly sticky ($a+b$ small) mixes slowly; overly antsy ($a+b\to2$) oscillates with $\lambda_2\to-1$ — also slow. Best is in between: a preview of step-size tuning everywhere.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hidden-markov-models">
+ <h2>Hidden Markov models</h2>
+ <p>Often the Markov chain is backstage: you see noisy emissions, not the state itself. Speech (phonemes → audio), genomics (regions → bases), user intent (goal → clicks). The HMM's magic is that posterior beliefs over the hidden state can be updated exactly with dynamic programming — the forward algorithm, ancestor of every filtering method.</p>
+ <div class="box def"><span class="label">Definition</span> An HMM has hidden chain $Z_1\to Z_2\to\cdots$ with transitions $A_{ij}$, and observations $X_t$ emitted with $P(X_t=x\mid Z_t=i)=B_i(x)$, conditionally independent given the states. <em>Forward algorithm:</em> $\alpha_t(i)=P(x_{1:t},Z_t=i)$ satisfies $$\alpha_1(i)=\pi_iB_i(x_1),\qquad \alpha_{t+1}(j)=B_j(x_{t+1})\sum_i\alpha_t(i)A_{ij},$$ giving the likelihood $P(x_{1:T})=\sum_i\alpha_T(i)$ in $O(TS^2)$. (Viterbi: same recursion with max — the most likely state path.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Hidden weather (Sunny/Rainy, the usual $A$, start $(\tfrac23,\tfrac13)$); you only see your friend carry an umbrella: $P(\text{umb}\mid R)=0.9$, $P(\text{umb}\mid S)=0.2$. Observe umbrella on day 1: $\alpha_1(S)=\tfrac23\cdot0.2=0.1\overline{3}$, $\alpha_1(R)=\tfrac13\cdot0.9=0.3$. Posterior: $P(R\mid\text{umb})=\frac{0.3}{0.4\overline{3}}\approx0.692$. Umbrella again on day 2: $\alpha_2(S)=0.2(0.1333\cdot0.8+0.3\cdot0.4)=0.0453$; $\alpha_2(R)=0.9(0.1333\cdot0.2+0.3\cdot0.6)=0.186$. $P(R_2\mid\text{umb,umb})=\frac{0.186}{0.231}\approx0.804$ — evidence accumulating through time, exactly.</div>
+ <div class="box link"><span class="label">Where this goes</span> The same message-passing becomes the Kalman filter for linear-Gaussian states (Ch 28) and the particle filter beyond; POMDPs (Ch 26) bolt decisions onto the belief state.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In an HMM, are the observations $X_1,X_2,\dots$ themselves a Markov chain? <details class="sol"><summary>Solution</summary><div>No, in general. Given $X_t$, earlier observations still carry information about $Z_t$ (hence about $X_{t+1}$): the observed process has long-range dependence — one reason HMMs are more expressive than plain chains.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does naive enumeration of $P(x_{1:T})$ cost $O(S^T)$, and how does the forward algorithm cut it to $O(TS^2)$? <details class="sol"><summary>Solution</summary><div>Enumeration sums over all $S^T$ hidden paths. The forward recursion pushes the sum inside: at each step only the current state matters (Markov property), so we carry $S$ numbers $\alpha_t(\cdot)$ and update them with an $S\times S$ matrix — dynamic programming exploiting conditional independence.</div></details></li>
+  <li><span class="lvl h">HARD</span> Continue the worked example: day 3, NO umbrella. Compute the filtered posterior $P(R_3\mid\text{umb,umb,no})$. <details class="sol"><summary>Solution</summary><div>Emissions: $P(\text{no}\mid S)=0.8$, $P(\text{no}\mid R)=0.1$. $\alpha_3(S)=0.8(\alpha_2(S)0.8+\alpha_2(R)0.4)=0.8(0.0453\cdot0.8+0.186\cdot0.4)=0.8(0.03624+0.0744)=0.0885$. $\alpha_3(R)=0.1(0.0453\cdot0.2+0.186\cdot0.6)=0.1(0.00906+0.1116)=0.01207$. Posterior: $\frac{0.01207}{0.1006}\approx0.12$ — one sunny observation sharply flips the belief back.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="poisson-process">
+ <h2>Poisson process</h2>
+ <p>Pure randomness in continuous time: events arriving one by one, at constant average rate, with no memory and no coordination. Counts in any window are Poisson; gaps between events are exponential; disjoint windows are independent. It is the null model of arrivals against which all clustering and burstiness are measured.</p>
+ <div class="box def"><span class="label">Definition</span> $\{N(t)\}$ is a Poisson process with rate $\lambda$ if $N(0)=0$, increments over disjoint intervals are independent, and $N(t+s)-N(s)\sim\mathrm{Poi}(\lambda t)$. Equivalent construction: inter-arrival times i.i.d. Exp($\lambda$). Superposition: independent processes with rates $\lambda_1,\lambda_2$ merge into one with $\lambda_1+\lambda_2$; thinning: keeping each event independently with prob $p$ gives rate $p\lambda$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Support tickets arrive as a Poisson process, $\lambda=4$/hour. (a) $P(\text{exactly 2 in 30 min})$: $N\sim$Poi(2): $e^{-2}\frac{2^2}{2}=2e^{-2}\approx0.271$. (b) Given 6 tickets arrived in an hour, the arrival <em>times</em> are distributed as 6 i.i.d. uniforms on the hour, sorted — total randomness, no rush hour. (c) Wait for the next ticket at any moment: Exp(4), mean 15 min — regardless of how long it's been quiet.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lambda=3$/min. Probability of zero events in 2 minutes? <details class="sol"><summary>Solution</summary><div>$e^{-6}\approx0.0025$.</div></details></li>
+  <li><span class="lvl m">MED</span> Requests hit two servers as independent Poisson processes at 2/s and 3/s. What process do combined arrivals follow, and what fraction of events come from server 1? <details class="sol"><summary>Solution</summary><div>Poisson at 5/s (superposition); each event independently comes from server 1 with probability $\frac{2}{5}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for a Poisson process, given $N(T)=n$, the unordered arrival times are i.i.d. Uniform$[0,T]$. <details class="sol"><summary>Solution</summary><div>For disjoint sub-intervals with lengths $t_1,\dots,t_k$ summing to $T$ and counts $n_1,\dots,n_k$ summing to $n$: $P(\text{counts}\mid N(T)=n)=\frac{\prod_ie^{-\lambda t_i}(\lambda t_i)^{n_i}/n_i!}{e^{-\lambda T}(\lambda T)^n/n!}=\binom{n}{n_1\cdots n_k}\prod_i\left(\frac{t_i}{T}\right)^{n_i}$ — the multinomial of $n$ i.i.d. uniforms. The rate cancels: conditioned on the count, a Poisson process is uniform dust.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="martingales">
+ <h2>Martingales</h2>
+ <p>A martingale is a fair game: given everything so far, tomorrow's expected value is today's value. No strategy based on the past can generate expected profit — and that "you can't beat fairness" principle, made precise by the optional stopping theorem, yields one-line solutions to hitting problems and underlies concentration bounds like Azuma's.</p>
+ <div class="box def"><span class="label">Definition</span> $\{M_n\}$ is a martingale (w.r.t. information $\mathcal F_n$) if $\mathbb{E}|M_n|&lt;\infty$ and $$\mathbb{E}[M_{n+1}\mid\mathcal F_n]=M_n.$$ (Submartingale: $\ge$; supermartingale: $\le$.) <em>Optional stopping:</em> under regularity (e.g. bounded stopping time, or bounded $|M_{n}|$ up to $\tau$), $\mathbb{E}[M_\tau]=\mathbb{E}[M_0]$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Symmetric walk $S_n$: a martingale ($\mathbb{E}[S_{n+1}\mid\mathcal F_n]=S_n+\mathbb{E}[\xi]=S_n$). Also $M_n=S_n^2-n$: $\mathbb{E}[S_{n+1}^2\mid\mathcal F_n]=S_n^2+2S_n\mathbb{E}[\xi]+1=S_n^2+1$, so $\mathbb{E}[M_{n+1}\mid\mathcal F_n]=M_n$ ✓. Application: expected time for the walk from $k$ to hit $\{0,N\}$: optional stopping on $M_n$ gives $\mathbb{E}[S_\tau^2]-\mathbb{E}[\tau]=k^2$, and $\mathbb{E}[S_\tau^2]=N^2\cdot\frac{k}{N}=kN$ (using the ruin probability), so $\mathbb{E}[\tau]=kN-k^2=k(N-k)$. From the middle of a 100-state stretch: 2500 steps.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Optional stopping needs its conditions. "Double after every loss" (the martingale betting system!) targets the stopping time "first win," where $\mathbb{E}[M_\tau]\neq M_0$ because wealth is unbounded below along the way — infinite expected bankroll requirement, not free money.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the biased walk ($p=0.6$, steps ±1) a martingale? If not, fix it with a drift correction. <details class="sol"><summary>Solution</summary><div>No: $\mathbb{E}[S_{n+1}|\mathcal F_n]=S_n+0.2$. But $M_n=S_n-0.2n$ is a martingale.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that for the biased ±1 walk, $M_n=\left(\frac{1-p}{p}\right)^{S_n}$ is a martingale. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[r^{S_{n+1}}\mid\mathcal F_n]=r^{S_n}(pr+(1-p)r^{-1})$ with $r=\frac{1-p}{p}$: $pr+(1-p)/r=(1-p)+p=1$ ✓. De Moivre's martingale — it solves biased gambler's ruin by optional stopping.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use De Moivre's martingale to find the ruin probability: biased walk from $k$, absorbing at 0 and $N$, $p\neq\tfrac12$. <details class="sol"><summary>Solution</summary><div>Optional stopping: $r^{k}=\mathbb{E}[r^{S_\tau}]=P(\text{hit }N)r^{N}+(1-P)r^{0}$ with $r=\frac{1-p}{p}$. Solve: $P(\text{hit }N)=\frac{r^{k}-1}{r^{N}-1}$. For $p=0.6$ ($r=\tfrac23$), $k=5$, $N=10$: $P=\frac{(2/3)^5-1}{(2/3)^{10}-1}=\frac{1-0.1317}{1-0.01734}=\frac{0.8683}{0.98266}\approx0.884$ — the favorable player almost always wins from the midpoint.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="brownian-motion">
+ <h2>Brownian motion</h2>
+ <p>Shrink a random walk's steps and step-times together (steps of size $\sqrt{\Delta t}$ every $\Delta t$) and in the limit you get Brownian motion: continuous paths, independent Gaussian increments, no memory. It is the universal continuum limit of accumulated micro-randomness — pollen grains, stock noise, and the driving term of every SDE below.</p>
+ <div class="box def"><span class="label">Definition</span> Standard Brownian motion (Wiener process) $\{W_t\}_{t\ge0}$: $W_0=0$; independent increments; $W_t-W_s\sim N(0,t-s)$ for $s&lt;t$; continuous paths. Consequences: $\mathbb{E}[W_t]=0$, $\operatorname{Var}(W_t)=t$, $\operatorname{Cov}(W_s,W_t)=\min(s,t)$; paths are nowhere differentiable; scaling: $\{cW_{t/c^2}\}$ is again Brownian.</div>
+ <div class="box ex"><span class="label">Worked example</span> $P(W_4&gt;3)$: $W_4\sim N(0,4)$, so $P(Z&gt;1.5)\approx0.0668$. Joint: $\operatorname{Cov}(W_1,W_3)=1$, so $\operatorname{Corr}=\frac{1}{\sqrt{1\cdot3}}\approx0.577$ — early position carries into later position, though increments after $t=1$ are fresh. Conditional (Gaussian conditioning, Ch 11): $W_3\mid W_1=2\sim N(2,\,2)$: mean continues from where you are, variance = remaining time.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Fresh Brownian paths with the $\pm\sqrt t$ and $\pm2\sqrt t$ envelopes; add drift μ and volatility σ to see $X_t=\mu t+\sigma W_t$.</p>
+  <canvas id="cv-bm"></canvas>
+  <div class="ctl"><label>drift μ <input type="range" id="bm-mu" min="-1" max="1" step="0.05" value="0"></label>
+  <label>volatility σ <input type="range" id="bm-sig" min="0.2" max="2" step="0.05" value="1"></label>
+  <button class="btn" id="bm-go">Resample</button></div>
+  <div class="out" id="bm-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give the distribution of $W_9-W_4$ and of $W_9+W_4$... first, are they independent of each other? <details class="sol"><summary>Solution</summary><div>$W_9-W_4\sim N(0,5)$, independent of $W_4$ (increment property). $W_9+W_4=2W_4+(W_9-W_4)\sim N(0,4\cdot4+5)=N(0,21)$. Not independent of $W_9-W_4$? Actually $\operatorname{Cov}(W_9+W_4,W_9-W_4)=\operatorname{Var}W_9-\operatorname{Var}W_4=5\neq0$: dependent.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $\operatorname{Cov}(W_s,W_t)=\min(s,t)$. <details class="sol"><summary>Solution</summary><div>For $s\le t$: $W_t=W_s+(W_t-W_s)$; $\mathbb{E}[W_sW_t]=\mathbb{E}[W_s^2]+\mathbb{E}[W_s(W_t-W_s)]=s+0=s$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Quadratic variation: partition $[0,T]$ into $n$ pieces and let $Q_n=\sum_k(W_{t_{k+1}}-W_{t_k})^2$. Show $\mathbb{E}[Q_n]=T$ and $\operatorname{Var}(Q_n)\to0$, so $Q_n\to T$. Why does this doom ordinary calculus? <details class="sol"><summary>Solution</summary><div>Each increment: $\mathbb{E}[(\Delta W)^2]=\Delta t$, so $\mathbb{E}[Q_n]=\sum\Delta t=T$. Independent terms: $\operatorname{Var}(Q_n)=\sum\operatorname{Var}((\Delta W)^2)=\sum2\Delta t^2\le2T\max\Delta t\to0$. A smooth function's squared increments sum to $O(\max\Delta t)\to0$; Brownian paths accumulate <em>finite</em> squared wiggle per unit time. So $(dW)^2=dt$ effectively — the extra term that forces Itô calculus.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ito-integral">
+ <h2>Ito integral</h2>
+ <p>To integrate against a path that wiggles infinitely, Riemann–Stieltjes fails. Itô's fix: evaluate the integrand at the <em>left</em> endpoint of each interval (no peeking at the future) and take an $L^2$ limit. The result is a martingale with a beautiful variance formula — the Itô isometry — and it is the mathematical meaning of "accumulate noise."</p>
+ <div class="box def"><span class="label">Definition</span> For adapted $H$ (using only past information) with $\mathbb{E}\int_0^TH_t^2dt&lt;\infty$: $$\int_0^TH_t\,dW_t=\lim\sum_kH_{t_k}\,(W_{t_{k+1}}-W_{t_k}).$$ Properties: $\mathbb{E}\left[\int_0^TH\,dW\right]=0$; <em>Itô isometry:</em> $\mathbb{E}\left[\left(\int_0^TH\,dW\right)^2\right]=\mathbb{E}\left[\int_0^TH_t^2\,dt\right]$; the running integral is a martingale.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int_0^TW_t\,dW_t$. Guess from calculus: $\tfrac12W_T^2$. Check the mean: $\mathbb{E}[\tfrac12W_T^2]=\tfrac T2\neq0$ — but Itô integrals have mean zero! The correct value (via Itô's lemma, next) is $$\int_0^TW\,dW=\tfrac12W_T^2-\tfrac12T,$$ mean $0$ ✓. The $-\tfrac12T$ is quadratic variation's toll. Variance check by isometry: $\mathbb{E}\left[\int_0^TW_t^2dt\right]=\int_0^Tt\,dt=\tfrac{T^2}{2}$, and indeed $\operatorname{Var}(\tfrac12W_T^2-\tfrac12T)=\tfrac14\operatorname{Var}(W_T^2)=\tfrac14\cdot2T^2=\tfrac{T^2}{2}$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The left-endpoint choice is not cosmetic. Evaluating at the midpoint (Stratonovich) gives a different integral ($\tfrac12W_T^2$, no correction) with different rules. Itô is the finance/filtering convention (no look-ahead, martingale property); Stratonovich obeys the ordinary chain rule and appears in physics. Know which one your SDE means.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\mathbb{E}\left[\int_0^Tt\,dW_t\right]$ and its variance. <details class="sol"><summary>Solution</summary><div>Mean 0; isometry: $\int_0^Tt^2dt=\frac{T^3}{3}$.</div></details></li>
+  <li><span class="lvl m">MED</span> $I_1=\int_0^1H\,dW$ and $I_2=\int_1^2G\,dW$ with $H,G$ deterministic. Why are $I_1,I_2$ independent Gaussians, and what are their laws for $H=1,G=2$? <details class="sol"><summary>Solution</summary><div>Deterministic integrands make the integrals Gaussian (limits of Gaussian sums); disjoint time windows use independent increments. $I_1\sim N(0,1)$, $I_2\sim N(0,\int_1^24\,dt)=N(0,4)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the Riemann–Stieltjes endpoint choice matters: compute the mean of the left-sum and midpoint-style-sum approximations of $\int_0^TW\,dW$. <details class="sol"><summary>Solution</summary><div>Left: $\mathbb{E}[\sum W_{t_k}(W_{t_{k+1}}-W_{t_k})]=0$ (increment independent of past). "Midpoint" behaves like including half the quadratic variation: $\mathbb{E}[\sum W_{\frac{t_k+t_{k+1}}{2}}\Delta W_k]=\sum\operatorname{Cov}(W_{m_k},\Delta W_k)=\sum\frac{\Delta t}{2}=\frac T2$. The two limits differ by $\frac T2$ — precisely the Itô–Stratonovich gap.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="itos-lemma">
+ <h2>Ito's lemma</h2>
+ <p>The chain rule for noisy trajectories, with one crucial correction: because $(dW)^2=dt$, second derivatives contribute at first order. Itô's lemma is how you transform SDEs, derive Black–Scholes, and compute how a density's log evolves under diffusion — the identity behind score-based models.</p>
+ <div class="box thm"><span class="label">Theorem (Itô)</span> If $dX_t=\mu_t\,dt+\sigma_t\,dW_t$ and $f(t,x)$ is smooth: $$df(t,X_t)=\Big(\frac{\partial f}{\partial t}+\mu_t\frac{\partial f}{\partial x}+\frac{\sigma_t^2}{2}\frac{\partial^2f}{\partial x^2}\Big)dt+\sigma_t\frac{\partial f}{\partial x}\,dW_t.$$ Mnemonic: Taylor-expand to second order and use $dt^2=0$, $dt\,dW=0$, $(dW)^2=dt$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Geometric Brownian motion: $dS=\mu S\,dt+\sigma S\,dW$. Apply Itô to $f=\ln S$: $f_x=\frac1S$, $f_{xx}=-\frac1{S^2}$: $$d\ln S=\Big(\mu S\cdot\frac1S-\frac{\sigma^2S^2}{2}\cdot\frac{1}{S^2}\Big)dt+\sigma S\cdot\frac1S\,dW=\Big(\mu-\frac{\sigma^2}{2}\Big)dt+\sigma\,dW.$$ So $S_t=S_0\exp\big((\mu-\tfrac{\sigma^2}{2})t+\sigma W_t\big)$: the median grows at $\mu-\frac{\sigma^2}{2}$, not $\mu$ — Jensen's volatility drag (Ch 11), now derived exactly.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Apply Itô to $f(x)=x^2$ with $dX=dW$ (so $X=W$). <details class="sol"><summary>Solution</summary><div>$d(W^2)=2W\,dW+dt$ — rearranged, this proves $\int_0^TW\,dW=\frac12W_T^2-\frac T2$.</div></details></li>
+  <li><span class="lvl m">MED</span> With $dX=-\theta X\,dt+\sigma\,dW$, use Itô on $f(t,x)=e^{\theta t}x$ to solve the SDE. <details class="sol"><summary>Solution</summary><div>$df=\theta e^{\theta t}X\,dt+e^{\theta t}dX=\theta e^{\theta t}X\,dt+e^{\theta t}(-\theta X\,dt+\sigma dW)=\sigma e^{\theta t}dW$ ($f_{xx}=0$: no correction). Integrate: $e^{\theta t}X_t=X_0+\sigma\int_0^te^{\theta s}dW_s$ — the OU solution used below.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $M_t=e^{\lambda W_t-\lambda^2t/2}$ is a martingale using Itô, and connect to the Gaussian MGF. <details class="sol"><summary>Solution</summary><div>$f(t,x)=e^{\lambda x-\lambda^2t/2}$: $f_t=-\frac{\lambda^2}{2}f$, $f_x=\lambda f$, $f_{xx}=\lambda^2f$. Itô (with $\mu=0,\sigma=1$): $dM=(-\frac{\lambda^2}{2}f+\frac12\lambda^2f)dt+\lambda f\,dW=\lambda M\,dW$ — no drift: a (local, here true) martingale. Constant mean: $\mathbb{E}[e^{\lambda W_t}]=e^{\lambda^2t/2}$, recovering the $N(0,t)$ MGF. This "exponential martingale" powers Chernoff bounds in continuous time.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="stochastic-differential-equations">
+ <h2>Stochastic differential equations</h2>
+ <p>An ODE with a noise term: $dX=\mu(X,t)\,dt+\sigma(X,t)\,dW$ says "drift by $\mu$, diffuse by $\sigma$." Solutions are random processes; the drift shapes where paths tend, the diffusion how much they scatter. Interest rates, molecular dynamics, SGD's noisy trajectory, and diffusion models' noising process are all SDEs.</p>
+ <div class="box def"><span class="label">Definition</span> $X_t$ solves the SDE $dX_t=\mu(X_t,t)\,dt+\sigma(X_t,t)\,dW_t$, $X_0=x_0$, if $$X_t=x_0+\int_0^t\mu(X_s,s)\,ds+\int_0^t\sigma(X_s,s)\,dW_s.$$ Existence and uniqueness hold when $\mu,\sigma$ are Lipschitz with linear growth (the stochastic Picard theorem). <em>Euler–Maruyama scheme:</em> $X_{n+1}=X_n+\mu(X_n,t_n)\Delta t+\sigma(X_n,t_n)\sqrt{\Delta t}\,Z_n$, $Z_n\sim N(0,1)$ i.i.d.</div>
+ <div class="box ex"><span class="label">Worked example</span> Simulate $dX=-X\,dt+dW$ from $X_0=2$, $\Delta t=0.5$, with noise draws $Z_1=0.3$, $Z_2=-1.1$: $X_1=2-2(0.5)+\sqrt{0.5}(0.3)=1+0.212=1.212$; $X_2=1.212-1.212(0.5)+0.707(-1.1)=0.606-0.778=-0.172$. The drift pulls toward 0, the noise keeps kicking — this is the OU process, next topic. (Note $\sqrt{\Delta t}$, not $\Delta t$, multiplies the noise: Brownian scaling.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> Writing the noise term as $\sigma Z\,\Delta t$ instead of $\sigma Z\sqrt{\Delta t}$ is the classic simulation bug: noise vanishes as $\Delta t\to0$ and you silently simulate the ODE.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Identify drift and diffusion in $dX=(2-X)\,dt+3\,dW$; where do paths hover long-run? <details class="sol"><summary>Solution</summary><div>Drift $2-X$ (pull to 2), diffusion 3. Long-run: fluctuating around 2 — OU with mean 2, stationary sd $3/\sqrt2\approx2.12$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $dX=\mu\,dt+\sigma\,dW$ (constants), give the exact distribution of $X_t$. <details class="sol"><summary>Solution</summary><div>$X_t=x_0+\mu t+\sigma W_t\sim N(x_0+\mu t,\,\sigma^2t)$ — arithmetic Brownian motion; mean moves linearly, spread grows like $\sqrt t$.</div></details></li>
+  <li><span class="lvl h">HARD</span> SGD as an SDE: with learning rate $\eta$ and per-step gradient noise covariance $\eta^2\Sigma/\eta=\eta\Sigma$… derive carefully: the update $\theta_{n+1}=\theta_n-\eta\nabla L(\theta_n)+\eta\,\xi_n$, $\operatorname{Cov}(\xi)=\Sigma$, matches which SDE as $\eta\to0$? <details class="sol"><summary>Solution</summary><div>Match moments per step of "time" $\Delta t=\eta$: drift $-\nabla L\,\Delta t$ ✓; noise variance $\eta^2\Sigma=\eta\cdot(\eta\Sigma)$, i.e. $\sigma\sigma^\top=\eta\Sigma$. SDE: $d\theta=-\nabla L(\theta)\,dt+\sqrt{\eta\Sigma}\,dW$. Noise scale grows with $\eta$: larger learning rates simulate hotter dynamics, biasing SGD toward flat, wide minima (Ch 15, 21).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ornstein-uhlenbeck-process">
+ <h2>Ornstein-Uhlenbeck process</h2>
+ <p>Brownian motion on a leash: a linear drift always pulls the state back toward a mean while noise keeps perturbing it. Unlike Brownian motion it forgets its start exponentially fast and settles into a Gaussian stationary distribution — the prototype of mean reversion, thermal equilibrium, and the noising process in variance-preserving diffusion models.</p>
+ <div class="box def"><span class="label">Definition</span> $$dX_t=\theta(m-X_t)\,dt+\sigma\,dW_t,$$ with reversion rate $\theta&gt;0$, mean $m$, noise $\sigma$. Solution: $X_t=m+(X_0-m)e^{-\theta t}+\sigma\int_0^te^{-\theta(t-s)}dW_s$. Moments: $\mathbb{E}[X_t]=m+(X_0-m)e^{-\theta t}$; $\operatorname{Var}(X_t)=\frac{\sigma^2}{2\theta}(1-e^{-2\theta t})$. Stationary law: $N\!\big(m,\frac{\sigma^2}{2\theta}\big)$; autocorrelation decays as $e^{-\theta|\Delta t|}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\theta=2$, $m=0$, $\sigma=1$, $X_0=3$. Mean at $t=1$: $3e^{-2}\approx0.406$. Variance at $t=1$: $\frac14(1-e^{-4})\approx0.245$. So $X_1\sim N(0.406,\,0.245)$: already mostly relaxed. As $t\to\infty$: $N(0,\tfrac14)$, sd $\tfrac12$ — drift strength and noise fight to a Gaussian truce with variance $\sigma^2/2\theta$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>OU paths from $X_0=3$: raise θ and watch the leash tighten (faster reversion, thinner stationary band).</p>
+  <canvas id="cv-ou"></canvas>
+  <div class="ctl"><label>θ (reversion) <input type="range" id="ou-th" min="0.1" max="5" step="0.1" value="1"></label>
+  <label>σ (noise) <input type="range" id="ou-sig" min="0.2" max="2" step="0.05" value="1"></label>
+  <button class="btn" id="ou-go">Resample</button></div>
+  <div class="out" id="ou-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> The forward process of a variance-preserving diffusion model (Ch 22) is a time-rescaled OU process driving data toward $N(0,I)$; OU is also the continuous-time limit of AR(1) (Ch 13's time series).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $\theta=0.5,\sigma=2,m=10$: give the stationary distribution. <details class="sol"><summary>Solution</summary><div>$N(10,\,\frac{4}{1})=N(10,4)$: sd 2.</div></details></li>
+  <li><span class="lvl m">MED</span> The half-life of the initial condition is the $t$ with $e^{-\theta t}=\tfrac12$. For $\theta=2$, compute it, and the "effective decorrelation time" $1/\theta$. <details class="sol"><summary>Solution</summary><div>$t_{1/2}=\frac{\ln2}{2}\approx0.347$; decorrelation time $0.5$ (autocorrelation $e^{-1}\approx0.37$ there).</div></details></li>
+  <li><span class="lvl h">HARD</span> Verify $\operatorname{Var}(X_t)=\frac{\sigma^2}{2\theta}(1-e^{-2\theta t})$ from the solution formula via the Itô isometry. <details class="sol"><summary>Solution</summary><div>The stochastic term is $\sigma\int_0^te^{-\theta(t-s)}dW_s$, a Gaussian with variance $\sigma^2\int_0^te^{-2\theta(t-s)}ds=\sigma^2\cdot\frac{1-e^{-2\theta t}}{2\theta}$ ✓ (deterministic part adds no variance). Limits check: $t\to0$: $\approx\sigma^2t$ (pure diffusion); $t\to\infty$: $\frac{\sigma^2}{2\theta}$ (stationary).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fokker-planck-equation">
+ <h2>Fokker-Planck equation</h2>
+ <p>Instead of tracking one noisy path, track the whole cloud: the probability density $p(x,t)$ of the SDE's state obeys a deterministic PDE. Drift advects the density, diffusion spreads it — a continuity equation (divergence theorem, Ch 9) for probability. Solve it and you know everything about the process's distribution at every time.</p>
+ <div class="box def"><span class="label">Definition</span> If $dX=\mu(x)\,dt+\sigma(x)\,dW$, the density $p(x,t)$ of $X_t$ satisfies $$\frac{\partial p}{\partial t}=-\frac{\partial}{\partial x}\big[\mu(x)\,p\big]+\frac{1}{2}\frac{\partial^2}{\partial x^2}\big[\sigma^2(x)\,p\big].$$ Equivalently $\partial_tp=-\partial_xJ$ with probability flux $J=\mu p-\frac12\partial_x(\sigma^2p)$: total probability is conserved. Stationary density: set $J=0$; for constant $\sigma$, $p_\infty(x)\propto\exp\!\big(\frac{2}{\sigma^2}\int^x\mu(u)\,du\big)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Pure diffusion ($\mu=0$, $\sigma$ const): $\partial_tp=\frac{\sigma^2}{2}\partial_x^2p$ — the heat equation (Ch 10)! From a point mass at 0, $p(x,t)=\frac{1}{\sqrt{2\pi\sigma^2t}}e^{-x^2/2\sigma^2t}$: the heat kernel = the law of Brownian motion, one identity two chapters in the making. OU check ($\mu=-\theta x$): $p_\infty\propto e^{-\theta x^2/\sigma^2}$ — the stationary Gaussian $N(0,\frac{\sigma^2}{2\theta})$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> For a potential $U$ with $\mu=-\nabla U$: $p_\infty\propto e^{-2U/\sigma^2}$ — the Gibbs distribution, the bridge between optimization landscapes and sampling (Langevin, next; energy-based models, Ch 22).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the Fokker–Planck equation for $dX=-2X\,dt+dW$. <details class="sol"><summary>Solution</summary><div>$\partial_tp=\partial_x(2xp)+\frac12\partial_x^2p$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the stationary density for the double-well drift $\mu(x)=x-x^3$, $\sigma=1$. <details class="sol"><summary>Solution</summary><div>$\int\mu=\frac{x^2}{2}-\frac{x^4}{4}$: $p_\infty\propto e^{x^2-x^4/2}$ — bimodal, peaks at $x=\pm1$ (the wells of $U=\frac{x^4}{4}-\frac{x^2}{2}$), a saddle of density at 0.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for constant $\sigma$ and drift $\mu=-U'(x)$, the flux-zero condition gives $p_\infty\propto e^{-2U(x)/\sigma^2}$, and interpret the effect of doubling $\sigma$. <details class="sol"><summary>Solution</summary><div>$J=0$: $-U'p=\frac{\sigma^2}{2}p'$, i.e. $(\ln p)'=-\frac{2U'}{\sigma^2}$: $p\propto e^{-2U/\sigma^2}$. Doubling $\sigma$ divides the exponent by 4: the distribution flattens — a hotter "temperature" $T\sim\sigma^2/2$ explores more, concentrates less. Simulated annealing and diffusion-model noise schedules ride exactly this dial.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="langevin-dynamics">
+ <h2>Langevin dynamics</h2>
+ <p>Want samples from $p(x)\propto e^{-U(x)}$? Roll a ball downhill on $U$ while shaking it: $dX=-\nabla U\,dt+\sqrt2\,dW$. The Fokker–Planck stationary density of this SDE is exactly $p$. Discretize and you get the Langevin algorithm: gradient descent plus calibrated noise — the sampler that turns score functions into images.</p>
+ <div class="box def"><span class="label">Definition</span> Overdamped Langevin dynamics: $$dX_t=\nabla\log p(X_t)\,dt+\sqrt{2}\,dW_t$$ has stationary density $p$. Discrete (unadjusted Langevin algorithm): $$x_{k+1}=x_k+\epsilon\,\nabla\log p(x_k)+\sqrt{2\epsilon}\,z_k,\quad z_k\sim N(0,I),$$ which samples approximately from $p$ for small $\epsilon$ (bias $O(\epsilon)$; adding a Metropolis accept step removes it — MALA, Ch 13). $\nabla\log p$ is the <em>score</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Target $N(0,1)$: $\log p=-\frac{x^2}{2}+c$, score $=-x$. Langevin step: $x_{k+1}=(1-\epsilon)x_k+\sqrt{2\epsilon}z_k$ — an AR(1) process. Its stationary variance: $v=(1-\epsilon)^2v+2\epsilon\Rightarrow v=\frac{2\epsilon}{1-(1-\epsilon)^2}=\frac{2}{2-\epsilon}\approx1+\frac{\epsilon}{2}$. At $\epsilon=0.1$: $v\approx1.053$ — close to 1, with the promised $O(\epsilon)$ bias, vanishing as $\epsilon\to0$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Langevin sampling of a two-well density $p\propto e^{-U}$, $U=\frac{x^4}{4}-\frac{x^2}{2}$ scaled by 1/T. Watch the particle hop wells; the histogram fills toward $p$. Lower the temperature to trap it.</p>
+  <canvas id="cv-lang"></canvas>
+  <div class="ctl"><label>temperature T <input type="range" id="lg-T" min="0.1" max="2" step="0.05" value="0.7"></label>
+  <label>step ε <input type="range" id="lg-eps" min="0.005" max="0.1" step="0.005" value="0.03"></label>
+  <button class="btn" id="lg-run">Run / Pause</button><button class="btn" id="lg-reset">Reset</button></div>
+  <div class="out" id="lg-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Score matching learns $\nabla\log p$ from data (Ch 22); annealed Langevin over noise levels is exactly how score-based diffusion models sample; SGLD adds Langevin noise to SGD for Bayesian deep learning (Ch 13).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the Langevin update for the target $p\propto e^{-|x|^4}$... use $U(x)=x^4$. <details class="sol"><summary>Solution</summary><div>Score $=-4x^3$: $x_{k+1}=x_k-4\epsilon x_k^3+\sqrt{2\epsilon}z_k$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must the noise coefficient be exactly $\sqrt{2\epsilon}$ (given drift step $\epsilon\nabla\log p$)? What happens with less noise? More? <details class="sol"><summary>Solution</summary><div>The 2:1 ratio of diffusion to drift is what makes $p$ the Fokker–Planck fixed point ($p_\infty\propto e^{\frac{2}{\sigma^2}\log p\cdot 1}$ needs $\sigma^2=2$). Less noise ⇒ over-concentrates at modes (in the limit: gradient ascent to the MAP); more ⇒ over-dispersed samples from a flattened distribution.</div></details></li>
+  <li><span class="lvl h">HARD</span> Estimate how well-separated modes slow Langevin: for the double-well $U/T$ with barrier height $\Delta U$, the hop rate scales like $e^{-\Delta U/T}$ (Kramers). If $\Delta U=4$ and $T=0.5$, how many more iterations per hop than at $T=1$? <details class="sol"><summary>Solution</summary><div>Rate ratio $=e^{-\Delta U/T_2}/e^{-\Delta U/T_1}=e^{-8}/e^{-4}=e^{-4}\approx\frac{1}{55}$: about 55× more iterations per hop. Multimodality is exponentially expensive for plain Langevin — the motivation for annealing across noise levels, which is precisely diffusion models' trick (start hot where modes merge, cool gradually).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reverse-time-sdes">
+ <h2>Reverse-time SDEs</h2>
+ <p>Here is the punchline the whole chapter builds to: a diffusion that gradually destroys structure can be run <em>backwards</em>. Anderson's theorem says the time-reversal of an SDE is another SDE whose drift needs exactly one extra ingredient — the score $\nabla\log p_t$ of the evolving density. Learn that score with a neural network and you can start from pure noise and integrate backwards into data: that is a diffusion model.</p>
+ <div class="box thm"><span class="label">Theorem (Anderson, 1982)</span> If $dX_t=f(X_t,t)\,dt+g(t)\,dW_t$ evolves densities $p_t$ forward for $t\in[0,T]$, then the reverse-time process (running $t$ from $T$ down to $0$) satisfies $$dX_t=\big[f(X_t,t)-g(t)^2\,\nabla_x\log p_t(X_t)\big]\,dt+g(t)\,d\bar W_t,$$ with $\bar W$ a reverse-time Brownian motion. There is also a deterministic <em>probability-flow ODE</em> with the same marginals: $\dot x=f-\tfrac12g^2\nabla_x\log p_t(x)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Forward: pure diffusion $dX=dW$ from $X_0\sim N(0,\sigma_0^2)$, so $p_t=N(0,\sigma_0^2+t)$ and $\nabla\log p_t(x)=-\frac{x}{\sigma_0^2+t}$. Reverse SDE: $dX=\frac{x}{\sigma_0^2+t}\,dt+d\bar W$ (backwards in $t$) — an anti-OU drift pushing mass back <em>out</em> toward the (narrower) initial law as time rewinds. Sanity: variance along the reverse flow shrinks from $\sigma_0^2+T$ back to $\sigma_0^2$, exactly undoing the forward spreading. With data instead of a Gaussian, $\nabla\log p_t$ is unknown — that is the one function the neural network must learn.</div>
+ <div class="box think"><span class="label">Think first</span> The forward process is fixed, simple, and easy to sample at any $t$ (just add Gaussian noise). Why is that a gift for training the score network? <details class="sol"><summary>Reveal</summary><div>Training pairs are free: take a data point $x_0$, jump directly to $x_t=x_0+$noise (no simulation needed since Gaussian transitions are closed-form), and the network is trained so that its output matches $\nabla\log p_t(x_t\mid x_0)$, which is known analytically ($-\frac{x_t-x_0}{\sigma_t^2}$ for the VE case) — denoising score matching (Ch 22). The hard direction (generation) rides on scores learned entirely from the easy direction (noising).</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 22 builds DDPM and score-based SDE models on this theorem verbatim; the probability-flow ODE connects diffusion to neural ODEs (Ch 10) and normalizing flows.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the reverse drift $f-g^2\nabla\log p_t$, what does the score term do, intuitively? <details class="sol"><summary>Solution</summary><div>It points toward higher probability under $p_t$ — the reverse process climbs the density (denoises), undoing the forward flattening while injected noise keeps sample diversity.</div></details></li>
+  <li><span class="lvl m">MED</span> Variance-exploding forward: $dX=\sqrt{\frac{d\sigma^2(t)}{dt}}\,dW$ ($f=0$). Write the reverse SDE. <details class="sol"><summary>Solution</summary><div>$dX=-\frac{d\sigma^2}{dt}\,\nabla_x\log p_t(X)\,dt+\sqrt{\frac{d\sigma^2}{dt}}\,d\bar W$ (running backwards): denoise proportionally to how fast noise was being added at that level.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the forward pure-diffusion example with $\sigma_0\to0$ (data = a point mass at $x_0=0$), show the probability-flow ODE contracts any sample at time $T$ smoothly to the data point. <details class="sol"><summary>Solution</summary><div>Score $=-x/t$ (taking $\sigma_0^2\to0$), flow ODE: $\dot x=-\frac12g^2\nabla\log p_t\cdot(-1)$ — careful with direction: integrating backwards from $t=T$ to $0$ with $\dot x=-\frac12\cdot\frac{x}{t}\cdot(-1)$... cleanest forward-time statement: $\frac{dx}{dt}=\frac{x}{2t}$ along increasing $t$, so $x(t)=x(T)\sqrt{t/T}$. Running $t:T\to0$, $x(t)\to0=x_0$: every noise sample glides deterministically into the data point, variance $\propto t$ matching $p_t=N(0,t)$ at every time — the marginals are preserved exactly, with no noise needed. This is DDIM-style deterministic sampling.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">To reverse a diffusion process you must additionally know…</div><button class="opt">the full trajectory of each forward path</button><button class="opt">the score $\nabla_x\log p_t$ of the marginal densities</button><button class="opt">the inverse of the Brownian motion</button><div class="why" hidden>Anderson's theorem: the reverse drift is $f-g^2\nabla\log p_t$. The score of the evolving marginals is the only unknown — which is why diffusion models train a network to estimate exactly that.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>PageRank in miniature.</b> Three pages: A links to B and C; B links to C; C links to A. With probability 0.85 the surfer follows a uniformly random outlink, else teleports to a uniformly random page. (a) Write the transition matrix. (b) Verify it is ergodic. (c) Solve for the stationary distribution. <details class="sol"><summary>Solution</summary><div>(a) Follow-link rows: A→(0,½,½), B→(0,0,1), C→(1,0,0). With teleport: $P=0.85L+0.05\mathbf{1}\mathbf{1}^\top/1$... precisely $P_{ij}=0.85L_{ij}+0.05$. (b) All entries ≥0.05&gt;0: irreducible and aperiodic — ergodic. (c) Solve $\boldsymbol\pi P=\boldsymbol\pi$: $\pi_A=0.05+0.85\pi_C$; $\pi_B=0.05+0.425\pi_A$; $\pi_C=0.05+0.425\pi_A+0.85\pi_B$. Substitute: $\pi_C=0.05+0.425\pi_A+0.85(0.05+0.425\pi_A)=0.0925+0.78625\pi_A$; then $\pi_A=0.05+0.85(0.0925+0.78625\pi_A)=0.128625+0.66831\pi_A\Rightarrow\pi_A=0.3879$. $\pi_B=0.2149$, $\pi_C=0.3975$. (Check sum ≈ 1.0003 — rounding.) C and A dominate: C collects two inlinks, A collects C's full weight.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>OU end to end.</b> A GPU's temperature follows $dX=\theta(70-X)dt+\sigma dW$ (°C, hours) with $\theta=3$, $\sigma=6$. (a) Stationary distribution? (b) Starting at 90°C, the mean and sd after 20 minutes. (c) In steady state, what fraction of time is spent above 75°C? (d) The autocorrelation time. <details class="sol"><summary>Solution</summary><div>(a) $N(70,\frac{36}{6})=N(70,6)$: sd $\approx2.449$. (b) $t=\tfrac13$: mean $=70+20e^{-1}=77.36$; variance $=6(1-e^{-2})=5.188$, sd $2.278$. (c) $P(X&gt;75)=P(Z&gt;\frac{5}{2.449})=P(Z&gt;2.04)\approx2.1\%$. (d) Autocorrelation $e^{-3\Delta t}$: time constant $\frac13$ h = 20 min — measurements 20 min apart still correlate at $e^{-1}\approx0.37$; effective independent samples come every hour or so.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>A one-dimensional diffusion model, by hand.</b> Data: $X_0=\pm1$ with probability ½ each. Forward noising: $X_t=X_0+\sqrt t\,Z$, $Z\sim N(0,1)$ (i.e. $dX=dW$). (a) Write $p_t(x)$. (b) Compute the score $\nabla_x\log p_t(x)$ and show it equals $\frac{\mathbb{E}[X_0\mid X_t=x]-x}{t}$. (c) Interpret the optimal denoiser at large vs small $t$. <details class="sol"><summary>Solution</summary><div>(a) $p_t(x)=\tfrac12\varphi_t(x-1)+\tfrac12\varphi_t(x+1)$ with $\varphi_t(u)=\frac{1}{\sqrt{2\pi t}}e^{-u^2/2t}$. (b) $\partial_x\log p_t=\frac{-\frac{x-1}{t}\varphi_t(x-1)-\frac{x+1}{t}\varphi_t(x+1)}{\varphi_t(x-1)+\varphi_t(x+1)}=\frac{1}{t}\big(w_+(x)\cdot1+w_-(x)\cdot(-1)-x\big)$ where $w_\pm$ are the posterior weights of $X_0=\pm1$ given $x$; the weighted average is exactly $\mathbb{E}[X_0\mid X_t=x]=\tanh(x/t)$ here, so score $=\frac{\tanh(x/t)-x}{t}$ — score estimation ⟺ conditional-mean denoising (Tweedie's formula). (c) Large $t$: $\tanh(x/t)\approx0$ — the denoiser predicts the global mean 0; the score is $\approx-x/t$, just squashing toward the origin (coarse structure). Small $t$: $\tanh(x/t)\approx\mathrm{sign}(x)$ — the denoiser snaps to the nearest data point (fine detail). Diffusion models generate coarse-to-fine for exactly this reason.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p class="lede">NumPy only.</p>
+ <div class="box ex"><span class="label">Task 1 — Markov chain mixing</span> Build a 3-state chain, find its stationary distribution by eigendecomposition, and confirm (a) $P^n$ rows converge to it, (b) time-averages from one simulated trajectory match it (ergodic theorem).
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+P = np.array([[0.7, 0.2, 0.1],
+              [0.3, 0.5, 0.2],
+              [0.2, 0.3, 0.5]])
+
+# stationary distribution: left eigenvector for eigenvalue 1
+vals, vecs = np.linalg.eig(P.T)
+pi = np.real(vecs[:, np.argmin(np.abs(vals - 1))])
+pi = pi / pi.sum()
+print("pi =", pi.round(4))
+
+print("P^20 row 0:", np.linalg.matrix_power(P, 20)[0].round(4))  # -&gt; pi
+
+# ergodic average from one path
+n, x = 200_000, 0
+counts = np.zeros(3)
+for _ in range(n):
+    x = rng.choice(3, p=P[x])
+    counts[x] += 1
+print("time avg  :", (counts / n).round(4))
+gap = 1 - np.sort(np.abs(vals))[-2]
+print("spectral gap:", gap.round(4))</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Euler–Maruyama for the OU process</span> Simulate many OU paths, then verify the theoretical mean/variance curves and the stationary histogram.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+theta, m, sig = 2.0, 0.0, 1.0
+T, dt, paths = 3.0, 0.001, 5000
+n = int(T / dt)
+X = np.full(paths, 3.0)                      # X0 = 3
+means, vars_ = [], []
+for k in range(n):
+    X = X + theta*(m - X)*dt + sig*np.sqrt(dt)*rng.standard_normal(paths)
+    if k % 200 == 0:
+        t = (k+1)*dt
+        mean_th = m + (3 - m)*np.exp(-theta*t)
+        var_th  = sig**2/(2*theta)*(1 - np.exp(-2*theta*t))
+        print(f"t={t:.2f}  mean {X.mean():+.3f} (th {mean_th:+.3f})"
+              f"  var {X.var():.3f} (th {var_th:.3f})")
+print("stationary sd:", X.std().round(3), " theory:",
+      round(sig/np.sqrt(2*theta), 3))</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — Langevin sampling of a double well</span> Sample $p(x)\propto e^{-U(x)}$, $U=x^4/4-x^2/2$, with the unadjusted Langevin algorithm; compare the histogram to the exact (numerically normalized) density and measure the well-hopping rate.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(2)
+U      = lambda x: x**4/4 - x**2/2
+gradU  = lambda x: x**3 - x
+
+eps, n = 0.01, 2_000_000
+x, xs = 0.0, np.empty(n)
+for i in range(n):
+    x = x - eps*gradU(x) + np.sqrt(2*eps)*rng.standard_normal()
+    xs[i] = x
+
+# exact density on a grid
+grid = np.linspace(-3, 3, 1201)
+pdf = np.exp(-U(grid)); pdf /= np.trapezoid(pdf, grid)
+
+hist, edges = np.histogram(xs[10_000:], bins=80,
+                           range=(-3, 3), density=True)
+centers = 0.5*(edges[1:] + edges[:-1])
+err = np.abs(hist - np.interp(centers, grid, pdf)).max()
+print("max density error:", err.round(3))          # small
+hops = np.sum(np.sign(xs[1:]) != np.sign(xs[:-1]))
+print("sign flips (well hops):", hops)
+print("P(x&gt;0):", (xs &gt; 0).mean().round(3))          # ~0.5 by symmetry</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/6-262-discrete-stochastic-processes-spring-2011/">MIT OCW 6.262 Discrete Stochastic Processes (Gallager)</a> — chains, Poisson processes and martingales with full lecture videos.</li>
+  <li><a href="https://www.statslab.cam.ac.uk/~james/Markov/">Norris, Markov Chains (Cambridge)</a> — the standard rigorous-but-readable text; first chapters free online.</li>
+  <li><a href="https://pages.uoregon.edu/dlevin/MARKOV/markovmixing.pdf">Levin &amp; Peres, Markov Chains and Mixing Times (free PDF)</a> — the reference on mixing, spectral gaps and TV distance.</li>
+  <li><a href="https://arxiv.org/abs/1907.07587">Särkkä &amp; Solin, Applied Stochastic Differential Equations (free book; also CUP)</a> — SDEs, Itô calculus and Fokker–Planck with a filtering/ML orientation.</li>
+  <li><a href="https://arxiv.org/abs/2011.13456">Song et al., "Score-Based Generative Modeling through SDEs" (arXiv:2011.13456)</a> — the paper that unifies diffusion models with forward/reverse SDEs and probability-flow ODEs.</li>
+  <li><a href="https://arxiv.org/abs/2006.11239">Ho, Jain &amp; Abbeel, "Denoising Diffusion Probabilistic Models" (arXiv:2006.11239)</a> — DDPM: the discrete-time twin of this chapter's reverse SDE.</li>
+  <li><a href="https://yang-song.net/blog/2021/score/">Yang Song, "Generative Modeling by Estimating Gradients of the Data Distribution"</a> — the clearest expository blog on scores, Langevin sampling and annealing.</li>
+  <li><a href="https://www.probabilitycourse.com/chapter11/11_0_0_intro.php">Pishro-Nik, Random Processes chapters</a> — free textbook coverage of chains, Poisson processes and Brownian motion.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch11.html">← 11 · Probability</a>
+ <a class="btn" href="ch13.html">13 · Statistics →</a>
+</div>
+
+ </main>
+</div>
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
+function val(id){var el=document.getElementById(id);return el?parseFloat(el.value):0;}
+function gauss(){var u1=Math.random()||1e-12,u2=Math.random();return Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);}
+
+/* ---- Explorer 1: random walks with sqrt-n envelope ---- */
+(function(){
+ var c=document.getElementById('cv-walk');if(!c)return;
+ var paths=[];
+ function sample(){
+  var p=val('rw-p');paths=[];
+  for(var k=0;k<6;k++){
+   var s=0,arr=[0];
+   for(var i=0;i<300;i++){s+=(Math.random()<p?1:-1);arr.push(s);}
+   paths.push(arr);
+  }
+  draw();
+ }
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var p=val('rw-p'),N=300,YM=Math.max(60,Math.abs(p-0.5)*2*N+3*Math.sqrt(N));
+  function X(n){return n/N*w} function Y(y){return h/2-y/YM*(h/2-10)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  // envelope: drift ± 2 sd
+  var mu=2*p-1,sd2=Math.sqrt(4*p*(1-p));
+  g.strokeStyle=cssVar('--amber');g.setLineDash([4,4]);
+  [1,-1].forEach(function(sg){
+   g.beginPath();
+   for(var n=0;n<=N;n+=3){var y=mu*n+sg*2*sd2*Math.sqrt(n);
+    if(n===0)g.moveTo(X(n),Y(y));else g.lineTo(X(n),Y(y));}
+   g.stroke();
+  });
+  g.setLineDash([]);
+  g.lineWidth=1.5;
+  paths.forEach(function(arr,i){
+   g.strokeStyle=i===0?cssVar('--cobalt'):cssVar('--ink-2');
+   g.globalAlpha=i===0?1:0.45;
+   g.beginPath();
+   arr.forEach(function(v,n){if(n===0)g.moveTo(X(n),Y(v));else g.lineTo(X(n),Y(v));});
+   g.stroke();
+  });
+  g.globalAlpha=1;g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('6 walks · dashed: drift ± 2σ√n',10,16);
+  var out=document.getElementById('rw-out');
+  if(out)out.textContent='per-step mean = '+mu.toFixed(2)+'   sd = '+sd2.toFixed(2)+'   at n=300: drift '+(mu*300).toFixed(0)+', spread ±'+(2*sd2*Math.sqrt(300)).toFixed(0);
+ }
+ on('rw-go','click',sample);on('rw-p','input',sample);window.addEventListener('resize',draw);sample();
+})();
+
+/* ---- Explorer 2: stationary distribution convergence ---- */
+(function(){
+ var c=document.getElementById('cv-stat');if(!c)return;
+ var mu=[1,0,0],steps=0,timer=null;
+ function P(){
+  var a=val('st-a'),b=val('st-b'),cc=val('st-c');
+  return [[a,(1-a)/2,(1-a)/2],[(1-b)/2,b,(1-b)/2],[(1-cc)/2,(1-cc)/2,cc]];
+ }
+ function stationary(){
+  // power iterate from uniform
+  var v=[1/3,1/3,1/3],Pm=P();
+  for(var k=0;k<500;k++){
+   var nv=[0,0,0];
+   for(var i=0;i<3;i++)for(var j=0;j<3;j++)nv[j]+=v[i]*Pm[i][j];
+   v=nv;
+  }
+  return v;
+ }
+ function step(){
+  var Pm=P(),nv=[0,0,0];
+  for(var i=0;i<3;i++)for(var j=0;j<3;j++)nv[j]+=mu[i]*Pm[i][j];
+  mu=nv;steps++;draw();
+ }
+ function draw(){
+  var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var pi=stationary(),names=['A','B','C'];
+  var bw=w/4;
+  g.font='13px JetBrains Mono';
+  for(var i=0;i<3;i++){
+   var x=bw*(i+0.5);
+   var bh=mu[i]*(h-70);
+   g.fillStyle=cssVar('--cobalt');g.fillRect(x,h-30-bh,bw*0.34,bh);
+   var ph=pi[i]*(h-70);
+   g.fillStyle=cssVar('--amber');g.fillRect(x+bw*0.38,h-30-ph,bw*0.14,ph);
+   g.fillStyle=cssVar('--ink');g.fillText(names[i]+' '+mu[i].toFixed(3),x,h-10);
+   g.fillStyle=cssVar('--ink-2');g.fillText('π '+pi[i].toFixed(3),x,18);
+  }
+  g.fillStyle=cssVar('--ink-2');
+  g.fillText('blue: current distribution · amber: stationary π',10,36);
+  var tv=0.5*(Math.abs(mu[0]-pi[0])+Math.abs(mu[1]-pi[1])+Math.abs(mu[2]-pi[2]));
+  var out=document.getElementById('st-out');
+  if(out)out.textContent='step '+steps+'   TV distance to π = '+tv.toFixed(4);
+ }
+ on('st-step','click',step);
+ on('st-run','click',function(){
+  if(timer){clearInterval(timer);timer=null;return;}
+  timer=setInterval(step,350);
+ });
+ on('st-reset','click',function(){mu=[1,0,0];steps=0;draw();});
+ ['st-a','st-b','st-c'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 3: Brownian motion with drift ---- */
+(function(){
+ var c=document.getElementById('cv-bm');if(!c)return;
+ var noises=[];
+ function sample(){
+  noises=[];
+  for(var k=0;k<5;k++){
+   var arr=[];for(var i=0;i<400;i++)arr.push(gauss());
+   noises.push(arr);
+  }
+  draw();
+ }
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var mu=val('bm-mu'),sig=val('bm-sig'),T=4,n=400,dt=T/n;
+  var YM=Math.max(2.5,Math.abs(mu)*T+3*sig*Math.sqrt(T));
+  function X(t){return t/T*w} function Y(y){return h/2-y/YM*(h/2-10)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  g.strokeStyle=cssVar('--amber');g.setLineDash([4,4]);
+  [1,-1].forEach(function(sg){
+   g.beginPath();
+   for(var t=0;t<=T;t+=0.05){var y=mu*t+sg*2*sig*Math.sqrt(t);
+    if(t===0)g.moveTo(X(t),Y(y));else g.lineTo(X(t),Y(y));}
+   g.stroke();
+  });
+  g.setLineDash([]);g.lineWidth=1.5;
+  noises.forEach(function(arr,k){
+   g.strokeStyle=k===0?cssVar('--cobalt'):cssVar('--ink-2');
+   g.globalAlpha=k===0?1:0.4;
+   var x=0;g.beginPath();g.moveTo(X(0),Y(0));
+   for(var i=0;i<n;i++){x+=mu*dt+sig*Math.sqrt(dt)*arr[i];g.lineTo(X((i+1)*dt),Y(x));}
+   g.stroke();
+  });
+  g.globalAlpha=1;g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('X_t = μt + σW_t · dashed: μt ± 2σ√t',10,16);
+  var out=document.getElementById('bm-out');
+  if(out)out.textContent='X_T ~ N('+(mu*T).toFixed(2)+', '+(sig*sig*T).toFixed(2)+')  at T='+T;
+ }
+ on('bm-go','click',sample);on('bm-mu','input',draw);on('bm-sig','input',draw);
+ window.addEventListener('resize',draw);sample();
+})();
+
+/* ---- Explorer 4: OU paths ---- */
+(function(){
+ var c=document.getElementById('cv-ou');if(!c)return;
+ var noises=[];
+ function sample(){
+  noises=[];
+  for(var k=0;k<5;k++){
+   var arr=[];for(var i=0;i<500;i++)arr.push(gauss());
+   noises.push(arr);
+  }
+  draw();
+ }
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var th=val('ou-th'),sig=val('ou-sig'),T=5,n=500,dt=T/n;
+  var sd=sig/Math.sqrt(2*th),YM=Math.max(3.4,3*sd+0.5);
+  function X(t){return t/T*w} function Y(y){return h/2-y/YM*(h/2-10)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  // stationary band ±2sd
+  g.fillStyle=cssVar('--cobalt-soft');g.globalAlpha=0.5;
+  g.fillRect(0,Y(2*sd),w,Y(-2*sd)-Y(2*sd));g.globalAlpha=1;
+  // mean decay curve
+  g.strokeStyle=cssVar('--amber');g.setLineDash([4,4]);g.beginPath();
+  for(var t=0;t<=T;t+=0.02){var y=3*Math.exp(-th*t);
+   if(t===0)g.moveTo(X(t),Y(y));else g.lineTo(X(t),Y(y));}
+  g.stroke();g.setLineDash([]);
+  g.lineWidth=1.5;
+  noises.forEach(function(arr,k){
+   g.strokeStyle=k===0?cssVar('--cobalt'):cssVar('--ink-2');
+   g.globalAlpha=k===0?1:0.4;
+   var x=3;g.beginPath();g.moveTo(X(0),Y(3));
+   for(var i=0;i<n;i++){x+=-th*x*dt+sig*Math.sqrt(dt)*arr[i];g.lineTo(X((i+1)*dt),Y(x));}
+   g.stroke();
+  });
+  g.globalAlpha=1;g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('band: stationary ±2σ/√(2θ) · dashed: mean decay from X₀=3',10,16);
+  var out=document.getElementById('ou-out');
+  if(out)out.textContent='stationary sd = σ/√(2θ) = '+sd.toFixed(3)+'   memory half-life = ln2/θ = '+(Math.LN2/th).toFixed(3);
+ }
+ on('ou-go','click',sample);on('ou-th','input',draw);on('ou-sig','input',draw);
+ window.addEventListener('resize',draw);sample();
+})();
+
+/* ---- Explorer 5: Langevin sampler on double well ---- */
+(function(){
+ var c=document.getElementById('cv-lang');if(!c)return;
+ var x=1,bins=new Array(80).fill(0),count=0,running=false,anim=null,hops=0,lastSign=1;
+ function gradU(x){return x*x*x-x;}
+ function Uv(x){return x*x*x*x/4-x*x/2;}
+ function stepMany(){
+  var T=val('lg-T'),eps=val('lg-eps');
+  for(var i=0;i<200;i++){
+   x=x-eps*gradU(x)/T+Math.sqrt(2*eps)*gauss();
+   if(x>3)x=3;if(x<-3)x=-3;
+   var b=Math.floor((x+3)/6*80);
+   if(b>=0&&b<80){bins[b]++;count++;}
+   var sg=x>=0?1:-1;if(sg!==lastSign){hops++;lastSign=sg;}
+  }
+ }
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var T=val('lg-T');
+  function X(xx){return (xx+3)/6*w}
+  // exact density
+  var grid=[],Z=0,dx=6/240;
+  for(var i=0;i<=240;i++){var xx=-3+i*dx;var v=Math.exp(-Uv(xx)/T);grid.push(v);Z+=v*dx;}
+  var mx=Math.max.apply(null,grid)/Z;
+  function Y(v){return h-24-v/(mx*1.15)*(h-56)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,h-24);g.lineTo(w,h-24);g.stroke();
+  // histogram
+  if(count>0){
+   g.fillStyle=cssVar('--cobalt-soft');
+   var binw=6/80;
+   for(var b=0;b<80;b++){
+    var v=bins[b]/(count*binw);
+    g.fillRect(X(-3+b*binw),Y(v),w/80,h-24-Y(v));
+   }
+  }
+  // exact curve
+  g.strokeStyle=cssVar('--amber');g.lineWidth=2.5;g.beginPath();
+  for(i=0;i<=240;i++){var xx=-3+i*dx,v=grid[i]/Z;
+   if(i===0)g.moveTo(X(xx),Y(v));else g.lineTo(X(xx),Y(v));}
+  g.stroke();g.lineWidth=1;
+  // particle
+  g.fillStyle=cssVar('--ink');g.beginPath();g.arc(X(x),h-24,5,0,2*Math.PI);g.fill();
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('histogram of Langevin samples vs exact p ∝ e^{−U/T}',10,16);
+  var out=document.getElementById('lg-out');
+  if(out)out.textContent=count+' samples   well hops: '+hops+'   (lower T → rarer hops, sharper modes)';
+ }
+ function loop(){if(!running)return;stepMany();draw();anim=requestAnimationFrame(loop);}
+ on('lg-run','click',function(){running=!running;if(running)loop();});
+ on('lg-reset','click',function(){bins.fill(0);count=0;hops=0;x=1;draw();});
+ on('lg-T','input',function(){bins.fill(0);count=0;hops=0;draw();});
+ on('lg-eps','input',draw);
+ window.addEventListener('resize',draw);draw();
+})();
+})();
+</script>
+
+</body></html>

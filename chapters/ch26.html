@@ -1,0 +1,921 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 26 Planning and Search</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','26')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">26</div><h1>Planning and Search</h1><p class="lede">Looking ahead before acting.</p>
+   <div class="meta"><span class="chip">27 topics</span><span class="chip">needs: chapters 17, 24, 25</span><span class="chip">feeds: chapters 29, 30, 34</span></div>
+  </div>
+
+<section class="topic" id="state-space-search">
+ <h2>State-space search</h2>
+ <p>Strip a problem down to: configurations (states), moves between them (actions), a start, and a test for "done." Solving the problem becomes finding a path through this implicit graph — a graph usually too big to build, so we grow only the part we explore. The 8-puzzle, route-finding, theorem proving and code synthesis all wear this one costume.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>search problem</em> is $(\mathcal S, s_0, \textsf{Actions}(s), \textsf{Result}(s,a), \textsf{Goal}(s), c(s,a,s'))$: state set, initial state, applicable actions, deterministic transition function, goal test, and nonnegative step costs. A <em>solution</em> is an action sequence from $s_0$ to a goal state; it is <em>optimal</em> if its total cost is minimal.</div>
+ <div class="box ex"><span class="label">Worked example</span> 8-puzzle: states = the $9!/2 = 181{,}440$ reachable tile arrangements; actions = slide blank up/down/left/right; cost 1 per move. Route-finding on a road map: states = cities, cost = road length. Same machinery solves both; only the state encoding and cost differ. The state space for the 15-puzzle is $16!/2 \approx 1.0\times10^{13}$ — buildable never, searchable yes.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The state must contain <em>everything</em> relevant and nothing more. Include irrelevant detail (the robot's battery serial number) and the space explodes; omit relevant detail (whether the door is locked) and "solutions" fail in the world. State design is where most search projects are won or lost.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Formulate "measure exactly 4 L using a 3 L and a 5 L jug" as a search problem.<details class="sol"><summary>Solution</summary><div>States: $(x,y)$ with $0\le x\le3$, $0\le y\le5$ litres in each jug — 24 states. Start $(0,0)$. Actions: fill either jug, empty either, pour one into the other until source empty or target full. Goal: $y = 4$. Cost 1 per action. One solution: $(0,0)\to(0,5)\to(3,2)\to(0,2)\to(2,0)\to(2,5)\to(3,4)$ — six steps.</div></details></li>
+  <li><span class="lvl m">MED</span> How many states does an $n\times n$ sliding puzzle have, and why the division by 2?<details class="sol"><summary>Solution</summary><div>$(n^2)!$ arrangements of tiles+blank, but sliding moves generate only even permutations relative to blank position — exactly half the arrangements are reachable from a given start. So $|\mathcal S| = (n^2)!/2$ per parity class.</div></details></li>
+  <li><span class="lvl h">HARD</span> A robot arm has 6 joints, each discretized to 100 angles. Compare the state-space size with the number of atoms in a gram of hydrogen ($\approx 6\times10^{23}$), and explain why search is still feasible.<details class="sol"><summary>Solution</summary><div>$100^6 = 10^{12}$ states — actually far <em>less</em> than $6\times10^{23}$; but with 10 joints it's $10^{20}$, comparable. Feasibility comes from never enumerating: search touches only states reachable within the solution depth, guided by heuristics that prune the rest; a good heuristic makes the number of expanded nodes closer to (branching)$^{\text{(depth of error in }h)}$ than to $|\mathcal S|$. Implicit graphs + guidance beat cardinality.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="search-trees">
+ <h2>Search trees</h2>
+ <p>The algorithm's-eye view of search: a tree whose root is the start state and whose children are the states one action away. The same world state can appear in many branches (different paths to it), so the tree can be far bigger than the graph — infinite, if there are loops. Managing this gap, with explored sets and frontiers, is half of search engineering.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>node</em> bundles (state, parent, action, path-cost $g$). The <em>frontier</em> (open list) holds generated-but-unexpanded nodes; <em>expanding</em> a node generates its children. <em>Tree search</em> never checks for repeats; <em>graph search</em> keeps an explored (closed) set and skips already-seen states. With branching factor $b$ and depth $d$, the tree has $O(b^d)$ nodes.</div>
+ <div class="box ex"><span class="label">Worked example</span> A $10\times10$ open gridworld has 100 states, but the search tree to depth 20 has up to $4^{20} \approx 10^{12}$ nodes — the tree revisits the same cells astronomically often (moving left–right–left–right…). A graph-search explored set caps work at 100 expansions. The ratio $10^{12}/100$ is the price of forgetting where you've been.</div>
+ <div class="box think"><span class="label">Think first</span> When might you deliberately choose tree search (no explored set) despite the redundancy?<details class="sol"><summary>Reveal</summary><div>When memory is the binding constraint (explored sets can be huge), when states are expensive to hash/compare, when the state space has few or no cycles anyway (e.g. the tree of token sequences — every generation path is a distinct state), or in randomized/rollout settings like MCTS where repeats are rare and cheap. IDA* and beam search are practical tree searches for exactly these reasons.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Branching factor 3, solution at depth 4. At most how many nodes does the full tree to that depth contain?<details class="sol"><summary>Solution</summary><div>$1 + 3 + 9 + 27 + 81 = \frac{3^5-1}{2} = 121$ nodes.</div></details></li>
+  <li><span class="lvl m">MED</span> Distinguish "generated" from "expanded," and explain which one goal tests should be applied to for optimality in uniform-cost search.<details class="sol"><summary>Solution</summary><div>Generated = created and placed on the frontier; expanded = popped and its children generated. UCS must goal-test at <em>expansion</em>: only when a node is popped is its cost guaranteed minimal (a cheaper path could still be on the frontier when it is merely generated). Testing at generation is fine for BFS with unit costs (first generation = shallowest), not for weighted costs.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that in a graph with $n$ states, graph-search expands each state at most once, and bound the total work of BFS as $O(b\cdot n)$ edge generations.<details class="sol"><summary>Solution</summary><div>The explored set admits a state only once; a state already in it (or in the frontier, with duplicate detection) is discarded on regeneration, so expansions $\le n$. Each expansion generates $\le b$ children, so generations $\le bn$ — i.e. $O(|V| + |E|)$, the standard BFS bound, since $\sum_s \deg(s) = |E|$-ish. The exponential $b^d$ only appears when the reachable set itself is exponential or duplicates go undetected.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="breadth-first-search">
+ <h2>Breadth-first search</h2>
+ <p>Explore in rings: all states one move away, then two, then three. BFS uses a FIFO queue and is guaranteed to find the <em>shallowest</em> goal — optimal when every step costs the same. Its fatal weakness is memory: the frontier at depth $d$ holds $O(b^d)$ nodes, and BFS dies of RAM long before it dies of time.</p>
+ <div class="box def"><span class="label">Definition</span> BFS: frontier = FIFO queue; expand the oldest node first. Complete (finite $b$, goal at finite depth); optimal for uniform step costs; time and space both $O(b^{d})$ where $d$ is the shallowest goal's depth.</div>
+ <div class="box ex"><span class="label">Worked example</span> $b = 10$, one million nodes/second, 100 bytes/node. Depth 8: $10^8$ nodes → 100 seconds and 10 GB. Depth 10: $10^{10}$ → 3 hours and 1 TB. Depth 12: 13 days and 100 TB. Time hurts; memory kills — every node at the current depth must be held simultaneously.</div>
+ <div class="box link"><span class="label">Where this goes</span> BFS's layer-by-layer sweep is Dijkstra with unit weights, is dynamic programming over path length, and is how uniform-cost, iterative deepening and A* are all judged: they exist to keep BFS's guarantees while escaping its memory bill.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Order of expansion for BFS on: root A with children B, C; B has children D, E; C has child F. Goal is F.<details class="sol"><summary>Solution</summary><div>A, B, C — then expanding C generates F, which is the goal (found at depth 2). Full expansion order if goal-testing at expansion: A, B, C, D, E, F.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is BFS not optimal with varying step costs? Give a 4-node counterexample.<details class="sol"><summary>Solution</summary><div>Start S, goal G; edge S→G with cost 10 (depth 1), and path S→A→G with costs 1+1 = 2 (depth 2). BFS finds the depth-1 route (cost 10) first and returns it, missing the cheaper 2-cost route. Fewest edges ≠ least cost; that needs uniform-cost search.</div></details></li>
+  <li><span class="lvl h">HARD</span> Bidirectional BFS searches forward from start and backward from goal until frontiers meet. Show the node count improves from $O(b^d)$ to $O(b^{d/2})$ and quantify for $b = 10, d = 12$.<details class="sol"><summary>Solution</summary><div>Each direction explores to depth $\approx d/2$, costing $O(b^{d/2})$ apiece; a meet is detected by checking each generated node against the other frontier (hash set). Total $2b^{d/2} \ll b^d$. For $b=10, d=12$: $2\times10^6$ vs $10^{12}$ — a factor of 500,000. Requirements: invertible actions (to search backward) and an explicit goal state, which is why it's great for puzzles and useless when the goal is only a test.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="depth-first-search">
+ <h2>Depth-first search</h2>
+ <p>Dive down one branch until it bottoms out, then back up one level and try the next branch. DFS uses a LIFO stack and needs only $O(bd)$ memory — a single path plus siblings — which is its whole appeal. In exchange it abandons optimality, and in infinite trees it can dive forever past a goal sitting at depth 2.</p>
+ <div class="box def"><span class="label">Definition</span> DFS: frontier = LIFO stack (or recursion); expand the newest node first. Space $O(bm)$, time $O(b^m)$ where $m$ is maximum depth. Not optimal; complete only on finite acyclic spaces (or with an explored set on finite graphs); incomplete on infinite-depth trees.</div>
+ <div class="box ex"><span class="label">Worked example</span> Tree: A → (B, C), B → (D, E), C → (F, G), goal G. DFS (left-first) expands A, B, D (dead end), backtrack, E (dead end), backtrack, C, F (dead end), G — found, but it visited the entire left subtree first. BFS would have reached G at its depth-2 sweep. Yet DFS's stack never held more than 3 nodes; BFS's queue held 4 at its widest — and the gap grows exponentially with depth.</div>
+ <div class="box pit"><span class="label">Pitfall</span> On graphs with cycles, naive DFS loops forever (A→B→A→B…). Either track the current path (cheap: detects cycles, still re-explores shared substructure) or keep a full explored set (defeats the memory advantage). Know which one your implementation does.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give DFS's expansion order for the worked-example tree if children are pushed right-first (so left is popped first)... instead expanded right-first: A, then C first.<details class="sol"><summary>Solution</summary><div>Right-first: A, C, G — goal found in three expansions. DFS's performance is savagely order-dependent: from three expansions to seven depending on tie-breaking.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is DFS the standard for constraint-satisfaction and game-tree search despite non-optimality?<details class="sol"><summary>Solution</summary><div>Those searches must examine <em>bounded-depth</em> trees (all variables assigned; game horizon) where solutions live at known depth $m$, so "optimal path length" is meaningless and completeness is assured. Meanwhile memory $O(bm)$ is essential (CSP trees are enormous), and DFS's path-at-a-time structure matches backtracking, incremental constraint checking, and alpha-beta's recursive value passing perfectly.</div></details></li>
+  <li><span class="lvl h">HARD</span> Backtracking DFS on a CSP with $n$ variables and $d$ values stores $O(nd)$ — better than $O(bm)$ node copies. Explain how, and what operation this requires of the problem.<details class="sol"><summary>Solution</summary><div>Instead of storing a child state (a full copy) per frontier node, backtracking DFS stores a single mutable state plus, per depth level, which values remain untried, modifying the state on descent and <em>undoing</em> the modification on backtrack. Memory = one state + $n$ levels × $d$ value marks. Requirement: actions must be efficiently reversible (or effects recordable in a trail, as SAT solvers do). This is why solvers speak of "trail" and "unwind" — DFS with undo is the deepest-rooted trick in combinatorial search.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="iterative-deepening">
+ <h2>Iterative deepening</h2>
+ <p>Run depth-limited DFS to depth 1, then 2, then 3… until a goal appears. It sounds wasteful — you re-search shallow levels every round — but the tree's exponential growth means the last level dominates: the repeated work is a constant factor. You get BFS's completeness and optimality with DFS's memory. For large uniform-cost searches it is the default right answer.</p>
+ <div class="box def"><span class="label">Definition</span> <em>IDDFS</em>: for $\ell = 0, 1, 2, \dots$ run DFS refusing to expand nodes deeper than $\ell$; stop when a goal is found. Complete and optimal for unit costs; space $O(bd)$; time $O(b^d)$ — the same order as BFS.</div>
+ <div class="box ex"><span class="label">Worked example</span> $b = 10$, $d = 5$. Nodes generated by IDDFS: depth-1 nodes are generated $d$ times, depth-2 nodes $d-1$ times, etc.: $\sum_{k=1}^{d}(d - k + 1)b^k = 5\cdot10 + 4\cdot100 + 3\cdot1000 + 2\cdot10^4 + 1\cdot10^5 = 123{,}450$ vs BFS's $111{,}110$ total — just 11% more work, for an exponential memory saving (frontier of 50 nodes instead of $10^5$).</div>
+ <div class="box think"><span class="label">Think first</span> Why does repeating <em>all</em> the shallow searches cost so little, when it feels like it should double or triple the work?<details class="sol"><summary>Reveal</summary><div>Geometric series. The deepest level has $b^d$ nodes; all shallower levels together have $\approx b^d/(b-1)$. Re-running every earlier depth re-visits only those shallow levels, adding a factor bounded by $\frac{b}{(b-1)}$-ish — for $b = 10$, about 11% overhead; even for $b = 2$ only a factor ~2. Exponentials are bottom-heavy: the last layer <em>is</em> the search.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does IDDFS inherit from BFS, and what from DFS?<details class="sol"><summary>Solution</summary><div>From BFS: completeness and shallowest-goal optimality (it explores in depth layers). From DFS: $O(bd)$ memory (each pass is just a depth-limited DFS).</div></details></li>
+  <li><span class="lvl m">MED</span> For $b = 2$, $d = 10$, compute the ratio of IDDFS node generations to single-pass depth-10 DFS generations ($\sum_k b^k$ forms).<details class="sol"><summary>Solution</summary><div>IDDFS: $\sum_{k=1}^{10}(11-k)2^k = 10\cdot2 + 9\cdot4 + 8\cdot8 + 7\cdot16 + 6\cdot32 + 5\cdot64 + 4\cdot128 + 3\cdot256 + 2\cdot512 + 1\cdot1024 = 20+36+64+112+192+320+512+768+1024+1024 = 4072$. Single pass: $\sum_{k=1}^{10}2^k = 2046$. Ratio $\approx 2.0$ — worst-case-ish because $b$ is small, still just a constant.</div></details></li>
+  <li><span class="lvl h">HARD</span> IDA* replaces the depth limit with an $f = g + h$ cost limit, raised each round to the smallest $f$ that exceeded the previous limit. What does it inherit from A*, and when does it badly underperform A*?<details class="sol"><summary>Solution</summary><div>With admissible $h$, IDA* finds optimal solutions like A*, using only path memory — it solved the 15-puzzle when A* could not fit in 1985's RAM. It underperforms when $f$ values are nearly all distinct (e.g. real-valued costs): each new limit may admit only one extra node, so the number of restart passes approaches the number of nodes, giving $O(N^2)$ work. It shines when costs are small integers (many nodes share $f$-values) and the explored set wouldn't fit anyway.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="uniform-cost-search">
+ <h2>Uniform-cost search</h2>
+ <p>When steps have different prices, expand frontier nodes in order of total path cost $g$ — a priority queue instead of BFS's FIFO. This is Dijkstra's algorithm pointed at a goal: the first time you <em>pop</em> the goal, no cheaper path to it can exist, because everything cheaper has already been popped.</p>
+ <div class="box def"><span class="label">Definition</span> UCS: frontier = min-priority queue keyed by $g(n)$ = cost of the path to $n$; goal test on expansion; on regenerating a state with lower $g$, update the queue entry. Complete and optimal whenever all step costs $\ge \epsilon > 0$. Time/space $O(b^{1 + \lfloor C^*/\epsilon\rfloor})$ with $C^*$ the optimal cost.</div>
+ <div class="box ex"><span class="label">Worked example</span> Graph: S→A cost 1, S→B cost 5, A→B cost 1, A→G cost 8, B→G cost 2. UCS pops: S(0); A(1); B(2) — via A, beating the direct 5; then G: candidates G via A (1+8 = 9) and G via B (2+2 = 4); pops G(4). Optimal path S→A→B→G, cost 4. BFS would have returned S→A→G or S→B→G (both depth 2, costs 9 and 7): wrong.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Zero-cost edges break the guarantee ($\epsilon > 0$ is required): a cycle of free edges lets the frontier churn forever without progress. And goal-testing at <em>generation</em> instead of expansion silently returns suboptimal paths — the single most common UCS implementation bug.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> UCS reduces to which algorithm when all step costs are 1?<details class="sol"><summary>Solution</summary><div>BFS (with goal-test timing adjusted): the priority queue on $g$ orders nodes exactly by depth.</div></details></li>
+  <li><span class="lvl m">MED</span> Trace UCS pops on: S→A(2), S→B(3), A→C(2), B→C(1), C→G(2).<details class="sol"><summary>Solution</summary><div>Pop S(0). Push A(2), B(3). Pop A(2); push C(4). Pop B(3); regenerate C via B with $g = 4$ — tie, keep either. Pop C(4); push G(6). Pop G(6). Optimal cost 6, via S→A→C→G or S→B→C→G (both cost... S→B→C = 3+1 = 4, same as S→A→C = 2+2 = 4; either path then +2). Both are optimal at 6.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove UCS's optimality: when a node with state $s$ is first popped, its $g$ equals the optimal cost to $s$.<details class="sol"><summary>Solution</summary><div>Induction on pop order. Suppose all previously popped states were popped at optimal cost, and node $n$ (state $s$, cost $g(n)$) is popped now. Take any optimal path $p^*$ to $s$ with cost $g^*(s)$. Let $x$ be the first state on $p^*$ not yet popped (exists; possibly $s$ itself). Its predecessor on $p^*$ was popped at optimal cost (inductive hypothesis), so when it was expanded, $x$ entered the frontier with $g(x) = $ its optimal prefix cost $\le g^*(s)$ (costs nonnegative). Since the queue popped $n$ rather than $x$'s frontier node: $g(n) \le g(x) \le g^*(s)$. But $g(n)$ is the cost of an actual path to $s$, so $g(n) \ge g^*(s)$. Hence $g(n) = g^*(s)$. ∎ (This is Dijkstra's invariant; it fails with negative edges, where a later path could undercut.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="best-first-search">
+ <h2>Best-first search</h2>
+ <p>Generalize: keep a priority queue ordered by <em>any</em> evaluation function $f(n)$, and always expand the most promising node. Choose $f = g$ and you have UCS; $f = h$ (estimated distance to goal) gives greedy best-first — fast, drawn straight toward the goal, and cheerfully suboptimal; $f = g + h$ gives A*. One data structure, a family of algorithms.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Best-first search</em>: frontier = min-priority queue on $f(n)$; pop, goal-test, expand, repeat. <em>Greedy best-first</em>: $f(n) = h(n)$, the heuristic estimate of remaining cost. Greedy is complete on finite graphs (with explored set) but not optimal; worst case $O(b^m)$, though a good $h$ makes it nearly linear in solution length.</div>
+ <div class="box ex"><span class="label">Worked example</span> Romania map (Russell &amp; Norvig): Arad→Bucharest with $h$ = straight-line distance. Greedy expands Arad → Sibiu → Fagaras → Bucharest: 3 expansions, path cost 450. The optimal route via Rimnicu Vilcea and Pitesti costs 418 — greedy never looked at it, because Fagaras <em>appears</em> closer as the crow flies. Fast, plausible, 8% wrong.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Greedy best-first ignores everything already spent ($g$): it will happily follow a heuristic gradient into a region requiring a huge backtrack, and on adversarial layouts (walls shaped like a "U" facing the goal) it hugs the wall inside the U while A* routes around. Never confuse "expands few nodes on nice maps" with any guarantee.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the $f$ functions for UCS, greedy best-first, and A*?<details class="sol"><summary>Solution</summary><div>UCS: $f = g$ (spent). Greedy: $f = h$ (estimated to go). A*: $f = g + h$ (estimated total through this node).</div></details></li>
+  <li><span class="lvl m">MED</span> On a grid with Manhattan-distance $h$, start left of a long vertical wall, goal just on the other side. Describe qualitatively what greedy does versus UCS.<details class="sol"><summary>Solution</summary><div>Greedy walks straight at the wall (h decreases), then crawls along it in whichever direction locally shrinks $h$, potentially exploring the whole wall face before rounding an end; its path traces the detour it stumbled into. UCS floods cost-uniformly in all directions — lots of nodes, but the returned path is exactly optimal. A* does both jobs: flood biased toward the goal, optimal path out.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct a graph where greedy best-first with an admissible $h$ returns a path $k$ times longer than optimal, for any $k$.<details class="sol"><summary>Solution</summary><div>States $S, A, B_1,\dots,B_m, G$. Edges: $S\to A$ (cost 1), $A \to G$ (cost $2k$)... simpler: $S\to A$ cost 1 with $h(A) = 1$, $A\to G$ cost $2k$; and $S \to B$ cost 1 with $h(B) = 1.5$, $B\to G$ cost 1. All $h$ values $\le$ true remaining cost (admissible: $h(A) = 1 \le 2k$, $h(B) = 1.5$... need $h(B)\le 1$, set $h(B) = 1$ and break the tie toward $A$ adversarially, or set $h(A) = 0.9 &lt; h(B) = 1$). Greedy pops $A$ (smaller $h$), then $G$ via cost $1 + 2k$; optimal is $1 + 1 = 2$ via $B$. Ratio $(2k+1)/2 \to$ unbounded with $k$. Admissibility constrains nothing about greedy's choices because $g$ is never consulted.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="a-star">
+ <h2>A*</h2>
+ <p>A* orders the frontier by $f(n) = g(n) + h(n)$: what this path has cost so far, plus an optimistic estimate of what remains. With an admissible heuristic it is optimal, and among optimal algorithms using the same heuristic it expands (essentially) the fewest nodes. It is the centerpiece of classical search — Dijkstra with a compass.</p>
+ <div class="box def"><span class="label">Definition</span> A*: best-first search with $f = g + h$, goal-test at expansion. If $h$ is <em>admissible</em> ($h(n) \le h^*(n)$, never overestimates), tree-search A* returns an optimal solution; if $h$ is also <em>consistent</em>, graph-search A* is optimal and expands each state at most once, in nondecreasing $f$ order. It expands every node with $f(n) &lt; C^*$ and none with $f(n) &gt; C^*$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Grid, unit steps, Manhattan $h$. Start $(0,0)$, goal $(2,2)$, wall at $(1,1)$. $f(\text{start}) = 0 + 4 = 4$. All along any optimal 4-step route (e.g. right, right, up, up around the wall), $f$ stays 4; off-route cells like $(0,1)\to$ moving away to $(0,-1)$... any backward step has $g$ up 1 and $h$ up 1, so $f = 6 > 4$ and waits in the queue. A* expands the diagonal band of $f{=}4$ cells (~6 cells), pops the goal with $g = 4$: optimal, having ignored the rest of the grid. UCS would have expanded every cell with $g \le 4$ — the full diamond of 12+ cells.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch A* search a gridworld with walls. Slide the heuristic weight $w$ in $f = g + w\,h$: $w{=}0$ is uniform-cost (broad flood), $w{=}1$ is A*, $w{&gt;}1$ is weighted A* (narrower, faster, possibly suboptimal). Colored = expanded; bright line = returned path. Drag nothing — just slide and press Search.</p>
+  <canvas id="cv-astar"></canvas>
+  <div class="ctl">
+   <label>heuristic weight w <input type="range" id="as-w" min="0" max="3" step="0.25" value="1"></label>
+   <button class="btn" id="as-run">Search</button>
+   <button class="btn" id="as-maze">New maze</button>
+  </div>
+  <div class="out" id="as-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Weighted A* ($f = g + wh$, $w>1$) is a legitimate speed/quality trade — solution cost provably $\le w\cdot C^*$ — but silently inflating $h$ (e.g. using Euclidean distance scaled by an "average speed" guess that's too optimistic about remaining cost) breaks admissibility without announcing it. Audit your heuristic's optimism, not its accuracy.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Frontier holds nodes with $(g,h)$: $(3, 4), (5, 1), (2, 6)$. Which does A* expand?<details class="sol"><summary>Solution</summary><div>$f$ values: 7, 6, 8. Expand the $(5,1)$ node.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: A* (tree search) with admissible $h$ never returns a suboptimal goal.<details class="sol"><summary>Solution</summary><div>Suppose goal node $G_2$ with cost $g(G_2) > C^*$ is popped. Some node $n$ on an optimal path is on the frontier (the path's frontier-most node). Then $f(n) = g(n) + h(n) \le g(n) + h^*(n) = C^*$ (admissibility; $g(n)$ is the optimal prefix cost along that path). But $f(G_2) = g(G_2) > C^* \ge f(n)$, so the queue would pop $n$ first — contradiction. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Show A* with a consistent heuristic expands nodes in nondecreasing $f$-order, and why this makes the explored set safe (no reopening).<details class="sol"><summary>Solution</summary><div>Consistency: $h(n) \le c(n, n') + h(n')$ gives $f(n') = g(n) + c + h(n') \ge g(n) + h(n) = f(n)$: $f$ never decreases along any path. Every expanded node's $f$ is $\ge$ the $f$ of the frontier node it descended from at pop time, and the queue always pops the min — an exchange argument gives monotone pop $f$-values. Consequently, when a state is first expanded, its $g$ is optimal: any later path to it would come through a node with $\ge$ its $f$, hence $\ge g$ (same $h$ at the state). So re-encounters can be discarded — each state expanded once, and graph-search A* remains optimal. ∎</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A* with $h(n) = 0$ everywhere is exactly…</div><button class="opt">greedy best-first search</button><button class="opt">uniform-cost search</button><button class="opt">depth-first search</button><div class="why" hidden>$f = g + 0 = g$: the frontier is ordered by path cost alone — Dijkstra/UCS. The zero heuristic is admissible and consistent, just maximally uninformative.</div></div>
+</section>
+
+<section class="topic" id="heuristic-functions">
+ <h2>Heuristic functions</h2>
+ <p>A heuristic $h(s)$ is a cheap guess of the cost from $s$ to the goal — the compass that turns blind flooding into directed search. The craft is systematic: relax the problem (drop rules), solve the relaxed version exactly, and use that exact-relaxed cost as your estimate. More informed heuristics expand fewer nodes; the limit $h = h^*$ walks straight to the goal.</p>
+ <div class="box def"><span class="label">Definition</span> $h : \mathcal S \to \mathbb R_{\ge0}$ with $h(\text{goal}) = 0$, estimating $h^*(s)$, the true optimal cost-to-go. $h_2$ <em>dominates</em> $h_1$ if $h_2(s) \ge h_1(s)$ everywhere (both admissible): then A* with $h_2$ expands a subset of the nodes A* with $h_1$ expands (up to tie-breaking). Given several admissible heuristics, $h(s) = \max_i h_i(s)$ is admissible and dominates each.</div>
+ <div class="box ex"><span class="label">Worked example</span> 8-puzzle heuristics. $h_1$ = number of misplaced tiles; $h_2$ = sum of Manhattan distances of tiles from their homes. Both come from relaxations ($h_1$: tiles teleport; $h_2$: tiles slide through each other). On a typical depth-14 instance, A* expands ~539 nodes with $h_2$ vs ~13,000 with $h_1$ vs ~3.6 million for IDS. Effective branching factor: 1.24 vs 1.44 vs 2.8 — heuristic quality compounds exponentially with depth.</div>
+ <div class="box link"><span class="label">Where this goes</span> Learned value functions are heuristics: AlphaZero's value network plays exactly the role of $h$ inside its tree search (this chapter), and an LLM's judgment of partial solutions guides tree-of-thought search in Ch 30.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For grid pathfinding with 4-directional moves of cost 1, give the standard admissible heuristic and its value from $(1,2)$ to $(4,6)$.<details class="sol"><summary>Solution</summary><div>Manhattan distance: $|4-1| + |6-2| = 7$. Admissible: each move changes one coordinate by 1, so at least 7 moves are needed.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does relaxing a problem always yield an admissible heuristic?<details class="sol"><summary>Solution</summary><div>Relaxation removes constraints, so every solution of the original problem is still a solution of the relaxed one; the relaxed optimal cost is a minimum over a <em>superset</em> of paths, hence $\le$ the original optimal cost. Using the relaxed optimum as $h$ therefore never overestimates. Bonus: relaxed problems are chosen so their optimum is computable in closed form (teleport, ignore-walls, ignore-collisions).</div></details></li>
+  <li><span class="lvl h">HARD</span> Pattern databases precompute exact solution costs for a sub-puzzle (e.g. tiles 1–4 of the 15-puzzle, others indistinct). Explain why the PDB value is admissible, and why summing two PDBs (tiles 1–4 and 5–8) is admissible only if move counts are attributed disjointly.<details class="sol"><summary>Solution</summary><div>A PDB cost is the optimal cost of a relaxed problem (non-pattern tiles are wildcards that impose no ordering constraints), so PDB$(s) \le h^*(s)$: admissible. Naively summing two PDBs double-counts: a single physical move of tile 9 could be counted in neither, fine — but moves of pattern-1 tiles appear in PDB1's count and moves of pattern-2 tiles in PDB2's; the danger is both databases counting <em>blank-maneuvering moves</em> or shared moves. Disjoint PDBs count only moves of their own pattern tiles; since any real solution's moves partition among the patterns (each move moves exactly one tile), the two counts sum to $\le$ total moves: admissible, and far stronger than the max. This additivity trick is how the 15-puzzle became routinely solvable optimally.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="admissible-heuristics">
+ <h2>Admissible heuristics</h2>
+ <p>Admissible = never pessimistic: the heuristic must not overestimate the true remaining cost, anywhere. It is the exact condition under which A* can trust a goal it pops — if the estimate might exaggerate, a cheaper route could be hiding behind an inflated $f$, and A* would commit too early.</p>
+ <div class="box def"><span class="label">Definition</span> $h$ is <em>admissible</em> iff $0 \le h(s) \le h^*(s)$ for all $s$ (with $h(\text{goal}) = 0$). Equivalent slogan: $h$ is an optimistic lower bound on cost-to-go. Admissibility is about the <em>true optimal</em> cost, not the cost of any particular path.</div>
+ <div class="box ex"><span class="label">Worked example</span> Road-map routing: straight-line (Euclidean) distance is admissible — no road between two points is shorter than the straight line. Estimated <em>driving time</em> at the speed limit is admissible for time-cost search only if no road segment can be traversed faster than its limit; with a tailwind of reality (drivers speeding), it silently overestimates minimal time and a fastest route can be missed. The geometry argument is a proof; the traffic argument is a hope.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Accurate on average" is neither necessary nor sufficient. A heuristic that returns $0.9\,h^*$ everywhere is admissible and great; one that returns $h^*$ exactly except one state where it returns $h^* + 1$ is inadmissible and can produce suboptimal answers. Check the inequality pointwise — especially after "improving" a heuristic with learned corrections, which is precisely how learned heuristics lose their guarantees.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $h = 0$ admissible? Is $h = h^*$? What does A* do with each?<details class="sol"><summary>Solution</summary><div>Both admissible ($0 \le 0 \le h^*$; $h^* \le h^*$). With $h = 0$, A* = UCS: optimal, uninformed. With $h = h^*$, A* expands only nodes on optimal paths — perfect guidance.</div></details></li>
+  <li><span class="lvl m">MED</span> 8-puzzle: show "number of misplaced tiles" is admissible, and that "2 × misplaced tiles" is not.<details class="sol"><summary>Solution</summary><div>Each move slides one tile, so it can fix at most one misplaced tile; $k$ misplaced tiles need $\ge k$ moves: $h_1 \le h^*$. Doubling: a state one move from the goal has 1 misplaced tile, $2h_1 = 2 > h^* = 1$ — overestimates, inadmissible. (It might still find optimal solutions often; it just can't promise them.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $h$ is admissible, weighted A* with $f = g + wh$ ($w \ge 1$) returns a solution of cost $\le w\,C^*$.<details class="sol"><summary>Solution</summary><div>When weighted A* pops goal $G$ with cost $g(G)$, every frontier node $n$ satisfies $g(n) + w\,h(n) \ge g(G)$. Pick $n$ on an optimal path (as in the A* proof): $g(n) + h(n) \le C^*$, so $g(n) + w\,h(n) \le g(n) + h(n) + (w-1)h(n) \le C^* + (w-1)h(n) \le C^* + (w-1)(C^* - g(n)) \le w\,C^*$. Hence $g(G) \le w\,C^*$. ∎ The bound is tight in adversarial graphs; in practice weighted A* is usually much closer to optimal than $w$ suggests, while expanding far fewer nodes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="consistent-heuristics">
+ <h2>Consistent heuristics</h2>
+ <p>Consistency is admissibility's stronger cousin: a triangle inequality saying the heuristic can't drop faster than the cost you pay to move. It buys you the clean version of A* — $f$ never decreases along a path, states never need reopening, one expansion each. Nearly every natural heuristic is consistent; the exceptions are usually stitched-together or learned ones.</p>
+ <div class="box def"><span class="label">Definition</span> $h$ is <em>consistent</em> (monotone) iff for every edge $s \xrightarrow{a} s'$: $$h(s) \le c(s, a, s') + h(s'),$$ with $h(\text{goal}) = 0$. Consistency ⇒ admissibility (telescope the inequality along an optimal path to the goal). The converse fails: admissible-but-inconsistent heuristics exist.</div>
+ <div class="box ex"><span class="label">Worked example</span> Manhattan distance on a unit-cost grid: any move changes $h$ by at most 1 while costing 1, so $h(s) \le 1 + h(s')$ ✓ consistent. An admissible-inconsistent example: three states $A \xrightarrow{1} B \xrightarrow{1} G$, with $h(A) = 2$ (fine, $h^* = 2$), $h(B) = 0$ (fine, $\le 1$). Check the edge $A\to B$: $h(A) = 2 \le 1 + h(B) = 1$? No — inconsistent, though never overestimating. Along $A\to B$, $f$ drops from 2 to 1: the $f$-contour "dips."</div>
+ <div class="box think"><span class="label">Think first</span> Why does the max of two consistent heuristics stay consistent?<details class="sol"><summary>Reveal</summary><div>For any edge, $h_i(s) \le c + h_i(s') \le c + \max(h_1,h_2)(s')$ for each $i$; taking the max over $i$ on the left preserves the bound: $\max_i h_i(s) \le c + \max_i h_i(s')$. So combining pattern databases, landmarks and distances by pointwise max keeps every A* guarantee.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> State the two properties, and which implies which.<details class="sol"><summary>Solution</summary><div>Admissible: $h \le h^*$ pointwise. Consistent: $h(s) \le c(s,s') + h(s')$ per edge, $h(\text{goal}) = 0$. Consistent ⇒ admissible; not conversely.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove consistency implies admissibility.<details class="sol"><summary>Solution</summary><div>Let $s = s_0 \to s_1 \to \cdots \to s_k = $ goal be an optimal path, cost $h^*(s)$. Apply consistency along each edge: $h(s_i) \le c_i + h(s_{i+1})$. Summing (telescoping): $h(s) \le \sum_i c_i + h(\text{goal}) = h^*(s) + 0$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> With an admissible but inconsistent $h$, graph-search A* that never reopens closed states can return a suboptimal solution. Construct a minimal example.<details class="sol"><summary>Solution</summary><div>States S, A, B, G. Edges: S→A cost 1, S→B cost 1... use costs: S→A = 2, S→B = 1, B→A = 1, A→G = 1. True: optimal S→B→A→G cost 3. Heuristics: $h(S) = 0, h(A) = 0, h(B) = 3, h(G) = 0$. Admissible? $h^*(B) = 2$... need $h(B) \le 2$: set $h(B) = 2$ ($h^*(B) = 2$ ✓). Inconsistent: edge B→A: $h(B) = 2 \le 1 + h(A) = 1$? No ✓ inconsistent. Run A*: pop S ($f{=}0$). Push A ($g{=}2, f{=}2$), B ($g{=}1, f{=}3$). Pop A ($f = 2$) — closes A with suboptimal $g = 2$. Push G ($g{=}3, f{=}3$). Pop B or G at $f = 3$: if B pops, it regenerates A with $g = 2$, no improvement... (equal, fine — tweak S→A cost to 2.5: then A closes at $g = 2.5$, G arrives at $g = 3.5$; via B, A would cost 2, G would cost 3; but A is closed and not reopened, so A* returns 3.5 > 3: suboptimal.) The inflated $h(B)$ delayed B's expansion until after A was closed via the expensive direct edge. Reopening closed nodes (or requiring consistency) repairs optimality.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="beam-search">
+ <h2>Beam search</h2>
+ <p>Cap the frontier: at each depth keep only the $k$ best-scoring candidates and discard the rest, forever. Beam search turns exponential trees into linear work at the price of all guarantees — the optimum may be pruned at step one. It is the workhorse of sequence decoding in NLP: at each position, extend the $k$ best partial sentences by one token, rescore, re-prune.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Beam search</em> with width $k$: maintain a set $B_d$ of at most $k$ nodes at depth $d$; $B_{d+1} = \text{top-}k$ of all children of $B_d$ under the scoring function. Memory $O(k)$, time $O(k\,b)$ per level. Complete: no. Optimal: no. $k = 1$ is greedy hill-climbing... greedy decoding; $k = \infty$ is breadth-first with scores.</div>
+ <div class="box ex"><span class="label">Worked example</span> LLM decoding, width $k = 2$, scores = log-probabilities (higher better). Step 1 candidates: "the" (−0.4), "a" (−0.9), "an" (−2.1) → keep {the, a}. Step 2: extend both by every token; suppose the best are "the cat" (−1.1), "the dog" (−1.3), "a cat" (−1.2), … → keep {"the cat" (−1.1), "a cat" (−1.2)}. Note "a" (−0.9) beat "the cat"-prefix competitor at step 1, but its continuations were weaker — the beam let both live long enough to find out. Greedy ($k = 1$) would have bet everything on "the" immediately.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Beam search maximizes sequence log-probability, which for language models favors short, generic, repetitive text (probabilities multiply below 1, so length is punished; length-normalization is a patch, not a fix). For open-ended generation, sampling (top-p) usually beats wide beams — high-probability ≠ high-quality. Beams shine when there is a nearly-correct answer to find: translation, speech, code.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Beam width 3, branching factor 50, depth 10: how many nodes are scored (roughly)?<details class="sol"><summary>Solution</summary><div>Per level: $3 \times 50 = 150$ scored; over 10 levels ≈ 1500 — versus $50^{10} \approx 10^{17}$ for the full tree.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove by example that increasing beam width can never... can sometimes give a <em>worse</em> final answer under length-normalized scores — or explain why monotone improvement fails.<details class="sol"><summary>Solution</summary><div>Width-$k$'s candidate set is not a superset of width-$(k{-}1)$'s <em>final</em> candidates' trajectories in general — pruning interacts with rescoring. Concretely with length normalization: a wider beam keeps alive a seductive prefix that later ends quickly with a high normalized score (short sequence), displacing the longer, ultimately better sequence the narrow beam would have committed to. Empirically in NMT, quality peaks around $k \approx 4$–10 and degrades for $k$ in the hundreds (the "beam search curse"), where the model's length/genericity biases dominate. No monotonicity theorem exists because the objective being maximized diverges from the quality being measured.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a scoring scheme so that beam search with width $k$ on a tree with bounded score error recovers the optimum: suppose the true best path's prefix score is always within $\Delta$ of the best prefix score at its depth. What width suffices?<details class="sol"><summary>Solution</summary><div>If at every depth at most $m$ nodes score within $\Delta$ of the depth-best, then width $k \ge m$ suffices: the optimal path's prefix is always within $\Delta$ of the best, hence always in the top-$m$, hence never pruned — induction over depth. So beams are "safe" exactly when the scorer is well-calibrated enough that the true solution never falls more than the beam's depth into the ranking. This is why better models (tighter $\Delta$, smaller $m$) permit narrower beams, and why beams fail on deceptive problems where good solutions look bad early ($\Delta$ unbounded).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="monte-carlo-tree-search">
+ <h2>Monte Carlo Tree Search</h2>
+ <p>When the tree is too deep to search and no heuristic exists, <em>play it out</em>: estimate a move's worth by simulating random games from it and averaging results. MCTS grows an asymmetric tree, one node per iteration, concentrating simulations on the moves that are winning so far — a learned, sampled, anytime approximation to full lookahead that took computer Go from amateur to dan-level even before neural networks.</p>
+ <div class="box def"><span class="label">Definition</span> MCTS repeats four phases: (1) <em>Selection</em> — descend from the root by a tree policy (UCT, next topic) until reaching a node with untried actions; (2) <em>Expansion</em> — add one new child; (3) <em>Simulation (rollout)</em> — play a default (e.g. random) policy to a terminal state; (4) <em>Backpropagation</em> — update visit counts $N$ and value sums along the path: $N(v) \mathrel{+}= 1$, $W(v) \mathrel{+}= z$. After the budget, play the root child with most visits (or highest mean).</div>
+ <div class="box ex"><span class="label">Worked example</span> Root with 3 moves; after 12 iterations the statistics might read: move A — 6 visits, 4 wins (0.67); move B — 4 visits, 1 win (0.25); move C — 2 visits, 1 win (0.5). The tree under A is already two levels deep (its promising replies got explored); under B it is a stub. That asymmetry — depth where it matters — is the entire point: a uniform depth-2 search would have spent equal effort refuting B's bad line and confirming A's good one.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>MCTS/UCT on a depth-6 binary game tree with fixed random leaf values (max player at root). Press Iterate and watch visits concentrate on the minimax-optimal branch; the dashed marker shows the true minimax value. Adjust exploration c.</p>
+  <canvas id="cv-mcts"></canvas>
+  <div class="ctl">
+   <label>c <input type="range" id="mc-c" min="0" max="3" step="0.1" value="1.4"></label>
+   <button class="btn" id="mc-step">Iterate ×50</button>
+   <button class="btn" id="mc-reset">New tree</button>
+  </div>
+  <div class="out" id="mc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Random rollouts are a terrible evaluator in tactical positions ("MCTS is blind to traps"): a line that loses only to one precise reply looks fine when the simulated opponent replies randomly. Deep tactics need either heavier playout policies, deeper selective expansion, or — the modern answer — replacing rollouts with a learned value network (AlphaZero, two topics on).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the four MCTS phases in order and what each touches.<details class="sol"><summary>Solution</summary><div>Selection (descend existing tree via UCT), Expansion (add one node), Simulation (rollout to terminal, no tree changes), Backpropagation (update $N, W$ on the path from new node to root).</div></details></li>
+  <li><span class="lvl m">MED</span> A node's stats after backprop: $N = 10$, $W = 7$ (wins for the player to move at its <em>parent</em>). What is its mean value, and why must values alternate perspective in two-player backprop?<details class="sol"><summary>Solution</summary><div>Mean $Q = 7/10 = 0.7$. In alternating games, a win for one side is a loss for the other, so as the result $z$ propagates up, each level either flips $z \mapsto 1-z$ (or $-z$ for ±1 scores), or equivalently each node stores values from its own player's perspective. Forgetting the flip makes the search maximize the opponent's success on odd levels — a classic bug that plays "helpfully."</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is "most visits" the standard final move choice rather than "highest mean value"?<details class="sol"><summary>Solution</summary><div>Robustness to small-sample flukes. A rarely-visited child can have a lucky high mean (2/2 wins) with huge uncertainty; the most-visited child earned its visits by sustained good results under UCT — its mean is low-variance. Since UCT allocates visits increasingly to the best action (visits are themselves a confidence-weighted judgment), $\arg\max N$ approximates $\arg\max$ of a lower confidence bound. Hybrid "robust child" rules require max visits <em>and</em> max value, running extra iterations until they agree. AlphaZero uses visit counts, temperature-scaled, as its training target π for the same reason.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="upper-confidence-trees">
+ <h2>Upper Confidence Trees</h2>
+ <p>UCT is the selection rule that made MCTS principled: treat every node's child choice as a bandit (Ch 25's UCB) and pick the child maximizing mean value plus an exploration bonus. Each tree level explores enough to avoid missing sleepers, yet exponentially concentrates on winners — and the whole recursive stack provably converges to minimax play.</p>
+ <div class="box def"><span class="label">Definition</span> At node $v$ with children $i$: select $$\arg\max_i\ \frac{W_i}{N_i} + c\,\sqrt{\frac{\ln N_v}{N_i}},$$ where $N_v = \sum_i N_i$ (parent visits) and untried children have priority (treated as $\infty$). With rewards in $[0,1]$ and suitable $c$ (classically $\sqrt 2$), UCT's root value converges to the minimax value, and the probability of choosing a suboptimal root move $\to 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Parent $N_v = 20$, $c = 1.4$, $\ln 20 \approx 3.0$. Child A: $W/N = 6/10 = 0.6$, bonus $1.4\sqrt{3.0/10} = 1.4\cdot0.548 = 0.767$ → 1.367. Child B: $2/8 = 0.25$, bonus $1.4\sqrt{3.0/8} = 0.857$ → 1.107. Child C: $1/2 = 0.5$, bonus $1.4\sqrt{3.0/2} = 1.715$ → 2.215. Select C: two visits is too few to dismiss a 0.5 mean. Twenty visits later, if C's mean has sagged, its bonus will have shrunk and A resumes leadership.</div>
+ <div class="box link"><span class="label">Where this goes</span> Replace the bonus's blind $1/\sqrt{N_i}$-ish term with a policy prior — $c\,P(i)\frac{\sqrt{N_v}}{1+N_i}$ — and you have PUCT, the selection rule of AlphaGo/AlphaZero (next topic): learned intuition steering provable exploration.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In UCT, what happens to a child's score as it is visited without wins? As it is ignored?<details class="sol"><summary>Solution</summary><div>Visited without wins: mean falls and bonus shrinks — doubly demoted. Ignored: $\ln N_v$ grows while $N_i$ stays put, so its bonus (and score) creeps up until it is retried. Same self-correcting seesaw as UCB1.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute which child UCT selects: $N_v = 50$ ($\ln 50 \approx 3.91$), $c = 1$; children $(W, N)$: (20, 30), (8, 15), (2, 5).<details class="sol"><summary>Solution</summary><div>Scores: $0.667 + \sqrt{3.91/30} = 0.667 + 0.361 = 1.028$; $0.533 + \sqrt{3.91/15} = 0.533 + 0.511 = 1.044$; $0.4 + \sqrt{3.91/5} = 0.4 + 0.884 = 1.284$. Select child 3.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why UCT's regret-style guarantee at internal nodes is harder than the bandit case, and what the consequence is for "trap" positions.<details class="sol"><summary>Solution</summary><div>A bandit's arm payoffs are i.i.d.; a tree node's child "payoff" distribution is <em>non-stationary</em> — it drifts as the subtree below is explored and its value estimate sharpens (early rollouts through an unexplored subtree may be wildly unrepresentative of its minimax value). UCT's analysis handles this with drifting-mean bandit arguments, but the price is worst-case convergence time hyper-exponential in depth: a node can look good for a very long time before the refutation deep in its subtree is found. Practically: in positions where one precise deep line refutes a move (traps), UCT's polynomial-time behavior is not guaranteed and plain minimax with alpha-beta can be exponentially better — a real, observed failure mode in chess tactics, mitigated by value networks that "see" the trap statically.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="alphazero-style-search">
+ <h2>AlphaZero-style search</h2>
+ <p>AlphaZero closes the loop between learning and search: a single network outputs a move-probability prior $p$ and a position value $v$; MCTS, guided by both (no rollouts — $v$ replaces them), produces sharper move probabilities than the raw network; those search-improved probabilities and the game's outcome become the network's training targets. Search amplifies the network; the network distills the search; repeat from random play to superhuman.</p>
+ <div class="box def"><span class="label">Definition</span> Selection maximizes PUCT: $$a = \arg\max_a\ Q(s,a) + c_{\text{puct}}\;P(s,a)\,\frac{\sqrt{\sum_b N(s,b)}}{1 + N(s,a)}.$$ Leaf evaluation: network $f_\theta(s) = (\mathbf p, v)$ — no rollout; $v$ is backed up. After $n$ simulations, the improved policy is $\pi(a\mid s) \propto N(s,a)^{1/\tau}$. Training: $$\mathcal L = (z - v)^2 - \boldsymbol\pi^\top \log \mathbf p + \lambda\|\theta\|^2,$$ on positions from self-play games with final outcomes $z$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $c_{\text{puct}} = 1$, parent visits sum 16 ($\sqrt{16} = 4$). Move A: $Q = 0.5$, $P = 0.4$, $N = 8$ → $0.5 + 0.4\cdot4/9 = 0.678$. Move B: $Q = 0.3$, $P = 0.5$, $N = 4$ → $0.3 + 0.5\cdot4/5 = 0.70$. Move C: $Q = 0.1$, $P = 0.1$, $N = 3$ → $0.1 + 0.1\cdot4/4 = 0.2$. Select B — the prior keeps the network's favorite alive despite a currently lower $Q$; C, disliked by both prior and results, is starved. After the search, suppose $N = (9, 6, 3)$ with $\tau = 1$: training target $\pi = (0.5, 0.33, 0.17)$ — sharper than the prior $(0.4, 0.5, 0.1)$ where the search disagreed with it.</div>
+ <div class="box think"><span class="label">Think first</span> Why is the <em>search's</em> output a valid improvement target for the policy network — what guarantees the search policy beats the raw prior?<details class="sol"><summary>Reveal</summary><div>MCTS with a value function is a policy-improvement operator: it performs a lookahead maximization over the prior's suggestions, exactly as one step of policy iteration improves any policy by acting greedily against its value (Ch 25). Visits accumulate on moves whose backed-up $Q$ (deep evaluation) is high, so $\pi_{\text{MCTS}}$ ≽ $\mathbf p$ in expected outcome, with equality only when the prior is already search-consistent. Training $p \to \pi_{\text{MCTS}}$ is therefore supervised learning of a strictly improved policy: generalized policy iteration with search as the improvement step.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What two quantities does AlphaZero's network output, and which classical MCTS components do they replace?<details class="sol"><summary>Solution</summary><div>A policy prior $\mathbf p$ over moves (replaces uniform/heuristic child selection — steers PUCT) and a scalar value $v$ (replaces the random rollout as leaf evaluator).</div></details></li>
+  <li><span class="lvl m">MED</span> AlphaZero adds Dirichlet noise to the root prior during self-play: $P \leftarrow (1-\varepsilon)P + \varepsilon\,\eta$, $\eta\sim\text{Dir}(\alpha)$. Why at the root, and why only in self-play?<details class="sol"><summary>Solution</summary><div>Root: it is where actual move decisions and training targets are produced; noise there guarantees every move gets occasional exploration even if the prior has collapsed (preventing self-reinforcing blind spots in the training loop). Only self-play: exploration is for generating diverse training data; at evaluation/match time you want the best move, not exploration. It is the ε-greedy of the AlphaZero loop, shaped to the move distribution.</div></details></li>
+  <li><span class="lvl h">HARD</span> Contrast the credit assignment of AlphaZero's $(z - v)^2$ target with TD bootstrapping. What bias/variance trade is being made, and why can AlphaZero afford it?<details class="sol"><summary>Solution</summary><div>$z$ is the Monte Carlo return of the whole game (±1): unbiased for the true outcome under the current self-play policy, but high variance — one blunder at move 60 relabels every position since move 1. TD (as in MuZero's $n$-step targets, or TD-Gammon) bootstraps off later value estimates: lower variance, biased by the net's current errors. AlphaZero affords MC because (a) games are cheap and abundant in self-play, so variance averages out over millions of positions; (b) search-filtered play makes outcomes less noisy than raw-policy play; (c) avoiding bootstrap bias matters when the value net's errors are precisely what training must correct — bootstrapping can entrench them. Where simulation is expensive (real robotics), the trade flips toward TD.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="game-trees">
+ <h2>Game trees</h2>
+ <p>Add an adversary and the search tree becomes a game tree: layers alternate between your moves and theirs, and "a plan" must survive the opponent's best resistance at every branch. A path is no longer a solution — a <em>strategy</em> (your reply to each of their replies) is, and the tree's value is defined bottom-up by alternating max and min.</p>
+ <div class="box def"><span class="label">Definition</span> A (two-player, zero-sum, perfect-information) game tree: nodes = positions with a player to move; children = legal moves; leaves = terminal positions with utility $u$ (for the MAX player). Non-leaf values: $V(n) = \max_{c} V(c)$ at MAX nodes, $\min_c V(c)$ at MIN nodes. Game complexity: chess ≈ $b^{d} \approx 35^{80} \sim 10^{123}$ tree nodes; Go ≈ $250^{150} \sim 10^{360}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Tic-tac-toe: about 255,168 distinct playouts, small enough for exhaustive minimax: value 0 (draw) with best play from both sides — first player has no winning strategy, only losing traps to avoid. Chess's $10^{123}$ makes exhaustion physically absurd; every practical method (depth cutoffs + evaluation, alpha-beta, MCTS, networks) is a way of pretending the tree is smaller.</div>
+ <div class="box link"><span class="label">Where this goes</span> Game trees are Ch 24's extensive-form games given an algorithmic body; minimax and alpha-beta operate on them next; adversarial "trees" over agent/monitor moves reappear in Ch 33 and Ch 35.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In a game tree, why is a single root-to-leaf path not a solution?<details class="sol"><summary>Solution</summary><div>The path fixes the opponent's moves too — but the opponent won't cooperate. A solution must specify your move at every node the opponent could steer the game into: a subtree/strategy, of size roughly $b^{d/2}$, not $d$.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate the game tree: MAX root with two children; left child is a MIN node over leaves (3, 12, 8); right child is a MIN node over leaves (2, 14, 5). Root value and best move?<details class="sol"><summary>Solution</summary><div>Left MIN = min(3,12,8) = 3; right MIN = min(2,14,5) = 2. Root MAX = max(3, 2) = 3: play left. Note MAX ends up with the least-bad guaranteed outcome, not the tree's biggest leaf (14) — that 14 sits behind a MIN who will never allow it.</div></details></li>
+  <li><span class="lvl h">HARD</span> Zermelo's theorem: every finite two-player zero-sum perfect-information game has a well-defined value and an optimal pure strategy for each side. Prove it by induction on the tree.<details class="sol"><summary>Solution</summary><div>Induction on height. Height 0 (leaf): value = its utility; empty strategies. Height $k{+}1$: each child subtree, of height $\le k$, has by hypothesis a value $V(c_i)$ and optimal strategies. If MAX moves, set $V(n) = \max_i V(c_i)$; MAX's strategy: pick the argmax child, then follow its optimal strategy — guaranteeing $\ge V(n)$; and no strategy guarantees more, since MIN plays optimally in whichever child MAX enters, holding MAX to $V(c_i) \le V(n)$. Symmetric at MIN nodes. So value and pure optimal strategies exist at the root. ∎ Consequence: chess has a definite game-theoretic value (win/draw/loss for White) — we just don't know it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="minimax">
+ <h2>Minimax</h2>
+ <p>Minimax computes the game tree's value by depth-first recursion: at your nodes take the max over children, at the opponent's the min. Since real trees don't fit, you cut off at depth $d$ and apply a static evaluation function to the frontier — playing perfectly within your horizon, heuristically beyond it. This was the engine of every classical chess program.</p>
+ <div class="box def"><span class="label">Definition</span> $$\text{minimax}(n) = \begin{cases} \text{eval}(n) & \text{if } n \text{ terminal or depth} = 0\\ \max_c \text{minimax}(c) & \text{MAX to move}\\ \min_c \text{minimax}(c) & \text{MIN to move.}\end{cases}$$ Time $O(b^d)$, space $O(bd)$ (it's DFS). Against an optimal opponent, no strategy guarantees more than the minimax value; against suboptimal opponents it never does worse than that guarantee.</div>
+ <div class="box ex"><span class="label">Worked example</span> Depth-2 search, MAX at root with moves L and R. After L, MIN's options lead to evals (5, 2): MIN plays to 2. After R, MIN's options give (3, 4): MIN plays to 3. Minimax: max(2, 3) = 3 → play R. The naive "greedy by best reachable eval" would pick L (its 5 is the biggest number in sight) and walk into the 2. Minimax's pessimism about the opponent is exactly what makes its promise trustworthy.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The horizon effect: a fixed cutoff lets an inevitable disaster be pushed <em>just past</em> the horizon by pointless delaying moves (checks, spite captures), making a lost position evaluate as fine. Remedies: quiescence search (extend the search at "noisy" positions until the tactics settle before applying eval) and search extensions for forcing lines. A static eval applied mid-capture is nearly worthless.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute minimax: MAX root; child L is MIN over (7, 1); child R is MIN over (4, 6).<details class="sol"><summary>Solution</summary><div>L → 1, R → 4. Root = max(1, 4) = 4; play R.</div></details></li>
+  <li><span class="lvl m">MED</span> Your engine evaluates +2 at depth 6 but −3 at depth 8 from the same position. What is happening and which do you trust?<details class="sol"><summary>Solution</summary><div>The deeper search sees a tactic (e.g. a combination whose refutation needs 7–8 plies) invisible at depth 6 — an odd/even ("parity") swing or a horizon artifact. Trust the deeper value, ceteris paribus: minimax values converge (noisily) to the true value as depth grows. Big swings between depths are exactly why engines search iteratively deeper and why quiescence matters.</div></details></li>
+  <li><span class="lvl h">HARD</span> Playing the minimax move is optimal against a perfect opponent. Give a position-style argument that it can be <em>suboptimal in expectation</em> against a known-fallible opponent, and connect to why poker bots model opponents but chess engines mostly don't.<details class="sol"><summary>Solution</summary><div>Suppose move A guarantees a draw (value 0) and move B loses against the unique precise refutation (value −1) but wins against all of the opponent's other replies (+1). Against an opponent who finds the refutation with probability $p$, B's expectation is $1 - 2p$, exceeding A's 0 when $p &lt; \tfrac12$. Minimax (A) maximizes the guaranteed floor; expectation-maximization against an opponent model (B) accepts risk for upside — "swindle" play. Chess engines mostly stay with minimax because their guarantee is already near-winning and modeling top opponents is unreliable; poker <em>forces</em> opponent modeling because with hidden information there is no single safe value to guarantee against all types... (formally, exploiting requires deviating from equilibrium, opening yourself to counter-exploitation — the Ch 24 trade-off.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="alpha-beta-pruning">
+ <h2>Alpha-beta pruning</h2>
+ <p>Minimax wastes effort proving <em>how</em> bad the bad branches are. Alpha-beta carries two bounds down the recursion — the best score MAX can already force ($\alpha$) and the best MIN can force ($\beta$) — and abandons any branch proven irrelevant ($\alpha \ge \beta$): "my opponent already has a better option earlier, so they'll never let the game come here." Same answer as minimax, and with good move ordering, in the time of a tree only half as deep... i.e. $O(b^{d/2})$: double the searchable depth.</p>
+ <div class="box def"><span class="label">Definition</span> Recurse with window $(\alpha, \beta)$. At MAX: $v = -\infty$; for each child, $v = \max(v, \text{AB}(c, \alpha, \beta))$, $\alpha = \max(\alpha, v)$; if $\alpha \ge \beta$ stop (β-cutoff, "MIN won't allow this node"). At MIN symmetric with β and α-cutoffs. Returns exactly the minimax value. Best-case (perfect move ordering) node count $O(b^{d/2})$; random ordering ≈ $O(b^{3d/4})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> MAX root, children L then R. Search L fully: value 3, so $\alpha = 3$. Enter R (a MIN node) with $(\alpha,\beta) = (3, +\infty)$: its first leaf is 2, so MIN's $v \le 2$, i.e. $\beta$ becomes 2 $\le \alpha = 3$ → cutoff: R's remaining leaves (maybe 14, maybe 100) are never examined. Whatever they are, MIN would hold R to $\le 2 &lt; 3$, and MAX already has 3. One leaf refuted the whole branch.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A depth-4 game tree, minimax vs alpha-beta. Press Search to sweep; pruned subtrees are struck grey. Toggle move ordering: with best-first ordering far more of the tree disappears. Counter shows leaves evaluated.</p>
+  <canvas id="cv-ab"></canvas>
+  <div class="ctl">
+   <label>ordering <select id="ab-ord"><option value="good">best-first</option><option value="bad">worst-first</option></select></label>
+   <button class="btn" id="ab-run">Search</button>
+   <button class="btn" id="ab-new">New tree</button>
+  </div>
+  <div class="out" id="ab-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does alpha-beta ever change the move chosen, versus full minimax?<details class="sol"><summary>Solution</summary><div>No — it returns the identical root value and (with consistent tie-breaking) the identical best move. It prunes only branches provably unable to affect the result. Pure speedup, zero cost.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does move ordering matter so much, and what orderings do engines use?<details class="sol"><summary>Solution</summary><div>Cutoffs happen when a good-enough move is searched <em>early</em>: the sooner the best move is tried, the sooner α/β tighten and siblings prune. Perfect ordering gives $b^{d/2}$; reverse ordering gives ~no pruning ($b^d$). Engines order by: transposition-table best move (from previous/shallower searches — one reason iterative deepening helps even single-position search), captures ranked by MVV-LVA, killer moves (recently caused cutoffs at the same depth), and history heuristics. Modern engines also use learned policy priors — ordering is where AlphaZero's $P$ meets classical search.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the $O(b^{d/2})$ best case: with perfect ordering, how many leaves must be examined to <em>prove</em> the minimax value?<details class="sol"><summary>Solution</summary><div>To prove the value you need (i) the principal variation, and (ii) at every node off it, a refutation. With perfect ordering, at nodes where the searcher must consider all moves (its own choices along proof branches) it examines $b$ children, but at the opponent's nodes one (first, best-ordered) reply suffices to refute. So examined leaves ≈ product over levels alternating $b, 1, b, 1, \dots$: $b^{\lceil d/2\rceil} + b^{\lfloor d/2\rfloor} - 1$ (Knuth &amp; Moore's exact count for the minimal tree). Hence $O(b^{d/2})$ — alpha-beta with perfect ordering searches twice as deep as minimax in equal time; e.g. chess at $b = 35$: effective branching $\approx \sqrt{35} \approx 6$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">During alpha-beta at a MIN node, the current value drops to 4 while $\alpha = 6$. What happens?</div><button class="opt">Continue: MIN wants even less than 4</button><button class="opt">Reset α to 4 and continue</button><button class="opt">Prune the remaining children of this node</button><div class="why" hidden>MIN can already hold this node to ≤ 4, but MAX has a guaranteed 6 elsewhere ($\alpha = 6$), so MAX will never enter this node. Its exact value is irrelevant: α-cutoff, return.</div></div>
+</section>
+
+<section class="topic" id="constraint-satisfaction">
+ <h2>Constraint satisfaction</h2>
+ <p>Some problems aren't about paths at all but about <em>assignments</em>: give every variable a value such that all constraints hold — Sudoku, scheduling, register allocation, map coloring. CSPs expose structure that generic search can't see: constraints tell you, locally and cheaply, which partial assignments are already doomed, so you can prune without expanding.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>CSP</em> is $(X, D, C)$: variables $X = \{x_1,\dots,x_n\}$, domains $D_i$ of candidate values, and constraints $C$, each restricting the joint values of a subset of variables. A solution assigns every variable a domain value satisfying all constraints. Standard solver: backtracking DFS over variable assignments + inference (propagation) + ordering heuristics: MRV (choose the variable with fewest remaining values) and least-constraining-value.</div>
+ <div class="box ex"><span class="label">Worked example</span> Color Australia's 7 territories with 3 colors, adjacent ≠. Assign WA = red. Then NT and SA (both adjacent to WA) drop red from their domains. Choose SA (MRV: it touches 5 regions): SA = green. Now NT ∈ {blue}, Q ∈ {red, blue}, NSW ∈ {red, blue}, V ∈ {red, blue}. NT = blue forces Q = red, forces NSW = blue, forces V = red; T is unconstrained. Solved with zero backtracks — ordering + propagation did the work; naive DFS over all $3^7 = 2187$ assignments would have thrashed.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Treating a CSP as a plain search problem over partial assignments wastes its commutativity: the <em>order</em> of assignments doesn't matter, so fix one variable per depth level (else the tree has $n!\prod|D_i|$ paths instead of $\prod |D_i|$ leaves). Every serious CSP solver assigns a single chosen variable per node — forgetting this multiplies the tree by $n!$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Formulate Sudoku as a CSP: variables, domains, constraints.<details class="sol"><summary>Solution</summary><div>81 variables (cells), domains {1..9} (singleton for givens), constraints: all-different on each of the 9 rows, 9 columns, 9 boxes — 27 all-different constraints.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does MRV ("most constrained variable first") help, when it seems to court failure?<details class="sol"><summary>Solution</summary><div>Fail-first is efficient: if a variable with 1–2 remaining values is going to wreck this branch, discovering that <em>now</em> — near the top of the subtree — prunes the enormous subtree below; discovering it after assigning 30 other variables wastes all that work $\times$ every combination of them. MRV minimizes expected tree size by putting the bottleneck at the root. (For <em>values</em>, prefer least-constraining: succeed-first, keep options open.)</div></details></li>
+  <li><span class="lvl h">HARD</span> The 4-queens CSP: place 4 queens, one per column, no two attacking. Solve by backtracking with forward checking, showing the domain wipeout that prunes column-1 = row 1.<details class="sol"><summary>Solution</summary><div>Variables $x_1..x_4$ = queen's row in each column, domains {1,2,3,4}; constraints $x_i \ne x_j$, $|x_i - x_j| \ne |i - j|$. Try $x_1 = 1$: forward-check trims $D_2 = \{3,4\}$, $D_3 = \{2,4\}$, $D_4 = \{2,3\}$. Try $x_2 = 3$: trims $D_3 = \{\}$... $D_3$ loses 2 (diag from (2,3)? $|2-3|=1=|3-2|$ yes) and 4 (row) → $D_3 = \{\}$ wipeout: backtrack. $x_2 = 4$: $D_3 = \{2\}$, $D_4 = \{3\}$; $x_3 = 2$: checks $x_4 = 3$: attacked by $x_3$? $|2-3| = 1 = |3-4|$ yes → wipeout: backtrack to $x_1$. Try $x_1 = 2$: $D_2 = \{4\}$, $D_3 = \{1,3\}$, $D_4 = \{1,3,4\}$; $x_2 = 4 \Rightarrow D_3 = \{1\}$, $D_4 = \{3\}$; $x_3 = 1 \Rightarrow$ check $x_4 = 3$: vs $x_1 = 2$: $|2-3| = 1 \ne 3$ ok, vs $x_2 = 4$: rows differ, $|4-3| = 1 \ne 2$ ok, vs $x_3$: $|1-3| = 2 \ne 1$ ok. Solution: (2, 4, 1, 3). ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="constraint-propagation">
+ <h2>Constraint propagation</h2>
+ <p>Before guessing, deduce: use the constraints to delete values that cannot appear in any solution, and let each deletion trigger further deletions — a cascade of local inferences that can shrink domains dramatically or detect a dead end outright. Propagation is what a human Sudoku solver does with pencil marks; arc consistency (AC-3) is its canonical algorithm.</p>
+ <div class="box def"><span class="label">Definition</span> Variable $x_i$ is <em>arc-consistent</em> w.r.t. $x_j$ if every value $v \in D_i$ has some $w \in D_j$ compatible with the constraint on $(x_i, x_j)$. <em>AC-3</em>: queue all arcs; pop $(x_i, x_j)$, delete unsupported values from $D_i$; if $D_i$ changed, re-enqueue all arcs $(x_k, x_i)$. Time $O(e\,d^3)$ for $e$ arcs, domain size $d$. <em>Forward checking</em> is the cheap version: after assigning $x$, prune only the neighbors of $x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $x, y, z \in \{1, 2, 3\}$ with $x &lt; y$ and $y &lt; z$. Arc $(x, y)$: $x = 3$ has no $y > 3$ → delete: $D_x = \{1,2\}$. Arc $(y, z)$: $y = 3$ unsupported → $D_y = \{1,2\}$... then arc $(x,y)$ re-checked: $x = 2$ needs $y > 2$: gone → $D_x = \{1\}$. Arc $(y,z)$ again after $D_z$: $(z,y)$: $z = 1$ needs $y &lt; 1$: delete → and $(y,z)$: $y=2$ needs $z>2$: keep 3 only if... final: $D_x = \{1\}, D_y = \{2\}, D_z = \{3\}$ — propagation alone solved it, no search.</div>
+ <div class="box think"><span class="label">Think first</span> Arc consistency on every arc doesn't guarantee a solution exists. Find a 3-variable CSP that is arc-consistent but unsatisfiable.<details class="sol"><summary>Reveal</summary><div>Three variables, domains {red, blue}, constraints: all pairs different. Every arc is consistent (for red there's blue at the neighbor, and vice versa), yet 3 mutually-distinct variables can't fit in 2 colors. Local pairwise support ≠ global consistency — that's why propagation is paired with search (or strengthened to path/k-consistency at exponential cost).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $D_x = \{1,2,3\}$, $D_y = \{3\}$, constraint $x \ne y$. Make $x$ arc-consistent w.r.t. $y$.<details class="sol"><summary>Solution</summary><div>Delete $x = 3$ (its only possible partner would be $y \ne 3$, none exists): $D_x = \{1, 2\}$.</div></details></li>
+  <li><span class="lvl m">MED</span> In AC-3, why must arcs $(x_k, x_i)$ be re-enqueued when $D_i$ shrinks — and why not $(x_i, x_k)$?<details class="sol"><summary>Solution</summary><div>Shrinking $D_i$ can remove the last support for some value of a <em>neighbor</em> $x_k$ (arcs into $x_i$... arcs $(x_k, x_i)$ ask "does each value of $x_k$ still have support in $D_i$?" — that's what deletion in $D_i$ endangers). Arcs $(x_i, x_k)$ ask whether $x_i$'s values have support in $D_k$; removing values from $D_i$ only makes that question easier (fewer values to support), never newly false. Re-checking only the endangered direction is what keeps AC-3 near-linear per pass.</div></details></li>
+  <li><span class="lvl h">HARD</span> MAC (maintaining arc consistency) runs AC-3 after every assignment during backtracking search. Explain the trade against forward checking and when each wins.<details class="sol"><summary>Solution</summary><div>Forward checking prunes only the assigned variable's direct neighbors: cost $O(\text{deg}\cdot d)$ per node, catches shallow contradictions. MAC propagates the cascade to fixpoint: cost up to $O(ed^3)$ per node, but detects deep inconsistencies many levels before FC would, potentially cutting the search tree exponentially. MAC wins on tightly-constrained problems (hard Sudoku, scheduling near the phase transition) where each inference chains far; FC wins on loose problems where cascades die immediately and MAC's fixpoint is expensive overhead. Rule of thumb: the harder the instance, the more inference pays.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sat-solving">
+ <h2>SAT solving</h2>
+ <p>SAT — find an assignment of Booleans satisfying a CNF formula — is the fruit fly of computation (Ch 17: the first NP-complete problem) and, paradoxically, a practical workhorse: modern CDCL solvers routinely crack industrial instances with millions of variables. The engine is DFS + unit propagation + a crucial twist: when a branch dies, <em>learn the clause</em> that explains why, so the same mistake is never re-made anywhere in the tree.</p>
+ <div class="box def"><span class="label">Definition</span> Input: CNF — a conjunction of clauses, each a disjunction of literals, e.g. $(x_1 \lor \lnot x_2) \land (\lnot x_1 \lor x_3)$. <em>DPLL</em>: assign a variable, apply <em>unit propagation</em> (a clause with one unassigned literal and all others false forces that literal), backtrack on empty clause. <em>CDCL</em> adds: conflict analysis (derive a learned clause from the implication graph), non-chronological backjumping, activity-based branching (VSIDS), and restarts.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\Phi = (x_1 \lor x_2) \land (\lnot x_1 \lor x_3) \land (\lnot x_2 \lor x_3) \land (\lnot x_3 \lor \lnot x_1)$. Decide $x_1 = T$: clause 2 units $x_3 = T$; clause 4 (¬x₃ ∨ ¬x₁) has both literals false → conflict. Analysis: the conflict follows from $x_1$ alone → learn the clause $(\lnot x_1)$, backjump to level 0, propagate $x_1 = F$: clause 1 units $x_2 = T$; clause 3 units $x_3 = T$; clause 4: $\lnot x_3 \lor \lnot x_1 = F \lor T$ ✓. SAT with $(x_1, x_2, x_3) = (F, T, T)$. The learned clause turned a guess-error into a permanent theorem about $\Phi$.</div>
+ <div class="box link"><span class="label">Where this goes</span> SAT is the assembly language of verification: model checking, program equivalence and neural-net verification (Ch 34) compile to SAT/SMT; planning compiles to SAT below; and P vs NP (Ch 17) is the question of whether this hammer can ever be fast in the worst case.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Apply unit propagation: $(x_1) \land (\lnot x_1 \lor x_2) \land (\lnot x_2 \lor x_3)$.<details class="sol"><summary>Solution</summary><div>Clause 1 forces $x_1 = T$; clause 2 becomes unit → $x_2 = T$; clause 3 → $x_3 = T$. Satisfied with no decisions at all.</div></details></li>
+  <li><span class="lvl m">MED</span> Encode "exactly one of $x_1, x_2, x_3$ is true" in CNF.<details class="sol"><summary>Solution</summary><div>At least one: $(x_1 \lor x_2 \lor x_3)$. At most one (pairwise): $(\lnot x_1 \lor \lnot x_2) \land (\lnot x_1 \lor \lnot x_3) \land (\lnot x_2 \lor \lnot x_3)$. Four clauses. ($n$ variables: $1 + \binom n2$ clauses pairwise, or $O(n)$ with auxiliary "commander"/sequential encodings.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is clause learning strictly more powerful than plain DPLL backtracking? Answer via proof complexity.<details class="sol"><summary>Solution</summary><div>A DPLL run on an unsatisfiable formula is exactly a <em>tree-resolution</em> refutation; tree resolution requires exponential size on families like the pigeonhole formulas even when general resolution has quasi-polynomial/short proofs. CDCL with clause learning and restarts polynomially simulates <em>general resolution</em> (Pipatsrisawat &amp; Darwiche): learned clauses are resolution derivations cached for reuse across the whole search, letting the "tree" share subproofs like a DAG. So there exist formulas where DPLL provably needs exponential time and CDCL does not — the practical speedup has a theorem underneath it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="strips-planning">
+ <h2>STRIPS planning</h2>
+ <p>Classical planning represents the world as a set of true facts and actions as recipes — preconditions, facts added, facts deleted. This factored representation is what search-over-states can't see: a planner can reason about which action <em>achieves</em> a goal fact, chain backwards from goals, and compute heuristics automatically from the action structure itself.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>STRIPS problem</em>: initial state $I$ (a set of ground atoms, closed-world), goal $G$ (a set of atoms to make true), and actions $a = (\textsf{pre}(a), \textsf{add}(a), \textsf{del}(a))$. Action $a$ is applicable in state $s$ iff $\textsf{pre}(a) \subseteq s$; the result is $s' = (s \setminus \textsf{del}(a)) \cup \textsf{add}(a)$. A plan is an action sequence transforming $I$ into a state containing $G$. Domain-independent heuristics: e.g. $h_{\text{add}}$/$h_{\text{max}}$ and $h_{\text{FF}}$ from <em>delete-relaxation</em> (pretend $\textsf{del} = \emptyset$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Blocks world. Facts: On(A,B), OnTable(B), Clear(A), HandEmpty. Action Unstack(A, B): pre {On(A,B), Clear(A), HandEmpty}; add {Holding(A), Clear(B)}; del {On(A,B), Clear(A), HandEmpty}. Goal: OnTable(A) ∧ OnTable(B). Plan: Unstack(A,B) → PutDown(A): after step 1 the state is {OnTable(B), Holding(A), Clear(B)}; after PutDown(A) (add OnTable(A), Clear(A), HandEmpty; del Holding(A)): goal satisfied. Two actions, verified by set arithmetic — the whole semantics is unions and differences.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The frame problem is solved by <em>convention</em> here: anything not in add/del is assumed unchanged. That convention silently fails when actions have context-dependent effects ("toggling the switch turns on whichever lamp is plugged in") — encoding those in pure STRIPS needs an action per context, blowing up the domain. Richer languages (ADL/PDDL conditional effects) exist precisely for this.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> When is action $a$ applicable, and what is the successor state, in symbols?<details class="sol"><summary>Solution</summary><div>Applicable iff $\textsf{pre}(a) \subseteq s$; successor $s' = (s\setminus\textsf{del}(a)) \cup \textsf{add}(a)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $h_{\text{max}}$ and $h_{\text{add}}$ (delete-relaxation heuristics) for: goal $\{p, q\}$; action $a_1$: pre {}, add {p}; $a_2$: pre {p}, add {q}. All costs 1, initial state {}.<details class="sol"><summary>Solution</summary><div>Fact costs in the relaxation: cost(p) = 1 (via $a_1$); cost(q) = cost of pre {p} + 1 = 2. $h_{\text{max}} = \max(1, 2) = 2$ (admissible). $h_{\text{add}} = 1 + 2 = 3$ (inadmissible — counts p's achievement twice, once alone and once inside q's chain — but often more informative). True $h^* = 2$ ($a_1$ then $a_2$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Planning-as-SAT (SATPlan): sketch the encoding of a STRIPS problem with horizon $T$ into propositional satisfiability.<details class="sol"><summary>Solution</summary><div>Variables: $f^t$ for every fact and time $0..T$; $a^t$ for every action and step $0..T{-}1$. Clauses: (1) initial state: $f^0$ for $f\in I$, $\lnot f^0$ otherwise; (2) goal: $g^T$ for $g\in G$; (3) action semantics: $a^t \Rightarrow \textsf{pre}(a)^t$, $a^t \Rightarrow \textsf{add}(a)^{t+1}$, $a^t \Rightarrow \lnot \textsf{del}(a)^{t+1}$; (4) frame axioms as "explanatory": $(\lnot f^t \land f^{t+1}) \Rightarrow \bigvee\{a^t : f \in \textsf{add}(a)\}$ and symmetrically for deletion; (5) mutual exclusion of interfering actions at the same step (or at-most-one for sequential plans). Solve with increasing $T = 1, 2, \dots$; the first satisfying assignment reads off a plan. This turns a planning heuristic problem into pure clause learning — competitive for optimal-length planning, and the conceptual bridge from Ch 17's SAT to acting.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hierarchical-task-networks">
+ <h2>Hierarchical task networks</h2>
+ <p>People don't plan trips move-by-move; they refine "visit Tokyo" into "book flights, book hotel, pack," each of which refines further. HTN planning bakes that recipe knowledge in: abstract tasks decompose via <em>methods</em> into subtask networks, recursively, until only primitive (executable) actions remain. The domain author's hierarchy prunes the search astronomically — and constrains it to plans shaped like the recipes.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>HTN problem</em>: primitive tasks (STRIPS-like operators), <em>compound tasks</em>, and <em>methods</em> $m: \text{task} \mapsto$ (precondition, network of subtasks with ordering constraints). Planning = repeatedly choosing an applicable method for a compound task and splicing in its network, until all tasks are primitive and executable in order. HTN planning is strictly more expressive than STRIPS (even undecidable in general, with recursive methods).</div>
+ <div class="box ex"><span class="label">Worked example</span> Task: Travel(home, Tokyo). Method "fly" (pre: airport exists): decompose into [GetTo(airport₁) → TakeFlight(airport₁, airport₂) → GetTo(hotel)]. GetTo(airport₁) is itself compound: method "taxi" → [CallTaxi, Ride, Pay]. Full expansion bottoms out in 7–8 primitives. Note what never happened: the planner never considered walking to Tokyo action-by-action — the method library doesn't contain such a decomposition, so the (vast, useless) region of state-space search simply doesn't exist for it.</div>
+ <div class="box link"><span class="label">Where this goes</span> LLM agents that "decompose the task into subtasks" (Ch 31: planner–executor loops, task decomposition) are informal HTN planners with a learned, natural-language method library; their failure mode — decompositions that don't actually achieve the parent task — is exactly the HTN soundness condition, unenforced.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the three ingredients an HTN adds beyond STRIPS operators?<details class="sol"><summary>Solution</summary><div>Compound (abstract) tasks; methods that decompose a compound task into a network of subtasks; and ordering/binding constraints inside those networks. Plans must derive from the initial task network — that derivational constraint is the added power and the added bias.</div></details></li>
+  <li><span class="lvl m">MED</span> Give one advantage and one danger of HTN's method library versus first-principles (STRIPS) planning.<details class="sol"><summary>Solution</summary><div>Advantage: expert knowledge collapses the search space — real domains (logistics, game AI, spacecraft ops) become tractable, and plans are human-shaped and auditable. Danger: completeness is surrendered — if no method sequence expresses the needed plan (novel situation), the planner fails even though a valid primitive-action plan exists. The library is both the speedup and the blindfold.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is HTN planning undecidable in general while STRIPS planning is decidable (PSPACE-complete)?<details class="sol"><summary>Solution</summary><div>A STRIPS state space over $n$ ground atoms is finite ($2^n$ states), so plan existence is decidable by exhaustive search (and is PSPACE-complete). HTN task networks can grow unboundedly: a recursive method can decompose task $T$ into a network containing $T$ again plus other tasks, so the "current network" acts as unbounded memory. Two recursive compound tasks with interleaving suffice to simulate a Turing machine's tape (Erol, Hendler &amp; Nau 1994): plan existence ≡ halting. Restrictions recover decidability: acyclic method graphs, or totally-ordered decompositions (then it drops to EXPTIME-ish classes).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="planning-under-uncertainty">
+ <h2>Planning under uncertainty</h2>
+ <p>Real actions misfire: grasps slip, roads jam, users answer unpredictably. Planning under uncertainty replaces the action sequence with a <em>policy</em> or a <em>contingent plan</em> — what to do in every situation that might arise — and replaces "reaches the goal" with "maximizes expected utility." At full generality this is exactly solving an MDP (Ch 25); the planning perspective contributes structure: factored states, goals, and reachability-focused computation.</p>
+ <div class="box def"><span class="label">Definition</span> Flavors, by what's uncertain and what's observed: <em>deterministic + full obs</em> = classical planning; <em>stochastic actions + full obs</em> = MDP planning (policies via value/policy iteration or heuristic search like LAO*/RTDP); <em>stochastic + partial obs</em> = POMDP (next topic); <em>non-deterministic without probabilities</em> = contingent/conformant planning (plans that work for <em>all</em> outcomes: strong plans, or strong-cyclic: "keep retrying, guaranteed to succeed eventually if anything works").</div>
+ <div class="box ex"><span class="label">Worked example</span> Robot must GraspCup; the grasp succeeds with probability 0.8, else the cup remains (observable). Sequence-thinking says "Grasp" and fails 20% of the time. Policy-thinking: "in state cup-not-held: Grasp" — an infinite-retry loop whose success probability after $k$ attempts is $1 - 0.2^k \to 1$, expected attempts $1/0.8 = 1.25$. The <em>plan</em> is one line, but it is a policy (a loop), not a sequence — the smallest example of why uncertainty changes the object you're computing.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Replanning ≠ contingency planning. "Plan deterministically, execute, replan on surprise" (a strong practical default) can loop forever or walk into irreversible states (break the egg you needed) because the deterministic plan never weighed the risk. Where outcomes are irreversible or observations cost actions, the expectation must be computed <em>before</em> acting — that's what MDP/POMDP machinery is for.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Match each situation to its formalism: (a) chess endgame tablebase; (b) robot with slippery gripper and a camera; (c) robot with slippery gripper and no sensors.<details class="sol"><summary>Solution</summary><div>(a) deterministic, fully observed: classical/game search. (b) stochastic + observable: MDP. (c) stochastic + unobservable: conformant planning (or POMDP with empty observations) — plans must succeed under every consistent trajectory.</div></details></li>
+  <li><span class="lvl m">MED</span> An action succeeds w.p. $p$ and is retryable; each attempt costs 1. Compute the expected cost to success, and the expected cost if a failed attempt breaks the object w.p. $q$ (making the goal unreachable, cost = penalty $C$).<details class="sol"><summary>Solution</summary><div>Retryable: expected attempts $= 1/p$ (geometric). With breakage: each attempt succeeds w.p. $p$, breaks w.p. $(1-p)q$, else retry. P(eventual success) $= \frac{p}{p + (1-p)q}$. Expected attempts until absorption $= \frac{1}{p + (1-p)q}$; expected cost $= \frac{1}{p+(1-p)q} + \Big(1 - \frac{p}{p+(1-p)q}\Big)C$. With $p = 0.8, q = 0.5, C = 100$: absorption rate $= 0.9$, cost $= 1.11 + (0.111)(100) \approx 12.2$ — the 10% breakage chance dominates. A planner ignoring it would cheerfully retry.</div></details></li>
+  <li><span class="lvl h">HARD</span> Define strong, strong-cyclic and weak plans for nondeterministic planning, and give a domain where only a strong-cyclic plan exists.<details class="sol"><summary>Solution</summary><div>Weak: some execution reaches the goal (an optimist's plan). Strong: every execution reaches the goal in bounded steps (no luck needed). Strong-cyclic: every execution either reaches the goal or stays in states from which the goal remains reachable, and under fairness (no outcome is starved forever) it reaches the goal with certainty — "keep trying, never paint yourself into a corner." The slippery grasp: no strong plan exists (any bounded plan can fail $k$ times), a weak plan is trivial, and the retry loop is strong-cyclic — the right guarantee for retryable stochastic failure. Model checking algorithms (Ch 34) compute these as fixpoints over the transition graph.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pomdps">
+ <h2>POMDPs</h2>
+ <p>When the state itself is hidden — you see only noisy observations — the decision problem becomes a POMDP. The beautiful reduction: the agent's <em>belief</em> (probability distribution over hidden states) is itself a perfectly-observed state, updated by Bayes' rule after each action and observation, and the POMDP becomes an MDP over belief space. The cost: that space is a continuous simplex, and exact solving is wildly intractable — hence point-based approximations and, in the deep era, recurrent policies.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>POMDP</em> is $(\mathcal S, \mathcal A, P, R, \Omega, O, \gamma)$: an MDP plus observation set $\Omega$ and model $O(o \mid s', a)$. Belief update after action $a$, observation $o$: $$b'(s') = \frac{O(o\mid s', a)\sum_s P(s'\mid s, a)\,b(s)}{\Pr(o \mid b, a)}.$$ The belief MDP's optimal value function is piecewise-linear convex (finite horizon): $v(b) = \max_{\alpha \in \Gamma} \alpha^\top b$ over a set of "α-vectors."</div>
+ <div class="box ex"><span class="label">Worked example</span> Tiger problem: a tiger is behind the left or right door ($b = (0.5, 0.5)$); actions: open-left, open-right, or <em>listen</em> (cost −1, hears the tiger correctly w.p. 0.85). Opening the tiger door: −100; the other: +10. Listen once and hear "left": $b(\text{left}) = \frac{0.85\cdot0.5}{0.85\cdot0.5 + 0.15\cdot0.5} = 0.85$. Hear "left" again (independent): $b = \frac{0.85\cdot0.85}{0.85\cdot0.85 + 0.15\cdot0.15} = \frac{0.7225}{0.745} \approx 0.97$. Expected value of opening right at $b = 0.97$: $0.97(10) + 0.03(-100) = 6.7 > 0$: now worth it. The optimal policy listens until belief clears a threshold — computing <em>that threshold</em> is what POMDP solving means.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>The tiger POMDP's belief line. Slide the belief and hearing accuracy; curves show the expected value of open-left, open-right, and listen-then-act-optimally (one step of lookahead on ±1-step... one listen). The best action at each belief is the upper envelope — see the listen region appear in the middle.</p>
+  <canvas id="cv-pomdp"></canvas>
+  <div class="ctl">
+   <label>hearing accuracy <input type="range" id="po-acc" min="0.5" max="0.99" step="0.01" value="0.85"></label>
+   <label>listen cost <input type="range" id="po-cost" min="0" max="5" step="0.25" value="1"></label>
+  </div>
+  <div class="out" id="po-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can't a POMDP agent just act on the most likely state?<details class="sol"><summary>Solution</summary><div>The most likely state throws away how <em>confident</em> the belief is and the asymmetry of costs: at $b = (0.6, 0.4)$ with −100 for the wrong door, acting on "probably left" has expected value $0.6(10) + 0.4(-100) = -34$; listening is far better. Optimal POMDP behavior depends on the full distribution — including choosing actions purely to change it.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the belief update formula on the tiger example's first listen (prior 0.5, accuracy 0.85, hear "left"), including the normalizer.<details class="sol"><summary>Solution</summary><div>State static, so transition sums vanish: numerator for left $= 0.85\times0.5 = 0.425$; for right $= 0.15\times0.5 = 0.075$. Normalizer $\Pr(o) = 0.5$. $b'(\text{left}) = 0.425/0.5 = 0.85$ ✓ — exactly Bayes' rule from Ch 11 wearing a control costume.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the finite-horizon POMDP value function is piecewise-linear convex, by induction.<details class="sol"><summary>Solution</summary><div>Base: $V_0(b) = \max_a \sum_s b(s)R(s,a) = \max_a\, \alpha_a^\top b$ with $\alpha_a = R(\cdot, a)$ — a max of linear functions: PWLC. Step: assume $V_t(b) = \max_{\alpha\in\Gamma_t}\alpha^\top b$. Then $V_{t+1}(b) = \max_a\big[ b^\top R(\cdot,a) + \gamma\sum_o \Pr(o\mid b,a)\, V_t(b'_{a,o})\big]$. Key: $\Pr(o\mid b,a)\,V_t(b'_{a,o}) = \Pr(o\mid b,a) \max_\alpha \alpha^\top b'_{a,o} = \max_\alpha \sum_{s'} \alpha(s') O(o\mid s',a)\sum_s P(s'\mid s,a)b(s)$ — the normalizer cancels, leaving a max of <em>linear</em> functions of $b$. A sum over $o$ of maxima of linear functions is a max (over choices of one α per observation) of linear functions; adding the linear reward term and maxing over $a$ preserves PWLC. Each stage's Γ-set multiplies in size like $|\mathcal A||\Gamma_t|^{|\Omega|}$ — the exact-solver blowup that point-based methods (PBVI, SARSOP) tame by tracking α-vectors only at sampled beliefs. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="partial-observability">
+ <h2>Partial observability</h2>
+ <p>Partial observability is the umbrella condition — the world has state you can't read directly — and it changes what a "solution" even is. Memoryless policies become provably insufficient: the best action depends on history, so agents need memory, whether as exact beliefs (POMDP filtering), finite-state controllers, or a recurrent network's hidden state. Most real deployments of RL and agents live here, not in the MDP.</p>
+ <div class="box def"><span class="label">Definition</span> An environment is <em>partially observable</em> when the observation $o_t$ is not a sufficient statistic of the state: $\Pr(s_t \mid o_t) \ne \Pr(s_t \mid o_{1:t}, a_{1:t-1})$. Sufficient memory structures: the full history $h_t$; the belief $b_t = \Pr(s_t\mid h_t)$ (a sufficient statistic, by the POMDP reduction); or learned compressions of history (RNN/transformer hidden state — Ch 21, Ch 29's latent states).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two corridors look identical at their entrances (same observation $o$), but the left one ends in a reward and the right in a pit. A memoryless policy $\pi(a\mid o)$ must act identically in both — expected value at best a coin-flip. An agent that remembers one landmark from three steps ago ("I passed the red door") disambiguates and scores perfectly. The value gap between the best memoryless and best history-based policy can be made arbitrarily large — memory is not an optimization, it is a capability class.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Feeding observations into MDP algorithms as if they were states (Q-learning on $o$) can fail in a specific, diagnosable way: the observation aliases several states with different optimal actions, TD targets from these states contradict each other, and Q-values oscillate or settle on a compromise action bad everywhere. Frame-stacking, recurrence, or belief tracking are the fixes — chosen by how long the relevant memory must be.</div>
+ <div class="box link"><span class="label">Where this goes</span> The filtering half (tracking $b_t$) is Ch 28's Kalman and particle filters; learned latent state is Ch 29's world models; and an LLM agent's context window is exactly its observable history — context management (Ch 31) is partial-observability engineering.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is poker partially observable? What about backgammon?<details class="sol"><summary>Solution</summary><div>Poker: yes — opponents' cards are hidden state (plus it's adversarial). Backgammon: no — dice are <em>stochastic</em> but everything is on the board: fully observable, random transitions. Randomness ≠ partial observability.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the optimal policy for a POMDP sometimes need to be <em>stochastic</em> if restricted to be memoryless, while the history-based optimum is deterministic?<details class="sol"><summary>Solution</summary><div>With full memory, beliefs are a Markov state and the belief-MDP has a deterministic optimal policy (Ch 25). Memoryless, the aliased observation pools states needing different actions; committing to one action deterministically can be exploited by the dynamics (e.g. loop forever), while randomizing hedges across the hidden possibilities — in the two-corridor world with forced identical behavior, a 50/50 mix guarantees half the reward, beating a deterministic policy that could be always-wrong. Randomization substitutes (poorly) for the missing memory.</div></details></li>
+  <li><span class="lvl h">HARD</span> Frame stacking (concatenate the last $k$ observations) recovers the Markov property for which class of POMDPs? Characterize and give a counterexample beyond the class.<details class="sol"><summary>Solution</summary><div>Exactly those where the state is a deterministic-enough function of the last $k$ observations and actions — $k$-th order Markov observation processes: $\Pr(s_t \mid o_{t-k+1:t}, a_{t-k:t-1})$ already equals the full-history belief. Pong velocity ($k = 2$) is the canonical member. Counterexample: any task with unbounded-lag dependencies — a key seen at $t = 3$ opens a door at $t = 500$; no fixed $k &lt; 497$ suffices, and the required memory is an arbitrary-latency bit, demanding recurrence or an explicit memory store, not a longer stack.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="information-gathering-actions">
+ <h2>Information-gathering actions</h2>
+ <p>Under partial observability, some actions exist not to change the world but to change your <em>belief</em>: look, listen, test, ask. Their value is the value of information (Ch 24) realized inside a policy — pay a little now to act better later. Optimal POMDP policies weigh sensing against acting automatically; agent designs that separate "thinking/asking" from "doing" have to rebuild this trade-off by hand.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>value of information</em> of observation $o$ under belief $b$: $$\mathrm{VoI} = \mathbb E_{o}\big[\max_a Q(b_{\mid o}, a)\big] - \max_a \mathbb E_o\big[Q(b_{\mid o}, a)\big] \ \ge 0,$$ the gain from choosing <em>after</em> seeing $o$ rather than before. An information-gathering action with cost $c$ is worth taking when its VoI (plus any state value it changes) exceeds $c$. VoI is always $\ge 0$ (max of expectation ≤ expectation of max — Jensen) but its <em>net</em> value can be negative once $c > 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Tiger at $b = (0.5, 0.5)$, listen accuracy 0.85, listen cost 1. Acting now: best open has EV $0.5(10) + 0.5(-100) = -45$. After one listen the belief is 0.85 toward the heard side; acting then: $0.85(10) + 0.15(-100) = -6.5$ — still bad, so the once-listened agent listens again. The full optimal policy (solving the POMDP with $\gamma$... undiscounted per-episode) listens twice (belief 0.966: EV $0.966(10)+0.034(-100)\approx 6.3$), total listen cost 2, net ≈ +4.3 versus −45. Information turned a catastrophic gamble into a positive-value decision, and the <em>policy structure</em> — how many confirmations to demand — fell out of arithmetic, not judgment.</div>
+ <div class="box think"><span class="label">Think first</span> An LLM agent can either answer a user's ambiguous request now, or ask a clarifying question first. Frame the choice as a VoI computation: what plays the role of $b$, $o$, and $c$?<details class="sol"><summary>Reveal</summary><div>$b$: the agent's distribution over what the user actually wants (intent). $o$: the user's answer to the clarifying question, updating that distribution. $c$: the friction of asking — user time, turn latency, annoyance. Ask iff expected quality-gain from acting on the sharpened intent exceeds the friction: high ambiguity + high cost-of-wrong-answer ⇒ ask; low stakes or near-certain intent ⇒ act. Good agents implement this threshold implicitly; explicit VoI framing tells you where to put it.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is VoI never negative, before subtracting the sensing cost?<details class="sol"><summary>Solution</summary><div>The after-observation chooser can always ignore $o$ and pick the same action the before-chooser would; choosing per-observation can only match or beat that. Formally $\mathbb E_o[\max_a(\cdot)] \ge \max_a \mathbb E_o[(\cdot)]$.</div></details></li>
+  <li><span class="lvl m">MED</span> A test costs 2 and reveals perfectly which of two treatments (values +10 vs 0, prior 50/50 on which is which) is right. Compute net VoI.<details class="sol"><summary>Solution</summary><div>Without test: pick either, EV $= 0.5(10) + 0.5(0) = 5$. With test: always pick right one, EV $= 10$, minus cost 2 → 8. Net gain $= 3 > 0$: test. If the test cost 6: $10 - 6 = 4 &lt; 5$: don't. Perfect information is worth exactly the spread it lets you capture — here 5 — and no more.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that a myopic (one-step) VoI rule can refuse a sensing action that a full POMDP solution takes, using a two-sense example.<details class="sol"><summary>Solution</summary><div>Tiger with accuracy 0.7, listen cost 0.5, payoffs +10/−100. Now: acting EV −45; do nothing option worth 0 (walk away). One listen → belief 0.7: acting EV $0.7(10) + 0.3(-100) = -23 &lt; 0$, so after one listen you'd still walk away — myopic VoI of the first listen = 0 (it never changes the final choice), net −0.5: myopic rule never listens. But two listens → belief $\frac{0.49}{0.49+0.09} \approx 0.845$: acting EV $\approx 0.845(10) - 0.155(100) \approx -7.05$... still negative; take accuracy 0.8: one listen → 0.8: EV $0.8(10)-0.2(100) = -12 &lt; 0$ (myopic: don't). Two listens → $\frac{0.64}{0.64+0.04} = 0.941$: EV $0.941(10) - 0.059(100) = 3.53$; total cost 1 → net 2.53 > 0. The <em>pair</em> of listens is profitable while each single listen looks worthless: information value is non-additive and can be super-additive, so sequential sensing plans must be evaluated as plans — exactly what POMDP lookahead does and greedy VoI does not.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>One grid, four searches.</strong> A 5×5 grid, start (0,0), goal (4,4), unit costs, walls at (1,1), (2,1), (3,1)... at cells (1,2), (2,2), (3,2) forming a wall with a gap at row 0 and row 4. (a) What path length is optimal? (b) Rank BFS, DFS, greedy best-first (Manhattan h) and A* by nodes expanded on this map, with one sentence each. (c) Which of the four can return a suboptimal path here?<details class="sol"><summary>Solution</summary><div>(a) The wall blocks column 2 at rows 1–3; passing through row 0 or row 4 both give length 8 (e.g. right ×4 along row 0 then... (0,0)→(0,4) is 4 right-moves then 4 down: 8 moves; Manhattan distance is 8 and an unblocked monotone path exists along the edges): optimal = 8. (b) Typical ranking, fewest first: A* (expands the $f{=}8$ band, ~10–14 nodes) ≤ greedy (~9–12 here, driven straight along an edge; can be even fewer than A*) &lt; BFS (all cells at depth ≤ 8: most of the 22 free cells) ; DFS: anywhere from 9 to all 22 depending on tie order — unbounded rank. Greedy can beat A* in nodes; A* is the smallest among <em>optimality-guaranteeing</em> searches. (c) DFS and greedy can return suboptimal paths; BFS (unit costs) and A* (admissible h) cannot.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Alpha-beta, by hand, with a proof of waste.</strong> Depth-3 tree: MAX root with children L, M, R. L (MIN) has leaves (8, 5); M (MIN) has leaves (6, 9, 2); R (MIN) has leaves (7, 4). (a) Compute the minimax value with full evaluation (how many leaves?). (b) Run alpha-beta left-to-right, listing every cutoff and the leaves never evaluated. (c) Reorder the children of the root (and within MIN nodes) to maximize pruning, and give the minimal leaf count.<details class="sol"><summary>Solution</summary><div>(a) L = min(8,5) = 5; M = min(6,9,2) = 2; R = min(7,4) = 4. Root = max(5, 2, 4) = 5. Leaves: 7. (b) L: evaluate 8, 5 → L = 5, α = 5. M with (α,β) = (5,∞): leaf 6 → M's v = 6 > 5, keep going... MIN's v = min so far 6; next leaf 9 → v = 6; next leaf 2 → v = 2 ≤ α = 5 — β-cutoff triggers when v ≤ α: after leaf 6, v = 6 > 5 no cutoff; after 9, v = 6; after 2, v = 2, cutoff but no leaves remain. All 3 evaluated. Better: reorder within M would help; as given: R with α = 5: leaf 7 → v = 7; leaf 4 → v = 4 ≤ 5, cutoff at the last leaf again. Total evaluated: 7 — this ordering yields no savings (bad luck: cutoffs need a small leaf early). (c) Put the best root child first (L, value 5), and within each later MIN node put its <em>smallest</em> leaf first: M ordered (2, 6, 9): leaf 2 → v = 2 ≤ α = 5: cutoff after 1 leaf. R ordered (4, 7): leaf 4 → cutoff after 1 leaf. L still needs both leaves (root's first child is always fully searched: 2 leaves). Total: 2 + 1 + 1 = 4 leaves, versus 7 — matching the $b^{\lceil d/2\rceil} + b^{\lfloor d/2 \rfloor} - 1$ minimal-tree flavor: ordering is worth almost half the tree even at depth 2... depth 2 with b = (2–3).</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>UCT meets the tiger.</strong> You must choose between door-opening and listening in the tiger POMDP (accuracy 0.85, listen cost 1, +10/−100) but via sampled lookahead: an MCTS over belief states (a POMCP-style search). (a) Why must the tree branch on <em>observations</em> as well as actions? (b) At the root belief (0.5, 0.5), the listen action has children "hear-left" and "hear-right"; give their probabilities and the beliefs they lead to. (c) A naive implementation reuses one simulated tiger position for a whole rollout; a bug uses a fresh random tiger each step. Which statistical property breaks, and what behavior results?<details class="sol"><summary>Solution</summary><div>(a) After an action, the next belief depends on the stochastic observation; a plan must specify behavior per observation — the tree alternates action nodes (agent chooses, max/UCT) and observation nodes (nature chooses, expectation weighted by $\Pr(o\mid b,a)$), exactly the belief-MDP's structure. (b) By symmetry $\Pr(\text{hear-left}) = \Pr(\text{hear-right}) = 0.5$; hear-left → belief (0.85, 0.15), hear-right → (0.15, 0.85) (worked earlier via Bayes). (c) Fresh-tiger-per-step destroys the <em>correlation between observations and the state that pays out</em>: listens become uninformative noise (the tiger you hear isn't the tiger behind the door you'll open), so the estimated value of listening collapses to its cost (−1 each), and the search concludes sensing is worthless — it will open a door at belief 0.5 (EV −45) or walk away. The bug is a lesson in why POMDP simulators must sample the hidden state <em>once per simulation</em> at the root belief and carry it through: information's value lives entirely in that carried correlation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: A* with pluggable heuristics, alpha-beta with move ordering, and a small MCTS. Pure Python.</p>
+ <div class="box ex"><span class="label">Task 1 — A* on a grid, heuristics compared</span> Implement A* for a grid with random walls (20% density, always keeping start/goal open). Run with $h = 0$ (UCS), Manhattan, and 1.5×Manhattan (weighted). Report path cost and nodes expanded for each; verify UCS and A* costs match and weighted A* cost is ≥ theirs.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import heapq, random
+random.seed(7)
+N = 30
+walls = {(r, c) for r in range(N) for c in range(N) if random.random() &lt; 0.2}
+walls -= {(0, 0), (N-1, N-1)}
+START, GOAL = (0, 0), (N-1, N-1)
+
+def nbrs(p):
+    r, c = p
+    for dr, dc in ((1,0),(-1,0),(0,1),(0,-1)):
+        q = (r+dr, c+dc)
+        if 0 &lt;= q[0] &lt; N and 0 &lt;= q[1] &lt; N and q not in walls:
+            yield q
+
+def astar(w):
+    h = lambda p: w * (abs(p[0]-GOAL[0]) + abs(p[1]-GOAL[1]))
+    g = {START: 0}
+    pq = [(h(START), START)]
+    closed = set()
+    expanded = 0
+    while pq:
+        f, u = heapq.heappop(pq)
+        if u in closed: continue
+        closed.add(u); expanded += 1
+        if u == GOAL: return g[u], expanded
+        for v in nbrs(u):
+            ng = g[u] + 1
+            if ng &lt; g.get(v, 1e18):
+                g[v] = ng
+                heapq.heappush(pq, (ng + h(v), v))
+    return None, expanded
+
+for w, name in [(0, 'UCS'), (1, 'A* manhattan'), (1.5, 'weighted A* 1.5')]:
+    cost, exp = astar(w)
+    print(f'{name:16s} cost={cost} expanded={exp}')
+# UCS and A* costs equal; A* expands far fewer; weighted expands fewest,
+# cost may exceed optimal by up to 50%.</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — minimax vs alpha-beta, with ordering</span> Build a random game tree (branching 4, depth 6, integer leaf values). Implement plain minimax and alpha-beta; count leaf evaluations. Then re-run alpha-beta with children sorted by a shallow (depth-2) alpha-beta pre-search and show the evaluation count drops further. Assert all three return the same root value.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import random
+random.seed(1)
+B, D = 4, 6
+
+def make(depth):
+    if depth == 0: return random.randint(-50, 50)
+    return [make(depth-1) for _ in range(B)]
+
+tree = make(D)
+count = 0
+
+def minimax(n, maxing):
+    global count
+    if isinstance(n, int): count += 1; return n
+    vals = [minimax(c, not maxing) for c in n]
+    return max(vals) if maxing else min(vals)
+
+def ab(n, maxing, a=-1e9, b=1e9, order=None):
+    global count
+    if isinstance(n, int): count += 1; return n
+    kids = n if order is None else order(n, maxing)
+    v = -1e9 if maxing else 1e9
+    for c in kids:
+        cv = ab(c, not maxing, a, b, order)
+        if maxing: v = max(v, cv); a = max(a, v)
+        else:      v = min(v, cv); b = min(b, v)
+        if a &gt;= b: break
+    return v
+
+def shallow_order(n, maxing):
+    def key(c):
+        global count
+        saved = count                    # don't count pre-search leaves
+        val = ab_shallow(c, not maxing, 2)
+        count = saved
+        return val
+    return sorted(n, key=key, reverse=maxing)
+
+def ab_shallow(n, maxing, depth, a=-1e9, b=1e9):
+    if isinstance(n, int): return n
+    if depth == 0:                       # crude static eval: mean of leaves below
+        flat = n
+        while isinstance(flat[0], list): flat = [x for c in flat for x in c]
+        return sum(flat)/len(flat)
+    v = -1e9 if maxing else 1e9
+    for c in n:
+        cv = ab_shallow(c, not maxing, depth-1, a, b)
+        if maxing: v = max(v, cv); a = max(a, v)
+        else:      v = min(v, cv); b = min(b, v)
+        if a &gt;= b: break
+    return v
+
+count = 0; v1 = minimax(tree, True); n1 = count
+count = 0; v2 = ab(tree, True); n2 = count
+count = 0; v3 = ab(tree, True, order=shallow_order); n3 = count
+assert v1 == v2 == v3
+print(f'minimax leaves={n1}  alphabeta={n2}  ordered ab={n3}')
+# typical: 4096 / ~500-900 / ~200-400</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — MCTS for tic-tac-toe</span> Implement UCT MCTS for tic-tac-toe (random rollouts, c = 1.4, 2000 iterations per move). Verify it never loses as either player against (a) a random opponent over 200 games and (b) itself (all self-play games should be draws).
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import math, random
+random.seed(3)
+WINS = [(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)]
+
+def winner(b):
+    for i,j,k in WINS:
+        if b[i] and b[i] == b[j] == b[k]: return b[i]
+    return 'D' if all(b) else None      # D = draw, None = ongoing
+
+def moves(b): return [i for i in range(9) if not b[i]]
+def play(b, m, p): b2 = list(b); b2[m] = p; return tuple(b2)
+def other(p): return 'O' if p == 'X' else 'X'
+
+class Node:
+    def __init__(self, board, player, parent=None):
+        self.board, self.player, self.parent = board, player, parent
+        self.children = {}            # move -&gt; Node
+        self.N, self.W = 0, 0.0       # value from PARENT player's view
+        self.untried = moves(board)
+
+def rollout(board, player):
+    while True:
+        w = winner(board)
+        if w: return w
+        m = random.choice(moves(board))
+        board, player = play(board, m, player), other(player)
+
+def mcts(board, player, iters=2000, c=1.4):
+    root = Node(board, player)
+    for _ in range(iters):
+        node = root
+        # selection
+        while not node.untried and node.children:
+            node = max(node.children.values(), key=lambda ch:
+                ch.W/ch.N + c*math.sqrt(math.log(node.N)/ch.N))
+        # expansion
+        if node.untried and winner(node.board) is None:
+            m = node.untried.pop(random.randrange(len(node.untried)))
+            child = Node(play(node.board, m, node.player),
+                         other(node.player), node)
+            node.children[m] = child
+            node = child
+        # simulation
+        w = winner(node.board) or rollout(node.board, node.player)
+        # backprop: node.W is from the perspective of node.parent.player
+        while node:
+            node.N += 1
+            if node.parent:
+                mover = node.parent.player
+                node.W += 1.0 if w == mover else (0.5 if w == 'D' else 0.0)
+            node = node.parent
+    return max(root.children.items(), key=lambda kv: kv[1].N)[0]
+
+def game(px, po):
+    b, p = (None,)*9, 'X'
+    while winner(b) is None:
+        m = mcts(b, p) if (p == 'X' and px) or (p == 'O' and po) \
+            else random.choice(moves(b))
+        b, p = play(b, m, p), other(p)
+    return winner(b)
+
+results = [game(True, False) for _ in range(100)]   # MCTS as X vs random
+assert 'O' not in results, 'MCTS lost as X!'
+results = [game(False, True) for _ in range(100)]   # MCTS as O vs random
+assert 'X' not in results, 'MCTS lost as O!'
+selfplay = [game(True, True) for _ in range(20)]
+print('vs random: never lost.  self-play draws:',
+      sum(r == 'D' for r in selfplay), '/ 20')</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://aima.cs.berkeley.edu/">Russell &amp; Norvig, <em>Artificial Intelligence: A Modern Approach</em> (site, with free resources)</a> — Chs 3–6 and 11 are the canonical treatment of search, games, CSPs and planning.</li>
+  <li><a href="https://ocw.mit.edu/courses/6-034-artificial-intelligence-fall-2010/">MIT OCW 6.034 Artificial Intelligence</a> — free lectures on search, games and constraints, with Winston's legendary blackboard style.</li>
+  <li><a href="https://www.redblobgames.com/pathfinding/a-star/introduction.html">Red Blob Games, "Introduction to A*"</a> — the best interactive visual explanation of BFS → Dijkstra → A* anywhere.</li>
+  <li><a href="https://arxiv.org/abs/1712.01815">Silver et al., "Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm" (AlphaZero, 2017)</a> — PUCT search + self-play training, seven pages.</li>
+  <li><a href="http://ggp.stanford.edu/readings/uct.pdf">Kocsis &amp; Szepesvári, "Bandit Based Monte-Carlo Planning" (2006)</a> — the UCT paper.</li>
+  <li><a href="https://www.cs.ubc.ca/~hutter/EARG.shtml/earg/papers07/silver-pomcp.pdf">Silver &amp; Veness, "Monte-Carlo Planning in Large POMDPs" (POMCP, 2010)</a> — MCTS over beliefs, the capstone's engine.</li>
+  <li><a href="https://users.aalto.fi/~ssarkka/pub/cup_book_online_20131111.pdf">Kaelbling, Littman &amp; Cassandra, "Planning and Acting in Partially Observable Stochastic Domains" (1998)</a> — the classic POMDP survey with the tiger problem; find it via scholar if the mirror moves.</li>
+  <li><a href="https://www.satcompetition.org/">The SAT Competitions</a> — annual benchmarks and solver reports; the living record of CDCL's practical power.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch25.html">← 25 · Reinforcement Learning</a>
+ <a class="btn" href="ch27.html">27 · Causality →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function txt(id, s){ var el = document.getElementById(id); if(el) el.textContent = s; }
+
+/* ---------- 1. A* explorer ---------- */
+(function(){
+ var c = document.getElementById('cv-astar'); if(!c) return;
+ var N = 21, walls, result;
+ function newMaze(){
+  walls = {};
+  for(var r = 0; r < N; r++) for(var q = 0; q < N; q++)
+   if(Math.random() < 0.28) walls[r + ',' + q] = 1;
+  delete walls['0,0']; delete walls[(N-1) + ',' + (N-1)];
+  result = null; draw();
+ }
+ function search(){
+  var w = val('as-w');
+  var START = [0,0], GOAL = [N-1, N-1];
+  function h(r, q){ return w*(Math.abs(r-GOAL[0]) + Math.abs(q-GOAL[1])); }
+  var g = {}, prev = {}, closed = {}, open = [];
+  g['0,0'] = 0;
+  open.push([h(0,0), 0, 0]);
+  var expanded = [];
+  var found = false;
+  while(open.length){
+   var bi = 0;
+   for(var i = 1; i < open.length; i++) if(open[i][0] < open[bi][0]) bi = i;
+   var cur = open.splice(bi, 1)[0], r = cur[1], q = cur[2], key = r + ',' + q;
+   if(closed[key]) continue;
+   closed[key] = 1; expanded.push([r, q]);
+   if(r === GOAL[0] && q === GOAL[1]){ found = true; break; }
+   var dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+   for(var d = 0; d < 4; d++){
+    var nr = r + dirs[d][0], nq = q + dirs[d][1], nk = nr + ',' + nq;
+    if(nr < 0 || nq < 0 || nr >= N || nq >= N || walls[nk]) continue;
+    var ng = g[key] + 1;
+    if(!(nk in g) || ng < g[nk]){ g[nk] = ng; prev[nk] = key; open.push([ng + h(nr, nq), nr, nq]); }
+   }
+  }
+  var path = [];
+  if(found){
+   var k = GOAL[0] + ',' + GOAL[1];
+   while(k){ path.push(k); k = prev[k]; }
+  }
+  result = {expanded: expanded, path: path, cost: found ? g[GOAL[0] + ',' + GOAL[1]] : null};
+  draw();
+  txt('as-out', found ? ('expanded ' + expanded.length + ' nodes · path cost ' + result.cost + (w > 1 ? ' (may exceed optimal)' : ' (optimal)')) : 'no path — generate a new maze');
+ }
+ function draw(){
+  var s = setupCanvas(c, 320), g2 = s.g, W = s.w, H = s.h;
+  g2.clearRect(0,0,W,H);
+  var cw = Math.min((W-12)/N, (H-12)/N), x0 = (W - cw*N)/2, y0 = (H - cw*N)/2;
+  var ink2 = cssVar('--ink-2');
+  for(var r = 0; r < N; r++) for(var q = 0; q < N; q++){
+   var k = r + ',' + q;
+   g2.fillStyle = walls[k] ? ink2 : 'rgba(128,128,128,0.12)';
+   g2.fillRect(x0 + q*cw, y0 + r*cw, cw-1, cw-1);
+  }
+  if(result){
+   g2.fillStyle = 'rgba(60,110,220,0.45)';
+   for(var i = 0; i < result.expanded.length; i++){
+    var e = result.expanded[i];
+    g2.fillRect(x0 + e[1]*cw, y0 + e[0]*cw, cw-1, cw-1);
+   }
+   g2.strokeStyle = cssVar('--orange') || '#d07020'; g2.lineWidth = 3;
+   g2.beginPath();
+   for(var i = result.path.length - 1; i >= 0; i--){
+    var p = result.path[i].split(','), x = x0 + (+p[1])*cw + cw/2, y = y0 + (+p[0])*cw + cw/2;
+    (i === result.path.length - 1) ? g2.moveTo(x, y) : g2.lineTo(x, y);
+   }
+   g2.stroke();
+  }
+  g2.fillStyle = 'rgba(30,160,80,0.9)';
+  g2.fillRect(x0, y0, cw-1, cw-1);
+  g2.fillRect(x0 + (N-1)*cw, y0 + (N-1)*cw, cw-1, cw-1);
+ }
+ on('as-run','click',search); on('as-maze','click',newMaze);
+ on('as-w','input',function(){ if(result) search(); });
+ window.addEventListener('resize',draw); newMaze();
+})();
+
+/* ---------- 2. MCTS explorer ---------- */
+(function(){
+ var c = document.getElementById('cv-mcts'); if(!c) return;
+ var DEPTH = 6, tree, minimaxV;
+ function newTree(){
+  function make(d){
+   if(d === 0) return {leaf: true, value: Math.random()};
+   return {leaf: false, kids: [make(d-1), make(d-1)], N: 0, W: 0};
+  }
+  tree = make(DEPTH); tree.N = 0; tree.W = 0;
+  function mm(n, maxing){
+   if(n.leaf) return n.value;
+   var a = mm(n.kids[0], !maxing), b = mm(n.kids[1], !maxing);
+   return maxing ? Math.max(a, b) : Math.min(a, b);
+  }
+  minimaxV = mm(tree, true);
+  draw(); txt('mc-out', 'true minimax value: ' + minimaxV.toFixed(3) + ' — iterate to see the estimate converge');
+ }
+ function iterate(n){
+  var cc = val('mc-c');
+  var path = [], node = tree, maxing = true;
+  while(!node.leaf){
+   if(node.N === 0){ break; }
+   var best = -1, bs = -1e18;
+   for(var i = 0; i < 2; i++){
+    var k = node.kids[i];
+    var score;
+    if(k.leaf){ score = (k.N || 0) === 0 ? 1e17 : (maxing ? k.value : 1 - k.value) + cc*Math.sqrt(Math.log(node.N + 1)/(k.N)); }
+    else score = k.N === 0 ? 1e17 : (maxing ? k.W/k.N : 1 - k.W/k.N) + cc*Math.sqrt(Math.log(node.N + 1)/k.N);
+    if(score > bs){ bs = score; best = i; }
+   }
+   path.push(node);
+   node = node.kids[best];
+   maxing = !maxing;
+   if(node.leaf) break;
+  }
+  path.push(node);
+  var z = node.leaf ? node.value : Math.random(); // leaf value = playout result
+  if(node.leaf && node.N === undefined) node.N = 0, node.W = 0;
+  for(var i = 0; i < path.length; i++){
+   var p = path[i];
+   p.N = (p.N || 0) + 1; p.W = (p.W || 0) + z;
+  }
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  function rec(n, depth, x0, x1){
+   var x = (x0 + x1)/2, y = 26 + depth*(H-60)/DEPTH;
+   if(!n.leaf){
+    for(var i = 0; i < 2; i++){
+     var cx0 = i === 0 ? x0 : x, cx1 = i === 0 ? x : x1;
+     var k = n.kids[i], kx = (cx0 + cx1)/2, ky = 26 + (depth+1)*(H-60)/DEPTH;
+     var nk = k.N || 0;
+     g.strokeStyle = cobalt;
+     g.globalAlpha = 0.15 + 0.85*Math.min(1, nk/((tree.N || 1)*0.5));
+     g.lineWidth = 0.5 + 4*Math.min(1, nk/((tree.N || 1)*0.6));
+     g.beginPath(); g.moveTo(x, y); g.lineTo(kx, ky); g.stroke();
+     g.globalAlpha = 1;
+     rec(k, depth + 1, cx0, cx1);
+    }
+   } else {
+    g.fillStyle = ink2; g.globalAlpha = 0.35 + 0.65*n.value;
+    g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); g.globalAlpha = 1;
+   }
+   if(!n.leaf){ g.fillStyle = ink2; g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
+  }
+  rec(tree, 0, 10, W-10);
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  var est = tree.N ? (tree.W/tree.N) : 0;
+  g.fillText('root visits: ' + (tree.N || 0) + '   est value: ' + est.toFixed(3) + '   minimax: ' + minimaxV.toFixed(3), 12, 16);
+ }
+ on('mc-step','click',function(){ for(var i = 0; i < 50; i++) iterate(); draw();
+  txt('mc-out', 'root estimate ' + (tree.W/tree.N).toFixed(3) + ' vs minimax ' + minimaxV.toFixed(3) + ' — thick edges = visited branches'); });
+ on('mc-reset','click',newTree);
+ window.addEventListener('resize',draw); newTree();
+})();
+
+/* ---------- 3. alpha-beta explorer ---------- */
+(function(){
+ var c = document.getElementById('cv-ab'); if(!c) return;
+ var B = 3, D = 4, leaves, pruneInfo;
+ function newTree(){
+  leaves = [];
+  var n = Math.pow(B, D);
+  for(var i = 0; i < n; i++) leaves.push(Math.floor(Math.random()*99) - 49);
+  pruneInfo = null; draw(); txt('ab-out', 'press Search');
+ }
+ function search(){
+  var ord = document.getElementById('ab-ord').value;
+  var evaluated = {}, count = 0;
+  function mm(idx, depth, maxing){ // full minimax for ordering oracle
+   if(depth === D) return leaves[idx];
+   var vals = [];
+   for(var i = 0; i < B; i++) vals.push(mm(idx*B + i, depth+1, !maxing));
+   return maxing ? Math.max.apply(null, vals) : Math.min.apply(null, vals);
+  }
+  function ab(idx, depth, maxing, a, b){
+   if(depth === D){ evaluated[idx] = 1; count++; return leaves[idx]; }
+   var kids = [];
+   for(var i = 0; i < B; i++) kids.push(i);
+   kids.sort(function(x, y){
+    var vx = mm(idx*B + x, depth+1, !maxing), vy = mm(idx*B + y, depth+1, !maxing);
+    var d = maxing ? vy - vx : vx - vy;
+    return ord === 'good' ? d : -d;
+   });
+   var v = maxing ? -1e9 : 1e9;
+   for(var i = 0; i < B; i++){
+    var cv = ab(idx*B + kids[i], depth+1, !maxing, a, b);
+    if(maxing){ v = Math.max(v, cv); a = Math.max(a, v); }
+    else { v = Math.min(v, cv); b = Math.min(b, v); }
+    if(a >= b) break;
+   }
+   return v;
+  }
+  var v = ab(0, 0, true, -1e9, 1e9);
+  pruneInfo = evaluated;
+  draw();
+  txt('ab-out', 'value ' + v + ' · leaves evaluated: ' + count + ' / ' + leaves.length + (ord === 'good' ? ' (best-first ordering)' : ' (worst-first ordering)'));
+ }
+ function draw(){
+  var s = setupCanvas(c, 240), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  var n = leaves.length, bw = (W - 30)/n;
+  // draw tree edges
+  function pos(idx, depth){
+   var span = Math.pow(B, D - depth);
+   var first = idx * span; // leftmost leaf under this node... idx is node index at depth
+   return {x: 15 + (first + span/2)*bw, y: 20 + depth*(H-70)/D};
+  }
+  g.strokeStyle = ink2; g.globalAlpha = 0.35; g.lineWidth = 1;
+  for(var depth = 0; depth < D; depth++){
+   var nodes = Math.pow(B, depth);
+   for(var i = 0; i < nodes; i++){
+    var p = pos(i, depth);
+    for(var k = 0; k < B; k++){
+     var q = pos(i*B + k, depth+1);
+     g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(q.x, q.y); g.stroke();
+    }
+   }
+  }
+  g.globalAlpha = 1;
+  g.font = '10px JetBrains Mono';
+  for(var i = 0; i < n; i++){
+   var x = 15 + (i + 0.5)*bw, y = 20 + D*(H-70)/D;
+   var seen = !pruneInfo || pruneInfo[i];
+   g.fillStyle = seen ? cobalt : ink2;
+   g.globalAlpha = seen ? 1 : 0.25;
+   g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill();
+   g.globalAlpha = 1;
+  }
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText(pruneInfo ? 'grey leaves were pruned — never evaluated' : 'MAX at top, alternating levels; ' + n + ' leaves', 14, H-8);
+ }
+ on('ab-run','click',search); on('ab-new','click',newTree);
+ window.addEventListener('resize',draw); newTree();
+})();
+
+/* ---------- 4. tiger POMDP value curves ---------- */
+(function(){
+ var c = document.getElementById('cv-pomdp'); if(!c) return;
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var acc = val('po-acc'), cost = val('po-cost');
+  var pad = 48, ink2 = cssVar('--ink-2');
+  var GOOD = 10, BAD = -100;
+  function evOpenRight(b){ return b*GOOD + (1-b)*BAD; }      // b = P(tiger left): open right good if tiger left
+  function evOpenLeft(b){ return (1-b)*GOOD + b*BAD; }
+  function bayes(b, hearLeft){
+   var pl = hearLeft ? acc*b : (1-acc)*b;
+   var pr = hearLeft ? (1-acc)*(1-b) : acc*(1-b);
+   return pl/(pl+pr);
+  }
+  function evListen(b){
+   // listen once, then take best open (or value 0 = walk away)
+   var pHearL = acc*b + (1-acc)*(1-b);
+   var bL = bayes(b, true), bR = bayes(b, false);
+   function best(bb){ return Math.max(0, evOpenLeft(bb), evOpenRight(bb)); }
+   return -cost + pHearL*best(bL) + (1-pHearL)*best(bR);
+  }
+  var lo = -60, hi = 15;
+  function X(b){ return pad + b*(W-2*pad); }
+  function Y(v){ return 20 + (hi - v)/(hi - lo)*(H-60); }
+  g.strokeStyle = ink2; g.lineWidth = 1;
+  g.beginPath(); g.moveTo(pad, Y(0)); g.lineTo(W-pad, Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(pad, 20); g.lineTo(pad, H-40); g.stroke();
+  function plot(fn, col){
+   g.strokeStyle = col; g.lineWidth = 2; g.beginPath();
+   for(var i = 0; i <= 100; i++){
+    var b = i/100, v = Math.max(lo, Math.min(hi, fn(b)));
+    i ? g.lineTo(X(b), Y(v)) : g.moveTo(X(b), Y(v));
+   }
+   g.stroke();
+  }
+  plot(evOpenLeft, cssVar('--red') || '#c03030');
+  plot(evOpenRight, cssVar('--green') || '#20a050');
+  plot(evListen, cssVar('--cobalt') || '#2050c0');
+  g.font = '13px JetBrains Mono';
+  g.fillStyle = cssVar('--red') || '#c03030'; g.fillText('open left', pad + 4, 32);
+  g.fillStyle = cssVar('--green') || '#20a050'; g.fillText('open right', W - pad - 100, 32);
+  g.fillStyle = cssVar('--cobalt') || '#2050c0'; g.fillText('listen then act', W/2 - 60, 50);
+  g.fillStyle = ink2;
+  g.fillText('P(tiger left) →', W/2 - 50, H-10);
+  g.fillText('0', pad - 4, H-24); g.fillText('1', W-pad-4, H-24);
+  // find listen region
+  var a0 = null, a1 = null;
+  for(var i = 0; i <= 200; i++){
+   var b = i/200;
+   var L = evListen(b), best = Math.max(0, evOpenLeft(b), evOpenRight(b));
+   if(L > best){ if(a0 === null) a0 = b; a1 = b; }
+  }
+  txt('po-out', a0 !== null
+    ? ('listening is optimal for P(tiger left) in ≈ [' + a0.toFixed(2) + ', ' + a1.toFixed(2) + '] — uncertainty is where information pays')
+    : 'listening never beats acting/walking at this accuracy and cost');
+ }
+ on('po-acc','input',draw); on('po-cost','input',draw);
+ window.addEventListener('resize',draw); draw();
+})();
+})();
+</script>
+
+</body></html>

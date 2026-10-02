@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 08 Linear Algebra</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','08')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">08</div><h1>Linear Algebra</h1><p class="lede">Vectors, matrices and the geometry of linear maps.</p>
+   <div class="meta"><span class="chip">47 topics</span><span class="chip">needs: chapters 02, 05, 07</span><span class="chip">feeds: chapters 09, 15, 21</span></div>
+  </div>
+
+<section class="topic" id="vectors">
+ <h2>Vectors</h2>
+ <p>Chapter 5 met vectors as arrows. Now widen the lens: a vector is anything you can add and scale — an arrow, a list of pixel intensities, a polynomial, an audio clip. Linear algebra is the study of what survives when only those two operations are allowed.</p>
+ <div class="box def"><span class="label">Definition</span> A vector in $\mathbb{R}^n$ is an $n$-tuple $\mathbf{v} = (v_1, \dots, v_n)$, added componentwise and scaled by reals. Column convention: $\mathbf{v} \in \mathbb{R}^n$ is an $n\times1$ column; $\mathbf{v}^\top$ is the row. The standard basis vectors $\mathbf{e}_1 = (1, 0, \dots, 0), \dots, \mathbf{e}_n$ have a 1 in one slot and 0 elsewhere, and $\mathbf{v} = \sum_i v_i\mathbf{e}_i$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A grayscale 2×2 image with pixels $\begin{smallmatrix}10 &amp; 20\\30 &amp; 40\end{smallmatrix}$ is the vector $(10, 20, 30, 40) \in \mathbb{R}^4$. Brightening by 10%: scale by 1.1. Blending two images: add. Every image transformation a model learns starts from this flattening.</div>
+ <div class="box link"><span class="label">Where this goes</span> Everything: data points (Ch 19), gradients (Ch 9), token embeddings (Ch 21) are vectors in $\mathbb{R}^n$ with $n$ in the thousands.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $(3, -1, 2)$ as a combination of standard basis vectors. <details class="sol"><summary>Solution</summary><div>$3\mathbf{e}_1 - \mathbf{e}_2 + 2\mathbf{e}_3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve for $\mathbf{x}$: $2\mathbf{x} + (1, 4) = (7, -2)$. <details class="sol"><summary>Solution</summary><div>$\mathbf{x} = \tfrac12(6, -6) = (3, -3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The average of vectors $\mathbf{v}_1, \dots, \mathbf{v}_k$ is $\bar{\mathbf{v}} = \frac1k\sum \mathbf{v}_i$. Show $\sum_i (\mathbf{v}_i - \bar{\mathbf{v}}) = \mathbf{0}$. <details class="sol"><summary>Solution</summary><div>$\sum_i \mathbf{v}_i - k\bar{\mathbf{v}} = \sum_i\mathbf{v}_i - \sum_i \mathbf{v}_i = \mathbf{0}$. Centering data (Ch 19 preprocessing) always produces mean zero.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vector-spaces">
+ <h2>Vector spaces</h2>
+ <p>Abstract the rules: a vector space is any collection where addition and scalar multiplication behave the way arrows do. The payoff of abstraction is reach — theorems proved once hold for arrows, matrices, polynomials, functions, and random variables alike.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>vector space</em> over $\mathbb{R}$ is a set $V$ with operations $+: V\times V \to V$ and $\cdot: \mathbb{R}\times V \to V$ satisfying: associativity and commutativity of $+$; a zero vector $\mathbf{0}$; additive inverses; $1\mathbf{v} = \mathbf{v}$; $a(b\mathbf{v}) = (ab)\mathbf{v}$; and the distributive laws $a(\mathbf{u}+\mathbf{v}) = a\mathbf{u} + a\mathbf{v}$, $(a+b)\mathbf{v} = a\mathbf{v} + b\mathbf{v}$. Examples: $\mathbb{R}^n$; $m\times n$ matrices; polynomials; continuous functions on $[0,1]$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The set $P_2$ of polynomials of degree $\le 2$ is a vector space: $(2x^2 + 1) + (x - 3) = 2x^2 + x - 2$ stays in $P_2$; scaling too. But the set of polynomials of degree <em>exactly</em> 2 is not: $(x^2) + (-x^2 + x) = x$ escapes. Closure is the make-or-break axiom.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the set $\{(x, y) : x, y \ge 0\}$ (the first quadrant) a vector space? <details class="sol"><summary>Solution</summary><div>No: $(1,1)$ is in it but $-1\cdot(1,1) = (-1,-1)$ is not. No additive inverses.</div></details></li>
+  <li><span class="lvl m">MED</span> Do solutions of $y'' + y = 0$ form a vector space? <details class="sol"><summary>Solution</summary><div>Yes: if $y_1, y_2$ solve it, so does $ay_1 + by_2$ (differentiation is linear). Solution sets of <em>homogeneous</em> linear equations are always vector spaces.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove from the axioms that $0\cdot\mathbf{v} = \mathbf{0}$ for every $\mathbf{v}$. <details class="sol"><summary>Solution</summary><div>$0\mathbf{v} = (0 + 0)\mathbf{v} = 0\mathbf{v} + 0\mathbf{v}$. Add the inverse of $0\mathbf{v}$ to both sides: $\mathbf{0} = 0\mathbf{v}$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="subspaces">
+ <h2>Subspaces</h2>
+ <p>A subspace is a vector space living inside another: a line or plane through the origin inside $\mathbb{R}^3$. Subspaces are the natural habitats of solutions, columns, and kernels — flat sheets that never leave themselves under adding and scaling.</p>
+ <div class="box def"><span class="label">Definition</span> $W \subseteq V$ is a <em>subspace</em> iff (1) $\mathbf{0} \in W$, (2) $\mathbf{u}, \mathbf{v} \in W \Rightarrow \mathbf{u} + \mathbf{v} \in W$, (3) $c\mathbf{v} \in W$ for all scalars $c$. Equivalently: closed under linear combinations. In $\mathbb{R}^3$ the subspaces are exactly: $\{\mathbf{0}\}$, lines through the origin, planes through the origin, and $\mathbb{R}^3$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $W = \{(x, y, z) : x + 2y - z = 0\}$: contains $\mathbf{0}$ ✓; if $\mathbf{u}, \mathbf{v}$ satisfy the equation so does $\mathbf{u} + \mathbf{v}$ (add the equations) and $c\mathbf{u}$ ✓. A subspace — a plane through the origin with normal $(1, 2, -1)$. But $\{x + 2y - z = 5\}$ is not: it misses $\mathbf{0}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A subspace must pass through the origin. Shifted lines and planes are "affine subspaces," not subspaces — the solution set of $A\mathbf{x} = \mathbf{b}$ with $\mathbf{b}\ne\mathbf{0}$ is affine, not linear.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the $x$-axis a subspace of $\mathbb{R}^2$? <details class="sol"><summary>Solution</summary><div>Yes: $\{(t, 0)\}$ is closed under $+$ and scaling and contains $\mathbf{0}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $\{(x, y): xy = 0\}$ (union of the axes) a subspace of $\mathbb{R}^2$? <details class="sol"><summary>Solution</summary><div>No: $(1,0) + (0,1) = (1,1)$ leaves the set. Unions of subspaces usually fail; intersections always succeed.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the set of symmetric $2\times2$ matrices is a subspace of all $2\times2$ matrices, and guess its dimension. <details class="sol"><summary>Solution</summary><div>$(A + B)^\top = A^\top + B^\top = A + B$ and $(cA)^\top = cA$: closed; zero matrix symmetric. ✓ Free entries: $a_{11}, a_{12}(=a_{21}), a_{22}$: dimension 3.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-combinations">
+ <h2>Linear combinations</h2>
+ <p>The only move linear algebra allows: scale some vectors and add them. Every question in the subject — solvability, dependence, coordinates — asks whether and how a vector can be reached by such combinations.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>linear combination</em> of $\mathbf{v}_1, \dots, \mathbf{v}_k$ is $c_1\mathbf{v}_1 + \cdots + c_k\mathbf{v}_k$ with scalars $c_i$. Asking "is $\mathbf{b}$ a combination of the $\mathbf{v}_i$?" is exactly asking whether the linear system with those vectors as columns and right side $\mathbf{b}$ has a solution.</div>
+ <div class="box ex"><span class="label">Worked example</span> Is $(7, 8)$ a combination of $(1, 2)$ and $(3, 1)$? Solve $c_1(1,2) + c_2(3,1) = (7,8)$: $c_1 + 3c_2 = 7$, $2c_1 + c_2 = 8$. From the second: $c_2 = 8 - 2c_1$; substitute: $c_1 + 24 - 6c_1 = 7 \Rightarrow c_1 = \tfrac{17}{5}, c_2 = \tfrac{6}{5}$. Yes: $(7,8) = \tfrac{17}5(1,2) + \tfrac65(3,1)$. ✓ (Check: $\tfrac{17}{5} + \tfrac{18}{5} = 7$, $\tfrac{34}5 + \tfrac65 = 8$.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Express $(5, 1)$ as a combination of $(1, 0)$ and $(1, 1)$. <details class="sol"><summary>Solution</summary><div>$c_2 = 1$ (second coordinate), $c_1 = 4$: $(5,1) = 4(1,0) + 1(1,1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $(1, 2, 3)$ a combination of $(1, 1, 0)$ and $(0, 1, 1)$? <details class="sol"><summary>Solution</summary><div>$c_1 = 1$ (first), $c_1 + c_2 = 2 \Rightarrow c_2 = 1$, then third: $c_2 = 1 \ne 3$. No.</div></details></li>
+  <li><span class="lvl h">HARD</span> For which $b_3$ is $(1, 2, b_3)$ a combination of $(1,1,0)$ and $(0,1,1)$? <details class="sol"><summary>Solution</summary><div>As above $c_1 = 1$, $c_2 = 1$, so need $b_3 = c_2 = 1$. The reachable vectors form the plane $\{(c_1, c_1 + c_2, c_2)\}$, i.e. $x - y + z = 0$; $(1,2,b_3)$ needs $1 - 2 + b_3 = 0$: $b_3 = 1$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="span">
+ <h2>Span</h2>
+ <p>The span of a set of vectors is everywhere you can reach with linear combinations — the smallest subspace containing them. Two independent arrows in 3D span a plane; add a third off that plane and you span everything.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{span}\{\mathbf{v}_1,\dots,\mathbf{v}_k\} = \{c_1\mathbf{v}_1 + \cdots + c_k\mathbf{v}_k : c_i \in \mathbb{R}\}$. It is always a subspace. The set $\{\mathbf{v}_i\}$ <em>spans</em> $V$ if its span equals $V$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\operatorname{span}\{(1, 2)\}$ = the line $y = 2x$. $\operatorname{span}\{(1,2), (2,4)\}$: still that line — the second vector adds nothing (it's a multiple). $\operatorname{span}\{(1,2),(0,1)\}$: all of $\mathbb{R}^2$, since $(x, y) = x(1,2) + (y-2x)(0,1)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Describe $\operatorname{span}\{(0,0,1),(0,1,0)\}$. <details class="sol"><summary>Solution</summary><div>The $yz$-plane: $\{(0, b, c)\}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Do $(1,1), (1,-1), (2,3)$ span $\mathbb{R}^2$? Is the third vector needed? <details class="sol"><summary>Solution</summary><div>$(1,1),(1,-1)$ already span $\mathbb{R}^2$ (not multiples of each other). The third is redundant — spans don't shrink but sets can be trimmed.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\operatorname{span}\{\mathbf{u}, \mathbf{v}\} = \operatorname{span}\{\mathbf{u} + \mathbf{v}, \mathbf{u} - \mathbf{v}\}$. <details class="sol"><summary>Solution</summary><div>⊇: $\mathbf{u}+\mathbf{v}, \mathbf{u}-\mathbf{v}$ are combinations of $\mathbf{u},\mathbf{v}$, hence so is anything they span. ⊆: $\mathbf{u} = \tfrac12[(\mathbf{u}+\mathbf{v}) + (\mathbf{u}-\mathbf{v})]$ and $\mathbf{v} = \tfrac12[(\mathbf{u}+\mathbf{v}) - (\mathbf{u}-\mathbf{v})]$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-independence">
+ <h2>Linear independence</h2>
+ <p>Vectors are independent when none of them is redundant — no one can be built from the others. Independence means information: each vector adds a genuinely new direction.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf{v}_1, \dots, \mathbf{v}_k$ are <em>linearly independent</em> iff $$c_1\mathbf{v}_1 + \cdots + c_k\mathbf{v}_k = \mathbf{0} \implies c_1 = \cdots = c_k = 0.$$ Otherwise <em>dependent</em>: some nontrivial combination gives zero, equivalently some $\mathbf{v}_i$ is a combination of the rest. In $\mathbb{R}^n$, any $k &gt; n$ vectors are automatically dependent.</div>
+ <div class="box ex"><span class="label">Worked example</span> $(1,2,0), (0,1,1), (2,5,1)$: seek $c_1(1,2,0)+c_2(0,1,1)+c_3(2,5,1)=\mathbf 0$. Equations: $c_1 + 2c_3 = 0$; $2c_1 + c_2 + 5c_3 = 0$; $c_2 + c_3 = 0$. From first: $c_1 = -2c_3$; third: $c_2 = -c_3$; substitute into second: $-4c_3 - c_3 + 5c_3 = 0$ — true for any $c_3$! Take $c_3 = 1$: $(-2)(1,2,0) + (-1)(0,1,1) + (2,5,1) = \mathbf{0}$. ✓ Dependent: $(2,5,1) = 2(1,2,0) + (0,1,1)$.</div>
+ <div class="box think"><span class="label">Think first</span> Can two vectors in $\mathbb{R}^2$ be independent if one is $(0,0)$? <details class="sol"><summary>Reveal</summary><div>Never: $1\cdot\mathbf{0} + 0\cdot\mathbf{v} = \mathbf{0}$ is a nontrivial combination. Any set containing the zero vector is dependent.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Are $(1, 3)$ and $(2, 6)$ independent? <details class="sol"><summary>Solution</summary><div>No: the second is twice the first.</div></details></li>
+  <li><span class="lvl m">MED</span> For which $t$ are $(1, t)$ and $(t, 4)$ dependent? <details class="sol"><summary>Solution</summary><div>Dependent iff determinant $4 - t^2 = 0$: $t = \pm2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that nonzero orthogonal vectors are always independent. <details class="sol"><summary>Solution</summary><div>Suppose $\sum c_i\mathbf{v}_i = \mathbf{0}$ with $\mathbf{v}_i\cdot\mathbf{v}_j = 0$ ($i\ne j$). Dot with $\mathbf{v}_j$: $c_j\|\mathbf{v}_j\|^2 = 0$, and $\|\mathbf{v}_j\| \ne 0$ forces $c_j = 0$, for every $j$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="basis">
+ <h2>Basis</h2>
+ <p>A basis is a minimal spanning set: enough vectors to reach everything, no redundancy. It is a coordinate system — once you fix a basis, every vector has exactly one name (its coefficients).</p>
+ <div class="box def"><span class="label">Definition</span> A <em>basis</em> of $V$ is a linearly independent set that spans $V$. Equivalent characterization: every $\mathbf{v}\in V$ is a <em>unique</em> linear combination of basis vectors. All bases of a space have the same size. Standard basis of $\mathbb{R}^n$: $\{\mathbf{e}_1, \dots, \mathbf{e}_n\}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\{(1,1), (1,-1)\}$ is a basis of $\mathbb{R}^2$: independent (not multiples), and spans (2 independent vectors in a 2-dimensional space). Unique representation of $(5, 1)$: solve $a + b = 5$, $a - b = 1$: $a = 3, b = 2$: $(5,1) = 3(1,1) + 2(1,-1)$, and no other pair works.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Spans" alone isn't a basis (may be redundant); "independent" alone isn't either (may not reach everything). You need both — or the right count plus one of them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\{(2,0), (0,3)\}$ a basis of $\mathbb{R}^2$? <details class="sol"><summary>Solution</summary><div>Yes: independent, and they span (scaled axes).</div></details></li>
+  <li><span class="lvl m">MED</span> Find a basis for the plane $x + y + z = 0$ in $\mathbb{R}^3$. <details class="sol"><summary>Solution</summary><div>Free variables $y, z$: $x = -y - z$: vectors $(-1,1,0)$ and $(-1,0,1)$. Independent and span: a basis. (Many correct answers.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\{1, x, x^2\}$ and $\{1, 1+x, (1+x)^2\}$ are both bases of $P_2$, and express $x^2$ in the second. <details class="sol"><summary>Solution</summary><div>First: standard. Second: independent (expanding, the leading coefficients triangularize) and 3 independent vectors in a 3-dim space span. $x^2 = (1+x)^2 - 2(1+x) + 1$: coefficients $(1, -2, 1)$. Check: $1 + 2x + x^2 - 2 - 2x + 1 = x^2$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dimension">
+ <h2>Dimension</h2>
+ <p>Dimension counts the independent directions in a space — the size of any basis. It is the single most important invariant: it tells you how many numbers you need to describe a point, and no clever encoding can do better linearly.</p>
+ <div class="box def"><span class="label">Definition</span> $\dim V$ = number of vectors in any basis of $V$ (well-defined since all bases match in size). $\dim\mathbb{R}^n = n$; $\dim P_k = k+1$; $\dim\{m\times n$ matrices$\} = mn$. For subspaces $W \subseteq V$: $\dim W \le \dim V$, with equality iff $W = V$. Handy: in an $n$-dim space, any $n$ independent vectors form a basis; any $n$ spanning vectors do too.</div>
+ <div class="box ex"><span class="label">Worked example</span> The solution set of $x + y + z = 0$ in $\mathbb{R}^3$ has basis $\{(-1,1,0), (-1,0,1)\}$: dimension 2 — a plane. One linear constraint on $\mathbb{R}^3$ cut the dimension by one. In general, $k$ independent constraints on $\mathbb{R}^n$ leave an $(n-k)$-dimensional subspace.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Dimension of the subspace of $\mathbb{R}^4$ where $x_1 = x_2 = x_3 = x_4$? <details class="sol"><summary>Solution</summary><div>1: basis $\{(1,1,1,1)\}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Dimension of symmetric $3\times3$ matrices? Antisymmetric? <details class="sol"><summary>Solution</summary><div>Symmetric: diagonal (3) + upper triangle (3) = 6. Antisymmetric ($A^\top = -A$, zero diagonal): 3. Note $6 + 3 = 9 = \dim$ of all $3\times3$: every matrix splits uniquely into symmetric + antisymmetric parts.</div></details></li>
+  <li><span class="lvl h">HARD</span> $U, W$ subspaces of $\mathbb{R}^{10}$ with $\dim U = 6$, $\dim W = 7$. What are the possible dimensions of $U \cap W$? <details class="sol"><summary>Solution</summary><div>$\dim(U + W) = \dim U + \dim W - \dim(U\cap W) \le 10$: $\dim(U\cap W) \ge 3$. Also $U\cap W \subseteq U$: $\le 6$. Possible: 3, 4, 5, 6 (all achievable).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="coordinates">
+ <h2>Coordinates</h2>
+ <p>Once a basis is fixed, every vector becomes a list of numbers: its coordinates. Different bases give the same vector different names — and much of applied linear algebra is choosing the basis in which your problem's name is simplest.</p>
+ <div class="box def"><span class="label">Definition</span> If $\mathcal{B} = \{\mathbf{b}_1, \dots, \mathbf{b}_n\}$ is a basis of $V$ and $\mathbf{v} = c_1\mathbf{b}_1 + \cdots + c_n\mathbf{b}_n$ (uniquely), then $[\mathbf{v}]_\mathcal{B} = (c_1, \dots, c_n)$ is the <em>coordinate vector</em> of $\mathbf{v}$ in $\mathcal{B}$. The map $\mathbf{v}\mapsto[\mathbf{v}]_\mathcal{B}$ is a linear one-to-one correspondence $V \to \mathbb{R}^n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathcal{B} = \{(1,1), (1,-1)\}$: from the basis example, $(5, 1)$ has $[\mathbf{v}]_\mathcal{B} = (3, 2)$. The same arrow, two names: $(5,1)$ in standard coordinates, $(3,2)$ in $\mathcal{B}$-coordinates.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In basis $\{(2,0),(0,3)\}$, what are the coordinates of $(4, 9)$? <details class="sol"><summary>Solution</summary><div>$(2, 3)$: $2(2,0) + 3(0,3) = (4,9)$.</div></details></li>
+  <li><span class="lvl m">MED</span> In $P_2$ with basis $\{1, x, x^2\}$, what is $[3x^2 - x + 4]$? And in basis $\{x^2, x, 1\}$? <details class="sol"><summary>Solution</summary><div>$(4, -1, 3)$ and $(3, -1, 4)$: order matters.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\mathcal{B} = \{(1,2),(3,4)\}$. Find $[\,(1,0)\,]_\mathcal{B}$. <details class="sol"><summary>Solution</summary><div>$a(1,2) + b(3,4) = (1,0)$: $a + 3b = 1$, $2a + 4b = 0 \Rightarrow a = -2b$: $-2b + 3b = 1$, $b = 1$, $a = -2$. Coordinates $(-2, 1)$. Check: $-2(1,2) + (3,4) = (1, 0)$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dot-product-la">
+ <h2>Dot product</h2>
+ <p>The dot product from Ch 5, now in $n$ dimensions and matrix clothing: $\mathbf{u}^\top\mathbf{v}$. It computes similarity, lengths, angles, and projections — one operation, most of geometry.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf{u}\cdot\mathbf{v} = \mathbf{u}^\top\mathbf{v} = \sum_{i=1}^n u_iv_i$. Properties: symmetric, bilinear, positive definite ($\mathbf{v}\cdot\mathbf{v} &gt; 0$ unless $\mathbf{v} = \mathbf{0}$). Geometry: $\mathbf{u}\cdot\mathbf{v} = \|\mathbf{u}\|\|\mathbf{v}\|\cos\theta$. <em>Cauchy–Schwarz:</em> $|\mathbf{u}\cdot\mathbf{v}| \le \|\mathbf{u}\|\,\|\mathbf{v}\|$, equality iff parallel.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{u} = (1, 2, 2)$, $\mathbf{v} = (3, 0, 4)$: $\mathbf{u}\cdot\mathbf{v} = 3 + 0 + 8 = 11$; $\|\mathbf{u}\| = 3$, $\|\mathbf{v}\| = 5$: $\cos\theta = \frac{11}{15}$, $\theta \approx 42.8^\circ$. Cauchy–Schwarz check: $11 \le 15$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $(1, -1, 2)\cdot(2, 3, 1) = ?$ <details class="sol"><summary>Solution</summary><div>$2 - 3 + 2 = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Cosine similarity of documents $\mathbf{d}_1 = (2, 1, 0)$, $\mathbf{d}_2 = (4, 2, 0)$, $\mathbf{d}_3 = (0, 1, 2)$ — which pair is most similar? <details class="sol"><summary>Solution</summary><div>$\cos(\mathbf{d}_1,\mathbf{d}_2) = \frac{10}{\sqrt5\sqrt{20}} = 1$ (parallel!); $\cos(\mathbf{d}_1, \mathbf{d}_3) = \frac{1}{\sqrt5\sqrt5} = 0.2$. Pair (1,2).</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the parallelogram law: $\|\mathbf{u}+\mathbf{v}\|^2 + \|\mathbf{u}-\mathbf{v}\|^2 = 2\|\mathbf{u}\|^2 + 2\|\mathbf{v}\|^2$. <details class="sol"><summary>Solution</summary><div>Expand both via $\|\mathbf{w}\|^2 = \mathbf{w}\cdot\mathbf{w}$: $(\|\mathbf{u}\|^2 + 2\mathbf{u}\cdot\mathbf{v} + \|\mathbf{v}\|^2) + (\|\mathbf{u}\|^2 - 2\mathbf{u}\cdot\mathbf{v} + \|\mathbf{v}\|^2)$: cross terms cancel. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inner-products">
+ <h2>Inner products</h2>
+ <p>Generalize the dot product: an inner product is any pairing that behaves like it — symmetric, linear, positive. Different inner products define different geometries on the same space, including ones that weight some directions more than others.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>inner product</em> on $V$ is $\langle\cdot,\cdot\rangle: V\times V\to\mathbb{R}$ with: symmetry $\langle\mathbf{u},\mathbf{v}\rangle = \langle\mathbf{v},\mathbf{u}\rangle$; linearity in each argument; positive definiteness $\langle\mathbf{v},\mathbf{v}\rangle &gt; 0$ for $\mathbf{v}\ne\mathbf{0}$. Examples: weighted $\langle\mathbf{u},\mathbf{v}\rangle = \sum w_iu_iv_i$ ($w_i&gt;0$); matrix form $\mathbf{u}^\top A\mathbf{v}$ for symmetric positive definite $A$; for functions, $\langle f, g\rangle = \int_a^b f(x)g(x)\,dx$.</div>
+ <div class="box ex"><span class="label">Worked example</span> On continuous functions over $[0, 2\pi]$: $\langle \sin, \cos\rangle = \int_0^{2\pi}\sin x\cos x\,dx = \tfrac12\int_0^{2\pi}\sin 2x\,dx = 0$ — sine and cosine are <em>orthogonal functions</em>. This orthogonality is the entire foundation of Fourier series (Ch 14).</div>
+ <div class="box link"><span class="label">Where this goes</span> Kernels (Ch 19) are inner products computed in disguise; attention scores are scaled inner products (Ch 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With weights $w = (1, 2)$: compute $\langle(3,1),(1,1)\rangle_w$. <details class="sol"><summary>Solution</summary><div>$1\cdot3\cdot1 + 2\cdot1\cdot1 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $\langle f, g\rangle = \int_0^1 fg\,dx$ makes $f(x) = 1$ and $g(x) = x - \tfrac12$ orthogonal. <details class="sol"><summary>Solution</summary><div>$\int_0^1 (x - \tfrac12)dx = \tfrac12 - \tfrac12 = 0$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does $\langle\mathbf{u},\mathbf{v}\rangle = u_1v_1 - u_2v_2$ fail to be an inner product on $\mathbb{R}^2$? <details class="sol"><summary>Solution</summary><div>Positive definiteness fails: $\mathbf{v} = (1, 1)$ gives $\langle\mathbf{v},\mathbf{v}\rangle = 0$ though $\mathbf{v}\ne\mathbf{0}$; $(0, 1)$ even gives $-1 &lt; 0$. (This "Minkowski" pairing is the geometry of special relativity — useful, but not an inner product.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="norms">
+ <h2>Norms</h2>
+ <p>A norm measures a vector's size. The Euclidean norm is one choice among several: the L1 norm adds absolute values (taxicab distance), the L∞ norm takes the worst coordinate. Different norms encode different notions of "small" — the choice shapes regularization (Ch 15) and error analysis.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>norm</em> satisfies: $\|\mathbf{v}\| \ge 0$ with equality iff $\mathbf{v} = \mathbf{0}$; $\|c\mathbf{v}\| = |c|\|\mathbf{v}\|$; triangle inequality $\|\mathbf{u}+\mathbf{v}\|\le\|\mathbf{u}\|+\|\mathbf{v}\|$. The $p$-norms: $$\|\mathbf{v}\|_p = \Big(\sum_i |v_i|^p\Big)^{1/p}; \quad \|\mathbf{v}\|_1 = \sum|v_i|, \quad \|\mathbf{v}\|_2 = \sqrt{\sum v_i^2}, \quad \|\mathbf{v}\|_\infty = \max_i |v_i|.$$ Any inner product induces a norm: $\|\mathbf{v}\| = \sqrt{\langle\mathbf{v},\mathbf{v}\rangle}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{v} = (3, -4, 0)$: $\|\mathbf{v}\|_1 = 7$, $\|\mathbf{v}\|_2 = 5$, $\|\mathbf{v}\|_\infty = 4$. Always $\|\cdot\|_\infty \le \|\cdot\|_2 \le \|\cdot\|_1$. Unit "circles": L2 a circle, L1 a diamond, L∞ a square — the diamond's corners on the axes are why L1 regularization produces sparse (zero-heavy) solutions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute all three norms of $(1, -1, 1, -1)$. <details class="sol"><summary>Solution</summary><div>$\|\cdot\|_1 = 4$, $\|\cdot\|_2 = 2$, $\|\cdot\|_\infty = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Which vectors have $\|\mathbf{v}\|_1 = \|\mathbf{v}\|_2$? <details class="sol"><summary>Solution</summary><div>Squaring: $(\sum|v_i|)^2 = \sum v_i^2$ iff all cross terms $|v_i||v_j| = 0$: at most one nonzero coordinate.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\|\mathbf{v}\|_2 \le \sqrt n\,\|\mathbf{v}\|_\infty$ and $\|\mathbf{v}\|_1 \le \sqrt n\,\|\mathbf{v}\|_2$ in $\mathbb{R}^n$. <details class="sol"><summary>Solution</summary><div>First: $\sum v_i^2 \le n\max v_i^2$. Second: Cauchy–Schwarz with $\mathbf{u} = (|v_1|, \dots)$ against $(1,\dots,1)$: $\sum|v_i| \le \sqrt n\sqrt{\sum v_i^2}$. $\blacksquare$ All norms on $\mathbb{R}^n$ are equivalent up to constants.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="orthogonality">
+ <h2>Orthogonality</h2>
+ <p>Orthogonal means perpendicular: inner product zero. Orthogonal directions don't interfere — moving along one changes nothing about your position along the other. That non-interference is why orthogonal bases make computations collapse into independent pieces.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf{u}\perp\mathbf{v}$ iff $\langle\mathbf{u},\mathbf{v}\rangle = 0$. A set is <em>orthogonal</em> if pairwise orthogonal; <em>orthonormal</em> if also unit length ($\langle\mathbf{q}_i,\mathbf{q}_j\rangle = \delta_{ij}$). Pythagoras: $\mathbf{u}\perp\mathbf{v} \Rightarrow \|\mathbf{u}+\mathbf{v}\|^2 = \|\mathbf{u}\|^2 + \|\mathbf{v}\|^2$. For an orthonormal basis $\{\mathbf{q}_i\}$: coordinates are just inner products, $\mathbf{v} = \sum_i \langle\mathbf{v},\mathbf{q}_i\rangle\,\mathbf{q}_i$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{q}_1 = \tfrac{1}{\sqrt2}(1,1)$, $\mathbf{q}_2 = \tfrac1{\sqrt2}(1,-1)$: orthonormal. Coordinates of $(5,1)$: $\langle(5,1),\mathbf{q}_1\rangle = \tfrac{6}{\sqrt2} = 3\sqrt2$; $\langle(5,1),\mathbf{q}_2\rangle = \tfrac{4}{\sqrt2} = 2\sqrt2$. Reconstruct: $3\sqrt2\,\mathbf{q}_1 + 2\sqrt2\,\mathbf{q}_2 = 3(1,1) + 2(1,-1) = (5,1)$. ✓ No system-solving needed — that's the orthonormal dividend.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find $t$ so $(2, t, 1) \perp (1, 3, -5)$. <details class="sol"><summary>Solution</summary><div>$2 + 3t - 5 = 0$: $t = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $\{(1,2,2), (2,1,-2), (2,-2,1)\}$ is orthogonal, and normalize it. <details class="sol"><summary>Solution</summary><div>Dots: $2+2-4 = 0$; $2-4+2 = 0$; $4-2-2 = 0$. ✓ Each has norm 3: divide all by 3.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that an orthonormal set is never larger than $\dim V$. <details class="sol"><summary>Solution</summary><div>Orthonormal ⇒ independent (drill in the independence topic), and an independent set can't exceed the dimension (it extends to / is bounded by a basis). $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="orthogonal-complements">
+ <h2>Orthogonal complements</h2>
+ <p>The orthogonal complement of a subspace is everything perpendicular to it: the normal line of a plane, the plane perpendicular to a line. Space splits cleanly into "in $W$" plus "perpendicular to $W$" — the split least squares runs on.</p>
+ <div class="box def"><span class="label">Definition</span> $W^\perp = \{\mathbf{v} \in V : \langle\mathbf{v},\mathbf{w}\rangle = 0 \;\forall\mathbf{w}\in W\}$ — always a subspace. In finite dimensions: $\dim W + \dim W^\perp = \dim V$, $(W^\perp)^\perp = W$, and every $\mathbf{v}$ decomposes uniquely as $\mathbf{v} = \mathbf{w} + \mathbf{w}^\perp$ with $\mathbf{w}\in W$, $\mathbf{w}^\perp\in W^\perp$. Fundamental relation for matrices: $(\text{row space of } A)^\perp = \text{null space of } A$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $W = \operatorname{span}\{(1,1,1)\}$ in $\mathbb{R}^3$: $W^\perp = \{(x,y,z): x + y + z = 0\}$, the plane from earlier examples — dimension $1 + 2 = 3$. ✓ Decompose $(3, 0, 0)$: component in $W$: $\frac{(3,0,0)\cdot(1,1,1)}{3}(1,1,1) = (1,1,1)$; remainder $(2,-1,-1) \in W^\perp$ (sums to 0 ✓).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In $\mathbb{R}^2$, what is the orthogonal complement of the $x$-axis? <details class="sol"><summary>Solution</summary><div>The $y$-axis.</div></details></li>
+  <li><span class="lvl m">MED</span> Find a basis of $W^\perp$ for $W = \operatorname{span}\{(1,0,2),(0,1,-1)\}$. <details class="sol"><summary>Solution</summary><div>Need $(x,y,z)$ with $x + 2z = 0$ and $y - z = 0$: $(x,y,z) = z(-2, 1, 1)$. Basis $\{(-2,1,1)\}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $W \cap W^\perp = \{\mathbf{0}\}$. <details class="sol"><summary>Solution</summary><div>$\mathbf{v}$ in both must satisfy $\langle\mathbf{v},\mathbf{v}\rangle = 0$ (being orthogonal to itself), forcing $\mathbf{v} = \mathbf{0}$ by positive definiteness. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="projections">
+ <h2>Projections</h2>
+ <p>Projection onto a subspace finds the closest point in it — drop a perpendicular. It is literally the "best approximation" operation, and least squares (Ch 13) is nothing but projecting the data vector onto the model's column space.</p>
+ <div class="box def"><span class="label">Definition</span> Onto a line spanned by $\mathbf{a}$: $\operatorname{proj}_{\mathbf{a}}\mathbf{v} = \frac{\mathbf{a}^\top\mathbf{v}}{\mathbf{a}^\top\mathbf{a}}\,\mathbf{a}$. Onto the column space of full-column-rank $A$: $$\hat{\mathbf{v}} = A(A^\top A)^{-1}A^\top\mathbf{v} = P\mathbf{v},$$ where the projection matrix $P$ satisfies $P^2 = P = P^\top$. The residual $\mathbf{v} - \hat{\mathbf{v}}$ is orthogonal to the subspace, and $\hat{\mathbf{v}}$ is the unique closest point.</div>
+ <div class="box ex"><span class="label">Worked example</span> Project $\mathbf{v} = (1, 2, 3)$ onto the plane spanned by $\mathbf{a}_1 = (1,0,0)$ and $\mathbf{a}_2 = (0,1,0)$ (the $xy$-plane): intuitively $(1,2,0)$. Via the formula with orthonormal columns, $P = \mathbf{a}_1\mathbf{a}_1^\top + \mathbf{a}_2\mathbf{a}_2^\top = \operatorname{diag}(1,1,0)$: $P\mathbf{v} = (1,2,0)$. ✓ Residual $(0,0,3)$ ⊥ plane. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Project $(3, 4)$ onto the line spanned by $(1, 0)$. <details class="sol"><summary>Solution</summary><div>$(3, 0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Project $(2, 3)$ onto the line spanned by $(1, 1)$; give the residual and verify orthogonality. <details class="sol"><summary>Solution</summary><div>$\frac{5}{2}(1,1) = (2.5, 2.5)$; residual $(-0.5, 0.5)$; dot with $(1,1)$: 0. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that a projection matrix's only possible eigenvalues are 0 and 1. <details class="sol"><summary>Solution</summary><div>$P^2 = P$: if $P\mathbf{v} = \lambda\mathbf{v}$ ($\mathbf{v}\ne\mathbf{0}$) then $\lambda\mathbf{v} = P\mathbf{v} = P^2\mathbf{v} = \lambda^2\mathbf{v}$: $\lambda^2 = \lambda$: $\lambda\in\{0,1\}$. (Eigenvalue 1 on the subspace, 0 on its complement.) $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gram-schmidt-process">
+ <h2>Gram-Schmidt process</h2>
+ <p>Turn any independent set into an orthonormal one: take each vector, subtract its shadows on the directions already built, normalize what remains. Repeat. The output spans the same space with all the orthonormal conveniences.</p>
+ <div class="box def"><span class="label">Definition</span> Given independent $\mathbf{v}_1, \dots, \mathbf{v}_k$: $$\mathbf{u}_1 = \mathbf{v}_1, \qquad \mathbf{u}_j = \mathbf{v}_j - \sum_{i&lt;j}\frac{\langle\mathbf{v}_j,\mathbf{u}_i\rangle}{\langle\mathbf{u}_i,\mathbf{u}_i\rangle}\mathbf{u}_i, \qquad \mathbf{q}_j = \frac{\mathbf{u}_j}{\|\mathbf{u}_j\|}.$$ Then $\{\mathbf{q}_j\}$ is orthonormal with the same span at each stage. (Matrix form: $A = QR$, Ch 18.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{v}_1 = (1, 1, 0)$, $\mathbf{v}_2 = (1, 0, 1)$. $\mathbf{u}_1 = (1,1,0)$. $\mathbf{u}_2 = \mathbf{v}_2 - \frac{\langle\mathbf{v}_2,\mathbf{u}_1\rangle}{\|\mathbf{u}_1\|^2}\mathbf{u}_1 = (1,0,1) - \tfrac12(1,1,0) = (\tfrac12, -\tfrac12, 1)$. Check: $(\tfrac12,-\tfrac12,1)\cdot(1,1,0) = 0$. ✓ Normalize: $\mathbf{q}_1 = \tfrac{1}{\sqrt2}(1,1,0)$, $\mathbf{q}_2 = \tfrac{1}{\sqrt{3/2}}(\tfrac12,-\tfrac12,1) = \tfrac{1}{\sqrt6}(1,-1,2)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Numerically, classical Gram–Schmidt loses orthogonality to rounding; production code uses <em>modified</em> Gram–Schmidt or Householder QR (Ch 18). Same math, better arithmetic.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Orthonormalize $\{(3, 0), (1, 2)\}$. <details class="sol"><summary>Solution</summary><div>$\mathbf{q}_1 = (1,0)$; $\mathbf{u}_2 = (1,2) - 1\cdot(1,0) = (0,2)$: $\mathbf{q}_2 = (0,1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Continue the worked example with $\mathbf{v}_3 = (0, 1, 1)$ to get $\mathbf{q}_3$. <details class="sol"><summary>Solution</summary><div>$\langle\mathbf{v}_3,\mathbf{u}_1\rangle = 1$; $\langle\mathbf{v}_3,\mathbf{u}_2\rangle = -\tfrac12 + 1 = \tfrac12$, $\|\mathbf{u}_2\|^2 = \tfrac32$. $\mathbf{u}_3 = (0,1,1) - \tfrac12(1,1,0) - \tfrac{1/2}{3/2}(\tfrac12,-\tfrac12,1) = (0,1,1) - (\tfrac12,\tfrac12,0) - (\tfrac16,-\tfrac16,\tfrac13) = (-\tfrac23, \tfrac23, \tfrac23)$. Normalize: $\mathbf{q}_3 = \tfrac{1}{\sqrt3}(-1,1,1)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Apply Gram–Schmidt to $\{1, x\}$ on $[0,1]$ with $\langle f,g\rangle = \int_0^1 fg\,dx$. <details class="sol"><summary>Solution</summary><div>$\mathbf{u}_1 = 1$ ($\|1\|^2 = 1$: $\mathbf{q}_1 = 1$). $\mathbf{u}_2 = x - \langle x, 1\rangle\cdot1 = x - \tfrac12$. $\|x - \tfrac12\|^2 = \int_0^1 (x-\tfrac12)^2 = \tfrac1{12}$: $\mathbf{q}_2 = \sqrt{12}(x - \tfrac12)$. These are the first Legendre-type orthogonal polynomials.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrices">
+ <h2>Matrices</h2>
+ <p>A matrix is a rectangular grid of numbers — but read it as a machine: it eats a vector and outputs another. Its columns tell you everything: column $j$ is where the $j$-th basis vector lands.</p>
+ <div class="box def"><span class="label">Definition</span> An $m\times n$ matrix $A$ has $m$ rows, $n$ columns, entries $a_{ij}$ (row $i$, column $j$). Special types: <em>square</em> ($m=n$); <em>identity</em> $I$ (ones on the diagonal); <em>diagonal</em>; <em>upper/lower triangular</em>; <em>zero</em>. The product $A\mathbf{x}$ is the linear combination of $A$'s columns with weights $x_j$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 &amp; 2\\3 &amp; 4\\5 &amp; 6\end{pmatrix}$ is $3\times2$: it maps $\mathbb{R}^2 \to \mathbb{R}^3$. $A\begin{pmatrix}1\\1\end{pmatrix} = 1\cdot\text{col}_1 + 1\cdot\text{col}_2 = (3, 7, 11)^\top$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What size is $A\mathbf{x}$ if $A$ is $4\times3$ and $\mathbf{x}\in\mathbb{R}^3$? <details class="sol"><summary>Solution</summary><div>A vector in $\mathbb{R}^4$.</div></details></li>
+  <li><span class="lvl m">MED</span> Which matrix maps $\mathbf{e}_1 \mapsto (2, 1)$ and $\mathbf{e}_2\mapsto(-1, 3)$? <details class="sol"><summary>Solution</summary><div>Columns are the images: $\begin{pmatrix}2 &amp; -1\\1 &amp; 3\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A neural layer computes $\mathbf{y} = W\mathbf{x} + \mathbf{b}$ with $W$ of size $256\times784$. How many parameters, and what do input/output dimensions mean for an image task? <details class="sol"><summary>Solution</summary><div>$256\cdot784 + 256 = 200{,}960$ parameters. Input $784 = 28\times28$ flattened pixels; output 256 learned features. The whole layer is one matrix-vector product.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-operations">
+ <h2>Matrix operations</h2>
+ <p>Matrices add and scale entrywise, like fat vectors. The interesting operation — multiplication — gets its own section. Together these make the space of $m\times n$ matrices a vector space of dimension $mn$.</p>
+ <div class="box def"><span class="label">Definition</span> Same-size matrices: $(A + B)_{ij} = a_{ij} + b_{ij}$; $(cA)_{ij} = c\,a_{ij}$. Properties mirror vectors: commutative and associative addition, distributivity. The matrix–vector product: $(A\mathbf{x})_i = \sum_j a_{ij}x_j$ — row $i$ dotted with $\mathbf{x}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 &amp; 2\\0 &amp; 1\end{pmatrix}$, $B = \begin{pmatrix}3 &amp; -1\\2 &amp; 2\end{pmatrix}$: $2A - B = \begin{pmatrix}2-3 &amp; 4+1\\0-2 &amp; 2-2\end{pmatrix} = \begin{pmatrix}-1 &amp; 5\\-2 &amp; 0\end{pmatrix}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\begin{pmatrix}1&amp;0\\2&amp;3\end{pmatrix}\begin{pmatrix}4\\5\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$(4, 8+15)^\top = (4, 23)^\top$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $X$ with $2X + \begin{pmatrix}1&amp;2\\3&amp;4\end{pmatrix} = \begin{pmatrix}5&amp;0\\1&amp;2\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$X = \tfrac12\begin{pmatrix}4&amp;-2\\-2&amp;-2\end{pmatrix} = \begin{pmatrix}2&amp;-1\\-1&amp;-1\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Averaging two images is a matrix operation: with images as vectors, blending is $\alpha\mathbf{x} + (1-\alpha)\mathbf{y}$. Show any such blend of two solutions of $A\mathbf{x} = \mathbf{b}$ is again a solution. <details class="sol"><summary>Solution</summary><div>$A(\alpha\mathbf{x} + (1-\alpha)\mathbf{y}) = \alpha A\mathbf{x} + (1-\alpha)A\mathbf{y} = \alpha\mathbf{b} + (1-\alpha)\mathbf{b} = \mathbf{b}$. Solution sets of linear systems are closed under affine combinations. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-multiplication">
+ <h2>Matrix multiplication</h2>
+ <p>Multiplying matrices composes machines: $AB$ means "apply $B$, then $A$." That's why the sizes must chain ($m\times n$ times $n\times p$), why the order matters, and why the operation eats most of the world's GPU cycles.</p>
+ <div class="box def"><span class="label">Definition</span> For $A$ ($m\times n$) and $B$ ($n\times p$): $(AB)_{ij} = \sum_{k=1}^n a_{ik}b_{kj}$ — row $i$ of $A$ dot column $j$ of $B$; result $m\times p$. Properties: associative, distributive, $AI = IA = A$; <b>not commutative</b> in general ($AB \ne BA$); $AB = 0$ does not force $A = 0$ or $B = 0$. Column view: each column of $AB$ is $A$ times the corresponding column of $B$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 &amp; 2\\3 &amp; 4\end{pmatrix}$, $B = \begin{pmatrix}0 &amp; 1\\1 &amp; 0\end{pmatrix}$ (a swap): $AB = \begin{pmatrix}2 &amp; 1\\4 &amp; 3\end{pmatrix}$ (columns swapped), $BA = \begin{pmatrix}3 &amp; 4\\1 &amp; 2\end{pmatrix}$ (rows swapped). $AB \ne BA$ — right-multiplying acts on columns, left on rows.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Never expand $(A + B)^2$ to $A^2 + 2AB + B^2$ — the truth is $A^2 + AB + BA + B^2$, and the middle terms differ unless $A, B$ commute.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\begin{pmatrix}1&amp;2\\0&amp;1\end{pmatrix}\begin{pmatrix}1&amp;0\\3&amp;1\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$\begin{pmatrix}7&amp;2\\3&amp;1\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find nonzero $2\times2$ matrices with $AB = 0$. <details class="sol"><summary>Solution</summary><div>E.g. $A = \begin{pmatrix}1&amp;0\\0&amp;0\end{pmatrix}$, $B = \begin{pmatrix}0&amp;0\\0&amp;1\end{pmatrix}$: $AB = 0$ though neither is zero.</div></details></li>
+  <li><span class="lvl h">HARD</span> Chained shapes: computing $ABC\mathbf{x}$ with $A: 1000\times1000$, $B: 1000\times1000$, $C: 1000\times1000$, $\mathbf{x}\in\mathbb{R}^{1000}$. Compare the cost of $(AB)(C\mathbf{x})$ vs $A(B(C\mathbf{x}))$. <details class="sol"><summary>Solution</summary><div>Matrix×matrix costs $\sim10^9$ multiplications; matrix×vector $\sim10^6$. $(AB)(C\mathbf{x})$: one matmat + two matvecs $\approx 10^9$. $A(B(C\mathbf{x}))$: three matvecs $\approx 3\times10^6$ — over 300× cheaper. Associativity changes nothing mathematically and everything computationally.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">If $A$ is $3\times4$ and $B$ is $4\times2$, then $BA$ is…</div><button class="opt">$3\times2$</button><button class="opt">undefined</button><button class="opt">$4\times4$</button><div class="why" hidden>$B$'s 2 columns don't match $A$'s 3 rows: $BA$ doesn't exist. ($AB$ is the $3\times2$ one.)</div></div>
+</section>
+
+<section class="topic" id="matrix-transpose">
+ <h2>Matrix transpose</h2>
+ <p>Transposing flips a matrix across its diagonal: rows become columns. It is the bookkeeping operation that moves matrices across inner products — the reason $A^\top$ appears whenever you differentiate through or reverse a linear map.</p>
+ <div class="box def"><span class="label">Definition</span> $(A^\top)_{ij} = a_{ji}$. Rules: $(A^\top)^\top = A$; $(A + B)^\top = A^\top + B^\top$; $(AB)^\top = B^\top A^\top$ (order reverses!); $(A^{-1})^\top = (A^\top)^{-1}$. Defining property: $\langle A\mathbf{x}, \mathbf{y}\rangle = \langle\mathbf{x}, A^\top\mathbf{y}\rangle$. $A$ is <em>symmetric</em> iff $A^\top = A$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 &amp; 2 &amp; 3\\4 &amp; 5 &amp; 6\end{pmatrix}$: $A^\top = \begin{pmatrix}1&amp;4\\2&amp;5\\3&amp;6\end{pmatrix}$. And $A^\top A = \begin{pmatrix}17 &amp; 22 &amp; 27\\22 &amp; 29 &amp; 36\\27 &amp; 36 &amp; 45\end{pmatrix}$ is symmetric — $A^\top A$ always is, since $(A^\top A)^\top = A^\top A$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $(AB)^\top$ in terms of $A^\top, B^\top$? <details class="sol"><summary>Solution</summary><div>$B^\top A^\top$ — socks off before shoes.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\mathbf{x}^\top A\mathbf{y}$ is a scalar and equals $\mathbf{y}^\top A^\top\mathbf{x}$. <details class="sol"><summary>Solution</summary><div>Sizes: $(1\times n)(n\times n)(n\times1) = 1\times1$. A scalar equals its own transpose: $\mathbf{x}^\top A\mathbf{y} = (\mathbf{x}^\top A\mathbf{y})^\top = \mathbf{y}^\top A^\top\mathbf{x}$. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove every square $A$ splits uniquely as symmetric + antisymmetric. <details class="sol"><summary>Solution</summary><div>$A = \underbrace{\tfrac12(A + A^\top)}_{S} + \underbrace{\tfrac12(A - A^\top)}_{K}$, with $S^\top = S$, $K^\top = -K$. Uniqueness: if $S + K = S' + K'$ then $S - S' = K' - K$ is both symmetric and antisymmetric, hence $= -($itself$) = 0$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-inverse">
+ <h2>Matrix inverse</h2>
+ <p>The inverse undoes the machine: $A^{-1}A\mathbf{x} = \mathbf{x}$. Only square matrices that don't squash any direction to zero have one. Conceptually central, computationally avoided: solvers factor instead of inverting (Ch 18).</p>
+ <div class="box def"><span class="label">Definition</span> $A^{-1}$ is the matrix with $AA^{-1} = A^{-1}A = I$ (unique when it exists; $A$ is then <em>invertible</em>/nonsingular). For $2\times2$: $$\begin{pmatrix}a&amp;b\\c&amp;d\end{pmatrix}^{-1} = \frac{1}{ad - bc}\begin{pmatrix}d&amp;-b\\-c&amp;a\end{pmatrix}, \quad ad-bc\ne0.$$ Rules: $(AB)^{-1} = B^{-1}A^{-1}$; $(A^\top)^{-1} = (A^{-1})^\top$. Invertible $\iff$ $\det A \ne 0$ $\iff$ columns independent $\iff$ $A\mathbf{x} = \mathbf{b}$ uniquely solvable for every $\mathbf{b}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2 &amp; 1\\5 &amp; 3\end{pmatrix}$: $\det = 6 - 5 = 1$: $A^{-1} = \begin{pmatrix}3 &amp; -1\\-5 &amp; 2\end{pmatrix}$. Check: $AA^{-1} = \begin{pmatrix}6-5 &amp; -2+2\\15-15 &amp; -5+6\end{pmatrix} = I$. ✓ Solve $A\mathbf{x} = (1, 2)^\top$: $\mathbf{x} = A^{-1}(1,2)^\top = (3-2, -5+4)^\top = (1, -1)^\top$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Invert $\begin{pmatrix}1&amp;2\\3&amp;4\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$\det = -2$: $-\tfrac12\begin{pmatrix}4&amp;-2\\-3&amp;1\end{pmatrix} = \begin{pmatrix}-2&amp;1\\1.5&amp;-0.5\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> For which $k$ is $\begin{pmatrix}1&amp;k\\2&amp;6\end{pmatrix}$ singular? <details class="sol"><summary>Solution</summary><div>$\det = 6 - 2k = 0$: $k = 3$ (second row twice the first).</div></details></li>
+  <li><span class="lvl h">HARD</span> If $A$ is invertible and $A\mathbf{v} = 3\mathbf{v}$ for $\mathbf{v}\ne\mathbf{0}$, show $A^{-1}\mathbf{v} = \tfrac13\mathbf{v}$. <details class="sol"><summary>Solution</summary><div>Apply $A^{-1}$: $\mathbf{v} = 3A^{-1}\mathbf{v}$, so $A^{-1}\mathbf{v} = \tfrac13\mathbf{v}$: inverses invert eigenvalues. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="determinants">
+ <h2>Determinants</h2>
+ <p>The determinant is the volume-scaling factor of a matrix: apply $A$ to a unit square and its area becomes $|\det A|$; negative sign means orientation flipped. $\det A = 0$ means some dimension got flattened — precisely when the matrix cannot be undone.</p>
+ <div class="box def"><span class="label">Definition</span> $2\times2$: $\det\begin{pmatrix}a&amp;b\\c&amp;d\end{pmatrix} = ad - bc$. $3\times3$ by cofactor expansion along any row/column: $\det A = \sum_j (-1)^{1+j}a_{1j}M_{1j}$ ($M$ = minor). Properties: $\det(AB) = \det A\det B$; $\det A^\top = \det A$; $\det A^{-1} = 1/\det A$; triangular: product of diagonal entries; swapping rows flips sign; a row of zeros or repeated rows give 0.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\det\begin{pmatrix}1&amp;2&amp;0\\3&amp;1&amp;2\\0&amp;1&amp;1\end{pmatrix}$: expand along the top: $1(1\cdot1 - 2\cdot1) - 2(3\cdot1 - 2\cdot0) + 0 = 1(-1) - 2(3) = -7$. So the map scales volumes by 7 and flips orientation.</div>
+ <div class="box link"><span class="label">Where this goes</span> The Jacobian determinant (Ch 9) is this volume factor for nonlinear maps — it's how densities transform in normalizing flows (Ch 22).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\det\begin{pmatrix}3&amp;1\\6&amp;2\end{pmatrix} = ?$ What does it mean? <details class="sol"><summary>Solution</summary><div>$6 - 6 = 0$: columns parallel, the plane collapses to a line, no inverse.</div></details></li>
+  <li><span class="lvl m">MED</span> If $\det A = 5$ for $3\times3$ $A$, find $\det(2A)$, $\det A^2$, $\det A^{-1}$. <details class="sol"><summary>Solution</summary><div>$\det(2A) = 2^3\cdot5 = 40$ (each of 3 rows scales); $\det A^2 = 25$; $\det A^{-1} = \tfrac15$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Area of the triangle with vertices $(0,0)$, $(4,1)$, $(2,3)$ via a determinant. <details class="sol"><summary>Solution</summary><div>Half the parallelogram: $\tfrac12\big|\det\begin{pmatrix}4&amp;2\\1&amp;3\end{pmatrix}\big| = \tfrac12|12 - 2| = 5$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-transformations">
+ <h2>Linear transformations</h2>
+ <p>A linear transformation is a map that respects the two allowed operations: lines through the origin stay lines, grids stay evenly spaced grids. Rotations, reflections, scalings, shears, projections — and every neural network layer before its nonlinearity.</p>
+ <div class="box def"><span class="label">Definition</span> $T: V \to W$ is <em>linear</em> iff $T(\mathbf{u} + \mathbf{v}) = T(\mathbf{u}) + T(\mathbf{v})$ and $T(c\mathbf{v}) = cT(\mathbf{v})$ — equivalently $T(c_1\mathbf{v}_1 + c_2\mathbf{v}_2) = c_1T(\mathbf{v}_1) + c_2T(\mathbf{v}_2)$. Consequences: $T(\mathbf{0}) = \mathbf{0}$; $T$ is determined entirely by its values on a basis.</div>
+ <div class="box ex"><span class="label">Worked example</span> Which are linear? (a) $T(x, y) = (2x - y, 3y)$: yes — components are homogeneous linear. (b) $T(x,y) = (x + 1, y)$: no — $T(\mathbf{0}) = (1,0) \ne \mathbf{0}$ (translation is affine, not linear). (c) $T(x,y) = (xy, 0)$: no — $T(2,2) = (4,0) \ne 2T(1,1) = (2, 0)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Set the four entries of A and watch the grid, the unit square (to the shaded parallelogram) and det A respond.</p>
+  <canvas id="cv-map"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="mp-a" min="-2" max="2" step="0.1" value="1"></label>
+   <label>b <input type="range" id="mp-b" min="-2" max="2" step="0.1" value="0.5"></label>
+   <label>c <input type="range" id="mp-c" min="-2" max="2" step="0.1" value="0"></label>
+   <label>d <input type="range" id="mp-d" min="-2" max="2" step="0.1" value="1"></label>
+  </div>
+  <div class="out" id="mp-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $T(x, y) = (y, x)$ linear? What does it do? <details class="sol"><summary>Solution</summary><div>Yes; reflection across the line $y = x$.</div></details></li>
+  <li><span class="lvl m">MED</span> $T$ linear with $T(1, 0) = (1, 1)$ and $T(0, 1) = (-1, 2)$. Compute $T(3, 2)$. <details class="sol"><summary>Solution</summary><div>$3(1,1) + 2(-1,2) = (1, 7)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Is differentiation $D: P_2 \to P_2$, $D(p) = p'$, linear? Give its matrix in basis $\{1, x, x^2\}$. <details class="sol"><summary>Solution</summary><div>Linear (derivative of sum/scalar multiple). $D(1) = 0$, $D(x) = 1$, $D(x^2) = 2x$: columns $(0,0,0), (1,0,0), (0,2,0)$: $\begin{pmatrix}0&amp;1&amp;0\\0&amp;0&amp;2\\0&amp;0&amp;0\end{pmatrix}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-representations">
+ <h2>Matrix representations</h2>
+ <p>Every linear map between finite-dimensional spaces <em>is</em> a matrix, once you choose bases: send each basis vector through the map and record where it lands as a column. Composition of maps becomes multiplication of matrices — that is why matrix multiplication is defined the strange way it is.</p>
+ <div class="box def"><span class="label">Definition</span> For linear $T: \mathbb{R}^n\to\mathbb{R}^m$ (standard bases), the matrix is $A = \big[T(\mathbf{e}_1)\;|\;\cdots\;|\;T(\mathbf{e}_n)\big]$, and $T(\mathbf{x}) = A\mathbf{x}$. General bases $\mathcal{B}, \mathcal{C}$: $[T\mathbf{v}]_\mathcal{C} = [T]_{\mathcal{C}\leftarrow\mathcal{B}}[\mathbf{v}]_\mathcal{B}$. Rotation by $\theta$: $R_\theta = \begin{pmatrix}\cos\theta &amp; -\sin\theta\\ \sin\theta &amp; \cos\theta\end{pmatrix}$; shear: $\begin{pmatrix}1 &amp; k\\0 &amp; 1\end{pmatrix}$; scaling: $\operatorname{diag}(s_1, s_2)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rotation by $90^\circ$: $\mathbf{e}_1\mapsto(0,1)$, $\mathbf{e}_2\mapsto(-1,0)$: $R = \begin{pmatrix}0&amp;-1\\1&amp;0\end{pmatrix}$. Composition check: $R^2 = \begin{pmatrix}-1&amp;0\\0&amp;-1\end{pmatrix}$ — rotation by 180°, i.e. $-I$. ✓ And $R^4 = I$: four quarter-turns.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Matrix of reflection across the $x$-axis? <details class="sol"><summary>Solution</summary><div>$\begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Matrix of projection onto the line $y = x$? <details class="sol"><summary>Solution</summary><div>$\mathbf{e}_1 \mapsto (\tfrac12,\tfrac12)$, $\mathbf{e}_2\mapsto(\tfrac12,\tfrac12)$: $\tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$. (Check $P^2 = P$. ✓)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that rotation matrices compose by angle addition: $R_\alpha R_\beta = R_{\alpha+\beta}$, and read off the angle-addition formulas. <details class="sol"><summary>Solution</summary><div>Multiply: top-left entry $\cos\alpha\cos\beta - \sin\alpha\sin\beta$, bottom-left $\sin\alpha\cos\beta + \cos\alpha\sin\beta$. Since the product must be $R_{\alpha+\beta}$ (rotating twice), these equal $\cos(\alpha+\beta)$ and $\sin(\alpha+\beta)$ — the Ch 6 formulas fall out of matrix multiplication. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kernel">
+ <h2>Kernel</h2>
+ <p>The kernel is what the map destroys: all inputs sent to zero. A big kernel means heavy information loss; a zero kernel means the map is injective — nothing distinct gets merged.</p>
+ <div class="box def"><span class="label">Definition</span> $\ker T = \{\mathbf{v} : T(\mathbf{v}) = \mathbf{0}\}$ — a subspace of the domain. $T$ injective $\iff \ker T = \{\mathbf{0}\}$. For a matrix, $\ker A$ is the <em>null space</em>: solutions of $A\mathbf{x} = \mathbf{0}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Projection onto the $xy$-plane in $\mathbb{R}^3$, $T(x,y,z) = (x,y,0)$: kernel = the $z$-axis $\{(0,0,t)\}$ — exactly the directions flattened away. Dimension 1 lost; image dimension 2; $1 + 2 = 3$. (Rank–nullity, coming up.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Kernel of the identity map? Of the zero map on $\mathbb{R}^3$? <details class="sol"><summary>Solution</summary><div>$\{\mathbf{0}\}$; all of $\mathbb{R}^3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $\ker A$ for $A = \begin{pmatrix}1&amp;2\\2&amp;4\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$x + 2y = 0$ (second row redundant): $\ker = \operatorname{span}\{(-2, 1)\}$ — a line.</div></details></li>
+  <li><span class="lvl h">HARD</span> The map $T(p) = p'$ on $P_3$ (cubics): kernel and its dimension? Is $T$ injective? <details class="sol"><summary>Solution</summary><div>$p' = 0 \iff p$ constant: $\ker = \operatorname{span}\{1\}$, dimension 1: not injective — antiderivatives are unique only up to $+C$, same fact as Ch 7.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="image">
+ <h2>Image</h2>
+ <p>The image is everything the map can actually produce — the set of all outputs. For a matrix it is the span of the columns. Surjectivity asks whether the image fills the whole target.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{im} T = \{T(\mathbf{v}) : \mathbf{v}\in V\}$ — a subspace of the codomain. For matrices: $\operatorname{im} A = $ column space. <em>Rank–nullity theorem:</em> $$\dim\ker T + \dim\operatorname{im} T = \dim V.$$ What isn't killed survives, dimension for dimension.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1&amp;2&amp;3\\2&amp;4&amp;6\end{pmatrix}$: columns are multiples of $(1,2)^\top$: image = span$\{(1,2)\}$, dimension 1. Kernel: $x_1 + 2x_2 + 3x_3 = 0$: dimension 2. Check: $2 + 1 = 3 = \dim\mathbb{R}^3$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Image of the projection $(x,y,z)\mapsto(x,y,0)$? <details class="sol"><summary>Solution</summary><div>The $xy$-plane.</div></details></li>
+  <li><span class="lvl m">MED</span> Can a linear map $\mathbb{R}^3\to\mathbb{R}^3$ have both kernel and image of dimension 2? <details class="sol"><summary>Solution</summary><div>No: rank–nullity forces $2 + 2 = 4 \ne 3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A map $T:\mathbb{R}^5\to\mathbb{R}^3$ is surjective. Find $\dim\ker T$. Can $T$ be injective? <details class="sol"><summary>Solution</summary><div>$\dim\operatorname{im} = 3$: $\dim\ker = 5 - 3 = 2 \ne 0$: never injective. Going down in dimension always crushes something.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rank">
+ <h2>Rank</h2>
+ <p>Rank counts the truly independent columns (equivalently rows) — the dimension of the image, the real information content of the matrix. Everything about solvability of $A\mathbf{x} = \mathbf{b}$ reads off from rank.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{rank} A = \dim(\text{column space}) = \dim(\text{row space})$ — column rank equals row rank, always. For $m\times n$ $A$: $\operatorname{rank} A \le \min(m, n)$ ("full rank" = equality). Facts: $\operatorname{rank}(AB) \le \min(\operatorname{rank}A, \operatorname{rank}B)$; rank is the number of nonzero rows after Gaussian elimination; the number of nonzero singular values (later).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1&amp;2&amp;1\\2&amp;4&amp;3\\3&amp;6&amp;4\end{pmatrix}$: eliminate — row2 − 2·row1 = $(0,0,1)$; row3 − 3·row1 = $(0,0,1)$; row3 − row2 → 0. Two independent rows: rank 2. Column view: col2 = 2·col1, col3 independent — 2 again. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Rank of the $3\times3$ identity? Of the zero matrix? <details class="sol"><summary>Solution</summary><div>3 and 0.</div></details></li>
+  <li><span class="lvl m">MED</span> Rank of $\mathbf{u}\mathbf{v}^\top$ for nonzero $\mathbf{u}\in\mathbb{R}^m, \mathbf{v}\in\mathbb{R}^n$? <details class="sol"><summary>Solution</summary><div>1: every column is a multiple of $\mathbf{u}$. Outer products are exactly the rank-1 matrices.</div></details></li>
+  <li><span class="lvl h">HARD</span> LoRA (Ch 23) replaces a weight update $\Delta W \in \mathbb{R}^{4096\times4096}$ by $BA$ with $B: 4096\times r$, $A: r\times4096$, $r = 8$. Parameter counts, and what is $\operatorname{rank}(BA)$ at most? <details class="sol"><summary>Solution</summary><div>Full: $4096^2 \approx 16.8$M. LoRA: $2\cdot4096\cdot8 = 65{,}536$ — 256× fewer. $\operatorname{rank}(BA) \le \min(\operatorname{rank}B, \operatorname{rank}A) \le 8$: the update is constrained to a rank-8 slice of weight space.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="null-space">
+ <h2>Null space</h2>
+ <p>The null space is the kernel of a matrix, seen through the lens of equations: all solutions of $A\mathbf{x} = \mathbf{0}$. Its dimension (the nullity) counts the free parameters left after the constraints bite — and it parametrizes the ambiguity in any solution of $A\mathbf{x} = \mathbf{b}$.</p>
+ <div class="box def"><span class="label">Definition</span> $N(A) = \{\mathbf{x}\in\mathbb{R}^n : A\mathbf{x} = \mathbf{0}\}$. Compute: reduce $A$, identify free variables, express pivot variables in terms of them; one basis vector per free variable. Nullity $= n - \operatorname{rank}A$. If $A\mathbf{x}_p = \mathbf{b}$, the full solution set is $\mathbf{x}_p + N(A)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1&amp;2&amp;1\\2&amp;4&amp;3\end{pmatrix}$. Eliminate: $\begin{pmatrix}1&amp;2&amp;1\\0&amp;0&amp;1\end{pmatrix}$: pivots in columns 1, 3; free: $x_2 = t$. Then $x_3 = 0$, $x_1 = -2t$: $N(A) = \operatorname{span}\{(-2, 1, 0)\}$. Check: $A(-2,1,0)^\top = (-2+2, -4+4)^\top = \mathbf{0}$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Nullity of an invertible $5\times5$ matrix? <details class="sol"><summary>Solution</summary><div>0: only $\mathbf{x} = \mathbf{0}$ solves $A\mathbf{x} = \mathbf{0}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $N(A)$ for $A = \begin{pmatrix}1&amp;1&amp;1\\1&amp;2&amp;3\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>Reduce: row2−row1 = $(0,1,2)$: $x_2 = -2x_3$, $x_1 = -x_2 - x_3 = x_3$. $N(A) = \operatorname{span}\{(1,-2,1)\}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $N(A^\top A) = N(A)$ for any real matrix. <details class="sol"><summary>Solution</summary><div>⊇ clear. ⊆: $A^\top A\mathbf{x} = \mathbf{0} \Rightarrow \mathbf{x}^\top A^\top A\mathbf{x} = \|A\mathbf{x}\|^2 = 0 \Rightarrow A\mathbf{x} = \mathbf{0}$. $\blacksquare$ (This is why $A^\top A$ is invertible exactly when $A$ has independent columns — the fact least squares needs.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="column-space">
+ <h2>Column space</h2>
+ <p>The column space is the image in equation language: all right-hand sides $\mathbf{b}$ for which $A\mathbf{x} = \mathbf{b}$ has a solution. Solvability is membership: $\mathbf{b}$ must be a combination of the columns.</p>
+ <div class="box def"><span class="label">Definition</span> $C(A) = \operatorname{span}\{\text{columns of } A\} \subseteq \mathbb{R}^m$; $\dim C(A) = \operatorname{rank}A$. $A\mathbf{x} = \mathbf{b}$ is consistent $\iff \mathbf{b}\in C(A)$. A basis: the pivot columns of $A$ (the original columns, not the reduced ones).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1&amp;2&amp;1\\2&amp;4&amp;3\end{pmatrix}$ (rank 2, pivots in columns 1 and 3): $C(A) = \operatorname{span}\{(1,2), (1,3)\} = \mathbb{R}^2$ — every $\mathbf{b}$ is reachable, with a one-parameter family of solutions (nullity 1).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $(1, 2)$ in the column space of $\begin{pmatrix}1&amp;3\\2&amp;6\end{pmatrix}$? <details class="sol"><summary>Solution</summary><div>Yes: it <em>is</em> the first column. (The column space is the whole line through $(1,2)$.)</div></details></li>
+  <li><span class="lvl m">MED</span> For $A = \begin{pmatrix}1&amp;0\\0&amp;1\\1&amp;1\end{pmatrix}$, describe $C(A)$ and find a $\mathbf{b}\in\mathbb{R}^3$ making $A\mathbf{x} = \mathbf{b}$ unsolvable. <details class="sol"><summary>Solution</summary><div>$C(A) = \{(x, y, x+y)\}$: the plane $z = x + y$. Any $\mathbf{b}$ off it, e.g. $(0,0,1)$, is unreachable.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $C(AB) \subseteq C(A)$, with equality when $B$ is invertible. <details class="sol"><summary>Solution</summary><div>$AB\mathbf{x} = A(B\mathbf{x}) \in C(A)$: ⊆. If $B$ invertible: $A\mathbf{y} = AB(B^{-1}\mathbf{y}) \in C(AB)$: ⊇. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="row-space">
+ <h2>Row space</h2>
+ <p>The row space is the span of the rows — the column space of $A^\top$. Its claim to fame: it is the orthogonal complement of the null space, which splits input space into "what the constraints see" and "what they ignore".</p>
+ <div class="box def"><span class="label">Definition</span> $R(A) = C(A^\top) \subseteq \mathbb{R}^n$; $\dim R(A) = \operatorname{rank}A$. Row operations don't change it, so the nonzero rows after elimination are a basis. <em>Fundamental theorem of linear algebra (part 1):</em> $R(A) \perp N(A)$ and $R(A) \oplus N(A) = \mathbb{R}^n$; likewise $C(A)\perp N(A^\top)$ in $\mathbb{R}^m$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1&amp;2&amp;1\\2&amp;4&amp;3\end{pmatrix}$: reduced rows $(1,2,1), (0,0,1)$ form a basis of $R(A)$. Null space was span$\{(-2,1,0)\}$: check orthogonality: $(-2,1,0)\cdot(1,2,1) = 0$ ✓, $(-2,1,0)\cdot(0,0,1) = 0$ ✓. Dimensions $2 + 1 = 3$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Row space of $\begin{pmatrix}1&amp;0&amp;0\\0&amp;1&amp;0\end{pmatrix}$? <details class="sol"><summary>Solution</summary><div>The $xy$-plane inside $\mathbb{R}^3$: span$\{(1,0,0),(0,1,0)\}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why do row operations preserve the row space but generally change the column space? <details class="sol"><summary>Solution</summary><div>New rows are combinations of old rows (same span). Columns get scrambled entry-wise: e.g. $\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}\to\begin{pmatrix}1&amp;1\\0&amp;0\end{pmatrix}$ changes the column space from span$(1,1)$ to span$(1,0)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Using $R(A)\perp N(A)$, show any solution of $A\mathbf{x} = \mathbf{b}$ splits as $\mathbf{x} = \mathbf{x}_r + \mathbf{x}_n$ with $\mathbf{x}_r\in R(A)$ unique of minimum norm. <details class="sol"><summary>Solution</summary><div>Decompose $\mathbf{x}$ along $R(A)\oplus N(A)$. $A\mathbf{x}_n = 0$, so $A\mathbf{x}_r = \mathbf{b}$: the row-space part carries all the signal. Norm: $\|\mathbf{x}\|^2 = \|\mathbf{x}_r\|^2 + \|\mathbf{x}_n\|^2 \ge \|\mathbf{x}_r\|^2$, minimized when $\mathbf{x}_n = 0$. Uniqueness: two row-space solutions differ by a null-space vector inside $R(A)$: must be $\mathbf{0}$. $\blacksquare$ (This $\mathbf{x}_r$ is what the pseudoinverse returns.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="change-of-basis">
+ <h2>Change of basis</h2>
+ <p>Same vector, same map — new coordinates. The change-of-basis matrix translates names between coordinate systems, and conjugation $P^{-1}AP$ re-expresses a transformation in a new basis. Choosing the basis where a matrix is simplest is the strategy behind diagonalization.</p>
+ <div class="box def"><span class="label">Definition</span> If $\mathcal{B} = \{\mathbf{b}_1,\dots,\mathbf{b}_n\}$ is a basis of $\mathbb{R}^n$, the matrix $P = [\mathbf{b}_1|\cdots|\mathbf{b}_n]$ converts coordinates: $\mathbf{v} = P[\mathbf{v}]_\mathcal{B}$, so $[\mathbf{v}]_\mathcal{B} = P^{-1}\mathbf{v}$. A map with standard matrix $A$ has $\mathcal{B}$-matrix $$[T]_\mathcal{B} = P^{-1}AP.$$ Matrices $A$ and $P^{-1}AP$ are called <em>similar</em>; they share determinant, rank, eigenvalues, trace.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathcal{B} = \{(1,1),(1,-1)\}$, $P = \begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}$, $P^{-1} = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}$. The reflection across $y = x$, $A = \begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$, becomes $P^{-1}AP = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;-1\end{pmatrix}\begin{pmatrix}1&amp;-1\\1&amp;1\end{pmatrix} = \begin{pmatrix}1&amp;0\\0&amp;-1\end{pmatrix}$ — diagonal! In the eigenbasis, the reflection just keeps $\mathbf{b}_1$ and flips $\mathbf{b}_2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\mathcal{B} = \{(2,0),(0,1)\}$: convert standard $(6, 5)$ to $\mathcal{B}$-coordinates. <details class="sol"><summary>Solution</summary><div>$(3, 5)$: since $3(2,0) + 5(0,1) = (6,5)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why do similar matrices have equal determinants? <details class="sol"><summary>Solution</summary><div>$\det(P^{-1}AP) = \det P^{-1}\det A\det P = \det A$. Determinant is a property of the map, not the coordinates.</div></details></li>
+  <li><span class="lvl h">HARD</span> Positional bookkeeping: an RNN state update is $\mathbf{h}_{t+1} = A\mathbf{h}_t$. Show that in a basis of eigenvectors ($A = P\Lambda P^{-1}$, $\Lambda$ diagonal), the update decouples into independent scalar recursions. <details class="sol"><summary>Solution</summary><div>Let $\mathbf{z}_t = P^{-1}\mathbf{h}_t$: then $\mathbf{z}_{t+1} = P^{-1}AP\mathbf{z}_t = \Lambda\mathbf{z}_t$, i.e. $z_{t+1,i} = \lambda_i z_{t,i}$ per coordinate: $z_{t,i} = \lambda_i^t z_{0,i}$. Growth/decay per eigenvalue — the cleanest view of exploding/vanishing dynamics (Ch 21).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eigenvalues">
+ <h2>Eigenvalues</h2>
+ <p>Most vectors get knocked off their line when a matrix acts. Eigenvectors don't: the matrix only stretches them, by a factor called the eigenvalue. Eigenvalues are a matrix's DNA — they govern stability, convergence rates, resonance, and PageRank alike.</p>
+ <div class="box def"><span class="label">Definition</span> $\lambda$ is an <em>eigenvalue</em> of square $A$ if $A\mathbf{v} = \lambda\mathbf{v}$ for some $\mathbf{v}\ne\mathbf{0}$. Facts: $\det A = \prod\lambda_i$, $\operatorname{tr}A = \sum\lambda_i$ (with multiplicity, over $\mathbb{C}$); $A$ singular $\iff$ 0 is an eigenvalue; eigenvalues of $A^k$ are $\lambda^k$; of $A^{-1}$: $1/\lambda$; triangular matrices show them on the diagonal.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}$: try $\mathbf{v} = (1,1)$: $A\mathbf{v} = (3,3) = 3\mathbf{v}$ — eigenvalue 3. Try $(1,-1)$: $A\mathbf{v} = (1,-1) = 1\cdot\mathbf{v}$ — eigenvalue 1. Check: trace $4 = 3 + 1$ ✓, det $3 = 3\cdot1$ ✓.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Rotate the probe vector v and watch Av: the two directions where Av lines up with v are the eigenvectors (shown dashed).</p>
+  <canvas id="cv-eig"></canvas>
+  <div class="ctl">
+   <label>direction of v <input type="range" id="eg-th" min="0" max="360" step="1" value="20"></label>
+   <label>matrix <select id="eg-m"><option value="sym">[[2,1],[1,2]]</option><option value="shear">shear [[1,1],[0,1]]</option><option value="rot">rotation 45°</option></select></label>
+  </div>
+  <div class="out" id="eg-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Eigenvalues of $\operatorname{diag}(5, -2, 0)$? <details class="sol"><summary>Solution</summary><div>5, −2, 0 (diagonal). The matrix is singular (0 present).</div></details></li>
+  <li><span class="lvl m">MED</span> $A$ has eigenvalues 2 and 5. Eigenvalues of $A^2 - 3I$? <details class="sol"><summary>Solution</summary><div>Apply the polynomial: $4 - 3 = 1$ and $25 - 3 = 22$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show a rotation by $45^\circ$ has no real eigenvalues, and find the complex ones. <details class="sol"><summary>Solution</summary><div>No direction is preserved (every vector turns), so no real eigenvector. Characteristic polynomial of $R = \frac{1}{\sqrt2}\begin{pmatrix}1&amp;-1\\1&amp;1\end{pmatrix}$: $\lambda^2 - \sqrt2\lambda + 1 = 0$: $\lambda = \frac{\sqrt2 \pm \sqrt{2 - 4}}{2} = \frac{\sqrt2}{2}(1 \pm i) = e^{\pm i\pi/4}$ — unit-modulus complex numbers whose angle is the rotation angle.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eigenvectors">
+ <h2>Eigenvectors</h2>
+ <p>Eigenvectors are the matrix's private axes: along them the action is pure stretching. Find them by solving $(A - \lambda I)\mathbf{v} = \mathbf{0}$ for each eigenvalue — a null-space computation.</p>
+ <div class="box def"><span class="label">Definition</span> For each eigenvalue $\lambda$, the eigenvectors are the nonzero solutions of $(A - \lambda I)\mathbf{v} = \mathbf{0}$. Any nonzero scalar multiple of an eigenvector is one too. Eigenvectors for <em>distinct</em> eigenvalues are linearly independent.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}4 &amp; 1\\2 &amp; 3\end{pmatrix}$, eigenvalues 5 and 2 (check: trace 7, det 10). For $\lambda = 5$: $A - 5I = \begin{pmatrix}-1&amp;1\\2&amp;-2\end{pmatrix}$: $-v_1 + v_2 = 0$: $\mathbf{v} = (1,1)$. For $\lambda = 2$: $\begin{pmatrix}2&amp;1\\2&amp;1\end{pmatrix}$: $2v_1 + v_2 = 0$: $\mathbf{v} = (1,-2)$. Verify: $A(1,-2)^\top = (4-2, 2-6)^\top = (2,-4)^\top = 2(1,-2)^\top$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> $(A - \lambda I)\mathbf{v} = \mathbf{0}$ must have a <em>nontrivial</em> solution: if you get only $\mathbf{v} = \mathbf{0}$, your λ isn't an eigenvalue — recheck the characteristic polynomial.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify $(1, 0)$ is an eigenvector of $\begin{pmatrix}3&amp;7\\0&amp;2\end{pmatrix}$; which eigenvalue? <details class="sol"><summary>Solution</summary><div>$A(1,0)^\top = (3,0)^\top$: eigenvalue 3.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the eigenvectors of $\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$ (the swap). <details class="sol"><summary>Solution</summary><div>Eigenvalues $\pm1$. $\lambda=1$: $(1,1)$ (unchanged by swapping); $\lambda=-1$: $(1,-1)$ (flipped).</div></details></li>
+  <li><span class="lvl h">HARD</span> The shear $\begin{pmatrix}1&amp;1\\0&amp;1\end{pmatrix}$: find all eigenvectors. What's deficient about it? <details class="sol"><summary>Solution</summary><div>Characteristic: $(1-\lambda)^2 = 0$: $\lambda = 1$ doubled. $(A - I)\mathbf{v} = \begin{pmatrix}0&amp;1\\0&amp;0\end{pmatrix}\mathbf{v} = \mathbf{0}$: $v_2 = 0$: only span$\{(1,0)\}$ — a single eigen-direction for a double eigenvalue. The shear is <em>not diagonalizable</em>: not enough eigenvectors to form a basis.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eigenspaces">
+ <h2>Eigenspaces</h2>
+ <p>All eigenvectors for one eigenvalue, plus the zero vector, form a subspace: the eigenspace. Its dimension (geometric multiplicity) can lag behind the eigenvalue's multiplicity in the characteristic polynomial — that gap is exactly what breaks diagonalizability.</p>
+ <div class="box def"><span class="label">Definition</span> $E_\lambda = \ker(A - \lambda I)$. <em>Geometric multiplicity</em> $= \dim E_\lambda$; <em>algebraic multiplicity</em> = multiplicity of $\lambda$ as a root of the characteristic polynomial. Always $1 \le \text{geometric} \le \text{algebraic}$. Eigenspaces for different eigenvalues intersect only at $\mathbf{0}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2&amp;0&amp;0\\0&amp;2&amp;0\\0&amp;0&amp;5\end{pmatrix}$: $E_2 = \{(x, y, 0)\}$ — a plane (geometric = algebraic = 2); $E_5$ = the $z$-axis. Compare the shear above: algebraic 2, geometric 1 — deficient.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Eigenspace $E_1$ of the identity matrix $I_3$? <details class="sol"><summary>Solution</summary><div>All of $\mathbb{R}^3$: every vector is an eigenvector with $\lambda = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> For the projection $P = \tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix}$ (onto $y=x$), find both eigenspaces. <details class="sol"><summary>Solution</summary><div>$E_1 = \operatorname{span}\{(1,1)\}$ (the line, kept), $E_0 = \operatorname{span}\{(1,-1)\}$ (the perpendicular, crushed).</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the eigenspaces of $A = \begin{pmatrix}3&amp;1&amp;0\\0&amp;3&amp;0\\0&amp;0&amp;3\end{pmatrix}$ and decide diagonalizability. <details class="sol"><summary>Solution</summary><div>$\lambda = 3$ with algebraic multiplicity 3. $A - 3I = \begin{pmatrix}0&amp;1&amp;0\\0&amp;0&amp;0\\0&amp;0&amp;0\end{pmatrix}$: kernel $= \{v_2 = 0\}$: $E_3 = \operatorname{span}\{(1,0,0),(0,0,1)\}$, geometric 2 &lt; 3: not diagonalizable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="characteristic-polynomial">
+ <h2>Characteristic polynomial</h2>
+ <p>Eigenvalues are precisely the numbers that make $A - \lambda I$ singular, so they are roots of one polynomial: $\det(A - \lambda I) = 0$. Degree $n$, hence (over $\mathbb{C}$) exactly $n$ eigenvalues with multiplicity.</p>
+ <div class="box def"><span class="label">Definition</span> $p(\lambda) = \det(A - \lambda I)$. For $2\times2$: $p(\lambda) = \lambda^2 - (\operatorname{tr}A)\lambda + \det A$. Real matrices can have complex-conjugate eigenvalue pairs (rotations). Cayley–Hamilton: $p(A) = 0$ — every matrix satisfies its own characteristic equation.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 &amp; 2\\2 &amp; -2\end{pmatrix}$: $p(\lambda) = \lambda^2 - (-1)\lambda + (1\cdot(-2) - 4) = \lambda^2 + \lambda - 6 = (\lambda + 3)(\lambda - 2)$: eigenvalues $-3, 2$. Check trace: $1 - 2 = -1 = -3 + 2$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Characteristic polynomial and eigenvalues of $\begin{pmatrix}2&amp;3\\0&amp;7\end{pmatrix}$? <details class="sol"><summary>Solution</summary><div>$(2-\lambda)(7-\lambda)$: eigenvalues 2, 7.</div></details></li>
+  <li><span class="lvl m">MED</span> Eigenvalues of $\begin{pmatrix}3&amp;-2\\4&amp;-1\end{pmatrix}$? <details class="sol"><summary>Solution</summary><div>$\lambda^2 - 2\lambda + (−3+8) = \lambda^2 - 2\lambda + 5$: $\lambda = 1 \pm 2i$ — a rotation-plus-scaling (modulus $\sqrt5$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Verify Cayley–Hamilton for $A = \begin{pmatrix}1&amp;2\\2&amp;-2\end{pmatrix}$ ($p(\lambda) = \lambda^2 + \lambda - 6$). <details class="sol"><summary>Solution</summary><div>$A^2 = \begin{pmatrix}1+4 &amp; 2-4\\2-4 &amp; 4+4\end{pmatrix} = \begin{pmatrix}5&amp;-2\\-2&amp;8\end{pmatrix}$. $A^2 + A - 6I = \begin{pmatrix}5+1-6 &amp; -2+2\\-2+2 &amp; 8-2-6\end{pmatrix} = 0$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="diagonalization">
+ <h2>Diagonalization</h2>
+ <p>If a matrix has a full basis of eigenvectors, switch to that basis and it becomes diagonal — the map is just $n$ independent stretches. Powers, exponentials, and dynamics all become trivial in the eigenbasis.</p>
+ <div class="box def"><span class="label">Definition</span> $A$ is <em>diagonalizable</em> iff it has $n$ independent eigenvectors; then $$A = PDP^{-1},$$ with eigenvectors as $P$'s columns, eigenvalues in $D$'s diagonal (matching order). Consequences: $A^k = PD^kP^{-1}$. Sufficient condition: $n$ distinct eigenvalues. Symmetric matrices: always diagonalizable, orthogonally (spectral theorem).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}4&amp;1\\2&amp;3\end{pmatrix}$: eigenpairs $(5, (1,1))$, $(2, (1,-2))$. $P = \begin{pmatrix}1&amp;1\\1&amp;-2\end{pmatrix}$, $D = \operatorname{diag}(5, 2)$, $P^{-1} = \frac{1}{-3}\begin{pmatrix}-2&amp;-1\\-1&amp;1\end{pmatrix} = \frac13\begin{pmatrix}2&amp;1\\1&amp;-1\end{pmatrix}$. Then $A^{10} = P\operatorname{diag}(5^{10}, 2^{10})P^{-1}$ — three multiplications instead of ten, and a closed form for any power.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\begin{pmatrix}1&amp;0\\0&amp;9\end{pmatrix}$ diagonalizable? <details class="sol"><summary>Solution</summary><div>It already is diagonal (P = I).</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $A^{100}$ for $A = \begin{pmatrix}1&amp;1\\0&amp;2\end{pmatrix}$ via diagonalization. <details class="sol"><summary>Solution</summary><div>Eigenpairs: $(1, (1,0))$, $(2, (1,1))$. $P = \begin{pmatrix}1&amp;1\\0&amp;1\end{pmatrix}$, $P^{-1} = \begin{pmatrix}1&amp;-1\\0&amp;1\end{pmatrix}$. $A^{100} = P\operatorname{diag}(1, 2^{100})P^{-1} = \begin{pmatrix}1 &amp; 2^{100}-1\\0 &amp; 2^{100}\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Fibonacci: $\begin{pmatrix}F_{n+1}\\F_n\end{pmatrix} = \begin{pmatrix}1&amp;1\\1&amp;0\end{pmatrix}\begin{pmatrix}F_n\\F_{n-1}\end{pmatrix}$. Diagonalize to derive Binet's formula. <details class="sol"><summary>Solution</summary><div>Eigenvalues: $\lambda^2 - \lambda - 1 = 0$: $\varphi = \frac{1+\sqrt5}{2}$, $\psi = \frac{1-\sqrt5}{2}$. Eigenvectors $(\varphi, 1), (\psi, 1)$. Expanding $(F_1, F_0) = (1, 0)$ in that basis and applying $A^n$ gives $F_n = \frac{\varphi^n - \psi^n}{\sqrt5}$. Since $|\psi| &lt; 1$, $F_n$ is the nearest integer to $\varphi^n/\sqrt5$ — growth rate = dominant eigenvalue, the master pattern of all linear dynamics.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">Which matrix is NOT diagonalizable?</div><button class="opt">$\begin{pmatrix}1&amp;0\\0&amp;2\end{pmatrix}$</button><button class="opt">$\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$</button><button class="opt">$\begin{pmatrix}1&amp;1\\0&amp;1\end{pmatrix}$</button><div class="why" hidden>The shear has double eigenvalue 1 but a 1-dimensional eigenspace — too few eigenvectors. The others have full eigenbases.</div></div>
+</section>
+
+<section class="topic" id="symmetric-matrices">
+ <h2>Symmetric matrices</h2>
+ <p>Symmetric matrices ($A^\top = A$) are the aristocracy of linear algebra: real eigenvalues, orthogonal eigenvectors, always diagonalizable. Covariance matrices, Hessians, kernel matrices — the matrices of data and curvature are symmetric, and their good behavior is why so much of ML analysis works.</p>
+ <div class="box def"><span class="label">Definition</span> $A = A^\top$. Properties: all eigenvalues real; eigenvectors for distinct eigenvalues are <em>orthogonal</em>; $A = Q\Lambda Q^\top$ with orthogonal $Q$ (spectral theorem, below). For any $B$: $B^\top B$ and $B B^\top$ are symmetric (and positive semidefinite).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}$: eigenpairs $(3, (1,1))$ and $(1, (1,-1))$ — and $(1,1)\cdot(1,-1) = 0$: orthogonal, exactly as promised. Normalizing gives an orthonormal eigenbasis.</div>
+ <div class="box think"><span class="label">Think first</span> Quick proof sketch: why must eigenvectors of a symmetric matrix for different eigenvalues be orthogonal? Start from $\lambda_1(\mathbf{v}_1\cdot\mathbf{v}_2)$. <details class="sol"><summary>Reveal</summary><div>$\lambda_1\mathbf{v}_1^\top\mathbf{v}_2 = (A\mathbf{v}_1)^\top\mathbf{v}_2 = \mathbf{v}_1^\top A^\top\mathbf{v}_2 = \mathbf{v}_1^\top A\mathbf{v}_2 = \lambda_2\mathbf{v}_1^\top\mathbf{v}_2$. So $(\lambda_1 - \lambda_2)\mathbf{v}_1^\top\mathbf{v}_2 = 0$ and $\lambda_1\ne\lambda_2$ forces $\mathbf{v}_1^\top\mathbf{v}_2 = 0$. $\blacksquare$</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\begin{pmatrix}1&amp;2\\2&amp;5\end{pmatrix}$ symmetric? Are its eigenvalues real? <details class="sol"><summary>Solution</summary><div>Yes and yes (guaranteed). They are $3 \pm 2\sqrt2$, both real and in fact positive.</div></details></li>
+  <li><span class="lvl m">MED</span> Diagonalize $\begin{pmatrix}0&amp;2\\2&amp;3\end{pmatrix}$ orthogonally. <details class="sol"><summary>Solution</summary><div>$\lambda^2 - 3\lambda - 4 = (\lambda-4)(\lambda+1)$: $\lambda = 4, -1$. Eigenvectors: $\lambda=4$: $(1, 2)$; $\lambda=-1$: $(2,-1)$ (orthogonal ✓). $Q = \frac{1}{\sqrt5}\begin{pmatrix}1&amp;2\\2&amp;-1\end{pmatrix}$, $A = Q\operatorname{diag}(4,-1)Q^\top$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for symmetric $A$, $\max_{\|\mathbf{x}\| = 1}\mathbf{x}^\top A\mathbf{x} = \lambda_{\max}$. <details class="sol"><summary>Solution</summary><div>Write $\mathbf{x} = \sum c_i\mathbf{q}_i$ in the orthonormal eigenbasis, $\sum c_i^2 = 1$: $\mathbf{x}^\top A\mathbf{x} = \sum\lambda_i c_i^2$ — a weighted average of eigenvalues, maximized by putting all weight on $\lambda_{\max}$ ($\mathbf{x} = \mathbf{q}_{\max}$). $\blacksquare$ (The Rayleigh quotient; the variational root of PCA.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="orthogonal-matrices">
+ <h2>Orthogonal matrices</h2>
+ <p>An orthogonal matrix has orthonormal columns: it rotates and/or reflects, preserving every length and angle. These are the rigid motions of linear algebra — numerically ideal because they never amplify errors.</p>
+ <div class="box def"><span class="label">Definition</span> $Q$ is <em>orthogonal</em> iff $Q^\top Q = QQ^\top = I$, i.e. $Q^{-1} = Q^\top$. Consequences: $\|Q\mathbf{x}\| = \|\mathbf{x}\|$, $\langle Q\mathbf{x}, Q\mathbf{y}\rangle = \langle\mathbf{x},\mathbf{y}\rangle$, $\det Q = \pm1$ ($+1$: rotation; $-1$: reflection included), eigenvalues have $|\lambda| = 1$. Products of orthogonal matrices are orthogonal.</div>
+ <div class="box ex"><span class="label">Worked example</span> $Q = \begin{pmatrix}\cos\theta&amp;-\sin\theta\\\sin\theta&amp;\cos\theta\end{pmatrix}$: columns are unit and orthogonal for every θ; $Q^\top Q = I$ via $\cos^2 + \sin^2 = 1$. Check length preservation on $(3,4)$ with $\theta = 90^\circ$: $Q(3,4)^\top = (-4,3)^\top$, norm 5 → 5. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the permutation matrix $\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$ orthogonal? Rotation or reflection? <details class="sol"><summary>Solution</summary><div>Yes ($Q^\top Q = I$); $\det = -1$: reflection (across $y=x$).</div></details></li>
+  <li><span class="lvl m">MED</span> If $Q$ is orthogonal, show $\|Q\mathbf{x}\| = \|\mathbf{x}\|$. <details class="sol"><summary>Solution</summary><div>$\|Q\mathbf{x}\|^2 = (Q\mathbf{x})^\top Q\mathbf{x} = \mathbf{x}^\top Q^\top Q\mathbf{x} = \mathbf{x}^\top\mathbf{x} = \|\mathbf{x}\|^2$. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Weight matrices initialized orthogonally keep activation norms stable through depth. Show that stacking $L$ orthogonal layers ($\mathbf{h}_{l+1} = Q_l\mathbf{h}_l$) preserves $\|\mathbf{h}_0\|$ exactly, and contrast with a generic matrix of spectral norm $s$. <details class="sol"><summary>Solution</summary><div>Each layer preserves norms, so by induction $\|\mathbf{h}_L\| = \|\mathbf{h}_0\|$. A generic matrix scales norms by up to $s$ per layer: $\|\mathbf{h}_L\| \le s^L\|\mathbf{h}_0\|$ — exponential explosion ($s&gt;1$) or vanishing ($s&lt;1$). Orthogonal initialization (Ch 21) sits exactly on the stability boundary.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="positive-definite-matrices">
+ <h2>Positive definite matrices</h2>
+ <p>A symmetric matrix is positive definite when its quadratic form is a bowl: $\mathbf{x}^\top A\mathbf{x} &gt; 0$ in every direction. These are the matrices of energies, covariances, and well-behaved curvature — where optimization is a downhill walk to a unique bottom.</p>
+ <div class="box def"><span class="label">Definition</span> Symmetric $A$ is <em>positive definite</em> (PD) iff $\mathbf{x}^\top A\mathbf{x} &gt; 0$ for all $\mathbf{x}\ne\mathbf{0}$; <em>positive semidefinite</em> (PSD) allows $\ge 0$. Equivalences for PD: all eigenvalues $&gt; 0$; all leading principal minors $&gt; 0$ (Sylvester); $A = B^\top B$ for some invertible $B$; Cholesky factorization $A = LL^\top$ exists (Ch 18).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}$: minors $2 &gt; 0$, $\det = 3 &gt; 0$: PD (eigenvalues 3, 1, both positive ✓). But $B = \begin{pmatrix}1&amp;2\\2&amp;1\end{pmatrix}$: $\det = -3 &lt; 0$: indefinite — direction $(1,1)$ gives $+6$, direction $(1,-1)$ gives $-2$: a saddle.</div>
+ <div class="box link"><span class="label">Where this goes</span> A PD Hessian certifies a local minimum (Ch 9); covariance matrices are PSD by construction (Ch 11); PD kernels make SVMs work (Ch 19).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\operatorname{diag}(3, 0.5)$ positive definite? <details class="sol"><summary>Solution</summary><div>Yes: eigenvalues 3 and 0.5, both &gt; 0.</div></details></li>
+  <li><span class="lvl m">MED</span> For which $b$ is $\begin{pmatrix}1&amp;b\\b&amp;4\end{pmatrix}$ PD? <details class="sol"><summary>Solution</summary><div>Minors: $1 &gt; 0$ ✓ and $4 - b^2 &gt; 0$: $|b| &lt; 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $A^\top A$ is PSD for any $A$, and PD iff $A$ has independent columns. <details class="sol"><summary>Solution</summary><div>$\mathbf{x}^\top A^\top A\mathbf{x} = \|A\mathbf{x}\|^2 \ge 0$: PSD. Strict for all $\mathbf{x}\ne0$ iff $A\mathbf{x}\ne\mathbf{0}$ whenever $\mathbf{x}\ne\mathbf{0}$, i.e. trivial null space = independent columns. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quadratic-forms">
+ <h2>Quadratic forms</h2>
+ <p>A quadratic form is a pure degree-2 function $\mathbf{x}^\top A\mathbf{x}$ — the multivariable generalization of $ax^2$. Its level curves are ellipses (definite) or hyperbolas (indefinite), with axes along $A$'s eigenvectors and widths set by eigenvalues.</p>
+ <div class="box def"><span class="label">Definition</span> $q(\mathbf{x}) = \mathbf{x}^\top A\mathbf{x} = \sum_{i,j}a_{ij}x_ix_j$ with symmetric $A$ (any $A$ can be symmetrized without changing $q$). <em>Principal axes theorem:</em> in the eigenbasis, $q = \sum_i \lambda_i y_i^2$ — no cross terms. Classification by eigenvalue signs: all + (bowl), all − (dome), mixed (saddle), some zero (degenerate).</div>
+ <div class="box ex"><span class="label">Worked example</span> $q(x, y) = 2x^2 + 2xy + 2y^2$ has $A = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}$, eigenvalues 3, 1. In rotated coordinates $q = 3u^2 + v^2$: ellipses with short axis along $(1,1)$ (fast growth, λ=3) and long axis along $(1,-1)$ (slow, λ=1). $q = 1$ is an ellipse with semi-axes $\tfrac{1}{\sqrt3}$ and $1$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Shape the symmetric matrix and watch the level sets of xᵀAx morph between ellipses and saddle hyperbolas; dashes mark eigen-axes.</p>
+  <canvas id="cv-quad"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="qf-a" min="-2" max="3" step="0.1" value="2"></label>
+   <label>b (off-diag) <input type="range" id="qf-b" min="-2" max="2" step="0.1" value="1"></label>
+   <label>d <input type="range" id="qf-d" min="-2" max="3" step="0.1" value="2"></label>
+  </div>
+  <div class="out" id="qf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $x^2 + 6xy + y^2$ as $\mathbf{x}^\top A\mathbf{x}$ with symmetric $A$. <details class="sol"><summary>Solution</summary><div>$A = \begin{pmatrix}1&amp;3\\3&amp;1\end{pmatrix}$ (split the cross term).</div></details></li>
+  <li><span class="lvl m">MED</span> Classify $q = x^2 + 6xy + y^2$. <details class="sol"><summary>Solution</summary><div>Eigenvalues of $A$: $1\pm3 = 4, -2$: mixed signs — saddle (indefinite).</div></details></li>
+  <li><span class="lvl h">HARD</span> The loss near a minimum is $L(\mathbf{w}) \approx \tfrac12\mathbf{w}^\top H\mathbf{w}$ with $H$ PD. Show gradient descent's per-step contraction along eigenvector $\mathbf{q}_i$ is $|1 - \eta\lambda_i|$, and derive the stability condition. <details class="sol"><summary>Solution</summary><div>$\nabla L = H\mathbf{w}$: step $\mathbf{w}^+ = (I - \eta H)\mathbf{w}$. In the eigenbasis, coordinate $i$ multiplies by $1 - \eta\lambda_i$ each step. Convergence needs $|1 - \eta\lambda_i| &lt; 1$ for all $i$: $0 &lt; \eta &lt; 2/\lambda_{\max}$. The slowest mode contracts at $|1 - \eta\lambda_{\min}|$ — the eigenvalue spread (condition number) controls training speed. (Ch 15.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="spectral-theorem">
+ <h2>Spectral theorem</h2>
+ <p>The crowning structure theorem: every symmetric matrix is a rotation, a stretch along perpendicular axes, and the rotation undone. Nothing more. All the complexity of a symmetric matrix is a list of real numbers plus an orthonormal frame.</p>
+ <div class="box thm"><span class="label">Theorem</span> If $A = A^\top \in \mathbb{R}^{n\times n}$, there exist an orthogonal $Q$ and real diagonal $\Lambda$ with $$A = Q\Lambda Q^\top = \sum_{i=1}^n \lambda_i\,\mathbf{q}_i\mathbf{q}_i^\top.$$ The columns $\mathbf{q}_i$ are orthonormal eigenvectors; $\lambda_i$ their eigenvalues. The sum form shows $A$ as a weighted stack of rank-1 projections.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix} = 3\,\mathbf{q}_1\mathbf{q}_1^\top + 1\,\mathbf{q}_2\mathbf{q}_2^\top$ with $\mathbf{q}_1 = \tfrac{1}{\sqrt2}(1,1)$, $\mathbf{q}_2 = \tfrac{1}{\sqrt2}(1,-1)$: $$3\cdot\tfrac12\begin{pmatrix}1&amp;1\\1&amp;1\end{pmatrix} + 1\cdot\tfrac12\begin{pmatrix}1&amp;-1\\-1&amp;1\end{pmatrix} = \begin{pmatrix}\tfrac32+\tfrac12 &amp; \tfrac32-\tfrac12\\\tfrac32-\tfrac12&amp;\tfrac32+\tfrac12\end{pmatrix} = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}. ✓$$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does the spectral theorem give for a diagonal matrix? <details class="sol"><summary>Solution</summary><div>$Q = I$: it is already in spectral form; eigenvectors are the axes.</div></details></li>
+  <li><span class="lvl m">MED</span> Using $A = Q\Lambda Q^\top$, define $\sqrt A$ for PSD $A$ and compute it for $\begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$\sqrt A = Q\sqrt\Lambda Q^\top$ (then $\sqrt A\sqrt A = Q\Lambda Q^\top = A$). Here: $\sqrt3\,\mathbf{q}_1\mathbf{q}_1^\top + 1\,\mathbf{q}_2\mathbf{q}_2^\top = \tfrac12\begin{pmatrix}\sqrt3+1&amp;\sqrt3-1\\\sqrt3-1&amp;\sqrt3+1\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for symmetric $A$ with spectral form, $e^{tA} = Qe^{t\Lambda}Q^\top$ solves the ODE system $\dot{\mathbf{x}} = A\mathbf{x}$, mode by mode. <details class="sol"><summary>Solution</summary><div>$\frac{d}{dt}Qe^{t\Lambda}Q^\top = Q\Lambda e^{t\Lambda}Q^\top = A\,Qe^{t\Lambda}Q^\top$ (using $Q^\top Q = I$). Initial value $Q e^0 Q^\top = I$. In eigen-coordinates each mode evolves independently as $e^{\lambda_i t}$ — the matrix exponential of Ch 10, solved by the spectral theorem.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="singular-value-decomposition">
+ <h2>Singular Value Decomposition</h2>
+ <p>Not every matrix is symmetric or even square — but <em>every</em> matrix is a rotation, a stretch, and another rotation: that is the SVD. It is the most important factorization in data science: it ranks the directions of any linear map by importance.</p>
+ <div class="box def"><span class="label">Definition</span> Any $A \in \mathbb{R}^{m\times n}$ factors as $$A = U\Sigma V^\top = \sum_{i=1}^r \sigma_i\,\mathbf{u}_i\mathbf{v}_i^\top,$$ with orthogonal $U$ ($m\times m$), $V$ ($n\times n$), and $\Sigma$ diagonal holding the <em>singular values</em> $\sigma_1 \ge \cdots \ge \sigma_r &gt; 0$ ($r = \operatorname{rank}A$). Connection: $\sigma_i^2$ are eigenvalues of $A^\top A$ (and $AA^\top$); $\mathbf{v}_i$, $\mathbf{u}_i$ their eigenvectors, linked by $A\mathbf{v}_i = \sigma_i\mathbf{u}_i$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}3&amp;0\\4&amp;5\end{pmatrix}$: $A^\top A = \begin{pmatrix}25&amp;20\\20&amp;25\end{pmatrix}$, eigenvalues $45, 5$: singular values $\sigma_1 = 3\sqrt5, \sigma_2 = \sqrt5$. (Check: $\sigma_1\sigma_2 = 15 = |\det A|$ ✓.) $V$: eigenvectors $\tfrac1{\sqrt2}(1,1), \tfrac1{\sqrt2}(1,-1)$. $\mathbf{u}_1 = \frac{A\mathbf{v}_1}{\sigma_1} = \frac{1}{3\sqrt{10}}(3, 9) = \tfrac{1}{\sqrt{10}}(1,3)$; $\mathbf{u}_2 = \frac{A\mathbf{v}_2}{\sigma_2} = \frac{1}{\sqrt{10}}(3,-1)$. ($\mathbf{u}_1\perp\mathbf{u}_2$ ✓.)</div>
+ <div class="box link"><span class="label">Where this goes</span> PCA (below), low-rank compression, pseudoinverses, recommender systems, and the analysis of what transformer weight matrices do (Ch 35 interpretability) — all SVD.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Singular values of $\operatorname{diag}(3, -2)$? <details class="sol"><summary>Solution</summary><div>$3$ and $2$: singular values are magnitudes, always $\ge 0$.</div></details></li>
+  <li><span class="lvl m">MED</span> How do singular values relate to eigenvalues for a symmetric PSD matrix? <details class="sol"><summary>Solution</summary><div>They coincide: $A = Q\Lambda Q^\top$ is already an SVD ($U = V = Q$). For symmetric indefinite: $\sigma_i = |\lambda_i|$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\sigma_1 = \max_{\|\mathbf{x}\|=1}\|A\mathbf{x}\|$ (the largest stretch). <details class="sol"><summary>Solution</summary><div>$\|A\mathbf{x}\|^2 = \mathbf{x}^\top A^\top A\mathbf{x}$: Rayleigh quotient of $A^\top A$, maximized at its top eigenvalue $\sigma_1^2$ (symmetric-matrix drill). So $\max\|A\mathbf{x}\| = \sigma_1$, attained at $\mathbf{x} = \mathbf{v}_1$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="low-rank-approximation">
+ <h2>Low-rank approximation</h2>
+ <p>Truncate the SVD: keep only the $k$ largest singular directions and you get the best rank-$k$ approximation of the matrix — provably. This is compression with optimality guarantees: images, attention matrices, and weight updates all compress this way.</p>
+ <div class="box thm"><span class="label">Theorem</span> <b>(Eckart–Young.)</b> Let $A = \sum_i\sigma_i\mathbf{u}_i\mathbf{v}_i^\top$ and $A_k = \sum_{i=1}^k \sigma_i\mathbf{u}_i\mathbf{v}_i^\top$. Then $A_k$ minimizes $\|A - B\|$ over all rank-$\le k$ matrices $B$, in both the spectral norm ($\|A - A_k\|_2 = \sigma_{k+1}$) and the Frobenius norm ($\|A - A_k\|_F = \sqrt{\sigma_{k+1}^2 + \cdots + \sigma_r^2}$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A $1000\times1000$ image with singular values decaying fast: keeping $k = 50$ terms stores $50(1000 + 1000 + 1) \approx 10^5$ numbers instead of $10^6$ — 10× compression — and the error is exactly the energy in the discarded $\sigma_{51}, \dots$. If the top 50 carry 95% of $\sum\sigma_i^2$, the reconstruction keeps 95% of the Frobenius energy.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A rank-3 matrix is approximated at rank 3. What is the error? <details class="sol"><summary>Solution</summary><div>Zero: $A_3 = A$ when $r = 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Singular values $10, 6, 3, 1$. Spectral- and Frobenius-norm errors of the rank-2 truncation? <details class="sol"><summary>Solution</summary><div>Spectral: $\sigma_3 = 3$. Frobenius: $\sqrt{9 + 1} = \sqrt{10} \approx 3.16$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Storage break-even: for an $m\times n$ matrix, when does rank-$k$ SVD storage $k(m + n + 1)$ beat $mn$? Evaluate for $m = n = 4096$, $k = 64$. <details class="sol"><summary>Solution</summary><div>Need $k &lt; \frac{mn}{m + n + 1}$. For $4096^2$: threshold $\approx \frac{16.8\text{M}}{8193} \approx 2048$. At $k = 64$: storage $64\times8193 \approx 0.52$M vs 16.8M — 32× smaller. This asymmetry is why low-rank adapters are so cheap.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="principal-component-analysis">
+ <h2>Principal Component Analysis</h2>
+ <p>Given a cloud of data points, PCA finds the orthogonal directions of greatest variance — the cloud's natural axes. Project onto the top few and you keep most of the structure in fewer dimensions. It is the spectral theorem applied to the covariance matrix, or equivalently the SVD of the centered data.</p>
+ <div class="box def"><span class="label">Definition</span> Center the data matrix $X \in \mathbb{R}^{n\times d}$ (subtract column means). Covariance: $C = \frac{1}{n-1}X^\top X$ (symmetric PSD). The <em>principal components</em> are $C$'s eigenvectors $\mathbf{w}_1, \dots$ ordered by eigenvalue $\lambda_1 \ge \lambda_2 \ge \cdots$; $\lambda_i$ = variance along $\mathbf{w}_i$. Project: $Z = XW_k$ keeps the top $k$; fraction of variance kept $= \frac{\sum_{i\le k}\lambda_i}{\sum_i\lambda_i}$. Equivalently, $\mathbf{w}_i$ are right singular vectors of $X$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Centered 2D data with covariance $C = \begin{pmatrix}5&amp;3\\3&amp;5\end{pmatrix}$: eigenvalues $8$ (direction $\tfrac{1}{\sqrt2}(1,1)$) and $2$ (direction $\tfrac1{\sqrt2}(1,-1)$). PC1 is the diagonal: it captures $\frac{8}{10} = 80\%$ of the variance. Projecting to 1D along it loses only 20%.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Stretch and rotate the sample cloud; the arrows are the principal components, scaled by √eigenvalue.</p>
+  <canvas id="cv-pca"></canvas>
+  <div class="ctl">
+   <label>spread ratio <input type="range" id="pc-r" min="0.1" max="1" step="0.02" value="0.35"></label>
+   <label>cloud angle <input type="range" id="pc-a" min="0" max="180" step="1" value="30"></label>
+  </div>
+  <div class="out" id="pc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> PCA is scale-sensitive: a feature measured in millimeters instead of meters gets 10⁶× the variance and hijacks PC1. Standardize features (or think hard about units) before applying it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Eigenvalues of a covariance are $9, 1$. What fraction of variance does PC1 hold? <details class="sol"><summary>Solution</summary><div>$9/10 = 90\%$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the covariance matrix of centered points $(1,1), (-1,-1), (2,2), (-2,-2)$ and its PCs. <details class="sol"><summary>Solution</summary><div>$C = \tfrac13\begin{pmatrix}10&amp;10\\10&amp;10\end{pmatrix}$: eigenvalues $\tfrac{20}3$ and 0. PC1 $= \tfrac1{\sqrt2}(1,1)$ carries 100%: the data is perfectly 1-dimensional.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that PC1 maximizes the variance of the projection: $\mathbf{w}_1 = \arg\max_{\|\mathbf{w}\|=1}\operatorname{Var}(X\mathbf{w})$. <details class="sol"><summary>Solution</summary><div>$\operatorname{Var}(X\mathbf{w}) = \frac{1}{n-1}\|X\mathbf{w}\|^2 = \mathbf{w}^\top C\mathbf{w}$ (centered data): the Rayleigh quotient of $C$, maximized by the top eigenvector. $\blacksquare$ Subsequent PCs maximize subject to orthogonality with the previous.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-norms">
+ <h2>Matrix norms</h2>
+ <p>How big is a matrix? Two useful answers: the spectral norm (largest stretch it applies to any vector) and the Frobenius norm (treat it as one long vector). Both are everywhere in ML: Lipschitz bounds, gradient clipping, weight decay.</p>
+ <div class="box def"><span class="label">Definition</span> Spectral (operator) norm: $\|A\|_2 = \max_{\mathbf{x}\ne0}\frac{\|A\mathbf{x}\|_2}{\|\mathbf{x}\|_2} = \sigma_1$. Frobenius: $\|A\|_F = \sqrt{\sum_{ij}a_{ij}^2} = \sqrt{\sum_i\sigma_i^2}$. Both are submultiplicative: $\|AB\| \le \|A\|\|B\|$. Relations: $\|A\|_2 \le \|A\|_F \le \sqrt r\,\|A\|_2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}3&amp;0\\4&amp;5\end{pmatrix}$ (from the SVD example): $\|A\|_2 = 3\sqrt5 \approx 6.71$; $\|A\|_F = \sqrt{9 + 16 + 25} = \sqrt{50} \approx 7.07 = \sqrt{45 + 5}$ ✓. The unit circle maps to an ellipse with semi-axes $3\sqrt5$ and $\sqrt5$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\|I_n\|_2$ and $\|I_n\|_F$? <details class="sol"><summary>Solution</summary><div>$1$ and $\sqrt n$.</div></details></li>
+  <li><span class="lvl m">MED</span> Spectral norm of an orthogonal matrix? Of $\operatorname{diag}(2, -7, 1)$? <details class="sol"><summary>Solution</summary><div>1 (preserves norms); 7 (largest magnitude).</div></details></li>
+  <li><span class="lvl h">HARD</span> A network layer is $f(\mathbf{x}) = W\mathbf{x}$, and $\text{ReLU}$ is 1-Lipschitz. Bound the Lipschitz constant of a 3-layer ReLU net and explain the role of $\|W_l\|_2$. <details class="sol"><summary>Solution</summary><div>Composition multiplies Lipschitz constants: $L \le \|W_3\|_2\cdot1\cdot\|W_2\|_2\cdot1\cdot\|W_1\|_2$. Controlling spectral norms controls how much the net can amplify input perturbations — the basis of spectral normalization and adversarial robustness bounds (Ch 35).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="condition-numbers">
+ <h2>Condition numbers</h2>
+ <p>The condition number is the ratio of a matrix's biggest stretch to its smallest: how lopsided the map is. Large condition number = nearly-flattened directions = solving $A\mathbf{x} = \mathbf{b}$ amplifies input error enormously — and gradient descent crawls.</p>
+ <div class="box def"><span class="label">Definition</span> $\kappa(A) = \|A\|_2\|A^{-1}\|_2 = \frac{\sigma_{\max}}{\sigma_{\min}} \ge 1$. Error amplification: solving $A\mathbf{x} = \mathbf{b}$, a relative perturbation $\epsilon$ in $\mathbf{b}$ can produce relative error up to $\kappa(A)\,\epsilon$ in $\mathbf{x}$. $\kappa = 1$: orthogonal (perfect); $\kappa \gg 1$: ill-conditioned; $\kappa = \infty$: singular. Rule of thumb: lose $\log_{10}\kappa$ decimal digits.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 &amp; 1\\1 &amp; 1.0001\end{pmatrix}$: nearly parallel columns. Singular values $\approx 2.00005$ and $\approx 0.00005$: $\kappa \approx 4\times10^4$. Solving with $\mathbf{b} = (2, 2.0001)$ gives $\mathbf{x} = (1,1)$; nudge $\mathbf{b}$ to $(2, 2.0002)$ (relative change $5\times10^{-5}$) and the solution jumps to $(0, 2)$ — order-1 change. The geometry: the solution is the intersection of two almost-parallel lines.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\kappa$ of the Hessian sets gradient descent's convergence rate (Ch 15); preconditioning and normalization layers (Ch 21) exist to shrink it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\kappa$ of $\operatorname{diag}(100, 1)$? <details class="sol"><summary>Solution</summary><div>100.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does $\kappa(Q) = 1$ for orthogonal $Q$, and why is that numerically ideal? <details class="sol"><summary>Solution</summary><div>All singular values are 1: $\sigma_{\max}/\sigma_{\min} = 1$. No direction is amplified or crushed, so errors pass through without growth — the reason QR beats normal equations.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\kappa(A^\top A) = \kappa(A)^2$, and the consequence for least squares via normal equations. <details class="sol"><summary>Solution</summary><div>Singular values of $A^\top A$ are $\sigma_i^2$: ratio $(\sigma_{\max}/\sigma_{\min})^2$. Solving the normal equations $A^\top A\mathbf{x} = A^\top\mathbf{b}$ squares the condition number — with $\kappa(A) = 10^4$, you lose 8 digits instead of 4. QR or SVD solvers avoid forming $A^\top A$ for exactly this reason (Ch 18).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tensors">
+ <h2>Tensors</h2>
+ <p>In ML practice, a tensor is a multi-dimensional array: a vector is 1D, a matrix 2D, a batch of RGB images 4D (batch × height × width × channel). The core skills are shape bookkeeping and contraction — knowing which axes multiply and which survive.</p>
+ <div class="box def"><span class="label">Definition</span> An order-$k$ tensor is an array $T \in \mathbb{R}^{n_1\times\cdots\times n_k}$. Operations: <em>reshape</em> (reindex without moving data), <em>transpose/permute</em> (reorder axes), <em>contraction</em> (sum over a shared index — matrix multiplication is contraction of one index), <em>broadcast</em> (virtually expand size-1 axes). Einstein summation notation names each axis: $C_{ij} = \sum_k A_{ik}B_{kj}$ is <code>einsum("ik,kj-&gt;ij")</code>. (The differential-geometry meaning of "tensor" — multilinear maps with transformation laws — specializes to this in fixed bases.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Batched attention scores: queries $Q \in \mathbb{R}^{B\times T\times d}$, keys $K \in \mathbb{R}^{B\times T\times d}$. Scores $S_{bts} = \sum_d Q_{btd}K_{bsd}$ — an einsum <code>"btd,bsd-&gt;bts"</code> contracting the feature axis, keeping batch and both time axes: result $B\times T\times T$. One line of index notation specifies the whole computation.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Reshape is not transpose: reshaping a $2\times3$ to $3\times2$ reads the data in row-major order and generally scrambles the matrix; transposing moves the axes. Silent shape bugs from confusing them are the most common deep-learning error.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the shape of the result of <code>einsum("ij,j-&gt;i")</code> with a $5\times3$ matrix and 3-vector? <details class="sol"><summary>Solution</summary><div>$(5,)$ — a matrix–vector product.</div></details></li>
+  <li><span class="lvl m">MED</span> The tensor $T\in\mathbb{R}^{32\times128\times768}$ holds a batch of token embeddings. What do the axes plausibly mean, and how many numbers are stored? <details class="sol"><summary>Solution</summary><div>Batch 32, sequence length 128, embedding dim 768. $32\cdot128\cdot768 = 3{,}145{,}728$ floats (12 MB at float32).</div></details></li>
+  <li><span class="lvl h">HARD</span> Express the outer product, the trace, and the Frobenius inner product in einsum notation. <details class="sol"><summary>Solution</summary><div>Outer: <code>"i,j-&gt;ij"</code>. Trace: <code>"ii-&gt;"</code> (contract the repeated diagonal index). Frobenius $\langle A, B\rangle = \sum_{ij}A_{ij}B_{ij}$: <code>"ij,ij-&gt;"</code>. Every linear-algebra operation in this chapter is an einsum pattern.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> Least squares from scratch: fit $y \approx c_0 + c_1 x$ to points $(0, 1), (1, 3), (2, 4)$ by projecting $\mathbf{y} = (1,3,4)$ onto the column space of $A = \begin{pmatrix}1&amp;0\\1&amp;1\\1&amp;2\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>Normal equations $A^\top A\mathbf{c} = A^\top\mathbf{y}$: $A^\top A = \begin{pmatrix}3&amp;3\\3&amp;5\end{pmatrix}$, $A^\top\mathbf{y} = (8, 11)$. Solve: $3c_0 + 3c_1 = 8$, $3c_0 + 5c_1 = 11$: subtract: $2c_1 = 3$, $c_1 = 1.5$, $c_0 = \tfrac{8 - 4.5}{3} = \tfrac{7}{6}$. Line: $y = \tfrac76 + \tfrac32 x$. Residual $\mathbf{y} - A\mathbf{c} = (1 - \tfrac76, 3 - \tfrac{8}3, 4 - \tfrac{25}6) = (-\tfrac16, \tfrac13, -\tfrac16)$; check orthogonality to both columns: sum $= 0$ ✓, $0\cdot(-\tfrac16) + 1\cdot\tfrac13 + 2\cdot(-\tfrac16) = 0$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Markov chain by eigenvalues: a weather chain has transition matrix $P = \begin{pmatrix}0.9 &amp; 0.5\\0.1 &amp; 0.5\end{pmatrix}$ (columns: from sunny/rainy, rows: to sunny/rainy). (a) Show $(1,1)P = (1,1)$... rather, verify columns sum to 1 and that $\lambda = 1$ is an eigenvalue. (b) Find the stationary distribution. (c) Find the second eigenvalue and the convergence rate toward stationarity. <details class="sol"><summary>Solution</summary><div>(a) Column sums 1 mean $\mathbf{1}^\top P = \mathbf{1}^\top$: $\mathbf 1$ is a left eigenvector with $\lambda = 1$, so 1 is an eigenvalue of $P$. (b) Right eigenvector for 1: $(P - I)\boldsymbol\pi = 0$: $-0.1\pi_1 + 0.5\pi_2 = 0$: $\pi_1 = 5\pi_2$; normalize: $\boldsymbol\pi = (\tfrac56, \tfrac16)$ — sunny 5 days out of 6. (c) Trace $= 1.4 = 1 + \lambda_2$: $\lambda_2 = 0.4$. Any initial distribution decomposes as $\boldsymbol\pi + c\,\mathbf{v}_2$; the deviation decays as $0.4^t$ — under 1% after $t = \lceil\ln 0.01/\ln 0.4\rceil = 6$ steps. Mixing speed = spectral gap (Ch 12).</div></details></li>
+  <li><span class="lvl h">HARD</span> PCA on tiny data: points $(2, 0), (0, 2), (-2, 0), (0, -2), (3, 3), (-3, -3)$. (a) Verify the data is centered and compute the covariance $C$ (divide by $n{-}1 = 5$). (b) Find eigenvalues/eigenvectors. (c) What fraction of variance does PC1 carry, and what are the coordinates of $(3,3)$ in the PC basis? <details class="sol"><summary>Solution</summary><div>(a) Sums are zero ✓. $\sum x_i^2 = 4+0+4+0+9+9 = 26$, $\sum y_i^2 = 26$, $\sum x_iy_i = 0+0+0+0+9+9 = 18$. $C = \tfrac15\begin{pmatrix}26&amp;18\\18&amp;26\end{pmatrix} = \begin{pmatrix}5.2&amp;3.6\\3.6&amp;5.2\end{pmatrix}$. (b) Eigenvalues $5.2 \pm 3.6$: $\lambda_1 = 8.8$, $\mathbf{w}_1 = \tfrac{1}{\sqrt2}(1,1)$; $\lambda_2 = 1.6$, $\mathbf{w}_2 = \tfrac1{\sqrt2}(1,-1)$. (c) PC1 fraction: $\frac{8.8}{10.4} \approx 84.6\%$. $(3,3)$: coordinates $(\mathbf{w}_1^\top\mathbf{x}, \mathbf{w}_2^\top\mathbf{x}) = (\tfrac{6}{\sqrt2}, 0) = (3\sqrt2, 0)$ — it lies exactly on the first principal axis.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>The chapter's spine in NumPy: solve, factor, project, reduce.</p>
+ <p><b>Task 1 — Gram–Schmidt and QR.</b> Implement modified Gram–Schmidt returning Q, R with A = QR. Verify on a random 5×3 matrix: QᵀQ = I, R upper triangular, ‖A − QR‖ ≈ 0.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def mgs_qr(A):
+    A = A.astype(float).copy()
+    m, n = A.shape
+    Q = np.zeros((m, n)); R = np.zeros((n, n))
+    for j in range(n):
+        v = A[:, j].copy()
+        for i in range(j):                 # subtract shadows one at a time
+            R[i, j] = Q[:, i] @ v
+            v -= R[i, j] * Q[:, i]
+        R[j, j] = np.linalg.norm(v)
+        Q[:, j] = v / R[j, j]
+    return Q, R
+
+rng = np.random.default_rng(0)
+A = rng.normal(size=(5, 3))
+Q, R = mgs_qr(A)
+print(np.abs(Q.T @ Q - np.eye(3)).max())   # ~1e-16
+print(np.abs(A - Q @ R).max())             # ~1e-16
+print(np.allclose(R, np.triu(R)))          # True</code></pre></div></details>
+ <p><b>Task 2 — Power iteration.</b> Find the dominant eigenpair of a symmetric matrix by repeatedly applying A and normalizing. Compare with <code>np.linalg.eigh</code> on C = [[5,3],[3,5]], and report the convergence rate (it should be |λ₂/λ₁| = 2/8 per step).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def power_iter(A, iters=50, seed=0):
+    v = np.random.default_rng(seed).normal(size=A.shape[0])
+    v /= np.linalg.norm(v)
+    errs = []
+    for _ in range(iters):
+        w = A @ v
+        v = w / np.linalg.norm(w)
+        lam = v @ A @ v                      # Rayleigh quotient
+        errs.append(lam)
+    return lam, v, errs
+
+C = np.array([[5., 3.], [3., 5.]])
+lam, v, errs = power_iter(C)
+print(lam, v)                                # 8.0, ±(0.707, 0.707)
+w, V = np.linalg.eigh(C)
+print(w[-1], V[:, -1])                       # matches
+# error in lambda shrinks ~ (2/8)^2 per step (Rayleigh quotient squares it)
+print([abs(e - 8) for e in errs[:6]])</code></pre></div></details>
+ <p><b>Task 3 — PCA via SVD, and image compression.</b> (a) Implement PCA with SVD (no eigendecomposition): center X, take SVD, return components and explained-variance ratios; check on the capstone's 6-point dataset (84.6% / 15.4%). (b) Build a 64×64 low-rank "image" and show the rank-k SVD error equals √(Σ tail σ²) as Eckart–Young promises.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def pca(X):
+    Xc = X - X.mean(0)
+    U, s, Vt = np.linalg.svd(Xc, full_matrices=False)
+    var = s**2 / (len(X) - 1)
+    return Vt, var / var.sum()
+
+X = np.array([[2,0],[0,2],[-2,0],[0,-2],[3,3],[-3,-3.]])
+comps, ratio = pca(X)
+print(comps[0], ratio)        # ~[0.707,0.707], [0.846, 0.154]
+
+# (b) Eckart-Young check
+rng = np.random.default_rng(1)
+A = rng.normal(size=(64, 8)) @ rng.normal(size=(8, 64)) \
+    + 0.1 * rng.normal(size=(64, 64))
+U, s, Vt = np.linalg.svd(A)
+for k in [2, 4, 8, 16]:
+    Ak = U[:, :k] * s[:k] @ Vt[:k]
+    err = np.linalg.norm(A - Ak)             # Frobenius
+    pred = np.sqrt((s[k:]**2).sum())
+    print(k, err, pred)                      # equal to machine precision</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab">3Blue1Brown — Essence of Linear Algebra</a>: the indispensable geometric picture of span, transformations, determinants, eigenvectors.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-06-linear-algebra-spring-2010/">MIT OCW 18.06 — Gilbert Strang's Linear Algebra</a>: the classic lectures; four fundamental subspaces, projections, SVD.</li>
+  <li><a href="https://math.mit.edu/~gs/linearalgebra/ila5/indexila5.html">Strang — Introduction to Linear Algebra (companion site)</a>: problem sets and the famous "big picture" of the four subspaces.</li>
+  <li><a href="https://mml-book.github.io/">Deisenroth, Faisal, Ong — Mathematics for Machine Learning</a>: free PDF; chapters 2–4 and 10 cover exactly this chapter with ML framing (PCA derivation included).</li>
+  <li><a href="https://www.khanacademy.org/math/linear-algebra">Khan Academy — Linear Algebra</a>: practice for systems, transformations, and eigen-computations.</li>
+  <li><a href="https://web.stanford.edu/~boyd/vmls/">Boyd &amp; Vandenberghe — Introduction to Applied Linear Algebra (VMLS)</a>: free book; norms, least squares, and applications with real data.</li>
+  <li><a href="https://arxiv.org/abs/2106.09685">Hu et al. — LoRA: Low-Rank Adaptation of Large Language Models</a>: the rank drill's source — low-rank structure exploited at frontier scale.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch07.html">← 07 Calculus</a>
+ <a class="btn" href="ch09.html">09 Multivariable and Matrix Calculus →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function on(id,ev,fn){var el=document.getElementById(id); if(el) el.addEventListener(ev,fn);}
+ function val(id){var el=document.getElementById(id); return el?parseFloat(el.value):0;}
+ function frame(g,s,lim){
+  var cx=s.w/2, cy=s.h/2, u=Math.min(s.w,s.h)/(2*lim);
+  g.strokeStyle=cssVar('--ink-2'); g.lineWidth=1; g.globalAlpha=0.5;
+  g.beginPath(); g.moveTo(0,cy); g.lineTo(s.w,cy); g.moveTo(cx,0); g.lineTo(cx,s.h); g.stroke();
+  g.globalAlpha=1; g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  return {X:function(x){return cx+x*u;}, Y:function(y){return cy-y*u;}, u:u};
+ }
+ function arrow(g,m,x0,y0,x1,y1,color,w){
+  g.strokeStyle=color; g.fillStyle=color; g.lineWidth=w||2;
+  var X0=m.X(x0),Y0=m.Y(y0),X1=m.X(x1),Y1=m.Y(y1);
+  g.beginPath(); g.moveTo(X0,Y0); g.lineTo(X1,Y1); g.stroke();
+  var a=Math.atan2(Y1-Y0,X1-X0);
+  g.beginPath(); g.moveTo(X1,Y1);
+  g.lineTo(X1-8*Math.cos(a-0.4),Y1-8*Math.sin(a-0.4));
+  g.lineTo(X1-8*Math.cos(a+0.4),Y1-8*Math.sin(a+0.4));
+  g.closePath(); g.fill();
+ }
+
+ /* linear map on the grid */
+ var cm=document.getElementById('cv-map');
+ function drawMap(){
+  if(!cm) return;
+  var s=setupCanvas(cm,320), g=s.g, m=frame(g,s,3.2);
+  var a=val('mp-a'), b=val('mp-b'), c=val('mp-c'), d=val('mp-d');
+  function T(x,y){return [a*x+b*y, c*x+d*y];}
+  // transformed grid
+  g.strokeStyle=cssVar('--cobalt'); g.globalAlpha=0.35; g.lineWidth=1;
+  for(var i=-3;i<=3;i++){
+   g.beginPath();
+   for(var t=-3;t<=3.01;t+=0.25){ var p=T(i,t); (t===-3)?g.moveTo(m.X(p[0]),m.Y(p[1])):g.lineTo(m.X(p[0]),m.Y(p[1])); }
+   g.stroke();
+   g.beginPath();
+   for(t=-3;t<=3.01;t+=0.25){ p=T(t,i); (t===-3)?g.moveTo(m.X(p[0]),m.Y(p[1])):g.lineTo(m.X(p[0]),m.Y(p[1])); }
+   g.stroke();
+  }
+  g.globalAlpha=1;
+  // image of unit square
+  var sq=[[0,0],[1,0],[1,1],[0,1]].map(function(p){return T(p[0],p[1]);});
+  g.fillStyle=cssVar('--amber')||'#e8a13c'; g.globalAlpha=0.3;
+  g.beginPath(); sq.forEach(function(p,i){ i?g.lineTo(m.X(p[0]),m.Y(p[1])):g.moveTo(m.X(p[0]),m.Y(p[1])); });
+  g.closePath(); g.fill(); g.globalAlpha=1;
+  arrow(g,m,0,0,a,c,cssVar('--cobalt'),3);
+  arrow(g,m,0,0,b,d,cssVar('--rose')||'#d35d7e',3);
+  g.fillStyle=cssVar('--ink-2');
+  g.fillText('Ae₁',m.X(a)+6,m.Y(c)); g.fillText('Ae₂',m.X(b)+6,m.Y(d));
+  var det=a*d-b*c;
+  var out=document.getElementById('mp-out');
+  if(out) out.textContent='A = [['+a.toFixed(1)+', '+b.toFixed(1)+'], ['+c.toFixed(1)+', '+d.toFixed(1)+']]   det A = '+det.toFixed(2)+' (shaded area'+(det<0?', orientation flipped':'')+')';
+ }
+ ['mp-a','mp-b','mp-c','mp-d'].forEach(function(id){on(id,'input',drawMap);});
+
+ /* eigen probe */
+ var ce=document.getElementById('cv-eig');
+ function drawEig(){
+  if(!ce) return;
+  var s=setupCanvas(ce,320), g=s.g, m=frame(g,s,3.2);
+  var sel=document.getElementById('eg-m'); var kind=sel?sel.value:'sym';
+  var A = kind==='sym' ? [2,1,1,2] : kind==='shear' ? [1,1,0,1] : [Math.SQRT1_2,-Math.SQRT1_2,Math.SQRT1_2,Math.SQRT1_2];
+  // eigen directions (real ones)
+  var dirs = kind==='sym' ? [[1,1,'λ=3'],[1,-1,'λ=1']] : kind==='shear' ? [[1,0,'λ=1 (only)']] : [];
+  g.setLineDash([5,4]); g.strokeStyle=cssVar('--ink-2');
+  dirs.forEach(function(dv){
+   var n=Math.hypot(dv[0],dv[1]);
+   g.beginPath(); g.moveTo(m.X(-3*dv[0]/n),m.Y(-3*dv[1]/n)); g.lineTo(m.X(3*dv[0]/n),m.Y(3*dv[1]/n)); g.stroke();
+   g.fillText(dv[2], m.X(1.9*dv[0]/n)+4, m.Y(1.9*dv[1]/n));
+  });
+  g.setLineDash([]);
+  var th=val('eg-th')*Math.PI/180;
+  var v=[1.4*Math.cos(th), 1.4*Math.sin(th)];
+  var Av=[A[0]*v[0]+A[1]*v[1], A[2]*v[0]+A[3]*v[1]];
+  arrow(g,m,0,0,v[0],v[1],cssVar('--cobalt'),2);
+  arrow(g,m,0,0,Av[0],Av[1],cssVar('--rose')||'#d35d7e',2);
+  g.fillStyle=cssVar('--ink-2');
+  g.fillText('v', m.X(v[0])+6, m.Y(v[1])-6);
+  g.fillText('Av', m.X(Av[0])+6, m.Y(Av[1])-6);
+  var cross=v[0]*Av[1]-v[1]*Av[0];
+  var aligned=Math.abs(cross)<0.06*Math.hypot(Av[0],Av[1])*Math.hypot(v[0],v[1]);
+  var out=document.getElementById('eg-out');
+  if(out) out.textContent=(kind==='rot'?'Rotation: no real eigenvectors — Av never aligns with v. ':'')+(aligned?'≈ EIGENVECTOR! Av ∥ v, ratio '+((Av[0]*v[0]+Av[1]*v[1])/(v[0]*v[0]+v[1]*v[1])).toFixed(2):'Av points elsewhere (cross ≠ 0). Rotate v to hunt the dashed axes.');
+ }
+ on('eg-th','input',drawEig); on('eg-m','change',drawEig);
+
+ /* quadratic form level sets */
+ var cq=document.getElementById('cv-quad');
+ function drawQuad(){
+  if(!cq) return;
+  var s=setupCanvas(cq,320), g=s.g, m=frame(g,s,2.6);
+  var a=val('qf-a'), b=val('qf-b'), d=val('qf-d');
+  // eigen data of [[a,b],[b,d]]
+  var tr=a+d, det=a*d-b*b;
+  var disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+  var l1=tr/2+disc, l2=tr/2-disc;
+  // level sets via marching over grid: draw contours q=1 and q=-1 by sampling rays? simpler: sample grid coloring
+  var img=[[1,cssVar('--cobalt')],[ -1, cssVar('--rose')||'#d35d7e']];
+  // contour by scanning: for many angles solve q(r cosθ, r sinθ)=c => r^2 * q(unit)=c
+  img.forEach(function(pair){
+   var c=pair[0];
+   g.strokeStyle=pair[1]; g.lineWidth=2;
+   g.beginPath(); var started=false;
+   for(var t=0;t<=2*Math.PI+0.01;t+=0.005){
+    var ux=Math.cos(t), uy=Math.sin(t);
+    var qu=a*ux*ux+2*b*ux*uy+d*uy*uy;
+    if(qu*c<=0){ started=false; continue; }
+    var r=Math.sqrt(c/qu);
+    if(r>4){ started=false; continue; }
+    var X=m.X(r*ux), Y=m.Y(r*uy);
+    started?g.lineTo(X,Y):g.moveTo(X,Y); started=true;
+   }
+   g.stroke();
+  });
+  // eigen axes
+  if(Math.abs(b)>1e-9 || a!==d){
+   var e1=Math.abs(b)>1e-9? [b, l1-a] : [1,0];
+   var e2=Math.abs(b)>1e-9? [b, l2-a] : [0,1];
+   g.setLineDash([5,4]); g.strokeStyle=cssVar('--ink-2');
+   [e1,e2].forEach(function(e){
+    var n=Math.hypot(e[0],e[1])||1;
+    g.beginPath(); g.moveTo(m.X(-2.5*e[0]/n),m.Y(-2.5*e[1]/n)); g.lineTo(m.X(2.5*e[0]/n),m.Y(2.5*e[1]/n)); g.stroke();
+   });
+   g.setLineDash([]);
+  }
+  var kind = l1>0&&l2>0?'positive definite (bowl): blue ellipses q=1':(l1<0&&l2<0?'negative definite (dome): rose curves q=−1':(l1*l2<0?'indefinite (saddle): both hyperbola families':'semidefinite (degenerate)'));
+  var out=document.getElementById('qf-out');
+  if(out) out.textContent='A=[['+a.toFixed(1)+','+b.toFixed(1)+'],['+b.toFixed(1)+','+d.toFixed(1)+']]  λ = '+l1.toFixed(2)+', '+l2.toFixed(2)+' — '+kind;
+ }
+ ['qf-a','qf-b','qf-d'].forEach(function(id){on(id,'input',drawQuad);});
+
+ /* PCA cloud */
+ var cp=document.getElementById('cv-pca');
+ var basePts=null;
+ function drawPca(){
+  if(!cp) return;
+  var s=setupCanvas(cp,320), g=s.g, m=frame(g,s,3.2);
+  if(!basePts){
+   basePts=[]; var seed=42;
+   function rnd(){ seed=(seed*1103515245+12345)%2147483648; return seed/2147483648; }
+   for(var i=0;i<120;i++){ // Box-Muller
+    var u1=Math.max(rnd(),1e-9), u2=rnd();
+    var z1=Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2);
+    var z2=Math.sqrt(-2*Math.log(u1))*Math.sin(2*Math.PI*u2);
+    basePts.push([z1,z2]);
+   }
+  }
+  var r=val('pc-r'), ang=val('pc-a')*Math.PI/180;
+  var ca=Math.cos(ang), sa=Math.sin(ang);
+  var pts=basePts.map(function(p){
+   var x=p[0]*1.4, y=p[1]*1.4*r;             // stretch
+   return [x*ca-y*sa, x*sa+y*ca];            // rotate
+  });
+  // center (should be ~0 already)
+  var mx=0,my=0; pts.forEach(function(p){mx+=p[0];my+=p[1];}); mx/=pts.length; my/=pts.length;
+  pts=pts.map(function(p){return [p[0]-mx,p[1]-my];});
+  g.fillStyle=cssVar('--cobalt'); g.globalAlpha=0.55;
+  pts.forEach(function(p){ g.beginPath(); g.arc(m.X(p[0]),m.Y(p[1]),2.5,0,7); g.fill(); });
+  g.globalAlpha=1;
+  // covariance
+  var sxx=0,sxy=0,syy=0;
+  pts.forEach(function(p){ sxx+=p[0]*p[0]; sxy+=p[0]*p[1]; syy+=p[1]*p[1]; });
+  var n1=pts.length-1; sxx/=n1; sxy/=n1; syy/=n1;
+  var tr=sxx+syy, det=sxx*syy-sxy*sxy;
+  var disc=Math.sqrt(Math.max(0,tr*tr/4-det));
+  var l1=tr/2+disc, l2=tr/2-disc;
+  var e1=Math.abs(sxy)>1e-9?[sxy,l1-sxx]:[1,0];
+  var e2=Math.abs(sxy)>1e-9?[sxy,l2-sxx]:[0,1];
+  function unit(e){var n=Math.hypot(e[0],e[1])||1; return [e[0]/n,e[1]/n];}
+  e1=unit(e1); e2=unit(e2);
+  arrow(g,m,0,0,e1[0]*Math.sqrt(l1)*1.6,e1[1]*Math.sqrt(l1)*1.6,cssVar('--rose')||'#d35d7e',3);
+  arrow(g,m,0,0,e2[0]*Math.sqrt(l2)*1.6,e2[1]*Math.sqrt(l2)*1.6,cssVar('--amber')||'#e8a13c',3);
+  var out=document.getElementById('pc-out');
+  if(out) out.textContent='λ₁ = '+l1.toFixed(2)+', λ₂ = '+l2.toFixed(2)+'  →  PC1 explains '+(100*l1/(l1+l2)).toFixed(1)+'% of variance';
+ }
+ on('pc-r','input',drawPca); on('pc-a','input',drawPca);
+
+ function drawAll(){ drawMap(); drawEig(); drawQuad(); drawPca(); }
+ window.addEventListener('resize', drawAll);
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', drawAll);
+ else drawAll();
+})();
+</script>
+
+</body></html>

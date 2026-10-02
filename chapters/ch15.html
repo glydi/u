@@ -1,0 +1,853 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 15 Optimization</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','15')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">15</div><h1>Optimization</h1><p class="lede">Finding the best, and the algorithms that train every model.</p>
+   <div class="meta"><span class="chip">45 topics</span><span class="chip">needs: chapters 7, 8, 9</span><span class="chip">feeds: chapters 19, 21, 23, 25</span></div>
+  </div>
+
+<section class="topic" id="objective-functions">
+ <h2>Objective functions</h2>
+ <p>Every optimization problem is a landscape and a rule: a function assigning a score to each candidate, and the instruction "make it small" (or large). Choosing the objective is the modeling act — the algorithm only obeys it, and it will exploit any gap between what you wrote and what you meant.</p>
+ <div class="box def"><span class="label">Definition</span> An optimization problem: $\min_{x\in\mathcal X} f(x)$, where $f:\mathcal X\to\mathbb R$ is the <em>objective</em> (loss, cost) and $\mathcal X\subseteq\mathbb R^n$ the domain. Maximizing $g$ is minimizing $-g$. In ML the canonical objective is the average loss over data: $f(\theta) = \frac1N\sum_{i=1}^N \ell(\theta; x_i, y_i)$, often plus a regularizer.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit a temperature-conversion line to noisy data by choosing the objective. Squared error $\sum(y_i - \beta x_i)^2$ punishes an outlier quadratically; absolute error $\sum|y_i - \beta x_i|$ punishes it linearly. Data $(1, 2), (2, 4), (3, 60)$ (last one corrupted): squared error picks $\hat\beta = \frac{\sum x_iy_i}{\sum x_i^2} = \frac{2+8+180}{14} = 13.6$ — dragged wildly; absolute error's optimum stays near $\beta = 2$ (at $\beta=2$ the errors are $0, 0, 54$; any move toward the outlier gains $&lt;1$ on it but loses on two points... precisely: derivative of $\sum|y_i-\beta x_i|$ for $\beta\in(2, 20)$ is $1+2-3 = 0$; at $\beta$ slightly below 2 it's $-1-2-3&lt;0$ — so every $\beta \in [2,20]$ is optimal, with $\beta=2$ an endpoint). The objective decides what "best" means.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Optimizers are literal-minded. Reward "minimize reported errors" and the system learns to stop reporting. This is Goodhart's law, and it returns with teeth as specification gaming and reward hacking (Ch 25, 35).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Rewrite $\max_x (3 - (x-1)^2)$ as a minimization and solve. <details class="sol"><summary>Solution</summary><div>$\min_x (x-1)^2 - 3$; minimum at $x = 1$ with value $-3$, so the max is $3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that minimizing average log loss over data is the same objective as maximum likelihood (Ch 13). <details class="sol"><summary>Solution</summary><div>$\arg\max_\theta \sum_i\log p(y_i\mid x_i,\theta) = \arg\min_\theta -\frac1N\sum_i \log p(y_i\mid x_i,\theta)$: same argmax, since $-\frac1N(\cdot)$ is a strictly decreasing affine reparameterization of the total.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the objective $f(\beta) = \sum_i|y_i - \beta|$, prove any median of $\{y_i\}$ is optimal. <details class="sol"><summary>Solution</summary><div>For $\beta$ not equal to any $y_i$, $f'(\beta) = \#\{i: y_i &lt; \beta\} - \#\{i: y_i &gt; \beta\}$. This is negative while fewer than half the points lie below $\beta$ and positive when more than half do; it crosses zero exactly where the counts balance — the median (an interval of optima when $n$ is even). Convexity of $f$ (sum of convex $|\cdot|$) makes this stationarity sufficient.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="feasible-sets">
+ <h2>Feasible sets</h2>
+ <p>Often you can't pick just any point: budgets, physics, and probability constraints carve out a feasible region, and the optimum must live inside it. The geometry of that region — convex or not, bounded or not, empty or not — matters as much as the objective's shape.</p>
+ <div class="box def"><span class="label">Definition</span> A constrained problem: $\min f(x)$ subject to $g_i(x)\le 0$ ($i = 1..m$) and $h_j(x) = 0$ ($j = 1..p$). The <em>feasible set</em> is $\mathcal F = \{x: g_i(x)\le0\ \forall i,\ h_j(x)=0\ \forall j\}$. A constraint $g_i$ is <em>active</em> at $x$ if $g_i(x) = 0$. If $\mathcal F = \emptyset$ the problem is <em>infeasible</em>; if $f$ is unbounded below on $\mathcal F$, it is <em>unbounded</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\min\ x + y$ subject to $x^2 + y^2 \le 2$ (disk) and $x \ge 0$ (half-plane). Feasible set: the right half-disk. Unconstrained, $x+y \to -\infty$; on the half-disk the minimum sits on the boundary. Candidates: on the arc, minimize $x+y$ with $x\ge0$ — the unconstrained arc optimum $(-1,-1)$ violates $x\ge0$, so the $x\ge0$ constraint activates: take $x = 0$, then minimize $y$ with $y^2\le2$: point $(0, -\sqrt2)$, value $-\sqrt2$. Both constraints matter; one is active at the solution ($x\ge0$? at $(0,-\sqrt2)$: yes, active; the disk: $0+2 = 2$, also active — a corner of the feasible set).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Sketch/describe the feasible set of $x\ge0$, $y\ge0$, $x+y\le1$. <details class="sol"><summary>Solution</summary><div>The closed triangle with vertices $(0,0)$, $(1,0)$, $(0,1)$ — the 2-D probability simplex.</div></details></li>
+  <li><span class="lvl m">MED</span> Is the feasible set $\{x: \|x\|_2 = 1\}$ (the unit sphere) convex? Consequences? <details class="sol"><summary>Solution</summary><div>No: the midpoint of two antipodal unit vectors is the origin, not on the sphere. Equality constraints that aren't affine generally destroy convexity — which is why convex formulations use $\|x\|\le1$ (the ball) when possible.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give a problem where the feasible set is nonempty and $f$ is continuous, yet no minimizer exists — and state the theorem that rules this out on nicer sets. <details class="sol"><summary>Solution</summary><div>$\min\ e^{x}$ over $\mathcal F = \mathbb R$: infimum 0, never attained. Or $\min 1/x$ on the open set $x&gt;0$. Weierstrass' extreme value theorem (Ch 7): a continuous $f$ on a compact (closed and bounded) feasible set attains its minimum — compactness is the standard existence card.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="local-minima">
+ <h2>Local minima</h2>
+ <p>A local minimum is the bottom of some valley — nothing nearby is lower, though distant valleys may be. Gradient-based methods only ever promise local minima, so the great question of deep learning is why the local minima of huge networks are so good.</p>
+ <div class="box def"><span class="label">Definition</span> $x^*$ is a <em>local minimum</em> if there is $\varepsilon&gt;0$ with $f(x^*)\le f(x)$ for all $\|x - x^*\|&lt;\varepsilon$ (strict if the inequality is strict for $x\ne x^*$). First-order necessary condition (interior, differentiable): $\nabla f(x^*) = 0$. Second-order: necessary $\nabla^2f(x^*)\succeq0$; sufficient $\nabla f(x^*) = 0$ and $\nabla^2 f(x^*)\succ0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^4 - 4x^3 + 4x^2 = x^2(x-2)^2$. $f'(x) = 4x^3 - 12x^2 + 8x = 4x(x-1)(x-2)$: critical points $0, 1, 2$. $f'' = 12x^2 - 24x + 8$: $f''(0) = 8 &gt; 0$ (local min, $f = 0$); $f''(1) = -4 &lt; 0$ (local max, $f = 1$); $f''(2) = 8 &gt; 0$ (local min, $f = 0$). Two local minima, both global (value 0), separated by a barrier of height 1 — a landscape gradient descent can navigate to either bottom depending on where it starts.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find and classify the critical points of $f(x) = x^3 - 3x$. <details class="sol"><summary>Solution</summary><div>$f' = 3x^2 - 3 = 0$: $x = \pm1$. $f'' = 6x$: $f''(1) = 6 &gt; 0$ local min ($f = -2$); $f''(-1) = -6 &lt; 0$ local max ($f = 2$). No global min: $f\to-\infty$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is $\nabla f = 0$ not sufficient for a local minimum? Give the classic counterexample in 1-D and 2-D. <details class="sol"><summary>Solution</summary><div>1-D: $f(x) = x^3$ at 0 — an inflection, neither min nor max. 2-D: $f(x,y) = x^2 - y^2$ at the origin — a saddle: min along $x$, max along $y$. Curvature (the Hessian) must be interrogated.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct $f$ with a strict local minimum that is arbitrarily worse than the global minimum, and explain what this means for gradient descent guarantees. <details class="sol"><summary>Solution</summary><div>$f(x) = x^2(x-3)^2 + M\cdot\sigma(x)$ style constructions work, but simplest: $f(x) = \min((x+1)^2,\ (x-1)^2 + M)$ smoothed — a narrow valley at $x=-1$ with value 0 and a wide one at $x=1$ with value $M$. Started in the wide basin, gradient descent converges to value $M$, which can be made any size. Moral: without convexity or landscape structure, "converges to a critical point" is the whole guarantee; everything else in deep learning rests on empirical landscape benignity (Ch 21's flat minima, Ch 20's double descent).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="global-minima">
+ <h2>Global minima</h2>
+ <p>The global minimum is the lowest point of the entire landscape. Finding it is easy exactly when the landscape has no traps — convexity being the great guarantee — and NP-hard in general: most of optimization theory is the study of which structures let you certify "nothing anywhere is lower."</p>
+ <div class="box def"><span class="label">Definition</span> $x^*$ is a <em>global minimum</em> if $f(x^*)\le f(x)$ for all feasible $x$. Key fact: for convex $f$ on a convex set, every local minimum is global, and the set of global minimizers is convex. For strictly convex $f$, the minimizer is unique.</div>
+ <div class="box ex"><span class="label">Worked example</span> Proof of the key fact. Let $x^*$ be a local min of convex $f$ and suppose some $y$ has $f(y) &lt; f(x^*)$. Points on the segment: $z_t = (1-t)x^* + ty$. Convexity: $f(z_t) \le (1-t)f(x^*) + tf(y) &lt; f(x^*)$ for every $t\in(0,1]$. But $z_t \to x^*$ as $t\to0$, so points arbitrarily close to $x^*$ beat it — contradicting local minimality. Hence no such $y$ exists. ∎ The picture: a chord under the graph would have to dip below the valley floor.</div>
+ <div class="box link"><span class="label">Where this goes</span> This theorem is why convex problems (least squares, logistic regression, SVMs, LPs) are "solved" as a class, and why nonconvex deep learning needed a different kind of science — empirical and statistical rather than worst-case (Ch 20, 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $f(x) = |x|$ have a global minimum? Is it unique? Is $f$ differentiable there? <details class="sol"><summary>Solution</summary><div>Yes, $x = 0$, unique (strict convexity fails but the min is still unique here), and $f$ is not differentiable at 0 — optimality without $\nabla f = 0$; subgradients (see Proximal methods) handle this.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the global minimum of $f(x, y) = x^2 + y^2 - 2x + 4y + 5$. <details class="sol"><summary>Solution</summary><div>Complete squares: $(x-1)^2 + (y+2)^2 + 5 - 1 - 4 = (x-1)^2 + (y+2)^2$. Global min at $(1, -2)$, value 0; $f$ is strictly convex (Hessian $2I\succ0$), so it's unique.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the set of global minimizers of a convex $f$ is convex. <details class="sol"><summary>Solution</summary><div>Let $m = \min f$ and $x, y$ both achieve it. For $t\in[0,1]$: $f((1{-}t)x + ty) \le (1{-}t)m + tm = m$, and since $m$ is the minimum, equality holds — the whole segment achieves $m$. So the argmin set contains all its segments: convex. (E.g. the median drill's interval of optima.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="saddle-points">
+ <h2>Saddle points</h2>
+ <p>A saddle point is flat but treacherous: downhill in some directions, uphill in others, like the middle of a mountain pass. In high dimensions saddles vastly outnumber local minima — a random critical point of a high-dimensional landscape is almost surely a saddle — so escaping them, not avoiding bad minima, is the real business of neural network training.</p>
+ <div class="box def"><span class="label">Definition</span> A critical point $x^*$ ($\nabla f(x^*) = 0$) is a <em>saddle point</em> if it is neither a local min nor a local max — equivalently (for nondegenerate points), the Hessian $\nabla^2f(x^*)$ has both positive and negative eigenvalues. The negative-eigenvalue eigenvectors are escape directions.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x, y) = x^2 - y^2$ at the origin: $\nabla f = (2x, -2y) = 0$ ✓; Hessian $\mathrm{diag}(2, -2)$ has eigenvalues $\pm2$. Along $x$: a parabola up; along $y$: a parabola down. Gradient descent from $(1, 0.001)$: the $x$-coordinate shrinks by factor $(1-2\eta)$ per step while $y$ GROWS by $(1+2\eta)$ — the iterate glides toward the saddle, hovers, then accelerates out along $\pm y$. Escape time scales with $\log(1/|y_0|)$: tiny alignment with the escape direction is enough, but exact $y_0 = 0$ traps you forever (measure zero — noise breaks the tie).</div>
+ <div class="box think"><span class="label">Think first</span> Heuristically, why are saddles exponentially more common than minima in high dimension? <details class="sol"><summary>Reveal</summary><div>A nondegenerate critical point needs all $n$ Hessian eigenvalues positive to be a minimum. If eigenvalue signs were independent coin flips, that's probability $2^{-n}$ — in $10^6$ dimensions, essentially never except in special low-loss regions. Random matrix models of loss landscapes (and experiments) support this: high-loss critical points are saddles; the index (fraction of negative eigenvalues) drops as the loss drops.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify the critical point of $f(x,y) = xy$ at the origin. <details class="sol"><summary>Solution</summary><div>$\nabla f = (y, x) = 0$ ✓. Hessian $\begin{pmatrix}0&amp;1\\1&amp;0\end{pmatrix}$, eigenvalues $\pm1$: a saddle (rotate 45° and it's $\frac{u^2 - v^2}{2}$).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does plain gradient descent slow to a crawl near saddles, and what two mechanisms rescue it? <details class="sol"><summary>Solution</summary><div>Near a critical point $\|\nabla f\|\approx0$, so steps are tiny in every direction — including escape directions, along which the gradient is proportional to the (initially microscopic) displacement. Rescues: (1) SGD's noise kicks the iterate off the unstable manifold, seeding exponential escape; (2) momentum's accumulated velocity carries it through flat regions. (Second-order methods see the negative curvature directly.)</div></details></li>
+  <li><span class="lvl h">HARD</span> For $f(x, y) = x^2 - y^2$ and gradient descent with step $\eta = 0.1$ from $(1, 10^{-6})$, after how many steps does $|y| $ exceed $|x|$? <details class="sol"><summary>Solution</summary><div>$x_k = 0.8^k$, $y_k = 1.2^k\cdot10^{-6}$. Need $1.2^k\cdot10^{-6} &gt; 0.8^k$, i.e. $(1.5)^k &gt; 10^6$, $k &gt; \frac{6\ln10}{\ln1.5} = \frac{13.8}{0.405} \approx 34$ steps. Thirty-four steps of apparent stagnation, then breakout — the loss-curve "plateau then sudden drop" signature.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convex-sets">
+ <h2>Convex sets</h2>
+ <p>A set is convex if it contains every line segment between its points — no dents, no holes. Convex sets are the terrain on which optimization is easy: projections onto them are unique, separating hyperplanes exist, and local reasoning becomes global.</p>
+ <div class="box def"><span class="label">Definition</span> $C\subseteq\mathbb R^n$ is <em>convex</em> if $x, y\in C \Rightarrow (1-t)x + ty \in C$ for all $t\in[0,1]$. Standard convex sets: hyperplanes and half-spaces, balls $\{\|x - c\|\le r\}$, polyhedra (finite intersections of half-spaces), the probability simplex, the PSD cone. Convexity is preserved by intersection, affine maps and their preimages — but NOT by union.</div>
+ <div class="box ex"><span class="label">Worked example</span> The probability simplex $\Delta = \{x\in\mathbb R^n: x_i\ge0, \sum x_i = 1\}$ is convex: it is the intersection of $n$ half-spaces $\{x_i \ge 0\}$ and the hyperplane $\{\sum x_i = 1\}$, all convex; intersections of convex sets are convex (if $x,y$ lie in every set, so does their segment). Directly: for distributions $p, q$, the mixture $(1-t)p + tq$ has nonnegative entries summing to $(1-t) + t = 1$ ✓. This is why "the set of probability distributions" is a legal feasible set for convex programs everywhere in ML.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the union of the two intervals $[0,1]\cup[2,3]$ convex? <details class="sol"><summary>Solution</summary><div>No: $1$ and $2$ are in it, but their midpoint $1.5$ is not.</div></details></li>
+  <li><span class="lvl m">MED</span> Show the ball $B = \{x: \|x\|\le r\}$ is convex (any norm). <details class="sol"><summary>Solution</summary><div>$\|(1-t)x + ty\| \le (1-t)\|x\| + t\|y\| \le (1-t)r + tr = r$, by the triangle inequality and homogeneity. Every norm ball is convex — and conversely, norm balls' convexity is equivalent to the triangle inequality.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the projection onto a closed convex set, $P_C(z) = \arg\min_{x\in C}\|x - z\|_2$, is unique. <details class="sol"><summary>Solution</summary><div>Existence: distance is continuous, coercive on the closed set — a minimizer exists. Uniqueness: suppose $x_1 \ne x_2$ both minimize, at distance $d$. Their midpoint $m\in C$ (convexity). By the parallelogram law: $\|z - m\|^2 = \frac{\|z-x_1\|^2 + \|z-x_2\|^2}{2} - \frac{\|x_1 - x_2\|^2}{4} = d^2 - \frac{\|x_1-x_2\|^2}{4} &lt; d^2$ — the midpoint is strictly closer, contradiction. (Fails for nonconvex sets: project the origin onto the unit sphere — every point ties.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convex-functions">
+ <h2>Convex functions</h2>
+ <p>A convex function is bowl-shaped: every chord lies on or above the graph. For such functions the gradient is a global oracle — any point where it vanishes is a global minimum — and this single geometric property powers most of the optimization guarantees that exist.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is <em>convex</em> if $f((1-t)x + ty) \le (1-t)f(x) + tf(y)$ for all $x, y$ and $t\in[0,1]$. Equivalent tests (when differentiable): first-order, $f(y)\ge f(x) + \nabla f(x)^\top(y - x)$ (tangent planes underestimate); second-order, $\nabla^2 f(x)\succeq0$ everywhere. Operations preserving convexity: nonnegative sums, max/sup, composition with affine maps ($f(Ax+b)$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Logistic regression's loss is convex. For one example with label $y\in\{0,1\}$, features $a$: $\ell(\theta) = \log(1 + e^{a^\top\theta}) - y\,a^\top\theta$. Second derivative along direction $a$: let $s = \sigma(a^\top\theta) = \frac{1}{1+e^{-a^\top\theta}}$; then $\nabla\ell = (s - y)a$ and $\nabla^2\ell = s(1-s)\,aa^\top \succeq 0$ (a nonnegative scalar times a PSD rank-one matrix). Sums over data keep it PSD: the full loss is convex, so training logistic regression has no bad local minima — ever.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the chord's endpoints on a convex vs nonconvex function; watch whether the chord stays above the graph.</p>
+  <canvas id="cv-cvx"></canvas>
+  <div class="ctl"><label>x₁ <input type="range" id="cx-a" min="-2" max="2" step="0.05" value="-1.5"></label><label>x₂ <input type="range" id="cx-b" min="-2" max="2" step="0.05" value="1.2"></label><label>function <select id="cx-f"><option value="0">x² (convex)</option><option value="1">x⁴−2x² (nonconvex)</option></select></label></div>
+  <div class="out" id="cx-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which are convex on $\mathbb R$: $e^x$, $\log x$ (on $x&gt;0$), $x^3$, $|x|$? <details class="sol"><summary>Solution</summary><div>$e^x$ ✓ ($f''&gt;0$); $\log x$ ✗ (concave); $x^3$ ✗ ($f''$ changes sign); $|x|$ ✓ (chords above; convex but not differentiable).</div></details></li>
+  <li><span class="lvl m">MED</span> Prove that $f(x) = \max(f_1(x), f_2(x))$ is convex when $f_1, f_2$ are. <details class="sol"><summary>Solution</summary><div>$f((1{-}t)x + ty) = \max_i f_i((1{-}t)x+ty) \le \max_i[(1{-}t)f_i(x) + tf_i(y)] \le (1{-}t)\max_if_i(x) + t\max_if_i(y) = (1{-}t)f(x) + tf(y)$. Pointwise max preserves convexity — the hinge loss $\max(0, 1 - yz)$ and ReLU are convex for exactly this reason.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the first-order condition implies "critical point ⇒ global min." <details class="sol"><summary>Solution</summary><div>First-order convexity: $f(y) \ge f(x) + \nabla f(x)^\top(y - x)$ for all $y$. If $\nabla f(x^*) = 0$, then $f(y)\ge f(x^*)$ for every $y$: global minimality, no search required. This is the precise sense in which convexity converts local information (a vanishing gradient) into a global certificate.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="strong-convexity">
+ <h2>Strong convexity</h2>
+ <p>Strong convexity says the bowl has at least a guaranteed curvature everywhere — it's at least as curved as some parabola. That floor buys the best convergence guarantees in optimization: unique minimizers, error bounds from gradient norms, and linear (geometric) convergence rates.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is <em>$\mu$-strongly convex</em> if $f(x) - \frac\mu2\|x\|^2$ is convex; equivalently $f(y) \ge f(x) + \nabla f(x)^\top(y-x) + \frac\mu2\|y-x\|^2$, or $\nabla^2f \succeq \mu I$. Consequences: unique minimizer $x^*$; the PL-type bound $f(x) - f(x^*) \le \frac{1}{2\mu}\|\nabla f(x)\|^2$; and $\|x - x^*\| \le \frac1\mu\|\nabla f(x)\|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ridge regression $f(\theta) = \frac12\|X\theta - y\|^2 + \frac\lambda2\|\theta\|^2$ has Hessian $X^\top X + \lambda I \succeq \lambda I$: it is $\lambda$-strongly convex no matter how degenerate the data. This is regularization's optimization dividend: plain least squares with collinear features has a flat valley of minimizers (convex, not strongly), while any $\lambda &gt; 0$ makes the minimizer unique and the problem well-conditioned by fiat.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Strong convexity is a two-sided misnomer risk: it bounds curvature from BELOW only. For rates you also need smoothness (curvature bounded ABOVE, next topics); the ratio of the two, $\kappa = L/\mu$, is the condition number that actually governs convergence speed.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For what $\mu$ is $f(x) = 3x^2 + x$ strongly convex? <details class="sol"><summary>Solution</summary><div>$f'' = 6$: $\mu$-strongly convex for any $\mu \le 6$ (best constant $\mu = 6$).</div></details></li>
+  <li><span class="lvl m">MED</span> Is logistic loss strongly convex on $\mathbb R$? <details class="sol"><summary>Solution</summary><div>No: $\ell'' = s(1-s)a^2 \to 0$ as $|\theta|\to\infty$ (the sigmoid saturates), so no positive uniform lower bound exists. Convex, not strongly — one reason regularization is added, and why unregularized logistic regression on separable data has NO finite minimizer ($\theta$ marches to infinity).</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $f(x) - f^* \le \frac{1}{2\mu}\|\nabla f(x)\|^2$ for $\mu$-strongly convex $f$. <details class="sol"><summary>Solution</summary><div>From the definition with $y$ free: $f(y) \ge f(x) + \nabla f(x)^\top(y{-}x) + \frac\mu2\|y{-}x\|^2$. Minimize the right side over $y$: it's a quadratic in $y$, minimized at $y = x - \frac1\mu\nabla f(x)$, value $f(x) - \frac{1}{2\mu}\|\nabla f(x)\|^2$. Since $f^* = f(x^*) \ge \min_y \text{RHS}$: $f^* \ge f(x) - \frac{1}{2\mu}\|\nabla f\|^2$. Rearrange. ∎ (This "gradient dominance" is what turns gradient progress into loss progress.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lipschitz-continuity">
+ <h2>Lipschitz continuity</h2>
+ <p>A Lipschitz function can't change faster than a fixed slope: it comes with a built-in speed limit. In optimization, Lipschitz bounds on the function, the gradient, or the whole network are the currency in which step sizes, convergence rates and robustness certificates are priced.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is <em>$L$-Lipschitz</em> if $|f(x) - f(y)| \le L\|x - y\|$ for all $x, y$. For differentiable $f$, this is equivalent to $\|\nabla f(x)\|\le L$ everywhere. Compositions multiply constants: $\mathrm{Lip}(f\circ g) \le \mathrm{Lip}(f)\,\mathrm{Lip}(g)$; a linear map's constant is its spectral norm $\|W\|_2$ (Ch 8).</div>
+ <div class="box ex"><span class="label">Worked example</span> A two-layer network $f(x) = W_2\,\mathrm{ReLU}(W_1x)$ with $\|W_1\|_2 = 3$, $\|W_2\|_2 = 2$. ReLU is 1-Lipschitz (slopes 0 or 1), so $\mathrm{Lip}(f) \le 2\cdot1\cdot3 = 6$: perturbing the input by $\delta$ moves the output by at most $6\|\delta\|$. This product-of-spectral-norms bound is the backbone of adversarial robustness certificates (Ch 35) — and its looseness in deep nets is why certified robustness is hard.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the best Lipschitz constant of $f(x) = 3x + \sin x$ on $\mathbb R$? <details class="sol"><summary>Solution</summary><div>$|f'| = |3 + \cos x| \le 4$, attained at $\cos x = 1$: $L = 4$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $f(x) = x^2$ Lipschitz on $\mathbb R$? On $[-5, 5]$? <details class="sol"><summary>Solution</summary><div>Not on $\mathbb R$: $|f'| = 2|x|$ is unbounded. On $[-5,5]$: yes, $L = 10$. Lipschitzness is a global property; smooth functions are only locally Lipschitz in general.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $|f(x)-f(y)|\le L\|x-y\|$ follows from $\|\nabla f\|\le L$. <details class="sol"><summary>Solution</summary><div>By the fundamental theorem along the segment $\gamma(t) = y + t(x-y)$: $f(x) - f(y) = \int_0^1 \nabla f(\gamma(t))^\top(x-y)\,dt$. Then $|f(x)-f(y)| \le \int_0^1\|\nabla f(\gamma(t))\|\,\|x-y\|\,dt \le L\|x-y\|$ by Cauchy–Schwarz. (The converse — a.e. differentiability with bounded gradient — is Rademacher's theorem.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="smoothness">
+ <h2>Smoothness</h2>
+ <p>In optimization, "smooth" has a precise meaning: the gradient itself is Lipschitz — curvature is bounded above. Smoothness gives the master inequality of first-order methods: a quadratic upper bound whose minimization yields gradient descent and its safe step size $1/L$.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is <em>$L$-smooth</em> if $\|\nabla f(x) - \nabla f(y)\| \le L\|x - y\|$; equivalently $\nabla^2 f \preceq LI$ (when twice differentiable). <strong>Descent lemma:</strong> $$f(y) \le f(x) + \nabla f(x)^\top(y - x) + \frac L2\|y - x\|^2.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Apply the descent lemma with the gradient step $y = x - \eta\nabla f(x)$: $$f(y) \le f(x) - \eta\|\nabla f(x)\|^2 + \frac{L\eta^2}{2}\|\nabla f(x)\|^2 = f(x) - \eta\Big(1 - \frac{L\eta}{2}\Big)\|\nabla f(x)\|^2.$$ For $\eta \le 1/L$ the bracket is $\ge \frac12$, guaranteeing $f$ drops by at least $\frac{\eta}{2}\|\nabla f\|^2$ every step. The whole theory of gradient descent step sizes is this one line: step $=$ inverse curvature bound.</div>
+ <div class="box link"><span class="label">Where this goes</span> For quadratics, $L = \lambda_{\max}(X^\top X)$ — computable! Learning-rate folklore ("largest stable LR ≈ 2/curvature," edge-of-stability training) is this lemma meeting deep nets.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the smoothness constant of $f(x) = \frac12 x^\top Ax$ for symmetric $A\succeq0$. <details class="sol"><summary>Solution</summary><div>$\nabla f = Ax$, so $\|\nabla f(x) - \nabla f(y)\| = \|A(x-y)\| \le \lambda_{\max}(A)\|x-y\|$: $L = \lambda_{\max}(A)$ (tight along the top eigenvector).</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $L$ for logistic loss $\ell(\theta) = \log(1 + e^{a^\top\theta}) - ya^\top\theta$. <details class="sol"><summary>Solution</summary><div>$\nabla^2\ell = s(1-s)aa^\top$ with $s(1-s)\le\frac14$: $L = \frac14\|a\|^2$. For a dataset, $L = \frac{1}{4N}\lambda_{\max}(A^\top A)$ with rows $a_i$ — a usable, data-dependent safe learning rate.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the descent lemma from $\nabla^2f \preceq LI$. <details class="sol"><summary>Solution</summary><div>Taylor with integral remainder: $f(y) = f(x) + \nabla f(x)^\top d + \int_0^1(1-t)\,d^\top\nabla^2f(x + td)\,d\ dt$ with $d = y - x$. The quadratic form is at most $L\|d\|^2$, and $\int_0^1(1-t)dt = \frac12$, so the remainder $\le \frac L2\|d\|^2$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradient-descent">
+ <h2>Gradient descent</h2>
+ <p>The simplest idea in the book: from where you stand, step in the direction of steepest descent, repeat. Everything else in this chapter is a refinement — of the direction, the step length, or the noise — but this loop, scaled to trillions of parameters, is how every modern model is trained.</p>
+ <div class="box def"><span class="label">Definition</span> $$x_{k+1} = x_k - \eta\,\nabla f(x_k),$$ with <em>learning rate</em> (step size) $\eta &gt; 0$. Steepest descent justification: among all unit directions $d$, the linear model $f(x + \varepsilon d)\approx f(x) + \varepsilon\nabla f^\top d$ decreases fastest for $d = -\nabla f/\|\nabla f\|$ (Cauchy–Schwarz).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x, y) = x^2 + 10y^2$ (a valley 10× steeper in $y$), $\eta = 0.09$, start $(10, 1)$. Update: $x\leftarrow x(1 - 2\eta) = 0.82x$, $y\leftarrow y(1 - 20\eta) = -0.8y$. After one step: $(8.2, -0.8)$; after two: $(6.72, 0.64)$. The $y$-coordinate ping-pongs across the valley (factor $-0.8$) while $x$ crawls (factor $0.82$): convergence is throttled by the WORST ratio, and raising $\eta$ past $0.1$ makes $|1 - 20\eta| &gt; 1$ — divergence in $y$. This tension is conditioning, and it motivates momentum, preconditioning, and Adam below.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Set the learning rate and valley steepness; watch gradient descent zigzag, converge, or blow up on the quadratic bowl.</p>
+  <canvas id="cv-gd"></canvas>
+  <div class="ctl"><label>learning rate η <input type="range" id="gd-lr" min="0.005" max="0.12" step="0.005" value="0.06"></label><label>steepness <input type="range" id="gd-k" min="2" max="20" step="1" value="10"></label><button class="btn" id="gd-mom">Toggle momentum</button></div>
+  <div class="out" id="gd-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Run two steps of gradient descent on $f(x) = (x-3)^2$, $\eta = 0.25$, from $x_0 = 0$. <details class="sol"><summary>Solution</summary><div>$f' = 2(x-3)$. $x_1 = 0 - 0.25\cdot(-6) = 1.5$; $x_2 = 1.5 + 0.25\cdot3 = 2.25$. Each step halves the distance to 3 (contraction factor $1 - 2\eta = 0.5$).</div></details></li>
+  <li><span class="lvl m">MED</span> For $f(x) = \frac\lambda2 x^2$, find exactly which $\eta$ converge, and the optimal $\eta$. <details class="sol"><summary>Solution</summary><div>$x_{k+1} = (1 - \eta\lambda)x_k$: converges iff $|1 - \eta\lambda| &lt; 1$ iff $0 &lt; \eta &lt; 2/\lambda$. Optimal: $\eta = 1/\lambda$, one-step exact convergence. Overshoot region $1/\lambda &lt; \eta &lt; 2/\lambda$: oscillating but converging.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gradient descent on $f(x) = |x|^{3/2}$-like flat-bottomed functions: for $f(x) = \frac14x^4$ with fixed $\eta$, show convergence to 0 happens but sublinearly. <details class="sol"><summary>Solution</summary><div>$x_{k+1} = x_k - \eta x_k^3 = x_k(1 - \eta x_k^2)$. Near 0 the contraction factor $1 - \eta x_k^2 \to 1$: no geometric rate. Analysis: for small $x_k$, $\frac{1}{x_{k+1}^2} \approx \frac{1}{x_k^2}(1 + 2\eta x_k^2) = \frac{1}{x_k^2} + 2\eta$, so $x_k^2 \approx \frac{x_0^{-2} }{1 + 2\eta k x_0^2}\cdot x_0^2$... i.e. $x_k^2 \sim \frac{1}{2\eta k}$: error $\sim k^{-1/2}$, loss $\sim k^{-2}$ — polynomial, not exponential. Degenerate curvature ($f''(0) = 0$) is what strong convexity exists to exclude.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradient-descent-convergence">
+ <h2>Gradient descent convergence</h2>
+ <p>How fast does the loop reach the bottom? The answers form a ladder: smooth nonconvex → gradients vanish at rate $1/\sqrt k$; smooth convex → loss gap shrinks like $1/k$; smooth AND strongly convex → geometric decay, with speed set by the condition number $\kappa = L/\mu$. Memorize the ladder; it prices every training run.</p>
+ <div class="box thm"><span class="label">Theorem</span> Let $\eta = 1/L$. (1) $f$ $L$-smooth: $\min_{i&lt;k}\|\nabla f(x_i)\|^2 \le \frac{2L(f(x_0) - f^*)}{k}$. (2) $f$ also convex: $f(x_k) - f^* \le \frac{L\|x_0 - x^*\|^2}{2k}$. (3) $f$ also $\mu$-strongly convex: $f(x_k) - f^* \le \big(1 - \tfrac{\mu}{L}\big)^k\big(f(x_0) - f^*\big)$ — so $O(\kappa\log\frac1\epsilon)$ iterations to accuracy $\epsilon$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rate (3) proved in two lines from earlier boxes. Descent lemma with $\eta = 1/L$: $f(x_{k+1}) \le f(x_k) - \frac{1}{2L}\|\nabla f(x_k)\|^2$. Gradient dominance (strong convexity): $\|\nabla f(x_k)\|^2 \ge 2\mu(f(x_k) - f^*)$. Chain them: $f(x_{k+1}) - f^* \le (f(x_k) - f^*) - \frac{\mu}{L}(f(x_k) - f^*) = (1 - \tfrac\mu L)(f(x_k) - f^*)$. ∎ Numbers: $\kappa = 100$ → factor $0.99$/step → $\sim460$ steps per 100× error reduction; $\kappa = 10^4$ → $\sim46{,}000$ steps. Conditioning IS the bill.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\kappa = 50$, how many iterations to shrink the loss gap by $e^{10}$ ($\approx22000\times$)? <details class="sol"><summary>Solution</summary><div>Need $(1 - \frac1{50})^k \le e^{-10}$; since $\log(1-\frac{1}{50})\approx-\frac1{50}$, $k \approx 500$.</div></details></li>
+  <li><span class="lvl m">MED</span> In regime (2) (convex, not strongly), how many iterations for $f - f^* \le \epsilon$, and why is this called a sublinear rate? <details class="sol"><summary>Solution</summary><div>$k \ge \frac{L\|x_0 - x^*\|^2}{2\epsilon}$: iterations scale like $1/\epsilon$, so each extra digit of accuracy costs 10× more work (versus a CONSTANT factor more in the geometric regime — "linear convergence" in the classical naming).</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove rate (1) for nonconvex smooth $f$. <details class="sol"><summary>Solution</summary><div>Sum the descent inequality $f(x_{i+1}) \le f(x_i) - \frac{1}{2L}\|\nabla f(x_i)\|^2$ over $i = 0..k-1$: $\frac{1}{2L}\sum_i\|\nabla f(x_i)\|^2 \le f(x_0) - f(x_k) \le f(x_0) - f^*$. Hence $k\min_i\|\nabla f(x_i)\|^2 \le \sum_i \|\nabla f(x_i)\|^2 \le 2L(f(x_0) - f^*)$. ∎ Note what's promised: SOME iterate has a small gradient — a critical point, possibly a saddle. Nonconvex guarantees are exactly this modest.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="stochastic-gradient-descent">
+ <h2>Stochastic gradient descent</h2>
+ <p>Computing the exact gradient means touching every training example — absurd at a billion examples per epoch. SGD's bargain: estimate the gradient from one random example (or a few). The estimate is noisy but unbiased, and cheap noisy steps beat expensive perfect ones by orders of magnitude.</p>
+ <div class="box def"><span class="label">Definition</span> For $f(\theta) = \frac1N\sum_i f_i(\theta)$: sample $i_k$ uniformly, update $$\theta_{k+1} = \theta_k - \eta_k\,\nabla f_{i_k}(\theta_k).$$ Unbiasedness: $\mathbb{E}[\nabla f_{i_k}(\theta)] = \nabla f(\theta)$. Classical convergence for convex $f$ requires diminishing steps: $\sum\eta_k = \infty$, $\sum\eta_k^2 &lt; \infty$ (e.g. $\eta_k = c/k$); with constant $\eta$, SGD converges to a <em>noise ball</em> of radius $\propto\sqrt\eta$ around the optimum.</div>
+ <div class="box ex"><span class="label">Worked example</span> Mean estimation as SGD: $f(\theta) = \frac{1}{2N}\sum(\theta - y_i)^2$, whose minimum is $\bar y$. SGD with $\eta_k = 1/k$: $\theta_{k+1} = \theta_k - \frac1k(\theta_k - y_k) = \frac{k-1}{k}\theta_k + \frac1ky_k$. Unrolling: $\theta_{k+1}$ is exactly the running average of $y_1..y_k$! The most familiar estimator in statistics is SGD with the classic $1/k$ schedule — and its $O(1/k)$ variance decay is the best any schedule achieves on this problem.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Sampling <em>without</em> attention to class balance, or streaming correlated data (video frames, chat logs in order), breaks the unbiasedness that all SGD theory rests on. Shuffle each epoch; for heavy class imbalance, reweight or resample deliberately.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is the stochastic gradient unbiased under uniform sampling? <details class="sol"><summary>Solution</summary><div>$\mathbb E[\nabla f_{i}(\theta)] = \sum_{j=1}^N \frac1N\nabla f_j(\theta) = \nabla f(\theta)$ — the expectation over the random index reproduces the full-batch average.</div></details></li>
+  <li><span class="lvl m">MED</span> With constant $\eta$ on a $\mu$-strongly convex, $L$-smooth $f$, SGD's expected error satisfies $\mathbb E[f(\theta_k)] - f^* \lesssim (1-\eta\mu)^k\Delta_0 + \frac{\eta L\sigma^2}{2\mu}$. Interpret the two terms. <details class="sol"><summary>Solution</summary><div>The first is the deterministic geometric decay of the initial gap; the second is the noise floor, proportional to $\eta$ and the gradient variance $\sigma^2$. Fast early progress, then a plateau — halve $\eta$ and the floor halves but the approach slows. This is why LR decay schedules exist.</div></details></li>
+  <li><span class="lvl h">HARD</span> One pass of SGD over $N$ fresh examples vs $N$ steps of full-batch GD on those examples: compare gradient evaluations and what each achieves for large $N$. <details class="sol"><summary>Solution</summary><div>SGD: $N$ single-example gradients — cost of ONE full-batch step — and (on convex problems, decaying $\eta$) already reaches statistical accuracy $O(1/\sqrt N)$ or $O(1/N)$-ish, near the information-theoretic limit for one data pass. Full GD: $N^2$ example-gradients to take $N$ steps, optimizing the empirical loss far below its statistical resolution. For learning (as opposed to pure optimization), SGD's per-example efficiency is essentially unbeatable — the deep reason it won.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mini-batch-sgd">
+ <h2>Mini-batch SGD</h2>
+ <p>Between one example and all of them lies the mini-batch: average the gradient over $B$ random examples. Variance drops by $1/B$, GPUs eat batches for free up to their parallel width, and batch size becomes a first-class hyperparameter with its own scaling law.</p>
+ <div class="box def"><span class="label">Definition</span> $\theta_{k+1} = \theta_k - \eta\,\frac1B\sum_{i\in\mathcal B_k}\nabla f_i(\theta_k)$ with $|\mathcal B_k| = B$ sampled without replacement per step (typically by shuffling each epoch). Gradient variance scales as $\sigma^2/B$; compute per step scales as $B$. <em>Linear scaling heuristic:</em> multiplying $B$ by $c$ pairs with multiplying $\eta$ by $c$ (valid until $\eta$ hits curvature limits).</div>
+ <div class="box ex"><span class="label">Worked example</span> Suppose per-example gradient variance is $\sigma^2 = 100$ and you need step-noise variance $\eta^2\sigma^2/B \le$ some budget. At $B = 32$, $\eta = 0.1$: noise $= 0.01\cdot100/32 = 0.031$. Scale to $B = 256$ (8×): linear scaling says $\eta = 0.8$, noise $= 0.64\cdot100/256 = 0.25$... noise per STEP grows, but each step moves 8× further, and per EPOCH you take 8× fewer steps — the noise injected per epoch stays constant. That's the sense in which (B, η) trade off; it breaks when $\eta = 0.8$ exceeds $\approx2/L$ and curvature, not noise, becomes binding — the "critical batch size" beyond which bigger batches stop buying wall-clock time.</div>
+ <div class="box link"><span class="label">Where this goes</span> Critical batch size and the noise scale are central to large-model training economics (Ch 23): past the critical size you burn GPUs without training faster.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Batch 64 gives gradient-estimate variance $v$. What batch gives $v/4$? <details class="sol"><summary>Solution</summary><div>Variance $\propto 1/B$: $B = 256$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why sample WITHOUT replacement within an epoch (shuffling) rather than with replacement? <details class="sol"><summary>Solution</summary><div>Without replacement, each epoch sees every example exactly once: gradients across the epoch are negatively correlated in a helpful way (errors from one batch get corrected by disjoint later batches), giving provably no-worse and practically faster convergence than with-replacement — and it guarantees coverage of rare examples.</div></details></li>
+  <li><span class="lvl h">HARD</span> A GPU processes any batch up to 512 in constant time per step. Total dataset $10^6$ examples. Compare wall-clock per epoch for $B = 32$ vs $B = 512$, and explain when $B = 512$ could still LOSE overall. <details class="sol"><summary>Solution</summary><div>Steps per epoch: $31{,}250$ vs $1953$ — 16× fewer steps, each equally fast: 16× faster per epoch. It loses if optimization needs the higher-noise/smaller-step regime: past the critical batch size, the 16× fewer steps make less than 16× progress per epoch (you can't raise $\eta$ 16× safely), so epochs-to-target rises; also large-batch minima can generalize worse without extra regularization (sharpness, Ch 21). Wall-clock optimum: largest $B$ within the linear-scaling regime.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sgd-noise">
+ <h2>SGD noise</h2>
+ <p>The randomness in SGD is not just a cost to tolerate — it is an active ingredient. Gradient noise perturbs the iterate off saddle points, hops small barriers, and biases the long-run trajectory toward wide, flat minima. Understanding SGD means understanding the structure of its noise.</p>
+ <div class="box def"><span class="label">Definition</span> Write the update as $\theta_{k+1} = \theta_k - \eta\nabla f(\theta_k) + \eta\,\xi_k$ where $\xi_k = \nabla f(\theta_k) - \frac1B\sum_{i\in\mathcal B}\nabla f_i(\theta_k)$ has mean 0 and covariance $\approx \frac{\Sigma(\theta)}{B}$ ($\Sigma$ = per-example gradient covariance). The <em>noise scale</em> $g \propto \eta/B$ (times $\Sigma$) controls the stationary behavior; in the continuous-time picture SGD resembles Langevin dynamics (Ch 12) with state-dependent, anisotropic temperature.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two minima of equal loss: a narrow ravine with curvature $h = 100$ and a wide basin with $h = 1$; noise gives the iterate variance $\approx \frac{\eta\sigma^2}{2h}\cdot$(const) within a quadratic basin, but the ESCAPE rate over a barrier of height $\Delta f$ scales like $e^{-c\,\Delta f B/\eta}$ (Kramers-style). With $\eta/B$ large, the iterate escapes narrow basins quickly (barriers look small relative to temperature) but stays long in wide ones — SGD spends its time in flat minima. Cut $\eta$ 10× at the end of training: the temperature drops, and the iterate settles deep into whichever basin it occupies — the familiar "LR decay = anneal" picture.</div>
+ <div class="box think"><span class="label">Think first</span> SGD noise is anisotropic — its covariance is the gradient covariance, largest along directions where examples disagree. Why might that be BETTER than isotropic Gaussian noise for escaping bad regions? <details class="sol"><summary>Reveal</summary><div>Directions of example disagreement are exactly where the loss surface has structure worth exploring (sharp, data-sensitive directions often align with large Hessian eigenvalues); noise concentrated there kicks the iterate along escape and flattening directions rather than wasting perturbation on directions no example cares about. Empirically, matching isotropic noise fails to reproduce SGD's regularization benefit.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Doubling the batch size at fixed $\eta$ does what to the noise scale? Doubling $\eta$ at fixed $B$? <details class="sol"><summary>Solution</summary><div>Noise scale $\propto \eta/B$: halves it; doubles it. The ratio is the knob.</div></details></li>
+  <li><span class="lvl m">MED</span> Near the minimum of $f(\theta) = \frac h2\theta^2$ with additive gradient noise of variance $\sigma^2$, compute the stationary variance of SGD iterates (small $\eta$). <details class="sol"><summary>Solution</summary><div>$\theta_{k+1} = (1-\eta h)\theta_k + \eta\xi_k$: an AR(1). Stationary variance $v = (1-\eta h)^2v + \eta^2\sigma^2 \Rightarrow v = \frac{\eta^2\sigma^2}{1-(1-\eta h)^2} \approx \frac{\eta\sigma^2}{2h}$ for small $\eta$. Jitter $\propto \eta$, inversely $\propto$ curvature: flat directions wobble most.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does gradient noise VANISH at interpolating minima (zero training loss on every example), and what does that imply about late training of overparameterized nets? <details class="sol"><summary>Solution</summary><div>If $\theta^*$ fits every example exactly, then each $\nabla f_i(\theta^*) = 0$ individually, so the minibatch gradient — any average of them — is exactly 0: $\Sigma(\theta^*) = 0$. SGD noise is multiplicative in the loss, not additive: as an overparameterized net approaches interpolation, its own noise anneals to zero automatically. Late training thus self-stabilizes without LR decay (in theory), and constant-LR SGD can converge exactly in the interpolation regime — one reason overparameterized training is so well-behaved.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="momentum">
+ <h2>Momentum</h2>
+ <p>Give the iterate mass: accumulate an exponentially weighted average of past gradients and step along it. In ravines, the side-to-side components cancel while the along-the-valley components add — damping oscillation and accelerating the crawl, both at once, for one extra line of code.</p>
+ <div class="box def"><span class="label">Definition</span> (Heavy ball / Polyak) $$v_{k+1} = \beta v_k + \nabla f(\theta_k),\qquad \theta_{k+1} = \theta_k - \eta\,v_{k+1},$$ typically $\beta = 0.9$–$0.99$. The velocity is a geometric sum: $v_{k+1} = \sum_{j\le k}\beta^{k-j}\nabla f(\theta_j)$, with effective horizon $\frac{1}{1-\beta}$ steps and steady-state amplification $\frac{1}{1-\beta}$ on constant gradients. On quadratics, optimally tuned momentum improves the convergence factor from $1 - \frac1\kappa$ to $1 - \frac{1}{\sqrt\kappa}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Constant gradient $g$ (a long slope), $\beta = 0.9$: $v$ climbs $g, 1.9g, 2.71g, \dots \to 10g$. Momentum multiplies the effective step 10× on persistent directions. Oscillating gradient $+g, -g, +g, \dots$ (ravine walls): $v$ hovers near $g\frac{1}{1+\beta} \approx 0.53g$ — nearly cancelled. The ratio of amplifications, $\frac{1/(1-\beta)}{1/(1+\beta)} = \frac{1+\beta}{1-\beta} = 19$: momentum re-weights directions by their persistence, a poor man's preconditioner.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\beta = 0.99$, what's the effective averaging horizon and max amplification? <details class="sol"><summary>Solution</summary><div>$\frac{1}{1-\beta} = 100$ steps, and up to 100× on persistent gradients — why $\eta$ must shrink when $\beta$ grows.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute 3 momentum steps on $f(x) = \frac12x^2$, $\eta = 0.1$, $\beta = 0.9$, from $x_0 = 1$, $v_0 = 0$. <details class="sol"><summary>Solution</summary><div>$g_0 = 1$: $v_1 = 1$, $x_1 = 1 - 0.1 = 0.9$. $g_1 = 0.9$: $v_2 = 0.9 + 0.9 = 1.8$, $x_2 = 0.9 - 0.18 = 0.72$. $g_2 = 0.72$: $v_3 = 1.62 + 0.72 = 2.34$, $x_3 = 0.72 - 0.234 = 0.486$. Accelerating: steps grow as velocity builds (plain GD would be at $0.729$).</div></details></li>
+  <li><span class="lvl h">HARD</span> On $f(x) = \frac\lambda2x^2$, heavy-ball dynamics are a linear 2-step recurrence. Derive the characteristic equation and the optimal $(\eta,\beta)$ intuition. <details class="sol"><summary>Solution</summary><div>$x_{k+1} = x_k - \eta\lambda x_k + \beta(x_k - x_{k-1})$ (equivalent form), i.e. $x_{k+1} - (1 + \beta - \eta\lambda)x_k + \beta x_{k-1} = 0$; roots of $z^2 - (1+\beta-\eta\lambda)z + \beta = 0$ govern decay $|z|^k$. When the discriminant is $\le 0$ (complex roots), $|z| = \sqrt\beta$ REGARDLESS of $\lambda$: choosing $\eta, \beta$ to put ALL eigenvalues $\lambda\in[\mu, L]$ in the complex regime equalizes every mode's decay at $\sqrt\beta$. Solving the boundary conditions gives $\beta = \big(\frac{\sqrt\kappa - 1}{\sqrt\kappa + 1}\big)^2$, $\eta = \frac{(1+\sqrt\beta)^2}{L}$, and rate $1 - \frac{2}{\sqrt\kappa + 1} \approx 1 - \frac{1}{\sqrt\kappa}$: the celebrated $\sqrt\kappa$ acceleration.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="nesterov-momentum">
+ <h2>Nesterov momentum</h2>
+ <p>Nesterov's twist: look before you leap. Evaluate the gradient not at the current point but at the point momentum is about to carry you to — a peek ahead that corrects the velocity before it overshoots. This small change achieves the provably optimal rate for smooth convex first-order optimization.</p>
+ <div class="box def"><span class="label">Definition</span> $$v_{k+1} = \beta v_k + \nabla f(\theta_k - \eta\beta v_k),\qquad \theta_{k+1} = \theta_k - \eta\,v_{k+1}.$$ The gradient is taken at the <em>lookahead point</em> $\theta_k - \eta\beta v_k$. For smooth convex $f$, Nesterov's accelerated scheme achieves $f(x_k) - f^* = O(1/k^2)$ — matching the $\Omega(1/k^2)$ lower bound for first-order methods — versus GD's $O(1/k)$; strongly convex: rate $1 - \frac{1}{\sqrt\kappa}$ with certainty.</div>
+ <div class="box ex"><span class="label">Worked example</span> Where lookahead pays: approaching a valley floor at speed. Heavy ball at $\theta = 0.1$ with large positive velocity toward the minimum at 0 evaluates $\nabla f(0.1) &gt; 0$ — mild braking — and overshoots deep into $\theta &lt; 0$. Nesterov evaluates at the lookahead $\approx -0.2$, sees $\nabla f(-0.2) &lt; 0$, and the "gradient" term brakes the velocity BEFORE the overshoot. On the quadratic $f = \frac12\theta^2$, $\eta = 0.5$, $\beta = 0.9$, from $\theta = 0.1$, $v = 1$: lookahead $= 0.1 - 0.45 = -0.35$, gradient $-0.35$; $v' = 0.9 - 0.35 = 0.55$ (vs heavy ball $v' = 0.9 + 0.1 = 1.0$): overshoot nearly halved in one step.</div>
+ <div class="box link"><span class="label">Where this goes</span> PyTorch's <code>SGD(momentum=..., nesterov=True)</code> is standard for CNNs; the $1/k^2$ proof's "estimate sequence" technique seeded a whole field of accelerated and lower-bound analyses (Ch 20's minimax flavor).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Operationally, what is the only difference between heavy ball and Nesterov? <details class="sol"><summary>Solution</summary><div>The point where the gradient is evaluated: current iterate (heavy ball) vs the momentum-lookahead point (Nesterov). Same memory, same cost.</div></details></li>
+  <li><span class="lvl m">MED</span> For smooth convex problems, compare the iteration counts to reach gap $\epsilon$: GD vs Nesterov. <details class="sol"><summary>Solution</summary><div>GD: $O(1/\epsilon)$. Nesterov: $O(1/\sqrt\epsilon)$. For $\epsilon = 10^{-6}$: a million-fold vs a thousand-fold — a quadratic compression of the bill, unimprovable by any method that only queries gradients.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does classical acceleration lose its guarantee under stochastic gradients, and what happens in practice? <details class="sol"><summary>Solution</summary><div>The proof balances a carefully accumulating potential; noise injects error each step that the accelerated recursion AMPLIFIES over its long memory (errors compound through the momentum, unlike GD where they average). Formally, accelerated methods are less robust: noise variance enters the rate multiplied by extra $\kappa$-dependent factors. In practice with SGD noise, Nesterov ≈ heavy ball ≈ well-tuned plain momentum; acceleration's clean wins are a full-batch/fine-tuning-stage phenomenon.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="adagrad">
+ <h2>Adagrad</h2>
+ <p>Not all coordinates are equal: an embedding for a rare word gets a gradient once an hour; a bias term gets one every step. Adagrad gives each parameter its own learning rate — divided by the root of its accumulated squared gradients — so rarely-touched parameters take bold steps and busy ones tread carefully.</p>
+ <div class="box def"><span class="label">Definition</span> Per coordinate $j$: $$G_{k,j} = \sum_{t\le k} g_{t,j}^2,\qquad \theta_{k+1,j} = \theta_{k,j} - \frac{\eta}{\sqrt{G_{k,j}} + \epsilon}\,g_{k,j}.$$ Regret guarantee (online convex): $O(\sqrt{\sum_t\|g_t\|^2})$, adapting to the observed gradient geometry without knowing it in advance.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two parameters, $\eta = 1$: a frequent one with $g = 1$ every step, a rare one with $g = 1$ every 100th step. After 10,000 steps: frequent $G = 10^4$, its effective LR $= 1/100$; rare $G = 100$, effective LR $= 1/10$. The rare feature trains 10× faster per gradient it receives — exactly the ratio $\sqrt{100}$ of their update counts. This is why Adagrad conquered sparse problems (ad click models, word embeddings) where SGD starved rare features.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $G$ only grows, so the effective learning rate decays toward zero forever — fine for convex/online settings the theory covers, fatal for long nonconvex training: Adagrad stalls mid-run. The fix (decay the history instead of summing it) is RMSProp, next.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> After gradients $3, 4$ on one coordinate ($\eta = 1$, $\epsilon = 0$), what is the second update's size? <details class="sol"><summary>Solution</summary><div>$G = 9 + 16 = 25$: update $= \frac{4}{\sqrt{25}} = 0.8$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that with constant per-step gradient magnitude $c$ on a coordinate, Adagrad's step sizes decay like $1/\sqrt k$ — the classic SGD schedule, discovered automatically. <details class="sol"><summary>Solution</summary><div>$G_k = kc^2$, so the step is $\frac{\eta c}{\sqrt{kc^2}} = \frac{\eta}{\sqrt k}$: Adagrad self-tunes to the $\eta_k \propto k^{-1/2}$ schedule that online convex theory prescribes, per coordinate and without a schedule.</div></details></li>
+  <li><span class="lvl h">HARD</span> Adagrad is diagonal preconditioning: relate $\mathrm{diag}(G_k)^{-1/2}$ to the ideal Newton preconditioner and say when the diagonal approximation is good or bad. <details class="sol"><summary>Solution</summary><div>Newton rescales by $H^{-1}$; Adagrad by $\mathrm{diag}(\sum g_tg_t^\top)^{-1/2}$ — the diagonal of an empirical (root) second-moment/Fisher proxy. Good: when curvature/gradient covariance is roughly axis-aligned (sparse features, embeddings, disjoint parameter groups). Bad: strongly rotated/correlated curvature (a narrow diagonal ravine), where no diagonal matrix can equalize the modes — full-matrix Adagrad fixes this in theory at $O(n^2)$ cost, hence approximations like Shampoo/K-FAC.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rmsprop">
+ <h2>RMSProp</h2>
+ <p>RMSProp repairs Adagrad's fading learning rate by replacing the ever-growing sum with an exponential moving average of squared gradients: old history leaks away, and the effective step adapts to the RECENT gradient scale. Born as a slide in Hinton's Coursera lecture, it became the workhorse of deep RL and the direct parent of Adam.</p>
+ <div class="box def"><span class="label">Definition</span> $$s_{k} = \rho\,s_{k-1} + (1-\rho)\,g_k^2\ \ (\text{per coordinate}),\qquad \theta_{k+1} = \theta_k - \frac{\eta}{\sqrt{s_k} + \epsilon}\,g_k,$$ typically $\rho = 0.99$, $\eta = 10^{-3}$. $s_k$ estimates the recent mean-square gradient with horizon $\frac{1}{1-\rho}$ steps; the update magnitude self-normalizes to $\approx\eta$ per coordinate regardless of raw gradient scale.</div>
+ <div class="box ex"><span class="label">Worked example</span> A loss landscape whose gradient magnitudes differ by 1000× across coordinates ($g_1 = 1$, $g_2 = 0.001$ persistently). At steady state $s_1 = 1$, $s_2 = 10^{-6}$: updates are $\frac{\eta\cdot1}{\sqrt1} = \eta$ and $\frac{\eta\cdot0.001}{\sqrt{10^{-6}}} = \eta$. Identical! RMSProp equalizes per-coordinate step sizes — effectively signed-gradient descent with a smooth magnitude memory — which is exactly what you want when curvature scales differ wildly and exactly what needs care when gradient magnitude carries real signal near convergence.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\rho = 0.9$ and constant $g = 2$, what does $s$ converge to, and what's the steady-state step? <details class="sol"><summary>Solution</summary><div>$s^* = \rho s^* + (1-\rho)\cdot4 \Rightarrow s^* = 4$. Step $= \frac{\eta\cdot2}{\sqrt4} = \eta$: normalized to the learning rate, as designed.</div></details></li>
+  <li><span class="lvl m">MED</span> Why did RMSProp become the default in deep RL (DQN era) specifically? <details class="sol"><summary>Solution</summary><div>RL gradients are wildly non-stationary: reward scales change as the policy improves, targets move (bootstrapping), and gradient magnitudes jump orders of magnitude between game phases. RMSProp's recent-window normalization absorbs these scale shifts automatically, where fixed-LR SGD needs constant retuning and Adagrad dies from accumulated history.</div></details></li>
+  <li><span class="lvl h">HARD</span> RMSProp with $\epsilon\to0$ is scale-invariant: multiplying the loss by 10 changes nothing. Prove it, and note one consequence. <details class="sol"><summary>Solution</summary><div>Loss $\times c$ scales every $g_k \to cg_k$, hence $s_k \to c^2s_k$ and the update $\frac{\eta\,cg_k}{\sqrt{c^2s_k}} = \frac{\eta g_k}{\sqrt{s_k}}$: unchanged. Consequence: the learning rate decouples from loss scaling and units (no retuning when switching mean→sum reduction), but also: genuine convergence information in shrinking gradient norms is discarded — near an optimum RMSProp keeps taking $\approx\eta$-sized steps, jittering unless $\eta$ is decayed or $\epsilon$ intervenes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="adam">
+ <h2>Adam</h2>
+ <p>Adam bolts momentum onto RMSProp and corrects both estimators' startup bias: a smoothed first moment for direction, a smoothed second moment for per-coordinate scale. Robust to hyperparameters and loss scales, it became the default optimizer of deep learning — the thing you type before you think.</p>
+ <div class="box def"><span class="label">Definition</span> Per coordinate, with defaults $\beta_1 = 0.9$, $\beta_2 = 0.999$, $\epsilon = 10^{-8}$: $$m_k = \beta_1m_{k-1} + (1{-}\beta_1)g_k,\quad v_k = \beta_2v_{k-1} + (1{-}\beta_2)g_k^2,$$ $$\hat m_k = \frac{m_k}{1-\beta_1^k},\quad \hat v_k = \frac{v_k}{1-\beta_2^k},\qquad \theta_{k+1} = \theta_k - \eta\,\frac{\hat m_k}{\sqrt{\hat v_k} + \epsilon}.$$ The bias corrections undo the zero-initialization shrinkage of the EMAs (early $m_k$ underestimates by factor $1-\beta_1^k$).</div>
+ <div class="box ex"><span class="label">Worked example</span> First step, $g_1 = 0.1$, defaults: $m_1 = 0.1\cdot0.1 = 0.01$, $v_1 = 0.001\cdot0.01 = 10^{-5}$. Without correction the step would be $\eta\frac{0.01}{\sqrt{10^{-5}}} \approx 3.16\eta$ — wait, and with tiny $g$ it misleads; correct: $\hat m_1 = 0.01/0.1 = 0.1$, $\hat v_1 = 10^{-5}/0.001 = 0.01$. Step $= \eta\frac{0.1}{\sqrt{0.01}} = \eta$. The corrected first step is exactly a unit step of size $\eta$ in the gradient's sign-ish direction — sane from step one, no warm-up of the estimators required. (Uncorrected, the ratio $m/\sqrt v$ is off by $\frac{1-\beta_1^k}{\sqrt{1-\beta_2^k}} \approx \frac{0.1}{0.032} \approx 3.2$ at $k=1$ — the 3.16 above.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\epsilon$ is not just numerical hygiene: it caps the effective LR at $\eta/\epsilon$ for dead-quiet coordinates and materially changes training for small $\hat v$ (some vision/RL setups run $\epsilon = 10^{-4}$ on purpose). Also Adam's L2 penalty ≠ true weight decay — see AdamW.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With constant gradients $g$, what is Adam's steady-state step size? <details class="sol"><summary>Solution</summary><div>$\hat m \to g$, $\hat v \to g^2$: step $\to \eta\frac{g}{\sqrt{g^2}} = \eta\,\mathrm{sign}(g)$. Adam moves every coordinate at speed $\approx\eta$ — pick $\eta$ as "meters per step."</div></details></li>
+  <li><span class="lvl m">MED</span> Compute Adam's second step for $g_1 = g_2 = 1$, $\eta = 0.001$, defaults. <details class="sol"><summary>Solution</summary><div>$m_2 = 0.9\cdot0.1 + 0.1 = 0.19$; $\hat m_2 = 0.19/(1-0.81) = 1$. $v_2 = 0.999\cdot0.001 + 0.001 = 0.001999$; $\hat v_2 = 0.001999/(1-0.998001) = 1.0000$. Step $= 0.001\cdot\frac{1}{1 + 10^{-8}} \approx 0.001$. Constant gradients → clean $\eta$-sized steps from the start.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the bias-correction factor: show $\mathbb E[m_k] = (1-\beta_1^k)\,\bar g$ for i.i.d. gradients with mean $\bar g$. <details class="sol"><summary>Solution</summary><div>$m_k = (1-\beta_1)\sum_{t=1}^k\beta_1^{k-t}g_t$ (unrolling with $m_0 = 0$). Expectation: $(1-\beta_1)\bar g\sum_{t=1}^k\beta_1^{k-t} = (1-\beta_1)\bar g\cdot\frac{1-\beta_1^k}{1-\beta_1} = (1-\beta_1^k)\bar g$. Dividing by $1-\beta_1^k$ makes it unbiased; same argument for $v_k$ with $\beta_2$ and second moments. ∎</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">You multiply your loss function by 1000 (switching from mean to sum over a 1000-token batch). With Adam ($\epsilon$ negligible), the parameter updates:</div><button class="opt">become 1000× larger</button><button class="opt">stay essentially the same</button><button class="opt">become √1000× larger</button><div class="why" hidden>Both $\hat m$ (×1000) and $\sqrt{\hat v}$ (×1000) scale together and cancel: Adam is invariant to loss rescaling. With plain SGD the updates would explode 1000× — a real portability difference.</div></div>
+</section>
+
+<section class="topic" id="adamw">
+ <h2>AdamW</h2>
+ <p>Weight decay was supposed to shrink weights toward zero at a controlled rate — but implemented as an L2 term inside Adam, the decay gradient gets divided by $\sqrt{\hat v}$ like everything else, so heavily-trained coordinates barely decay. AdamW decouples: apply decay directly to the weights, outside the adaptive machinery. This one-line fix trains every modern LLM.</p>
+ <div class="box def"><span class="label">Definition</span> AdamW replaces "add $\lambda\theta$ to the gradient" with a separate decay step: $$\theta_{k+1} = \theta_k - \eta\Big(\frac{\hat m_k}{\sqrt{\hat v_k}+\epsilon} + \lambda\,\theta_k\Big),$$ where $m, v$ are computed from the PURE loss gradient. Every parameter decays by the same relative factor $\eta\lambda$ per step, independent of its gradient history.</div>
+ <div class="box ex"><span class="label">Worked example</span> Coordinate with large gradient history: $\sqrt{\hat v} = 10$; decay strength $\lambda = 0.01$, $\theta = 1$. Adam-with-L2: the decay contribution to the step is $\eta\frac{\lambda\theta}{\sqrt{\hat v}} = \eta\cdot0.001$ — 10× weaker than intended. A quiet coordinate with $\sqrt{\hat v} = 0.1$: decay contribution $\eta\cdot0.1$ — 10× stronger. Same $\lambda$, 100× disparity in realized regularization; the busiest (often most overfit-prone) weights are regularized least. AdamW: both decay by exactly $\eta\lambda\theta = \eta\cdot0.01$. Uniform, as the statistician ordered (MAP with a Gaussian prior, Ch 13).</div>
+ <div class="box link"><span class="label">Where this goes</span> AdamW with $\lambda\approx0.1$, warmup and cosine decay is the de facto LLM training recipe (Ch 23); the decoupling paper (Loshchilov &amp; Hutter) is why "Adam" in configs today almost always means AdamW.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In AdamW with $\eta = 10^{-3}$, $\lambda = 0.1$, what fraction of its magnitude does an (otherwise gradient-free) weight lose per step? <details class="sol"><summary>Solution</summary><div>$\eta\lambda = 10^{-4}$: 0.01% per step — about 1% per 100 steps, 63% per 10,000 steps ($e$-folding time $10^4$ steps).</div></details></li>
+  <li><span class="lvl m">MED</span> Show that for plain SGD (no adaptivity), L2 regularization and decoupled weight decay ARE equivalent, with $\lambda_{\mathrm{L2}} = \lambda$. <details class="sol"><summary>Solution</summary><div>SGD on $f + \frac\lambda2\|\theta\|^2$: $\theta' = \theta - \eta(\nabla f + \lambda\theta) = (1-\eta\lambda)\theta - \eta\nabla f$ — identical to decoupled decay then a gradient step. The distinction is created purely by the $1/\sqrt{\hat v}$ preconditioner reweighting one but not the other.</div></details></li>
+  <li><span class="lvl h">HARD</span> Which parameters are conventionally EXCLUDED from weight decay in transformer training, and why? <details class="sol"><summary>Solution</summary><div>Biases, LayerNorm/RMSNorm gains, and often embeddings. Decay expresses the prior "this weight should be small unless data insists"; but norms' gain parameters have a natural scale near 1 (decaying them toward 0 fights the parameterization, distorting activations), and biases contribute little to overfitting while their decay shifts activation statistics. Empirically excluding them improves stability and final loss; conceptually, the Gaussian-prior story only fits weights whose zero point is meaningful.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="learning-rate-schedules">
+ <h2>Learning-rate schedules</h2>
+ <p>No single learning rate is right for a whole run: early training wants big exploratory steps, late training wants small settling ones (recall SGD's noise floor $\propto\eta$). A schedule scripts the descent — warmup, cruise, decay — and in large-scale training the schedule is as consequential as the optimizer.</p>
+ <div class="box def"><span class="label">Definition</span> A schedule is a map $k\mapsto\eta_k$. Staples: <em>step decay</em> ($\times0.1$ at milestones); <em>cosine</em> $\eta_k = \eta_{\min} + \frac{\eta_{\max}-\eta_{\min}}{2}\big(1 + \cos\frac{\pi k}{K}\big)$; <em>linear decay</em> to 0; <em>inverse-sqrt</em> $\eta_k \propto 1/\sqrt k$ (the transformer original); <em>warmup–stable–decay</em> (trapezoid). Theory anchor: convex SGD wants $\eta_k \sim c/\sqrt k$ (or $c/(\mu k)$ under strong convexity); constant-then-cut exploits the noise-floor picture.</div>
+ <div class="box ex"><span class="label">Worked example</span> The noise-floor logic, quantified: with constant $\eta$, error $\approx (1-\eta\mu)^k\Delta_0 + c\eta$. Phase 1: run $\eta = 0.1$ until the floor $0.1c$ is reached ($\approx \frac{\ln(\Delta_0/0.1c)}{0.1\mu}$ steps). Cut to $\eta = 0.01$: the floor drops to $0.01c$ and the gap decays there at the new (slower) rate. Each 10× cut buys a 10× lower floor for 10× slower approach: geometric cuts at the right moments trace the lower envelope — which is what cosine decay approximates smoothly, without the milestone hand-tuning.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Compare schedules on a noisy quadratic: watch constant LR plateau at its noise floor while decayed schedules cut through it.</p>
+  <canvas id="cv-sched"></canvas>
+  <div class="ctl"><label>schedule <select id="sc-kind"><option value="const">constant</option><option value="step">step decay</option><option value="cos">cosine</option><option value="isq">1/√k</option></select></label><label>η₀ <input type="range" id="sc-lr" min="0.02" max="0.5" step="0.01" value="0.2"></label><button class="btn" id="sc-run">Rerun</button></div>
+  <div class="out" id="sc-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Cosine schedule, $\eta_{\max} = 3\times10^{-4}$, $\eta_{\min} = 0$, $K = 1000$: what is $\eta$ at $k = 500$? <details class="sol"><summary>Solution</summary><div>$\frac{\eta_{\max}}{2}(1 + \cos\frac\pi2) = \frac{3\times10^{-4}}{2} = 1.5\times10^{-4}$ — half the peak at half the run.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the $1/\sqrt k$ schedule pair naturally with training runs of unknown length, while cosine does not? <details class="sol"><summary>Solution</summary><div>Cosine needs the total budget $K$ in advance ($\eta$ hits its floor exactly at $K$); stop early and you never decayed, run longer and $\eta$ is stuck at $\eta_{\min}$. $1/\sqrt k$ is horizon-free: valid to stop anytime, matching online/streaming theory — hence warmup–stable–decay schedules for LLMs, which defer the decay decision until the end is known.</div></details></li>
+  <li><span class="lvl h">HARD</span> Under the linear scaling rule, you scale batch size 8× mid-project. Rewrite a cosine schedule (peak $10^{-3}$, 100k steps) for the new regime and state the caveats. <details class="sol"><summary>Solution</summary><div>Peak $\to 8\times10^{-3}$; steps $\to$ 12.5k (same epochs = same data passes), keeping tokens-per-run fixed; warmup lengthened in STEPS' proportion of the run (same fraction). Caveats: $8\eta$ may exceed the curvature-limited stable LR (check for divergence; cap at the edge of stability), the noise-scale equivalence is only first-order, and BatchNorm statistics/regularization change with batch size — validate against the old run at a checkpoint before committing.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="warmup">
+ <h2>Warmup</h2>
+ <p>The first steps of training are the most dangerous: weights are random, gradients are huge and unrepresentative, and adaptive optimizers' second-moment estimates are built from a handful of samples. Warmup starts the learning rate near zero and ramps it up, letting statistics stabilize before full-speed descent.</p>
+ <div class="box def"><span class="label">Definition</span> Linear warmup over $W$ steps: $\eta_k = \frac{k}{W}\,\eta_{\text{peak}}$ for $k \le W$, then hand off to the main schedule. Typical $W$: 1–3% of total steps (LLMs: a few hundred to a few thousand steps). The transformer original combined it with inverse-sqrt: $\eta_k \propto \min(k^{-1/2},\ k\,W^{-3/2})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Why Adam specifically needs it: at step 1, $\hat v$ is estimated from ONE squared gradient. If that draw is unluckily small on some coordinate ($g_1 = 10^{-3}$ where typical is $10^{-1}$), the effective LR on it is inflated $100\times$; a full-size step along a garbage direction can throw the weights into a high-loss region from which recovery is slow (or, with fp16, into overflow). With $\eta$ ramped over 1000 steps, $\hat v$ has averaged $\sim$1000 samples (at $\beta_2 = 0.999$, exactly its horizon) before steps reach full size — the variance of the preconditioner is tamed exactly when it starts to matter. (RAdam formalizes this variance argument; warmup is its practical equivalent.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> Warmup hides, not fixes, instabilities from bad initialization or a too-high peak LR. If your run only survives with a 10,000-step warmup, the peak LR is probably past the edge of stability — lower it rather than lengthening the on-ramp.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Linear warmup to $\eta_{\text{peak}} = 6\times10^{-4}$ over 2000 steps: what is $\eta$ at step 500? <details class="sol"><summary>Solution</summary><div>$\frac{500}{2000}\cdot6\times10^{-4} = 1.5\times10^{-4}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Give two distinct mechanisms (one optimizer-side, one model-side) that warmup protects against. <details class="sol"><summary>Solution</summary><div>Optimizer-side: adaptive moments ($\hat v$, momentum) are high-variance early; big steps on bad estimates destabilize (the RAdam argument). Model-side: at random init, attention logits and LayerNorm statistics are far from their trained regime — early large steps can push softmaxes into saturation or trigger loss spikes; small early steps let the network find a well-conditioned region first (related: curvature is empirically largest early in training).</div></details></li>
+  <li><span class="lvl h">HARD</span> A 125M-parameter LM run shows loss spikes at steps 50–200 with $\eta_{\text{peak}} = 10^{-3}$, warmup 100 steps. Propose three orthogonal mitigations and rank their side effects. <details class="sol"><summary>Solution</summary><div>(1) Lengthen warmup to ~2000 steps — cheapest, no capacity cost, slightly slower start. (2) Lower peak LR to $6\times10^{-4}$ — robust but may cost final loss if now under-aggressive (scaling-law fits are LR-sensitive). (3) Tighten gradient clipping (e.g. 1.0 → 0.5) — absorbs spike events directly but biases updates if it clips routinely. Order of trying: 1, then 3, then 2; also check init scale and $\epsilon$ before sacrificing LR.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradient-clipping">
+ <h2>Gradient clipping</h2>
+ <p>Occasionally a batch produces a monstrous gradient — a rare sequence, an exploding recurrence, an fp16 hiccup — and one such step can undo hours of training. Clipping caps the update: if the gradient's norm exceeds a threshold, rescale it to the threshold, keeping the direction but bounding the damage.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Norm clipping</em> (standard): $$g \leftarrow g\cdot\min\Big(1,\ \frac{c}{\|g\|}\Big)$$ — if $\|g\| \le c$, untouched; else scaled to norm exactly $c$, direction preserved (global norm across all parameters). <em>Value clipping</em> (elementwise $[-c, c]$) also exists but distorts direction. Typical $c$: 1.0 for LLMs (post-normalization conventions vary).</div>
+ <div class="box ex"><span class="label">Worked example</span> $c = 1$, gradient $g = (3, 4)$: $\|g\| = 5 &gt; 1$, so $g \leftarrow (0.6, 0.8)$ — same direction, norm 1. Where the monsters come from: an RNN backpropagating through $T$ steps multiplies by $W^\top\mathrm{diag}(\phi')$ each step; with top singular value $s = 1.2$ and $T = 50$, gradient scale $\sim1.2^{50} \approx 9100$. One clipped step survives what would otherwise be a $\times9100$ update. (The mirror problem, vanishing at $s&lt;1$, clipping cannot fix — that needed LSTMs and residual connections, Ch 21.)</div>
+ <div class="box think"><span class="label">Think first</span> Clipping makes the expected update no longer proportional to the true gradient — it introduces bias. Why is that usually an acceptable trade? <details class="sol"><summary>Reveal</summary><div>The bias activates only on tail events, where the "unbiased" alternative is a variance so large one step can be catastrophic and where the huge gradient's DIRECTION is often dominated by a single outlier batch anyway (not the true descent direction). Bounded bias for bounded catastrophe is a good trade; under heavy-tailed gradient noise, clipped SGD provably converges where unclipped SGD can fail. If clipping fires on most steps, though, you're just training with a smaller, distorted LR — lower $\eta$ instead.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $c = 2$, $g = (1, 1)$. Clipped? $g = (6, 8)$? <details class="sol"><summary>Solution</summary><div>$\|(1,1)\| = 1.41 \le 2$: untouched. $\|(6,8)\| = 10$: scaled by $0.2$ to $(1.2, 1.6)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why clip by GLOBAL norm over all parameters rather than per-layer? <details class="sol"><summary>Solution</summary><div>Global clipping preserves the relative balance between layers (the update direction in full parameter space), shrinking everything by one scalar. Per-layer clipping changes the direction — quiet layers keep full steps while loud ones shrink — which can systematically distort training. (Per-layer/adaptive variants exist deliberately, e.g. LAMB, but the default preserves direction.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Your logs show the clip triggering on 40% of steps with clip fraction rising. Diagnose three possible causes and the fix for each. <details class="sol"><summary>Solution</summary><div>(1) LR too high for current curvature (loss also noisy/rising): lower $\eta$ or extend warmup — clipping-as-lifestyle means the effective LR is $c/\|g\|$, silently variable. (2) Data problem — a shard of corrupted/duplicated text producing outlier losses: inspect top-loss batches; filter. (3) Numerical issue (fp16 overflow, bad $\epsilon$, diverging norm layer): check loss-scale logs and activation norms. Clipping frequency is a diagnostic dashboard, not just a safety valve.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="weight-decay">
+ <h2>Weight decay</h2>
+ <p>Weight decay is a steady pull of every weight toward zero — multiply weights by $(1 - \eta\lambda)$ each step. It expresses a prior for simple functions (small weights ⇒ small Lipschitz constant ⇒ smoother functions), fights overfitting, and interacts with normalization layers in surprisingly geometric ways.</p>
+ <div class="box def"><span class="label">Definition</span> Decoupled form: $\theta_{k+1} = (1 - \eta\lambda)\theta_k - \eta\,(\text{gradient step})$. For SGD it coincides with adding $\frac\lambda2\|\theta\|^2$ to the loss (L2 regularization); for adaptive optimizers the two differ (see AdamW). Bayesian reading: MAP with prior $\theta\sim\mathcal N(0, (\lambda N)^{-1}I)$ over $N$ examples' average loss.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ridge regression solved by decay's stationarity: at equilibrium of $\min \frac12\|X\theta - y\|^2 + \frac\lambda2\|\theta\|^2$, the solution $\theta_\lambda = (X^\top X + \lambda I)^{-1}X^\top y$. In the SVD basis of $X$ (singular values $s_i$): $\theta$'s component along right-singular vector $v_i$ gets shrunk by factor $\frac{s_i^2}{s_i^2 + \lambda}$ relative to plain least squares. Strong directions ($s_i^2 \gg \lambda$): untouched. Weak, noise-dominated directions ($s_i^2 \ll \lambda$): crushed. Weight decay is a soft, spectrum-aware low-pass filter on what the data can assert.</div>
+ <div class="box link"><span class="label">Where this goes</span> With normalization layers, a weight vector's SCALE is functionally meaningless — decay then acts on the effective learning rate/rotation speed instead (a genuinely different mechanism); see Ch 21's norm-layer discussions and the L2 section next.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\eta\lambda = 10^{-4}$ and zero gradient, how many steps until a weight halves? <details class="sol"><summary>Solution</summary><div>$(1 - 10^{-4})^k = 0.5 \Rightarrow k \approx \frac{\ln2}{10^{-4}} \approx 6931$ steps.</div></details></li>
+  <li><span class="lvl m">MED</span> Show ridge's shrinkage factor: in the basis where $X^\top X = \mathrm{diag}(s_i^2)$, compare $\theta_{\mathrm{ridge},i}$ to $\theta_{\mathrm{OLS},i}$. <details class="sol"><summary>Solution</summary><div>$\theta_{\mathrm{ridge}} = (X^\top X + \lambda I)^{-1}X^\top y$; componentwise $\theta_{\mathrm{ridge},i} = \frac{(X^\top y)_i}{s_i^2 + \lambda} = \frac{s_i^2}{s_i^2+\lambda}\cdot\frac{(X^\top y)_i}{s_i^2} = \frac{s_i^2}{s_i^2+\lambda}\,\theta_{\mathrm{OLS},i}$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> For a weight vector feeding a normalization layer (so $f(c\theta) = f(\theta)$ for all $c&gt;0$), what does weight decay actually do? <details class="sol"><summary>Solution</summary><div>Scale invariance makes the loss gradient orthogonal to $\theta$ ($\nabla f\cdot\theta = 0$, by differentiating $f(c\theta)$ in $c$). Gradients only rotate $\theta$; decay only shrinks $\|\theta\|$. The steady state balances growth of $\|\theta\|$ from orthogonal gradient steps ($\|\theta\|^2$ increases by $\eta^2\|\nabla f\|^2$) against decay's shrinkage ($\approx 2\eta\lambda\|\theta\|^2$): $\|\theta\|^4 \approx \frac{\eta\|\nabla f\|^2}{2\lambda}$. Since the EFFECTIVE step on the normalized function scales like $\eta/\|\theta\|^2 \propto \sqrt{\eta\lambda}$, weight decay here regulates the effective learning rate, not function complexity — a completely different job than in unnormalized nets.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="l1-regularization">
+ <h2>L1 regularization</h2>
+ <p>Penalize the SUM of absolute values instead of squares and something qualitatively new happens: solutions become exactly sparse — many weights land on exactly zero. The L1 ball has corners on the axes, and optima like corners. L1 is a feature selector you can differentiate (almost).</p>
+ <div class="box def"><span class="label">Definition</span> Add $\lambda\|\theta\|_1 = \lambda\sum_j|\theta_j|$ to the objective (in regression: the <em>lasso</em>). Key operator — the proximal step / soft threshold, the exact solution of $\min_\theta \frac12(\theta - z)^2 + \lambda|\theta|$: $$S_\lambda(z) = \mathrm{sign}(z)\,\max(|z| - \lambda,\ 0).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Orthonormal-design lasso is coordinatewise soft thresholding. Suppose OLS coefficients are $(3, 0.4, -1.2, 0.05)$ and $\lambda = 0.5$: lasso gives $S_{0.5}$ of each $= (2.5,\ 0,\ -0.7,\ 0)$ — two coefficients exactly zero, survivors shrunk by 0.5. Ridge with comparable strength would give $(2.4, 0.32, -0.96, 0.04)$: everything shrunk, NOTHING zero. Why the corner: at $\theta_j = 0$ the penalty has slope $\pm\lambda$ in either direction; unless the loss gradient exceeds $\lambda$ in magnitude, moving off zero costs more than it gains — zero is "sticky."</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $S_{1}(3)$, $S_1(-0.7)$, $S_1(-2.5)$. <details class="sol"><summary>Solution</summary><div>$2$, $0$, $-1.5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the soft-threshold formula for $z &gt; 0$. <details class="sol"><summary>Solution</summary><div>Minimize $h(\theta) = \frac12(\theta - z)^2 + \lambda|\theta|$. If the optimum has $\theta &gt; 0$: $h' = \theta - z + \lambda = 0 \Rightarrow \theta = z - \lambda$, valid when $z &gt; \lambda$. If $z \le \lambda$, check $\theta = 0$: subdifferential $[-\lambda, \lambda] \ni z$... condition $0 \in \{0 - z + \lambda s: s\in[-1,1]\}$ ⇔ $|z| \le \lambda$ ✓. ($\theta&lt;0$ would need $\theta = z + \lambda &gt; 0$, contradiction.) Hence $S_\lambda(z) = \max(z - \lambda, 0)$ for $z&gt;0$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Bayesianly, L1 regularization is MAP under which prior? Derive the correspondence. <details class="sol"><summary>Solution</summary><div>Laplace prior $p(\theta_j) = \frac{b}{2}e^{-b|\theta_j|}$: $-\log p(\theta) = b\|\theta\|_1 + c$. MAP: $\min -\log p(x\mid\theta) + b\|\theta\|_1$, so $\lambda = b$ (per-datum scaling as usual). The Laplace's sharp peak at 0 is the probabilistic face of sparsity — though note the true posterior under a Laplace prior puts zero mass on exact zeros; the MAP point estimate is what's sparse.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="l2-regularization">
+ <h2>L2 regularization</h2>
+ <p>The squared-norm penalty is optimization's favorite regularizer: it keeps everything smooth and strongly convex, shrinks without zeroing, has a closed form for linear models, and equals Gaussian-prior MAP. Where L1 selects, L2 stabilizes — especially against collinearity and ill-conditioning.</p>
+ <div class="box def"><span class="label">Definition</span> Add $\frac\lambda2\|\theta\|_2^2$ to the objective. Effects: Hessian gains $+\lambda I$ (strong convexity and conditioning improve: $\kappa = \frac{L+\lambda}{\mu+\lambda}$ falls); solutions shrink smoothly toward 0; for linear regression the ridge solution $(X^\top X + \lambda I)^{-1}X^\top y$ exists even when $X^\top X$ is singular.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two perfectly collinear features ($x_2 = x_1$): OLS has infinitely many solutions ($\theta_1 + \theta_2$ pinned, the difference free — e.g. $(1000, -999)$ fits as well as $(0.5, 0.5)$). Ridge breaks the tie: among all $\theta_1 + \theta_2 = c$, the penalty $\theta_1^2 + \theta_2^2$ is minimized at $\theta_1 = \theta_2 = c/2$ — the symmetric, small-norm answer, continuously stable to data perturbations. L1 would instead pick ONE feature arbitrarily (a corner) and can flip choice under resampling: selection vs stability, the eternal L1/L2 trade.</div>
+ <div class="quiz" data-answer="0"><div class="q">You have 10,000 features, suspect ~50 matter, and need an interpretable model. Which penalty?</div><button class="opt">L1 — exact zeros select the 50</button><button class="opt">L2 — smoother is better</button><button class="opt">No penalty — let the data speak</button><div class="why" hidden>L1's corners produce exact sparsity: a short, inspectable feature list. L2 keeps all 10,000 small-but-nonzero; no penalty overfits catastrophically at $p \gg n$. (Elastic net — both — handles correlated relevant features.)</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Minimize $f(\theta) = \frac12(\theta - 4)^2 + \frac12\lambda\theta^2$ for $\lambda = 1$. <details class="sol"><summary>Solution</summary><div>$f' = (\theta - 4) + \theta = 0 \Rightarrow \theta = 2$: shrunk halfway to zero (factor $\frac{1}{1+\lambda}$).</div></details></li>
+  <li><span class="lvl m">MED</span> Show adding $\frac\lambda2\|\theta\|^2$ improves the condition number of a quadratic with Hessian eigenvalues in $[\mu, L]$. <details class="sol"><summary>Solution</summary><div>New eigenvalues in $[\mu+\lambda, L+\lambda]$; $\kappa' = \frac{L+\lambda}{\mu+\lambda} &lt; \frac L\mu$ for $\lambda &gt; 0$ (the map $t\mapsto\frac{L+t}{\mu+t}$ is strictly decreasing since $L&gt;\mu$). With $\mu = 0$ (singular): $\kappa' = \frac{L+\lambda}{\lambda}$ — finite where it was infinite.</div></details></li>
+  <li><span class="lvl h">HARD</span> Early stopping of gradient descent on least squares acts like ridge. Make this precise on a single mode with singular value $s$. <details class="sol"><summary>Solution</summary><div>On mode $i$, GD from 0 with step $\eta$ gives after $k$ steps $\theta^{(k)}_i = (1 - (1-\eta s_i^2)^k)\,\theta_{\mathrm{OLS},i}$ (geometric approach). Compare ridge's factor $\frac{s_i^2}{s_i^2+\lambda}$. Both are increasing in $s_i$, filtering weak modes: matching the two factors at first order gives $\lambda \approx \frac{1}{\eta k}$ — stopping time is inverse regularization strength. Strong directions converge fast (learned early); weak/noisy ones are still near 0 when you stop. Training time IS a regularizer.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lagrange-multipliers">
+ <h2>Lagrange multipliers</h2>
+ <p>To optimize on a constraint surface, you don't need new machinery — just a new alignment condition: at a constrained optimum, the objective's gradient must be a combination of the constraints' gradients, because any unclaimed gradient direction would let you slide along the surface and improve. The multipliers are the combination's coefficients — and they price the constraints.</p>
+ <div class="box def"><span class="label">Definition</span> For $\min f(x)$ s.t. $h(x) = 0$: form $\mathcal L(x, \nu) = f(x) + \nu^\top h(x)$. At a regular optimum $x^*$ there exists $\nu^*$ with $$\nabla f(x^*) + \sum_j\nu_j^*\nabla h_j(x^*) = 0,\qquad h(x^*) = 0.$$ Interpretation: $\nu_j^* = -\frac{\partial f^*}{\partial c_j}$ — the sensitivity of the optimal value to relaxing constraint $j$ to $h_j = c_j$ (a shadow price).</div>
+ <div class="box ex"><span class="label">Worked example</span> Maximize entropy $-\sum p_i\log p_i$ subject to $\sum p_i = 1$ (and $p_i\ge0$, inactive at the optimum). $\mathcal L = -\sum p_i\log p_i + \nu(\sum p_i - 1)$. $\partial_{p_i}\mathcal L = -\log p_i - 1 + \nu = 0 \Rightarrow p_i = e^{\nu - 1}$: identical for all $i$; the constraint forces $p_i = \frac1n$. The uniform distribution maximizes entropy — proved in three lines, previewing Ch 16's maximum-entropy principle (add a mean constraint and the same computation births the Boltzmann/softmax distribution).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Move around the constraint circle and watch $\nabla f$ vs the constraint normal: at the optima the two align.</p>
+  <canvas id="cv-lag"></canvas>
+  <div class="ctl"><label>position on circle θ <input type="range" id="lg-t" min="0" max="6.28" step="0.02" value="0.8"></label></div>
+  <div class="out" id="lg-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Minimize $x^2 + y^2$ subject to $x + y = 2$. <details class="sol"><summary>Solution</summary><div>$\nabla f = (2x, 2y) = -\nu(1,1)$ ⇒ $x = y$; constraint gives $x = y = 1$, value 2 ($\nu = -2$). The nearest point of the line to the origin.</div></details></li>
+  <li><span class="lvl m">MED</span> Maximize $xy$ subject to $x + y = 10$ (fence problem). <details class="sol"><summary>Solution</summary><div>$\mathcal L = xy + \nu(x + y - 10)$: $y + \nu = 0$, $x + \nu = 0$ ⇒ $x = y = 5$, product 25. Check it's a max: on the constraint, $xy = x(10-x)$, concave ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Maximize $x^\top Ax$ ($A$ symmetric) subject to $\|x\|^2 = 1$, and interpret. <details class="sol"><summary>Solution</summary><div>$\mathcal L = x^\top Ax - \nu(x^\top x - 1)$; $\nabla_x = 2Ax - 2\nu x = 0 \Rightarrow Ax = \nu x$: critical points are eigenvectors, with objective value $x^\top Ax = \nu$ — the eigenvalue. Max $=\lambda_{\max}$, min $=\lambda_{\min}$: the variational characterization of eigenvalues (Rayleigh quotients, Ch 8), and PCA's derivation (Ch 8, 19) — all one Lagrange computation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="constrained-optimization">
+ <h2>Constrained optimization</h2>
+ <p>Real problems come fenced: budgets, safety limits, probability simplexes, trust regions. The three broad strategies: fold constraints into the objective (penalties/Lagrangians), project back after each step (projected gradient), or reparameterize so the constraint disappears (e.g. softmax for the simplex).</p>
+ <div class="box def"><span class="label">Definition</span> Standard form: $\min f(x)$ s.t. $g_i(x)\le0$, $h_j(x)=0$. <em>Projected gradient descent</em>: $x_{k+1} = P_{\mathcal F}(x_k - \eta\nabla f(x_k))$, converging like unconstrained GD when $\mathcal F$ is convex (projection is nonexpansive). <em>Penalty method</em>: minimize $f + \rho\,\Phi(\text{violation})$ with $\rho\uparrow$; <em>barrier/interior-point</em>: add $-\frac1t\sum\log(-g_i(x))$, sharpen $t\uparrow$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Projected GD onto the simplex-like box: $\min (x-2)^2$ s.t. $0\le x\le1$. Step from $x = 0.8$, $\eta = 0.25$: gradient $2(0.8-2) = -2.4$; raw step to $0.8 + 0.6 = 1.4$; project: $x = 1$. Thereafter every step proposes $&gt;1$ and projection returns 1: converged to the boundary optimum $x^* = 1$, where the (negative) gradient points OUT of the feasible set — the optimality condition for constrained problems is precisely $-\nabla f$ in the normal cone, which projection enforces automatically.</div>
+ <div class="box link"><span class="label">Where this goes</span> Trust-region policy optimization and PPO (Ch 25) are constrained optimization (KL budgets); RLHF's KL penalty (Ch 23) is the penalty method; safety constraints on agents (Ch 32, 35) are feasible sets in action space.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Project the point $(3, -1)$ onto the box $[0,1]^2$. <details class="sol"><summary>Solution</summary><div>Clip each coordinate: $(1, 0)$. (Box projection is coordinatewise clipping.)</div></details></li>
+  <li><span class="lvl m">MED</span> Give the reparameterization that turns "optimize over probability vectors $p\in\Delta_n$" into an unconstrained problem, and its gradient caveat. <details class="sol"><summary>Solution</summary><div>$p = \mathrm{softmax}(z)$, $z\in\mathbb R^n$ free. Caveat: the map is degenerate along $z \to z + c\mathbf 1$ (adds a flat direction) and gradients near vertex solutions vanish (softmax saturation) — the constrained optimum at a vertex is reached only asymptotically. Alternatives: projected gradient with the $O(n\log n)$ simplex projection, or mirror descent/exponentiated gradient, which is "natively" simplex-shaped.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show projection onto a convex set is nonexpansive: $\|P(x) - P(y)\| \le \|x - y\|$, and why this preserves GD convergence rates. <details class="sol"><summary>Solution</summary><div>The variational characterization: $(x - P(x))^\top(z - P(x)) \le 0$ for all $z\in\mathcal F$. Apply with $z = P(y)$, and symmetrically with $z = P(x)$; add: $(x - y - (P(x) - P(y)))^\top(P(x) - P(y)) \ge 0$, so $\|P(x)-P(y)\|^2 \le (x-y)^\top(P(x)-P(y)) \le \|x-y\|\|P(x)-P(y)\|$ (Cauchy–Schwarz); divide. Nonexpansiveness means the projection step never increases distance to $x^*$ (which is fixed by $P$), so every contraction/descent inequality from the unconstrained analysis survives with $P$ appended. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kkt-conditions">
+ <h2>KKT conditions</h2>
+ <p>The Karush–Kuhn–Tucker conditions extend Lagrange multipliers to inequality constraints, adding one beautifully logical clause: complementary slackness — a constraint either binds (active, multiplier allowed) or is slack (inactive, multiplier zero). No price for a fence you're not leaning on.</p>
+ <div class="box def"><span class="label">Definition</span> For $\min f$ s.t. $g_i\le0$, $h_j=0$, the KKT conditions at $(x^*, \mu^*, \nu^*)$: (1) <em>stationarity</em> $\nabla f + \sum\mu_i\nabla g_i + \sum\nu_j\nabla h_j = 0$; (2) <em>primal feasibility</em> $g_i(x^*)\le0$, $h_j(x^*)=0$; (3) <em>dual feasibility</em> $\mu_i\ge0$; (4) <em>complementary slackness</em> $\mu_ig_i(x^*) = 0$ for every $i$. Under constraint qualifications they are necessary; for convex problems (with e.g. Slater's condition) necessary AND sufficient for global optimality.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\min (x-3)^2$ s.t. $x\le1$ (i.e. $g = x - 1 \le 0$). Try the constraint inactive ($\mu = 0$): stationarity gives $x = 3$, infeasible ✗. Try active ($x = 1$): stationarity $2(x-3) + \mu = 0 \Rightarrow \mu = 4 \ge 0$ ✓; slackness holds ($g = 0$) ✓. KKT point: $x^* = 1$, $\mu^* = 4$. The multiplier's meaning: relax to $x \le 1 + \epsilon$ and the optimum improves by $\approx 4\epsilon$ (indeed $f^*(\epsilon) = (2-\epsilon)^2$, slope $-4$). Price of the fence: 4 per unit.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the worked example with constraint $x \le 5$ instead, find the KKT point. <details class="sol"><summary>Solution</summary><div>Inactive case: $x = 3$ feasible ($3\le5$), $\mu = 0$. Done — the fence is slack, price zero.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\min x^2 + y^2$ s.t. $x + y \ge 4$ via KKT. <details class="sol"><summary>Solution</summary><div>Write $g = 4 - x - y \le 0$. Unconstrained optimum $(0,0)$ infeasible → active: $x + y = 4$. Stationarity: $(2x, 2y) + \mu(-1, -1) = 0 \Rightarrow x = y = \mu/2$. Constraint: $x = y = 2$, $\mu = 4 \ge 0$ ✓. Optimum $(2,2)$, value 8.</div></details></li>
+  <li><span class="lvl h">HARD</span> Where do support vectors come from? In the SVM problem $\min\frac12\|w\|^2$ s.t. $y_i(w^\top x_i + b)\ge1$, apply complementary slackness. <details class="sol"><summary>Solution</summary><div>Constraints $g_i = 1 - y_i(w^\top x_i + b) \le 0$ with multipliers $\alpha_i \ge 0$. Stationarity: $w = \sum_i\alpha_iy_ix_i$. Complementary slackness: $\alpha_i &gt; 0$ only where $y_i(w^\top x_i + b) = 1$ — the points ON the margin. All other points have $\alpha_i = 0$ and contribute nothing to $w$: the classifier is a combination of the margin-touching examples alone. "Support vectors" are the active constraints of a KKT system (Ch 19).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="duality">
+ <h2>Duality</h2>
+ <p>Every minimization problem shadows a maximization problem: the dual asks for the best lower bound obtainable by pricing the constraints. Weak duality — the bound is always valid — is a two-line fact; when the gap closes (strong duality), you can solve whichever problem is easier and certify optimality by exhibiting both solutions.</p>
+ <div class="box def"><span class="label">Definition</span> The Lagrangian $\mathcal L(x,\mu,\nu) = f(x) + \sum\mu_ig_i(x) + \sum\nu_jh_j(x)$ yields the <em>dual function</em> $q(\mu,\nu) = \inf_x\mathcal L(x,\mu,\nu)$ — concave always. The <em>dual problem</em>: $\max_{\mu\ge0,\nu} q(\mu,\nu)$, with optimal value $d^* \le p^*$ (<em>weak duality</em>). $p^* - d^*$ is the <em>duality gap</em>; <em>strong duality</em> ($=0$) holds e.g. for convex problems satisfying Slater's condition (a strictly feasible point exists).</div>
+ <div class="box ex"><span class="label">Worked example</span> Weak duality proved: for any feasible $x$ and $\mu\ge0$: $\mathcal L(x,\mu,\nu) = f(x) + \sum\mu_i\underbrace{g_i(x)}_{\le0} + \sum\nu_j\underbrace{h_j(x)}_{=0} \le f(x)$. Hence $q(\mu,\nu) = \inf_{x'}\mathcal L \le \mathcal L(x,\mu,\nu) \le f(x)$; take the inf over feasible $x$: $q \le p^*$, so $d^* \le p^*$. ∎ Every dual-feasible point is a CERTIFICATE: if you hold an $x$ with $f(x) = 8$ and a $(\mu,\nu)$ with $q = 8$, both are optimal, provably, no further search needed.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is the dual function always concave, even for nasty $f$? <details class="sol"><summary>Solution</summary><div>$q(\mu,\nu) = \inf_x \mathcal L$ is an infimum of functions LINEAR in $(\mu,\nu)$ (for each fixed $x$) — a pointwise inf of affine functions is concave. The dual of anything is a nice problem.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the dual of $\min_x x^2$ s.t. $x \ge 1$. <details class="sol"><summary>Solution</summary><div>$g = 1 - x \le 0$: $\mathcal L = x^2 + \mu(1 - x)$; $\inf_x$ at $x = \mu/2$: $q(\mu) = \mu - \mu^2/4$. Maximize over $\mu\ge0$: $\mu^* = 2$, $d^* = 1$. Primal: $x^* = 1$, $p^* = 1$. Gap zero (convex + Slater: $x=2$ strictly feasible) ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Exhibit a problem with a strictly positive duality gap. <details class="sol"><summary>Solution</summary><div>Classic (Boyd &amp; Vandenberghe, Ex. 5.21): $\min e^{-x}$ subject to $x^2/y \le 0$, over $y &gt; 0$. Feasibility forces $x = 0$, so $p^* = e^0 = 1$. Dual: $q(\mu) = \inf_{x,\,y&gt;0}\ e^{-x} + \mu x^2/y$. For any $\mu\ge0$, take $x = t$, $y = t^3$ and let $t\to\infty$: $e^{-t}\to0$ and $\mu t^2/t^3 = \mu/t \to 0$, so $q(\mu) = 0$ for every $\mu$. Hence $d^* = 0$ and the gap is $p^* - d^* = 1$. The problem is even convex — but Slater fails: no point has $x^2/y &lt; 0$. Strict feasibility is not a formality.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convex-duality">
+ <h2>Convex duality</h2>
+ <p>For convex problems, duality becomes an exact mirror: strong duality holds under mild conditions, the dual's solution recovers the primal's, and the dual variables at the optimum are the KKT multipliers — the constraint prices. Often the dual is the computationally friendlier face (fewer variables, better structure, kernelizable).</p>
+ <div class="box thm"><span class="label">Theorem</span> (Slater) If the primal is convex ($f, g_i$ convex, $h$ affine) and some $\tilde x$ has $g_i(\tilde x) &lt; 0$ for all $i$, then $d^* = p^*$ and the dual optimum is attained. At optima, $(x^*, \mu^*, \nu^*)$ satisfy KKT, and $x^*$ minimizes $\mathcal L(\cdot, \mu^*, \nu^*)$: a saddle point $\mathcal L(x^*,\mu,\nu) \le \mathcal L(x^*,\mu^*,\nu^*) \le \mathcal L(x,\mu^*,\nu^*)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Dual of the SVM (continuing the KKT drill): substitute $w = \sum\alpha_iy_ix_i$ and $\sum\alpha_iy_i = 0$ (stationarity in $b$) into $\mathcal L$: $$q(\alpha) = \sum_i\alpha_i - \frac12\sum_{i,j}\alpha_i\alpha_jy_iy_j\,\langle x_i, x_j\rangle,\quad \alpha_i\ge0.$$ The data enter ONLY through inner products $\langle x_i, x_j\rangle$ — so you may replace them with any kernel $k(x_i, x_j)$ and train an SVM in an infinite-dimensional feature space without ever visiting it (Ch 19's kernel trick). Duality isn't bookkeeping; it reshapes what's computable.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Check Slater's condition for $\min x^2$ s.t. $x\ge1$. <details class="sol"><summary>Solution</summary><div>$g(x) = 1 - x$; $\tilde x = 2$ gives $g = -1 &lt; 0$: strictly feasible → strong duality (confirmed in the previous section's computation).</div></details></li>
+  <li><span class="lvl m">MED</span> From the saddle-point property, derive complementary slackness. <details class="sol"><summary>Solution</summary><div>Strong duality: $f(x^*) = q(\mu^*,\nu^*) \le \mathcal L(x^*,\mu^*,\nu^*) = f(x^*) + \sum\mu_i^*g_i(x^*)$ (the $h$ terms vanish). So $\sum\mu_i^*g_i(x^*) \ge 0$; but each term is $\le0$ ($\mu^*\ge0$, $g\le0$). A sum of nonpositive terms that is $\ge0$ must have every term $=0$: $\mu_i^*g_i(x^*) = 0$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the dual of the LP $\min c^\top x$ s.t. $Ax = b$, $x\ge0$. <details class="sol"><summary>Solution</summary><div>$\mathcal L = c^\top x + \nu^\top(b - Ax) - \mu^\top x$ ($\mu\ge0$ for $x\ge0$ as $-x\le0$). $\inf_x$: linear in $x$, finite iff coefficient vanishes: $c - A^\top\nu - \mu = 0$. Then $q = \nu^\top b$. Dual: $\max b^\top\nu$ s.t. $A^\top\nu \le c$ (eliminating $\mu = c - A^\top\nu \ge 0$). Constraint prices max out the value of the resources $b$ — LP duality, next section's foundation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-programming">
+ <h2>Linear programming</h2>
+ <p>When objective and constraints are all linear, the feasible set is a polytope and the optimum sits at a vertex — a corner where enough constraints bind. LPs are the workhorse of operations research, solvable at enormous scale by simplex (walk the vertices) or interior-point (tunnel through the middle) methods.</p>
+ <div class="box def"><span class="label">Definition</span> Standard form: $\min c^\top x$ s.t. $Ax = b$, $x\ge0$. <em>Fundamental theorem:</em> if an optimum exists, some vertex (basic feasible solution) is optimal. <em>LP duality:</em> the dual is $\max b^\top\nu$ s.t. $A^\top\nu\le c$, and strong duality holds whenever either problem is feasible and bounded.</div>
+ <div class="box ex"><span class="label">Worked example</span> A bakery makes bread ($x_1$) and cake ($x_2$); profits 3 and 5. Flour: $x_1 + 2x_2 \le 14$; oven-hours: $3x_1 + x_2 \le 18$; $x\ge0$. Maximize $3x_1 + 5x_2$. Vertices: $(0,0)$: 0; $(6,0)$: 18; $(0,7)$: 35; intersection of the two constraints: $x_1 + 2x_2 = 14$, $3x_1 + x_2 = 18$ ⇒ $x_1 = \frac{22}{5} = 4.4$, $x_2 = 4.8$: profit $13.2 + 24 = 37.2$. Optimum $(4.4, 4.8)$, both resources exhausted. Dual prices: solve $\nu_1 + 3\nu_2 = 3$, $2\nu_1 + \nu_2 = 5$: $\nu_1 = 2.4$/flour-unit, $\nu_2 = 0.2$/oven-hour — pay up to 2.4 for extra flour, and check $b^\top\nu = 14(2.4) + 18(0.2) = 33.6 + 3.6 = 37.2$ ✓ strong duality.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must an LP optimum (when attained, bounded feasible set) occur at a vertex? <details class="sol"><summary>Solution</summary><div>A linear function on a segment attains its min at an endpoint; a polytope is the convex hull of its vertices, so the min over the polytope equals the min over vertices (any interior point is a mixture, and the objective of a mixture is the mixture of objectives).</div></details></li>
+  <li><span class="lvl m">MED</span> Solve graphically: $\max x + y$ s.t. $x\le3$, $y\le2$, $x+2y\le6$, $x,y\ge0$. <details class="sol"><summary>Solution</summary><div>Candidate vertices: $(3,0)$: 3; $(0,2)$: 2; $(3, 1.5)$ (from $x=3$, $x+2y=6$): 4.5; $(2,2)$ (from $y=2$, $x+2y=6$): 4. Optimum $(3, 1.5)$, value 4.5.</div></details></li>
+  <li><span class="lvl h">HARD</span> Express "minimize $\|Ax - b\|_1$" and "minimize $\|Ax - b\|_\infty$" as LPs. <details class="sol"><summary>Solution</summary><div>$\ell_1$: introduce $t\in\mathbb R^m$: $\min \mathbf 1^\top t$ s.t. $-t \le Ax - b \le t$ (each $t_i$ dominates $|a_i^\top x - b_i|$ and is squeezed to it at the optimum). $\ell_\infty$: one scalar $s$: $\min s$ s.t. $-s\mathbf 1 \le Ax - b \le s\mathbf 1$. Robust regression and Chebyshev fitting are LPs — this reduction trick (epigraph variables) turns a zoo of piecewise-linear objectives into standard form.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="coordinate-descent">
+ <h2>Coordinate descent</h2>
+ <p>Instead of nudging every parameter at once, optimize one coordinate (or block) to completion, then the next, cycling. When single-coordinate subproblems have closed forms — as in lasso, where each is a soft-threshold — coordinate descent is brutally simple and often the fastest thing available.</p>
+ <div class="box def"><span class="label">Definition</span> Cycle $j = 1..n$: $$x_j \leftarrow \arg\min_{t}\ f(x_1,\dots,x_{j-1},\ t,\ x_{j+1},\dots,x_n),$$ (or a gradient step on coordinate $j$). Convergence: guaranteed for smooth convex $f$, and for nonsmooth parts that are SEPARABLE across coordinates ($f = g(x) + \sum_j h_j(x_j)$, e.g. lasso); random coordinate order often analyzes and performs better than cyclic.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x, y) = x^2 + y^2 + xy - 4x - 5y$. Coordinate minimizations: $\partial_x = 2x + y - 4 = 0 \Rightarrow x = (4-y)/2$; $\partial_y = 2y + x - 5 = 0 \Rightarrow y = (5-x)/2$. From $(0,0)$: $x = 2$; $y = 1.5$; $x = 1.25$; $y = 1.875$; $x = 1.0625$; $y = 1.96875$; → converging geometrically (factor $\frac14$ per full cycle) to the true optimum $(1, 2)$ (check: $2 + 2 - 4 = 0$ ✓, $4 + 1 - 5 = 0$ ✓). The coupling term $xy$ is what makes it iterate rather than finish in one sweep.</div>
+ <div class="box pit"><span class="label">Pitfall</span> On NONSEPARABLE nonsmooth objectives, coordinate descent can jam at non-optimal points: e.g. $f(x,y) = |x - y| + 0.1(x+y)^2$-type couplings — both single-coordinate moves look uphill while a diagonal move descends. Separability of the nonsmooth part is not a technicality; it's the license.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> One coordinate-descent sweep on $f(x,y) = (x-1)^2 + (y-3)^2$ from $(0,0)$? <details class="sol"><summary>Solution</summary><div>$x \leftarrow 1$, then $y \leftarrow 3$: done in one sweep — separable objectives finish immediately.</div></details></li>
+  <li><span class="lvl m">MED</span> Write the lasso coordinate update for $\min_\beta \frac12\|y - X\beta\|^2 + \lambda\|\beta\|_1$ with standardized columns ($\|x_j\|^2 = 1$). <details class="sol"><summary>Solution</summary><div>Partial residual $r_j = y - \sum_{k\ne j}x_k\beta_k$; the 1-D problem is $\min_t \frac12\|r_j - x_jt\|^2 + \lambda|t|$, solved by $\beta_j \leftarrow S_\lambda(x_j^\top r_j)$ — soft-threshold of the coordinate's correlation with the residual. Cycling this is glmnet's engine.</div></details></li>
+  <li><span class="lvl h">HARD</span> When does coordinate descent beat gradient descent per unit compute? Give the accounting. <details class="sol"><summary>Solution</summary><div>A full gradient costs $n$ coordinate-derivatives; one CD update costs 1 (when partial residuals are cached, as in lasso where updating $\beta_j$ adjusts $r$ in $O(\text{nnz}(x_j))$). Per full sweep, CD does $n$ EXACT 1-D minimizations for the price of one GD step's gradient. CD wins when: coordinate subproblems are closed-form, coupling is moderate (near-diagonal Hessian → few sweeps), and data is sparse (updates touch few entries). GD wins when coordinates are strongly coupled (CD zigzags, as in the worked example's $xy$ term scaled up) or the objective isn't coordinate-friendly.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="proximal-methods">
+ <h2>Proximal methods</h2>
+ <p>Many modern objectives are "smooth loss + nonsmooth regularizer." Proximal methods split the work: take a gradient step on the smooth part, then apply the regularizer's proximal operator — its exact, often closed-form "denoising" step. Gradient descent handles what it's good at; the prox absorbs the kinks.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>proximal operator</em> of $h$: $$\mathrm{prox}_{\eta h}(z) = \arg\min_x\ h(x) + \frac{1}{2\eta}\|x - z\|^2.$$ <em>Proximal gradient</em> for $\min f + h$ ($f$ smooth): $x_{k+1} = \mathrm{prox}_{\eta h}(x_k - \eta\nabla f(x_k))$; converges at GD's rates. Named instances: $h = \lambda\|\cdot\|_1$ → ISTA (prox = soft threshold); $h = \iota_C$ (indicator of a convex set) → projected gradient (prox = projection); FISTA adds Nesterov acceleration.</div>
+ <div class="box ex"><span class="label">Worked example</span> One ISTA step on lasso: $f = \frac12\|X\beta - y\|^2$, $h = \lambda\|\beta\|_1$. Take $X = I$ (denoising), $y = (3, 0.4, -1.2)$, $\eta = 1$, $\lambda = 0.5$, from $\beta = 0$: gradient step lands at $z = y$; prox: $S_{0.5}(y) = (2.5, 0, -0.7)$. One step, exact sparsity, no subgradient dithering around zero — compare subgradient descent, which would oscillate $\beta_2$ around 0 forever at rate $O(1/\sqrt k)$ instead of setting it exactly.</div>
+ <div class="box link"><span class="label">Where this goes</span> Proximal thinking underlies trust regions (prox of an indicator ball), PPO's clipped objective (a prox-like constraint on policy change, Ch 25), and diffusion-model denoisers (a learned prox, Ch 22).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is $\mathrm{prox}_{\eta h}$ when $h = 0$? When $h = \iota_C$? <details class="sol"><summary>Solution</summary><div>$h=0$: the identity (recovering plain GD). $h = \iota_C$: the Euclidean projection onto $C$ (recovering projected GD) — both are special cases of one template.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\mathrm{prox}_{\eta h}$ for $h(x) = \frac\lambda2\|x\|^2$. <details class="sol"><summary>Solution</summary><div>Minimize $\frac\lambda2\|x\|^2 + \frac{1}{2\eta}\|x - z\|^2$: $\lambda x + \frac{x - z}{\eta} = 0 \Rightarrow x = \frac{z}{1 + \eta\lambda}$ — uniform shrinkage; proximal gradient with L2 is GD with multiplicative decay, tying the room together with the weight-decay section.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the prox of a convex $h$ is well-defined (unique) and firmly nonexpansive intuition: show $\|\mathrm{prox}(z_1) - \mathrm{prox}(z_2)\| \le \|z_1 - z_2\|$. <details class="sol"><summary>Solution</summary><div>Uniqueness: the objective is $h$ (convex) plus a strongly convex quadratic → strongly convex → unique minimizer. Nonexpansiveness: optimality of $p_i = \mathrm{prox}(z_i)$ gives $z_i - p_i \in \eta\,\partial h(p_i)$. Monotonicity of the subdifferential: $(u_1 - u_2)^\top(p_1 - p_2) \ge 0$ for $u_i\in\partial h(p_i)$; apply with $u_i = (z_i - p_i)/\eta$: $(z_1 - z_2)^\top(p_1 - p_2) \ge \|p_1 - p_2\|^2$. Cauchy–Schwarz finishes: $\|p_1 - p_2\| \le \|z_1 - z_2\|$. ∎ Prox steps never expand distances — the stability that makes splitting schemes converge.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="second-order-optimization">
+ <h2>Second-order optimization</h2>
+ <p>First-order methods see the slope; second-order methods also see the curvature, and can therefore rescale each direction by how sharply it bends — killing the zigzag disease of ill-conditioned valleys in a single stroke. The catch is arithmetic: the Hessian has $n^2$ entries, and $n$ is a trillion.</p>
+ <div class="box def"><span class="label">Definition</span> A second-order method uses (an approximation of) the Hessian $H = \nabla^2f$ in its update, prototype $x_{k+1} = x_k - \eta\,P_k^{-1}\nabla f(x_k)$ with preconditioner $P_k \approx H$. The costs: forming $H$ is $O(n^2)$ memory, solving $H d = -\nabla f$ is $O(n^3)$ naively — hence the entire sub-industry of approximations: quasi-Newton (below), Hessian-free (CG on Hessian-vector products, each just 2× a gradient's cost via autodiff), diagonal (Adam-family), and Kronecker-factored (K-FAC, Shampoo).</div>
+ <div class="box ex"><span class="label">Worked example</span> The ill-conditioned valley $f = x^2 + 10y^2$ once more. $H = \mathrm{diag}(2, 20)$. Preconditioned update with $P = H$, $\eta = 1$: $(x, y) \leftarrow (x, y) - (2x/2,\ 20y/20) = (0, 0)$ — exact convergence in ONE step from anywhere, versus gradient descent's hundreds of zigzag steps at $\kappa = 10$. Curvature rescaling makes every quadratic look like the perfectly round bowl.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is even STORING the Hessian impossible for a 7B-parameter model? <details class="sol"><summary>Solution</summary><div>$n^2 = (7\times10^9)^2 \approx 5\times10^{19}$ entries — about 200 exabytes in fp32. Structure (diagonal, low-rank, Kronecker) isn't optional; it's the only way in.</div></details></li>
+  <li><span class="lvl m">MED</span> A Hessian-vector product $Hv$ can be computed without forming $H$. How, and at what cost? <details class="sol"><summary>Solution</summary><div>$Hv = \nabla_x(\nabla f(x)^\top v)$ — the gradient of a scalar (directional derivative), computable by one extra backward pass through the autodiff graph (or finite differences of gradients). Cost: a small constant times one gradient. This powers Hessian-free/Newton-CG and curvature diagnostics like top-eigenvalue tracking.</div></details></li>
+  <li><span class="lvl h">HARD</span> The Gauss–Newton matrix replaces the Hessian for losses $f = \frac12\|r(\theta)\|^2$. Derive it and note why it is PSD when the true Hessian may not be. <details class="sol"><summary>Solution</summary><div>$\nabla f = J^\top r$ ($J = \partial r/\partial\theta$); $\nabla^2 f = J^\top J + \sum_i r_i\nabla^2r_i$. Gauss–Newton keeps $G = J^\top J \succeq 0$ (a Gram matrix) and drops the residual-weighted term, which can be indefinite and vanishes at zero-residual solutions. $G$ (and its expectation-form twin, the Fisher matrix) is thus a curvature proxy that is always safe to invert — the foundation of Levenberg–Marquardt, natural gradient, and K-FAC.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="newtons-method">
+ <h2>Newton's method</h2>
+ <p>Newton's method fits the local quadratic model exactly and jumps to its minimum. Near a well-behaved optimum it converges quadratically — the number of correct digits DOUBLES per iteration — an experience so unlike first-order crawling that it feels like cheating. Far from the optimum, it needs adult supervision.</p>
+ <div class="box def"><span class="label">Definition</span> $$x_{k+1} = x_k - [\nabla^2f(x_k)]^{-1}\nabla f(x_k),$$ i.e. minimize the quadratic model $f(x_k) + \nabla f^\top d + \frac12d^\top Hd$ over the step $d$. Local convergence: if $H(x^*)\succ0$ and $H$ is Lipschitz, then for $x_0$ close enough, $\|x_{k+1} - x^*\| \le C\|x_k - x^*\|^2$. Safeguards for global behavior: damping ($x + \alpha d$ with line search), Levenberg–Marquardt regularization $H + \lambda I$, or trust regions.</div>
+ <div class="box ex"><span class="label">Worked example</span> Root-finding flavor on $g(x) = x^2 - 2$ (i.e. compute $\sqrt2$): $x_{k+1} = x_k - \frac{g}{g'} = \frac{x_k}{2} + \frac{1}{x_k}$. From $x_0 = 1$: $1.5$; $1.41\overline{6}$; $1.4142157$; $1.4142136$ — errors $0.09$, $2.5\times10^{-3}$, $2.1\times10^{-6}$, $1.6\times10^{-12}$: squaring each time. Four iterations, machine precision. (Optimization Newton on $f = \frac{x^4}{4} - 2x^2$... same engine: solve $\nabla f = 0$ by Newton root-finding on the gradient.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> Newton solves $\nabla f = 0$ — it converges to ANY critical point, including maxima and saddles (where $H$ has negative eigenvalues, the "Newton direction" $-H^{-1}\nabla f$ may point uphill). Nonconvex use requires modifying $H$ (flip/clip negative eigenvalues, add $\lambda I$) or trust regions. Also: quadratic convergence is LOCAL; from a bad start, raw Newton happily diverges.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> One Newton step on $f(x) = x^2 - 6x$ from $x_0 = 0$. <details class="sol"><summary>Solution</summary><div>$f' = 2x - 6$, $f'' = 2$: $x_1 = 0 - \frac{-6}{2} = 3$ — the exact minimum. Newton finishes any quadratic in one step, by construction.</div></details></li>
+  <li><span class="lvl m">MED</span> Newton for $\sqrt a$ (root of $x^2 - a$): show the error recursion $e_{k+1} = \frac{e_k^2}{2x_k}$. <details class="sol"><summary>Solution</summary><div>$x_{k+1} - \sqrt a = \frac{x_k}{2} + \frac{a}{2x_k} - \sqrt a = \frac{x_k^2 - 2\sqrt a x_k + a}{2x_k} = \frac{(x_k - \sqrt a)^2}{2x_k}$. ∎ Quadratic convergence made explicit — and the reason your CPU's <code>rsqrt</code> refinement uses exactly this iteration.</div></details></li>
+  <li><span class="lvl h">HARD</span> Newton on $f(x) = \sqrt{1 + x^2}$ (a convex function!): show divergence from $|x_0| &gt; 1$. <details class="sol"><summary>Solution</summary><div>$f' = \frac{x}{\sqrt{1+x^2}}$, $f'' = (1+x^2)^{-3/2}$. Newton: $x_{k+1} = x_k - x(1+x^2) \cdot ... $ compute: $\frac{f'}{f''} = x(1 + x^2)$. So $x_{k+1} = x_k - x_k(1 + x_k^2) = -x_k^3$. $|x_0| &lt; 1$: cubically fast to 0 ✓. $|x_0| &gt; 1$: $|x_k|$ cubes each step — explosive divergence, on a smooth strictly convex function with a unique minimum. The quadratic model trusts curvature that flattens away from 0; damped/line-searched Newton fixes this (any $\alpha\le1$ with Armijo backtracking converges globally here).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quasi-newton-methods">
+ <h2>Quasi-Newton methods</h2>
+ <p>Quasi-Newton methods earn Newton-like speed without ever touching a Hessian: they watch how the gradient changes between iterates and splice those observations into a running curvature estimate. Each step teaches the approximation one new direction — the one you just moved in.</p>
+ <div class="box def"><span class="label">Definition</span> Maintain $B_k \approx \nabla^2f$ (or $H_k \approx (\nabla^2f)^{-1}$); step $d_k = -H_k\nabla f_k$ (with line search). After moving, record $s_k = x_{k+1} - x_k$ and $y_k = \nabla f_{k+1} - \nabla f_k$, and update the estimate to satisfy the <em>secant equation</em> $$B_{k+1}s_k = y_k$$ — the defining constraint: the new model must reproduce the curvature actually observed along $s_k$ (since $y_k \approx \nabla^2f\cdot s_k$ by Taylor). Different minimal-change updates give SR1, DFP, BFGS.</div>
+ <div class="box ex"><span class="label">Worked example</span> Curvature from two gradients, 1-D: at $x = 1$, $f' = -4$; step to $x = 2$, $f' = -1$. Secant: $B\cdot(2-1) = (-1) - (-4) = 3 \Rightarrow B = 3$ — the estimated $f'' $. Next quasi-Newton step: $x = 2 - \frac{-1}{3} = 2.33$. (If $f$ really is the quadratic $\frac32x^2 - 7x$: $f'' = 3$ ✓ exactly, and $2.33 = 7/3$ is its true minimum — secant information is exact on quadratics along the sampled direction.)</div>
+ <div class="box think"><span class="label">Think first</span> The secant equation is $n$ equations; $B$ has $\sim n^2/2$ freedoms. How do quasi-Newton methods pick among the infinitely many solutions? <details class="sol"><summary>Reveal</summary><div>Minimal change: choose the $B_{k+1}$ (or $H_{k+1}$) CLOSEST to the current estimate in a weighted norm, subject to the secant equation and symmetry. BFGS is exactly the solution of such a variational problem for $H$. Curvature knowledge accumulates conservatively, one observed direction at a time.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is the pair $(s_k, y_k)$ free to collect — what do both quantities cost? <details class="sol"><summary>Solution</summary><div>Nothing extra: $s_k$ is the step you took anyway, $y_k$ the difference of gradients you had to compute anyway. Quasi-Newton's curvature is a byproduct of first-order work.</div></details></li>
+  <li><span class="lvl m">MED</span> The curvature condition $s_k^\top y_k &gt; 0$ is required to keep $B_{k+1}\succ0$. When does it hold automatically, and how is it enforced otherwise? <details class="sol"><summary>Solution</summary><div>For strictly convex $f$ it always holds ($s^\top y = s^\top\bar Hs &gt; 0$ for the average Hessian $\bar H\succ0$). Nonconvex: enforced by a Wolfe-condition line search (its second condition guarantees $s^\top y &gt; 0$), or by damping/skipping updates with $s^\top y \le \epsilon$.</div></details></li>
+  <li><span class="lvl h">HARD</span> On an $n$-dimensional strictly convex QUADRATIC with exact line searches, BFGS terminates in at most $n$ iterations. Why, morally? <details class="sol"><summary>Solution</summary><div>Each iteration enforces one new secant equation, which on a quadratic is exact information $Bs = \nabla^2f\,s$ along one direction; the updates preserve previously learned directions (hereditary property), and the generated directions are conjugate. After $n$ steps the approximation acts like the true Hessian on a full basis, and the method has minimized over the whole space — the same finite-termination logic as conjugate gradients (Ch 18), of which BFGS-with-exact-line-search is a generalization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bfgs">
+ <h2>BFGS</h2>
+ <p>Broyden–Fletcher–Goldfarb–Shanno is the quasi-Newton method — the specific rank-two update that proved most robust in decades of practice. It maintains a positive-definite inverse-Hessian estimate, costs $O(n^2)$ per step, and with Wolfe line searches converges superlinearly.</p>
+ <div class="box def"><span class="label">Definition</span> With $\rho_k = \frac{1}{y_k^\top s_k}$, the inverse-Hessian update: $$H_{k+1} = (I - \rho_ks_ky_k^\top)\,H_k\,(I - \rho_ky_ks_k^\top) + \rho_k s_ks_k^\top.$$ Properties: satisfies the secant equation $H_{k+1}y_k = s_k$; preserves symmetry and (given $s^\top y &gt; 0$) positive definiteness; superlinear local convergence: $\frac{\|x_{k+1} - x^*\|}{\|x_k - x^*\|} \to 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> One update from $H_0 = I$ in 2-D: $s = (1, 0)^\top$, $y = (3, 1)^\top$ (so the function curves 3 along $x$, with cross-coupling). $\rho = \frac{1}{3}$. Compute $H_1 y \stackrel{!}{=} s$ as the acid test: by construction it must hold. Carrying out the algebra: $A = I - \rho sy^\top = \begin{pmatrix}1-1 &amp; -1/3\\0&amp;1\end{pmatrix} = \begin{pmatrix}0&amp;-1/3\\0&amp;1\end{pmatrix}$; $AA^\top = \begin{pmatrix}1/9&amp;-1/3\\-1/3&amp;1\end{pmatrix}$; $H_1 = AA^\top + \frac13ss^\top = \begin{pmatrix}1/9 + 1/3&amp;-1/3\\-1/3&amp;1\end{pmatrix} = \begin{pmatrix}4/9&amp;-1/3\\-1/3&amp;1\end{pmatrix}$. Check secant: $H_1y = (4/3 - 1/3,\ -1 + 1)^\top = (1, 0)^\top = s$ ✓. The estimate has learned "direction $x$ has curvature ≈3, and it couples to $y$" from one step.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Per-iteration cost of BFGS in $n$ dimensions (given the gradient)? <details class="sol"><summary>Solution</summary><div>$O(n^2)$: a few outer-product updates and a matrix-vector multiply. No $O(n^3)$ solve — the whole point of updating $H \approx B^{-1}$ directly.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify in general (not just the example) that the BFGS update satisfies $H_{k+1}y_k = s_k$. <details class="sol"><summary>Solution</summary><div>$(I - \rho sy^\top)H(I - \rho ys^\top)y + \rho ss^\top y$. Note $(I - \rho ys^\top)y = y - \rho y(s^\top y) = y - y = 0$, killing the first term; and $\rho ss^\top y = s\,\rho(y^\top s) = s$. Total: $s$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is preserving $H\succ0$ so valuable in practice — what failure mode does it preclude? <details class="sol"><summary>Solution</summary><div>$H_k\succ0$ guarantees $d_k = -H_k\nabla f_k$ is a DESCENT direction ($\nabla f^\top d = -\nabla f^\top H\nabla f &lt; 0$) at every iterate, so the line search always has somewhere to go and the method can't stall pointing uphill — even on nonconvex functions where the true Hessian is indefinite. BFGS thus implicitly performs a positive-definite regularization of reality; combined with Wolfe searches this yields the rock-solid global behavior that made it THE default for medium-scale smooth optimization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="l-bfgs">
+ <h2>L-BFGS</h2>
+ <p>For large $n$, even storing the $n\times n$ estimate is too much. Limited-memory BFGS keeps only the last $m \approx 5$–20 pairs $(s_i, y_i)$ and applies the inverse-Hessian implicitly by a short recursion over them: $O(mn)$ memory and time. It is the standard heavy-duty optimizer for full-batch problems — classical ML, physics, and fine-tuning-scale fits.</p>
+ <div class="box def"><span class="label">Definition</span> L-BFGS computes $d = -H_k\nabla f_k$ via the <em>two-loop recursion</em>: backward over the $m$ stored pairs ($\alpha_i = \rho_is_i^\top q$; $q \leftarrow q - \alpha_iy_i$), scale by $H^0 = \gamma I$ with $\gamma = \frac{s^\top y}{y^\top y}$ (latest pair), then forward ($\beta = \rho_iy_i^\top r$; $r \leftarrow r + s_i(\alpha_i - \beta)$). Memory: $2mn$ floats. The oldest pair is dropped each iteration.</div>
+ <div class="box ex"><span class="label">Worked example</span> Budget arithmetic for $n = 10^7$ (a smallish neural net or large logistic regression): full BFGS matrix $= 10^{14}$ floats $= 400$ TB — impossible. L-BFGS with $m = 10$: $2\cdot10\cdot10^7 = 2\times10^8$ floats $= 0.8$ GB — a laptop. Per step: ~$4mn = 4\times10^8$ flops, trivial beside the gradient itself. The two-loop recursion turns curvature-aware stepping into a rounding error on the gradient bill.</div>
+ <div class="box pit"><span class="label">Pitfall</span> L-BFGS assumes consistent gradients between iterations: with minibatch noise, the pairs $(s, y)$ measure noise as curvature and the estimate corrupts. Use it full-batch (or with very large fixed batches / carefully overlapping batches); for stochastic training, Adam-family methods remain the tool.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Memory for L-BFGS, $n = 10^6$, $m = 20$, fp64? <details class="sol"><summary>Solution</summary><div>$2\cdot20\cdot10^6\cdot8$ B $= 320$ MB.</div></details></li>
+  <li><span class="lvl m">MED</span> What does the initial scaling $\gamma = \frac{s^\top y}{y^\top y}$ estimate, and why does it matter? <details class="sol"><summary>Solution</summary><div>It's a Rayleigh-quotient-style estimate of $1/\lambda$ along the most recent direction — the inverse of the local curvature scale — so $H^0 = \gamma I$ starts the recursion at the right ORDER OF MAGNITUDE. Without it (e.g. $H^0 = I$), the first search direction can be off by orders of magnitude, forcing long line searches; with it, unit step length is usually accepted.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does small $m$ (5–20) work so well, when the Hessian has millions of eigendirections? <details class="sol"><summary>Solution</summary><div>Gradient trajectories concentrate in the few directions of extreme curvature (the dominant Hessian eigenspace): those are the directions that cause zigzagging and thus dominate the error. The recent $(s, y)$ pairs sample exactly this active subspace, so a rank-$2m$ correction to a scaled identity captures most of the ill-conditioning that MATTERS for the current trajectory. Directions with middling curvature don't need correction — plain gradient handles them fine. Empirically, returns diminish sharply beyond $m \approx 20$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="trust-region-methods">
+ <h2>Trust-region methods</h2>
+ <p>Line search picks a direction then asks how far; trust regions invert the logic: fix a radius within which the quadratic model is trusted, minimize the model inside that ball, then audit — did reality match the model's promise? Grow the radius when it did, shrink when it didn't. It is the most principled cure for Newton's wild side.</p>
+ <div class="box def"><span class="label">Definition</span> Solve the subproblem $$\min_{\|d\|\le\Delta_k}\ m_k(d) = f_k + g_k^\top d + \tfrac12 d^\top B_kd,$$ then compute the <em>trust ratio</em> $\rho = \frac{f(x_k) - f(x_k + d)}{m_k(0) - m_k(d)}$ (actual/predicted reduction). If $\rho$ is high (e.g. $&gt;0.75$ and step at boundary): accept, grow $\Delta$; moderate: accept, keep $\Delta$; low ($&lt;0.25$ or negative): reject, shrink $\Delta$. The subproblem's solution satisfies $(B + \lambda I)d = -g$ for some $\lambda\ge0$ with $\lambda(\Delta - \|d\|) = 0$ — trust regions ARE Levenberg–Marquardt damping, with $\lambda$ chosen by geometry instead of by hand.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1-D, $f$ with $g = -4$, $B = 2$ at the current point, $\Delta = 1$. Unconstrained model min: $d = -g/B = 2$ — outside. Constrained: $d = 1$ (boundary), predicted reduction $= -( -4 + 1) = 3$. Suppose the true drop is $2.4$: $\rho = 0.8$ → accept, grow $\Delta$ to 2. If instead the function betrayed us (true drop $0.3$, $\rho = 0.1$): reject, shrink $\Delta$ to $0.25$ — the model was trusted too far, and the next subproblem is nearly a (safe, short) gradient step: as $\Delta\to0$, the solution direction $\to -g$. Trust regions interpolate automatically between gradient descent (tiny $\Delta$) and Newton (large $\Delta$).</div>
+ <div class="box link"><span class="label">Where this goes</span> TRPO (Ch 25) is literally this template on policy space with a KL ball as the region; its practical child PPO replaces the ball with a clipped surrogate. "Optimize a local model, but only where you trust it" recurs in model-based RL (Ch 29) too.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\rho = -0.5$ (the step INCREASED the loss). What does the algorithm do? <details class="sol"><summary>Solution</summary><div>Reject the step (stay put) and shrink $\Delta$ — the model is wrong at this radius; try a more local, more trustworthy one. Note GD with a bad step has no such audit; it just moves.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the trust-region subproblem remain meaningful when $B$ has negative eigenvalues — and what does the solution do with them? <details class="sol"><summary>Solution</summary><div>The ball constraint makes the subproblem bounded regardless of $B$'s signature; the optimal $d$ pushes to the boundary ALONG negative-curvature directions (they reduce the model without limit, so use the whole radius on them). Trust regions thus exploit saddle-escape directions naturally — the capability plain Newton lacks.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the boundary condition: if $\|d^*\| = \Delta$, then $(B + \lambda I)d^* = -g$ for some $\lambda \ge 0$ making $B + \lambda I \succeq 0$. <details class="sol"><summary>Solution</summary><div>KKT on $\min m(d)$ s.t. $\frac12(\|d\|^2 - \Delta^2)\le0$: stationarity $g + Bd + \lambda d = 0$ gives $(B + \lambda I)d = -g$ with $\lambda\ge0$, complementary slackness ties $\lambda &gt; 0$ to the boundary. Second-order necessary conditions on the sphere require $B + \lambda I \succeq 0$ (curvature of the Lagrangian along feasible directions); intuitively $\lambda$ lifts $B$'s spectrum until the model is convex enough to be trusted in the ball, connecting exactly to Levenberg–Marquardt's $+\lambda I$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sharpness">
+ <h2>Sharpness</h2>
+ <p>Two minima with identical training loss can differ in the shape of the surrounding valley: one a narrow slot canyon, the other a broad basin. Sharpness measures that difference — via the Hessian's top eigenvalue or the worst loss increase in a small ball — and it correlates (imperfectly but usefully) with how well the solution generalizes.</p>
+ <div class="box def"><span class="label">Definition</span> Common sharpness measures at $\theta^*$: spectral, $\lambda_{\max}(\nabla^2L(\theta^*))$; perturbation-based, $\max_{\|\epsilon\|\le\rho} L(\theta^* + \epsilon) - L(\theta^*)$ (for small $\rho$, $\approx \frac{\rho^2}{2}\lambda_{\max}$); trace/expected, $\mathbb E_{\epsilon\sim\mathcal N(0,\sigma^2I)}[L(\theta+\epsilon)] - L(\theta) \approx \frac{\sigma^2}{2}\mathrm{tr}(\nabla^2L)$. Heuristic link to generalization: a flat minimum's loss is robust to the parameter-space shift between train and test landscapes; PAC-Bayes (Ch 20) makes a version rigorous.</div>
+ <div class="box ex"><span class="label">Worked example</span> $L_1(\theta) = 50\theta^2$ (sharp) vs $L_2(\theta) = 0.5\theta^2$ (flat), both minimized at 0 with loss 0. Test landscape shifted by $\delta = 0.1$ (the train/test distributions differ slightly): test loss at the trained $\theta = 0$ is $50(0.1)^2 = 0.5$ vs $0.5(0.1)^2 = 0.005$ — a 100× generalization gap, purely from curvature. Same picture under weight noise (quantization, dropout at inference): expected excess loss $= \frac{\sigma^2}{2}L''$, linear in sharpness.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Naive sharpness is NOT reparameterization-invariant: scale a ReLU layer's weights up and the next layer's down and the function — and its generalization — is unchanged while $\lambda_{\max}$ changes arbitrarily (Dinh et al.). Comparisons are meaningful only within a fixed parameterization or with invariant/normalized measures (e.g. adaptive SAM's, or scale-aware metrics).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the perturbation sharpness ($\rho = 0.1$) of $L(\theta) = 8\theta^2$ at 0. <details class="sol"><summary>Solution</summary><div>$\max_{|\epsilon|\le0.1} 8\epsilon^2 = 8(0.01) = 0.08$ (and $\frac{\rho^2}{2}\lambda_{\max} = \frac{0.01}{2}\cdot16 = 0.08$ ✓).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does a larger $\eta/B$ (SGD noise scale) bias training toward flatter minima? <details class="sol"><summary>Solution</summary><div>Two mechanisms: (1) stability — GD/SGD is linearly unstable at minima with $\lambda_{\max} &gt; 2/\eta$; large $\eta$ simply cannot settle in sharp basins and bounces out (edge-of-stability). (2) Stochastic escape — noise-driven exit rates from a basin fall with its width; the iterate statistically accumulates where valleys are broad (Ch 12 Langevin picture, and this chapter's SGD-noise section).</div></details></li>
+  <li><span class="lvl h">HARD</span> Using the shifted-landscape model $L_{\text{test}}(\theta) = L_{\text{train}}(\theta - \delta)$ with random $\delta\sim\mathcal N(0, \sigma^2I)$, derive the expected generalization gap at a minimum in terms of the Hessian. <details class="sol"><summary>Solution</summary><div>Second-order Taylor at the minimum $\theta^*$ (where $\nabla L = 0$): $L_{\text{train}}(\theta^* - \delta) \approx L^* + \frac12\delta^\top H\delta$. Expected gap $= \mathbb E[\frac12\delta^\top H\delta] = \frac{\sigma^2}{2}\mathrm{tr}(H)$. The trace of the Hessian — total sharpness across all directions — prices the expected damage of any isotropic train/test mismatch in parameter space. (The model is a caricature — real shift lives in function/data space — but it is the cleanest seed of the flatness–generalization story.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sharpness-aware-minimization">
+ <h2>Sharpness-Aware Minimization</h2>
+ <p>If flat minima generalize better, why not optimize for flatness directly? SAM minimizes the WORST loss in a small ball around the weights rather than the loss at the point: to score well, a solution must sit in a basin at least $\rho$ wide in every direction. Two gradient evaluations per step buy measurably better generalization across vision and language tasks.</p>
+ <div class="box def"><span class="label">Definition</span> SAM objective: $\min_\theta\ \max_{\|\epsilon\|_2\le\rho} L(\theta + \epsilon)$. Practical algorithm: (1) linearize the inner max — the worst perturbation is along the gradient: $\hat\epsilon = \rho\frac{\nabla L(\theta)}{\|\nabla L(\theta)\|}$; (2) compute the gradient AT the perturbed point and step with it: $$\theta \leftarrow \theta - \eta\,\nabla L\big(\theta + \hat\epsilon\big).$$ Cost: 2× forward-backward per step. Variants: ASAM (scale-invariant radius), efficiency tricks (apply every $k$ steps).</div>
+ <div class="box ex"><span class="label">Worked example</span> The double-well $L(\theta) = \min$-ish landscape made concrete: sharp minimum at $\theta = 0$ with $L = 50\theta^2$ locally; flat minimum at $\theta = 3$ with $L = 0.1 + 0.5(\theta - 3)^2$ locally. Plain GD ranks $\theta = 0$ better ($0 &lt; 0.1$). SAM with $\rho = 0.2$ scores each by its ball-worst value: sharp basin $\max_{|\epsilon|\le0.2} 50\epsilon^2 = 2.0$; flat basin $0.1 + 0.5(0.2)^2 = 0.12$. SAM prefers the flat minimum, 0.12 vs 2.0 — the ranking FLIPS. If test-time reality perturbs weights or landscape by ~0.2, SAM's choice is the right one.</div>
+ <div class="box link"><span class="label">Where this goes</span> SAM's min-max template echoes adversarial training (perturb inputs instead of weights, Ch 35) and distributionally robust optimization; sharpness threads into Ch 21's flat-minima discussion and Ch 20's PAC-Bayes bounds.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is the worst-case perturbation approximately along $\nabla L$? <details class="sol"><summary>Solution</summary><div>First-order: $L(\theta + \epsilon) \approx L(\theta) + \nabla L^\top\epsilon$, maximized over $\|\epsilon\|\le\rho$ at $\epsilon = \rho\nabla L/\|\nabla L\|$ (Cauchy–Schwarz — the same argument that makes $-\nabla L$ steepest descent, mirrored).</div></details></li>
+  <li><span class="lvl m">MED</span> Compute one SAM step on $L(\theta) = 2\theta^2$, $\theta = 1$, $\rho = 0.5$, $\eta = 0.1$, and compare to plain GD. <details class="sol"><summary>Solution</summary><div>$\nabla L(1) = 4$; $\hat\epsilon = 0.5$; perturbed point $1.5$; $\nabla L(1.5) = 6$; step: $\theta \leftarrow 1 - 0.6 = 0.4$. Plain GD: $1 - 0.4 = 0.6$. SAM steps FARTHER here — the uphill lookout sees steeper gradient and flees the sharp basin more decisively.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that to first order in $\rho$, SAM's effective objective is $L(\theta) + \rho\|\nabla L(\theta)\|$ — gradient-norm regularization. <details class="sol"><summary>Solution</summary><div>$\max_{\|\epsilon\|\le\rho}L(\theta+\epsilon) \approx L(\theta) + \max_{\|\epsilon\|\le\rho}\nabla L^\top\epsilon = L(\theta) + \rho\|\nabla L(\theta)\|$. So SAM penalizes gradient norm along the trajectory; near a minimum, $\|\nabla L(\theta)\| \approx \|H(\theta - \theta^*)\|$, whose ball-max is $\rho'\lambda$-flavored — penalizing curvature. This view also exposes SAM's approximations: the true inner max sees curvature (second order), and the practical one-step linearization is exact only for small $\rho$; ASAM et al. patch the resulting scale sensitivity.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditioning">
+ <h2>Conditioning</h2>
+ <p>Conditioning measures how distorted the optimization landscape is: the ratio of the steepest curvature to the shallowest. It is THE quantity that first-order convergence rates depend on, the reason zigzagging happens, and the target of every preconditioner, normalizer and adaptive method in the modern toolkit.</p>
+ <div class="box def"><span class="label">Definition</span> For a quadratic (or locally, any smooth $f$), the <em>condition number</em> $\kappa = \frac{\lambda_{\max}(H)}{\lambda_{\min}(H)} = \frac L\mu$. GD's rate: error factor $\big(\frac{\kappa-1}{\kappa+1}\big)$ per step with optimal fixed $\eta$; momentum: $\big(\frac{\sqrt\kappa - 1}{\sqrt\kappa + 1}\big)$. <em>Preconditioning</em> transforms variables $x = P^{1/2}u$... equivalently iterates $x \leftarrow x - \eta P^{-1}\nabla f$, aiming for $\kappa(P^{-1/2}HP^{-1/2}) \approx 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Feature scaling IS preconditioning. Linear regression on features [income in dollars (~$10^4$), age in years (~$10^1$)]: $H = 2X^\top X$ has eigenvalue ratio $\sim(10^4/10^1)^2 = 10^6$. GD per-step factor $\frac{\kappa-1}{\kappa+1} \approx 1 - 2\times10^{-6}$: about 350,000 steps per error-decade. Standardize each feature ($\div$ its SD): eigenvalues equalize up to correlation structure, $\kappa$ drops to $O(1)$–$O(10)$, and the same problem converges in dozens of steps. That mundane preprocessing line is a $10^4\times$ speedup — and BatchNorm/LayerNorm (Ch 21) apply the same medicine INSIDE the network, layer by layer.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $H$ has eigenvalues 0.01 and 25. Compute $\kappa$ and GD's optimal per-step factor. <details class="sol"><summary>Solution</summary><div>$\kappa = 2500$; factor $\frac{2499}{2501} \approx 0.9992$ — about 2900 steps per error-decade ($0.9992^k = 0.1 \Rightarrow k \approx \ln10/0.0008$).</div></details></li>
+  <li><span class="lvl m">MED</span> Derive GD's optimal fixed step on a quadratic with spectrum $[\mu, L]$ and the resulting rate. <details class="sol"><summary>Solution</summary><div>Per-mode factor $|1 - \eta\lambda|$; the worst is $\max(|1-\eta\mu|, |1-\eta L|)$, minimized when the two are equal: $1 - \eta\mu = \eta L - 1 \Rightarrow \eta = \frac{2}{L+\mu}$, giving factor $\frac{L-\mu}{L+\mu} = \frac{\kappa-1}{\kappa+1}$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can't a DIAGONAL preconditioner (Adam-style) fix a rotated ill-conditioned quadratic, e.g. $H = R^\top\mathrm{diag}(1, 1000)R$ with $R$ a 45° rotation? <details class="sol"><summary>Solution</summary><div>Compute $H$ for 45°: $H = \begin{pmatrix}500.5&amp;499.5\\499.5&amp;500.5\end{pmatrix}$: its DIAGONAL is (500.5, 500.5) — identical entries! Any diagonal $P$ rescales coordinates but leaves the off-diagonal coupling's relative strength intact: $P^{-1/2}HP^{-1/2}$ has the same eigenvalue RATIO structure whenever $P$'s entries are equal, and no diagonal choice can diagonalize a rotated $H$. Curing rotated curvature needs matrix preconditioners (full/low-rank/Kronecker: BFGS, Shampoo, K-FAC) or a change of basis — the fundamental ceiling of the Adam family.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="numerical-stability">
+ <h2>Numerical stability</h2>
+ <p>Optimization in the real world runs in floating point (Ch 18), where subtracting near-equal numbers destroys digits, exponentials overflow at 89 (float32), and a trillion tiny updates accumulate rounding. Stable formulations — log-space, normalization, careful accumulation, loss scaling — are the difference between the algorithm on paper and the one that trains.</p>
+ <div class="box def"><span class="label">Definition</span> Core defenses: <em>log-sum-exp trick</em>, $\log\sum_ie^{z_i} = M + \log\sum_ie^{z_i - M}$ with $M = \max_iz_i$ (exact; prevents overflow, and softmax is computed as $e^{z_i - M}/\sum e^{z_j - M}$); fused numerically-stable losses (log-softmax + NLL rather than softmax→log); $\epsilon$ floors in divisions/roots (Adam's $\epsilon$, norm layers'); mixed-precision loss scaling (multiply the loss by $S$ so fp16 gradients don't underflow, divide updates by $S$); fp32 master weights and fp32 accumulation of reductions.</div>
+ <div class="box ex"><span class="label">Worked example</span> Softmax of logits $(1000, 1001, 1002)$ in float32: $e^{1000} = \infty$ → NaN everywhere, training dead. With the max-shift: subtract 1002 → $(-2, -1, 0)$; $e^{\cdot} = (0.1353, 0.3679, 1)$; sum $= 1.5032$; softmax $= (0.090, 0.245, 0.665)$ — exact answer, no drama. The identity costs one max and one subtract; the alternative costs the run. Same story for cross-entropy: computing $\log(\mathrm{softmax}(z))$ naively loses all precision when a probability underflows to 0 ($\log 0 = -\infty$); log-softmax computes $z_i - M - \log\sum e^{z_j - M}$ directly.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The variance formula $\mathbb E[X^2] - (\mathbb E X)^2$ is a classic catastrophic-cancellation trap: for data $\sim10^6$ with variance $\sim1$, both terms are $\sim10^{12}$ and their fp32 difference is pure noise (can even go negative → NaN in the sqrt). Use the shifted/two-pass or Welford's online algorithm — this exact bug bites norm layers and running statistics.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\log(e^{800} + e^{801})$ stably. <details class="sol"><summary>Solution</summary><div>$= 801 + \log(e^{-1} + 1) = 801 + \log(1.3679) = 801.313$. Naively: overflow.</div></details></li>
+  <li><span class="lvl m">MED</span> In fp16 mixed-precision training, gradients of magnitude $\sim10^{-6}$ underflow (fp16 min normal $\approx 6\times10^{-5}$). How does loss scaling fix this, exactly? <details class="sol"><summary>Solution</summary><div>Multiply the LOSS by $S$ (e.g. $2^{14}$) before backward: by linearity every gradient is scaled by $S$ into fp16's representable range; after backward, unscale (divide by $S$ in fp32) before the optimizer step. Dynamic loss scaling grows $S$ until overflows appear, then backs off — keeping gradients in the sweet spot automatically.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why do large-scale trainers keep fp32 "master weights" while computing forward/backward in fp16/bf16? <details class="sol"><summary>Solution</summary><div>An update of relative size $\eta g/\theta \sim 10^{-4}$–$10^{-7}$ is below half-precision's resolution (fp16: ~$10^{-3}$ relative; bf16: ~$10^{-2}$): adding it to an fp16 weight rounds to NO CHANGE — training silently stalls even though every individual tensor looks fine. Accumulating updates into fp32 (resolution $\sim10^{-7}$) preserves them; the half-precision copy used for compute is refreshed from the master each step. The asymmetry: activations/gradients need range (bf16 shines), weights-under-accumulation need precision (fp32).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>Tune GD by theory.</strong> $f(x, y) = \frac12(x^2 + 25y^2)$. (a) Find $L$, $\mu$, $\kappa$ and the optimal fixed step $\eta^*$. (b) Give the per-step contraction factor for GD at $\eta^*$ and for optimally tuned momentum. (c) Steps to shrink the error $10^6$-fold for each. <details class="sol"><summary>Solution</summary><div>(a) Hessian eigenvalues 1 and 25: $L = 25$, $\mu = 1$, $\kappa = 25$; $\eta^* = \frac{2}{26} = \frac{1}{13}$. (b) GD: $\frac{\kappa-1}{\kappa+1} = \frac{24}{26} \approx 0.923$; momentum: $\frac{\sqrt{25}-1}{\sqrt{25}+1} = \frac46 \approx 0.667$. (c) GD: $0.923^k \le 10^{-6} \Rightarrow k \ge \frac{6\ln10}{-\ln0.923} = \frac{13.82}{0.0801} \approx 173$. Momentum: $\frac{13.82}{0.405} \approx 35$ steps — the $\sqrt\kappa$ dividend, visible.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>The optimizer zoo on one problem.</strong> Coordinate 1 gets gradient $g_1 = 1$ every step; coordinate 2 gets $g_2 = 10$ on 1 step in 100 and 0 otherwise (long-run mean 0.1). For (a) SGD ($\eta$ fixed), (b) Adagrad, (c) RMSProp/Adam at steady state ($\rho, \beta_2$ horizons ≫ 100): compare the average per-step progress each coordinate makes, and comment on which optimizer treats the rare-but-strong feature best. <details class="sol"><summary>Solution</summary><div>(a) SGD: per-step average movement $\eta\cdot1$ vs $\eta\cdot0.1$ — the rare feature moves 10× slower on average despite equal total gradient "importance." (b) Adagrad after $T$ steps: $G_1 = T$, $G_2 = 100\cdot\frac{T}{100} = T$ (each active step contributes $10^2$)! Effective steps: coordinate 1: $\frac{\eta\cdot1}{\sqrt T}$ per step; coordinate 2: $\frac{\eta\cdot10}{\sqrt T}$ per active step, i.e. average $\frac{\eta\cdot0.1\cdot ... }$ per step $= \frac{0.1\eta}{\sqrt T}$... averaging: coordinate 1 average $\frac{\eta}{\sqrt T}$, coordinate 2 average $\frac{10\eta}{100\sqrt T} = \frac{0.1\eta}{\sqrt T}$ — same RATIO as SGD per average step, but per-EVENT the rare coordinate takes a 10×-sized step: rare information is not drowned. (c) RMSProp: $s_1 \to 1$, $s_2 \to \frac{100}{100} = 1$ (mean square of the sparse gradient: $\frac{99\cdot0 + 10^2}{100} = 1$): steps are $\eta\cdot\frac{1}{1} = \eta$ and, on active steps, $\eta\cdot\frac{10}{1} = 10\eta$. Same per-event ratio as Adagrad without the $1/\sqrt T$ death. Verdict: adaptive methods normalize by ROOT-MEAN-SQUARE, so a rare gradient 10× the RMS gets a 10× step at the moment it fires — Adam-family optimizers are why sparse/rare-token embeddings train at all; plain SGD starves them.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Constrained learning, by every method.</strong> Minimize $f(w) = \frac12\|w - c\|^2$, $c = (3, 1)$, subject to $w_1 + w_2 \le 2$. Solve by (a) KKT directly; (b) the dual; (c) projected gradient (give the fixed point). Confirm all three agree. <details class="sol"><summary>Solution</summary><div>(a) Unconstrained optimum $c$ violates ($3+1=4&gt;2$) → active: $w_1 + w_2 = 2$. Stationarity: $(w - c) + \mu(1,1) = 0 \Rightarrow w = c - \mu\mathbf 1$. Constraint: $(3-\mu)+(1-\mu) = 2 \Rightarrow \mu = 1 \ge 0$ ✓. $w^* = (2, 0)$, $f^* = \frac12(1 + 1) = 1$. (b) Dual: $q(\mu) = \min_w \frac12\|w-c\|^2 + \mu(w_1 + w_2 - 2)$; inner min at $w = c - \mu\mathbf 1$: $q(\mu) = -\mu^2 + \mu(c_1 + c_2 - 2) - 0 = -\mu^2 + 2\mu$. Maximize over $\mu\ge0$: $\mu^* = 1$, $d^* = 1 = p^*$ ✓ strong duality. (c) Projection onto $\{w_1 + w_2\le2\}$: if violated, subtract $\frac{w_1 + w_2 - 2}{2}\mathbf 1$. Fixed point of $w \leftarrow P(w - \eta(w - c))$: $w = P(c)$ in the limit $\eta = 1$, or generally the fixed point satisfies the KKT condition; $P(c) = c - \frac{4-2}{2}\mathbf 1 = (2, 0)$ ✓. All three roads: $(2, 0)$, price $\mu = 1$: relax the budget to 2+ε and gain ε (check: $f^*(\epsilon) = \frac12\cdot2\cdot(1-\frac\epsilon2)^2 = 1 - \epsilon + O(\epsilon^2)$ ✓).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p><strong>Task 1 — Optimizer race from scratch.</strong> Implement GD, momentum, RMSProp and Adam in NumPy; race them on the ill-conditioned quadratic $f(x) = \frac12x^\top\mathrm{diag}(1, 100)x$ and print loss trajectories.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+H = np.array([1.0, 100.0])                 # diagonal Hessian
+f  = lambda x: 0.5 * (H * x**2).sum()
+gf = lambda x: H * x
+
+def run(opt, steps=200):
+    x = np.array([1.0, 1.0]); state = {}; hist = []
+    for t in range(1, steps+1):
+        g = gf(x); x = opt(x, g, state, t); hist.append(f(x))
+    return hist
+
+def gd(x, g, s, t, lr=0.018):              # ~2/(L+mu) safe-ish
+    return x - lr*g
+def mom(x, g, s, t, lr=0.018, b=0.82):
+    v = s.get('v', 0); v = b*v + g; s['v'] = v
+    return x - lr*v
+def rmsprop(x, g, s, t, lr=0.05, r=0.99, eps=1e-8):
+    v = s.get('v', 0); v = r*v + (1-r)*g**2; s['v'] = v
+    return x - lr*g/(np.sqrt(v)+eps)
+def adam(x, g, s, t, lr=0.05, b1=0.9, b2=0.999, eps=1e-8):
+    m = s.get('m', 0); v = s.get('v', 0)
+    m = b1*m + (1-b1)*g;  v = b2*v + (1-b2)*g**2
+    s['m'], s['v'] = m, v
+    mh, vh = m/(1-b1**t), v/(1-b2**t)
+    return x - lr*mh/(np.sqrt(vh)+eps)
+
+for name, opt in [('gd',gd), ('momentum',mom), ('rmsprop',rmsprop), ('adam',adam)]:
+    h = run(opt)
+    print(f"{name:9s} loss@50={h[49]:.2e}  loss@200={h[-1]:.2e}")</code></pre></div></details>
+ <p><strong>Task 2 — Lasso by proximal gradient (ISTA).</strong> Solve $\min\frac12\|X\beta - y\|^2 + \lambda\|\beta\|_1$ with soft thresholding; verify sparsity and compare to the true sparse generator.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+n, p, k = 200, 50, 5
+X = rng.standard_normal((n, p))
+beta_true = np.zeros(p); beta_true[:k] = rng.standard_normal(k) * 3
+y = X @ beta_true + 0.5*rng.standard_normal(n)
+
+lam = 2.0
+L = np.linalg.eigvalsh(X.T @ X).max()      # smoothness constant
+eta = 1.0 / L
+soft = lambda z, t: np.sign(z) * np.maximum(np.abs(z) - t, 0)
+
+beta = np.zeros(p)
+for _ in range(2000):
+    grad = X.T @ (X @ beta - y)
+    beta = soft(beta - eta*grad, eta*lam)
+
+print("nonzeros found:", np.flatnonzero(np.abs(beta) &gt; 1e-8))
+print("true support  :", np.arange(k))
+print("max coef error on support:", np.abs(beta[:k]-beta_true[:k]).max())</code></pre></div></details>
+ <p><strong>Task 3 — SAM vs SGD on a sharp/flat double well.</strong> Show plain GD settles in the sharp-but-deeper minimum while SAM chooses the flat one.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+# sharp minimum at x=0 (depth 0), flat minimum at x=3 (depth 0.05)
+def L(x):  return np.minimum(50*x**2, 0.05 + 0.5*(x-3)**2)
+def g(x):
+    return 100*x if 50*x**2 &lt; 0.05 + 0.5*(x-3)**2 else (x-3)
+
+def gd(x0, lr=0.004, steps=3000):
+    x = x0
+    for _ in range(steps): x -= lr*g(x)
+    return x
+
+def sam(x0, rho=0.25, lr=0.004, steps=3000):
+    x = x0
+    for _ in range(steps):
+        gr = g(x)
+        eps = rho*np.sign(gr) if gr != 0 else 0.0
+        x -= lr*g(x + eps)                  # gradient at worst-case point
+    return x
+
+for x0 in [0.4, 1.0, 1.4]:
+    print(f"x0={x0}:  GD -&gt; {gd(x0):+.3f}   SAM -&gt; {sam(x0):+.3f}")
+# GD from small x0 stays at the sharp basin (x~0); SAM escapes to x~3.</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://web.stanford.edu/~boyd/cvxbook/">Boyd &amp; Vandenberghe, <em>Convex Optimization</em> (free PDF)</a> — convex sets, duality, KKT; chapters 2–5 cover half this chapter with full rigor.</li>
+  <li><a href="https://www.youtube.com/playlist?list=PL3940DD956CDF0622">Boyd's EE364a lectures (Stanford)</a> — the book, taught, free.</li>
+  <li><a href="https://ruder.io/optimizing-gradient-descent/">Ruder, "An overview of gradient descent optimization algorithms"</a> — the classic tour of SGD, momentum, Adagrad, RMSProp, Adam.</li>
+  <li><a href="https://distill.pub/2017/momentum/">Goh, "Why Momentum Really Works" (Distill)</a> — interactive, exact quadratic analysis of momentum's $\sqrt\kappa$ magic.</li>
+  <li><a href="https://arxiv.org/abs/1412.6980">Kingma &amp; Ba, "Adam"</a> — the paper; read §2 for the bias correction you now can derive.</li>
+  <li><a href="https://arxiv.org/abs/1711.05101">Loshchilov &amp; Hutter, "Decoupled Weight Decay Regularization"</a> — AdamW, and why L2 ≠ weight decay under adaptivity.</li>
+  <li><a href="https://arxiv.org/abs/2010.01412">Foret et al., "Sharpness-Aware Minimization"</a> — the SAM paper.</li>
+  <li><a href="https://arxiv.org/abs/1811.03600">Shallue et al., "Measuring the Effects of Data Parallelism on Neural Network Training"</a> — batch size, learning rates and the limits of linear scaling, empirically.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch14.html">← 14 · Fourier Analysis and Signals</a>
+ <a href="ch16.html">16 · Information Theory →</a>
+</div>
+
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var e=document.getElementById(id); if(e)e.addEventListener(ev,fn); return e;}
+function val(id){var e=document.getElementById(id); return e?parseFloat(e.value):0;}
+function out(id,t){var e=document.getElementById(id); if(e)e.textContent=t;}
+function axes(g,w,h,pad){g.strokeStyle=cssVar('--ink-2');g.lineWidth=1;g.beginPath();g.moveTo(pad,h-pad);g.lineTo(w-8,h-pad);g.moveTo(pad,h-pad);g.lineTo(pad,8);g.stroke();g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';}
+
+/* 1. Convexity chord */
+var c1=document.getElementById('cv-cvx');
+function drawCvx(){
+ if(!c1)return; var a=val('cx-a'),b=val('cx-b');var sel=document.getElementById('cx-f');var which=sel?sel.value:'0';
+ function f(x){return which==='0'? x*x : x*x*x*x-2*x*x;}
+ var st=setupCanvas(c1,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var lo=-2.2,hi=2.2,fmin=-1.2,fmax=5;
+ function X(x){return pad+(x-lo)/(hi-lo)*(w-pad-16);}
+ function Y(y){return h-pad-(y-fmin)/(fmax-fmin)*(h-pad-20);}
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();var i;
+ for(i=0;i<=400;i++){var x=lo+i/400*(hi-lo);var py=Y(f(x));if(i===0)g.moveTo(X(x),py);else g.lineTo(X(x),py);}g.stroke();
+ // chord
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();g.moveTo(X(a),Y(f(a)));g.lineTo(X(b),Y(f(b)));g.stroke();
+ g.fillStyle=cssVar('--ink-2');
+ [[a,f(a)],[b,f(b)]].forEach(function(p){g.beginPath();g.arc(X(p[0]),Y(p[1]),4,0,7);g.fill();});
+ // violation check at midpoints
+ var viol=false,t;
+ for(t=0.05;t<1;t+=0.05){var xm=(1-t)*a+t*b;var chord=(1-t)*f(a)+t*f(b);if(f(xm)>chord+1e-9)viol=true;}
+ out('cx-out',viol?'chord dips BELOW the graph somewhere — not convex on this interval':'chord stays above the graph — convex on this chord ✓');
+}
+on('cx-a','input',drawCvx);on('cx-b','input',drawCvx);on('cx-f','change',drawCvx);
+
+/* 2. Gradient descent on a quadratic bowl */
+var c2=document.getElementById('cv-gd'),useMom=false;
+function drawGD(){
+ if(!c2)return; var lr=val('gd-lr'),kk=val('gd-k');
+ var st=setupCanvas(c2,280),g=st.g,w=st.w,h=st.h;
+ g.clearRect(0,0,w,h);
+ var lo=-11,hi=11,vlo=-3.2,vhi=3.2;
+ function X(x){return (x-lo)/(hi-lo)*w;}
+ function Y(y){return h-(y-vlo)/(vhi-vlo)*h;}
+ // contours of x^2 + k y^2
+ g.strokeStyle=cssVar('--ink-2');g.globalAlpha=0.3;g.lineWidth=1;
+ [4,16,36,64,100].forEach(function(c){g.beginPath();var i;
+  for(i=0;i<=120;i++){var th=i/120*2*Math.PI;var x=Math.sqrt(c)*Math.cos(th);var y=Math.sqrt(c/kk)*Math.sin(th);
+   if(i===0)g.moveTo(X(x),Y(y));else g.lineTo(X(x),Y(y));}g.closePath();g.stroke();});
+ g.globalAlpha=1;
+ // GD path
+ var x=10,y=3,vx=0,vy=0,i,diverged=false,steps=0;
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();g.moveTo(X(x),Y(y));
+ for(i=0;i<80;i++){var gx=2*x,gy=2*kk*y;
+  if(useMom){vx=0.9*vx+gx;vy=0.9*vy+gy;x-=lr*vx;y-=lr*vy;}
+  else{x-=lr*gx;y-=lr*gy;}
+  g.lineTo(X(x),Y(y));steps++;
+  if(Math.abs(x)>100||Math.abs(y)>100){diverged=true;break;}
+  if(x*x+kk*y*y<1e-6)break;}
+ g.stroke();
+ g.fillStyle=cssVar('--red')||'#c33';g.beginPath();g.arc(X(0),Y(0),4,0,7);g.fill();
+ g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+ g.fillText('f = x² + '+kk+'y²'+(useMom?'  (momentum β=0.9)':''),12,20);
+ var lim=(useMom?'':'stable iff η < '+(1/kk).toFixed(3));
+ out('gd-out',(diverged?'DIVERGED — η too large for the steep axis. ':'final f = '+(x*x+kk*y*y).toExponential(1)+' after '+steps+' steps. ')+lim);
+}
+on('gd-lr','input',drawGD);on('gd-k','input',drawGD);
+on('gd-mom','click',function(){useMom=!useMom;drawGD();});
+
+/* 3. LR schedules on a noisy quadratic */
+var c3=document.getElementById('cv-sched');
+function drawSched(){
+ if(!c3)return; var kind=(document.getElementById('sc-kind')||{}).value||'const';var lr0=val('sc-lr');
+ var st=setupCanvas(c3,280),g=st.g,w=st.w,h=st.h,pad=40;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var K=400,x=5,hist=[],i;
+ function lrAt(k){
+  if(kind==='const')return lr0;
+  if(kind==='step')return lr0*Math.pow(0.1,Math.floor(k/(K/3)));
+  if(kind==='cos')return lr0*0.5*(1+Math.cos(Math.PI*k/K));
+  return lr0/Math.sqrt(1+k);}
+ for(i=0;i<K;i++){var e=lrAt(i);var noise=(Math.random()*2-1)*2;
+  x=x-e*(2*x+noise); hist.push(Math.max(1e-10,x*x));}
+ // log-scale plot
+ function X(k){return pad+k/K*(w-pad-16);}
+ function Y(v){var lv=Math.log10(v);return h-pad-(lv+10)/(11.5)*(h-pad-20);}
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+ for(i=0;i<K;i++){if(i===0)g.moveTo(X(i),Y(hist[i]));else g.lineTo(X(i),Y(hist[i]));}
+ g.stroke();
+ g.fillText('log₁₀ f(x)  vs  step',pad+8,20);
+ g.fillText('10⁰',6,Y(1)+4);g.fillText('10⁻⁶',2,Y(1e-6)+4);
+ out('sc-out',kind+': final f = '+hist[K-1].toExponential(2)+'  (constant LR plateaus at its noise floor ∝ η)');
+}
+on('sc-kind','change',drawSched);on('sc-lr','input',drawSched);on('sc-run','click',drawSched);
+
+/* 4. Lagrange alignment on a circle */
+var c4=document.getElementById('cv-lag');
+function drawLag(){
+ if(!c4)return; var t=val('lg-t');
+ var st=setupCanvas(c4,280),g=st.g,w=st.w,h=st.h;
+ g.clearRect(0,0,w,h);
+ var cx=w/2,cy=h/2,R=Math.min(w,h)/2-30,sc=R/1.4;
+ // objective f(x,y)=x+2y contours (parallel lines)
+ g.strokeStyle=cssVar('--ink-2');g.globalAlpha=0.25;var c;
+ for(c=-3;c<=3;c+=0.75){g.beginPath();
+  // x + 2y = c ; param x from -2..2
+  g.moveTo(cx+(-2)*sc, cy-((c+2)/2)*sc); g.lineTo(cx+2*sc, cy-((c-2)/2)*sc); g.stroke();}
+ g.globalAlpha=1;
+ // constraint circle x^2+y^2=1
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();g.arc(cx,cy,sc,0,7);g.stroke();
+ var x=Math.cos(t),y=Math.sin(t);
+ var px=cx+x*sc,py=cy-y*sc;
+ // gradient of f = (1,2); constraint normal = (x,y)
+ function arrow(x0,y0,dx,dy,col){var L2=Math.hypot(dx,dy);dx/=L2;dy/=L2;
+  g.strokeStyle=col;g.lineWidth=2.5;g.beginPath();g.moveTo(x0,y0);g.lineTo(x0+dx*44,y0-dy*44);g.stroke();
+  g.beginPath();g.arc(x0+dx*44,y0-dy*44,3,0,7);g.fillStyle=col;g.fill();}
+ arrow(px,py,1,2,cssVar('--cobalt'));
+ arrow(px,py,x,y,cssVar('--red')||'#c33');
+ g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+ g.fillText('∇f=(1,2) blue   ∇h=(x,y) red',12,20);
+ g.beginPath();g.arc(px,py,4,0,7);g.fill();
+ // alignment measure: |cross product| of unit vectors
+ var n1=Math.hypot(1,2),cross=Math.abs((1*y - 2*x))/n1;
+ var fv=x+2*y;
+ out('lg-out','f = x+2y = '+fv.toFixed(3)+'   misalignment |∇f × ∇h| = '+cross.toFixed(3)+(cross<0.05?'  ← aligned: constrained optimum!':''));
+}
+on('lg-t','input',drawLag);
+
+function drawAll(){drawCvx();drawGD();drawSched();drawLag();}
+window.addEventListener('resize',drawAll);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',drawAll);else drawAll();
+})();
+</script>
+
+</body></html>

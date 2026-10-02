@@ -1,0 +1,665 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 33 Multi-Agent Systems</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','33')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">33</div><h1>Multi-Agent Systems</h1><p class="lede">Many agents: cooperation, conflict and coordination.</p>
+   <div class="meta"><span class="chip">22 topics</span><span class="chip">needs: chapters 24, 25, 31, 32</span><span class="chip">feeds: chapters 34, 35, 36</span></div>
+  </div>
+
+<section class="topic" id="agent-roles">
+ <h2>Agent roles</h2>
+ <p>A single agent that plans, acts, checks its own work and judges itself is doing four jobs at once, and doing each worse for it. A multi-agent system splits the loop of Chapter 31 into named roles — each role gets its own prompt, its own tools, its own context window. The picture to hold: an assembly line for cognition, where each station sees only what it needs.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>role</em> is a tuple $r = (\pi_r, T_r, I_r, O_r)$: a policy (prompt + model) $\pi_r$, a tool set $T_r$, an input interface $I_r$ (what messages it accepts) and an output interface $O_r$ (what it may emit). A multi-agent system is a set of role instances plus a communication topology over them.</div>
+ <div class="box ex"><span class="label">Worked example</span> A code-fixing system with three roles. Planner: input = bug report, output = ordered task list, tools = repository search only. Executor: input = one task, output = a diff, tools = edit + run tests. Verifier: input = diff + original report, output = pass/fail + reason, tools = run tests in a clean sandbox. The verifier deliberately lacks edit tools, so it cannot "fix" a failing test by weakening it — separation of role and capability is a safety property, not just an efficiency one.</div>
+ <div class="box link"><span class="label">Where this goes</span> Role separation is exactly what makes scalable oversight schemes like debate work in Ch 35, and what permission verification checks in Ch 34.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name one reason to give a verifier agent a <em>different</em> context than the executor whose work it checks. <details class="sol"><summary>Solution</summary><div>If the verifier sees the executor's reasoning, it tends to be anchored by it and rubber-stamps the answer. A fresh context forces an independent check — the verifier must reconstruct correctness from the artifact (the diff, the proof, the answer) alone. It also keeps the verifier's context small and prevents prompt-injection text in the executor's trace from steering the verifier.</div></details></li>
+  <li><span class="lvl m">MED</span> A system has roles $P$ (plan), $E$ (execute), $V$ (verify). Each call costs 1 unit. A task needs 1 plan, $k$ execute steps, and each execute step is verified; a failed verification triggers one re-execute + re-verify. If each execution independently fails verification with probability $q$, what is the expected total cost (assume the retry always passes)? <details class="sol"><summary>Solution</summary><div>Plan: 1. Each of the $k$ steps: execute (1) + verify (1) $=2$, plus with probability $q$ an extra execute + verify $=2$. Expected per step: $2 + 2q$. Total: $1 + k(2+2q)$. E.g. $k=5, q=0.2$: $1 + 5(2.4) = 13$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Argue why splitting one model into planner + executor roles can improve reliability even when both roles are played by the <em>same</em> underlying model with different prompts. <details class="sol"><summary>Solution</summary><div>Three mechanisms. (1) Context isolation: each role's window holds only role-relevant tokens, so attention is not diluted by irrelevant history; empirically long mixed contexts degrade instruction-following. (2) Decorrelation of errors: the same model conditioned on different prompts and different visible evidence makes partially independent mistakes, so a check-and-retry loop has error probability closer to $p_E p_V$ (both must fail jointly) than to $p$. (3) Commitment: a written plan is a fixed artifact the executor is graded against, preventing silent goal drift within one long generation. None of these require different weights — they exploit that an LLM's behavior is a function of its context, not just its parameters.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="planner-agents">
+ <h2>Planner agents</h2>
+ <p>The planner turns a goal into structure: a sequence or DAG of subtasks, each small enough for an executor to finish reliably. Its output is a contract, not a suggestion — downstream agents are evaluated against it. Good planners write plans the way you write a function signature: precise inputs, precise success criteria.</p>
+ <div class="box def"><span class="label">Definition</span> A planner maps a goal $g$ and world summary $s$ to a plan $P = (V, E, \sigma)$ where $V$ is a set of subtasks, $E \subset V \times V$ dependency edges forming a DAG, and $\sigma: V \to \text{spec}$ assigns each subtask a specification (inputs, expected output, acceptance test).</div>
+ <div class="box ex"><span class="label">Worked example</span> Goal: "produce a report comparing 3 optimizers on MNIST." Plan DAG: $v_1$ = write training script (test: runs 1 epoch); $v_2$ = run SGD, $v_3$ = run Adam, $v_4$ = run AdamW (each depends on $v_1$; test: loss curve file exists, final accuracy logged); $v_5$ = write report (depends on $v_2,v_3,v_4$; test: contains a table with 3 rows and cites the logged numbers). $v_2,v_3,v_4$ are mutually independent, so three executors run them in parallel — the DAG width (here 3) bounds attainable parallelism.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Plans that specify <em>activities</em> ("investigate the bug") instead of <em>verifiable outcomes</em> ("a failing test that reproduces the bug"). Without an acceptance test per node, the verifier has nothing to check and delegation degrades into hope.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A plan has subtasks A→B→C→D in a chain, each taking 10 minutes. Another plan for the same goal has A, then {B, C} in parallel, then D. Wall-clock time of each with unlimited executors? <details class="sol"><summary>Solution</summary><div>Chain: $4\times 10 = 40$ min. Parallel: $10 + 10 + 10 = 30$ min (A, then max(B,C)=10, then D). The critical path length, not the number of tasks, sets wall-clock time.</div></details></li>
+  <li><span class="lvl m">MED</span> A DAG has tasks with durations: A=2, B=3, C=5, D=4, E=1; edges A→B, A→C, B→D, C→D, D→E. Compute the critical path and minimum wall-clock time. <details class="sol"><summary>Solution</summary><div>Paths to E: A→B→D→E $=2+3+4+1=10$; A→C→D→E $=2+5+4+1=12$. Critical path A→C→D→E, minimum time 12. B has slack $12-10=2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Executors succeed on a subtask with probability $p$ independently, and a whole plan of $n$ sequential subtasks succeeds only if all do. Compare $P(\text{success})$ for one monolithic attempt with success probability $p_m$, versus the decomposed plan where each subtask can be retried up to $r$ times. Give the condition under which decomposition wins for $n=4$, $p=0.8$, $r=2$, $p_m = 0.5$. <details class="sol"><summary>Solution</summary><div>Per subtask with retries: fail only if all $r+1$ attempts fail (treat $r=2$ as 2 tries total here — take "retried up to $r$ times" as $r$ total attempts): $1-(1-p)^r = 1-0.04 = 0.96$. Plan: $0.96^4 \approx 0.849$. Since $0.849 > 0.5 = p_m$, decomposition wins. General condition: $\left(1-(1-p)^r\right)^n > p_m$. The lesson: retryable small steps beat one big roll of the dice whenever per-step success is high and failures are detectable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="executor-agents">
+ <h2>Executor agents</h2>
+ <p>Executors do the work: one subtask in, one artifact out. The design goal is boring reliability — a narrow context (just the subtask spec and the files it needs), the minimal tool set, and a hard budget. An executor that can see the whole plan starts improvising; one that sees only its task cannot.</p>
+ <div class="box def"><span class="label">Definition</span> An executor receives a subtask spec $\sigma(v)$ and produces an artifact $a_v$ plus a self-report. Its contract: $a_v$ should satisfy the acceptance test in $\sigma(v)$; it must operate within budget $B_v$ (tokens, tool calls, wall clock) and only through tools $T_E$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Spec: "Write <code>gcd(a,b)</code> in Python; acceptance: passes the 5 provided tests; budget: 20 tool calls." The executor writes Euclid's algorithm, runs the tests (call 1), sees 5/5, returns the file plus report "5/5 tests pass, 2 tool calls used." Note what it does <em>not</em> do: refactor neighboring code, add features, or edit the tests. Scope discipline is enforced by giving it write access to exactly one file.</div>
+ <div class="box think"><span class="label">Think first</span> An executor's subtask turns out to be impossible as specified (the spec asks for an API endpoint that doesn't exist). What should it do? <details class="sol"><summary>Reveal</summary><div>Fail loudly and early: return a structured failure ("spec unsatisfiable: endpoint X does not exist; nearest alternative Y") rather than silently substituting its own interpretation. The planner, which has global context, decides whether to replan. An executor that "helpfully" reinterprets its task breaks the contract every other agent relies on — this is the multi-agent version of an exception versus a silently wrong return value.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why give an executor only the files named in its subtask rather than the whole repository? <details class="sol"><summary>Solution</summary><div>Smaller context → cheaper, faster, and more focused attention; smaller blast radius if it misbehaves or is prompt-injected; and its edits are auditable because the set of files it <em>could</em> have touched is known in advance.</div></details></li>
+  <li><span class="lvl m">MED</span> An executor has a 10-tool-call budget. Each test run costs 1 call, each edit costs 1 call, and it needs an edit+test cycle per bug, fixing one bug per cycle with probability 0.9 (else the cycle is wasted). Estimate the expected number of bugs it can fix. <details class="sol"><summary>Solution</summary><div>Each cycle costs 2 calls → 5 cycles in budget. Expected fixes $= 5 \times 0.9 = 4.5$. So specs for this executor should contain at most ~4 known bugs; more should be split across executors.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why an executor should report resource usage and confidence, not just its artifact, and how the supervisor can use these signals statistically. <details class="sol"><summary>Solution</summary><div>Usage and confidence are cheap side-channels correlated with quality: a task finished in 2 of 20 allowed calls is either trivial or was short-circuited; one that exhausted its budget likely ended incomplete. The supervisor can calibrate these signals (Ch 13: fit $P(\text{verified pass} \mid \text{calls used}, \text{self-confidence})$ on logged outcomes) and route: high predicted-failure artifacts get verified first or with a stronger verifier, low-risk ones get spot-checked. This converts verification from uniform cost to importance-sampled cost — the same idea as importance sampling in Ch 13, with the "proposal" being the risk model.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="critic-agents">
+ <h2>Critic agents</h2>
+ <p>A critic reads an artifact and produces structured objections — not a verdict, but reasons. Where a verifier answers "does it pass?", a critic answers "what is wrong and why?". Critique is generative review: the output feeds a revision loop, so its value is measured by how much the next draft improves.</p>
+ <div class="box def"><span class="label">Definition</span> A critic maps an artifact $a$ (and optionally the spec) to a list of findings $\{(l_i, s_i, e_i)\}$: location, severity, explanation — ideally each finding independently checkable. The critique loop is $a_{t+1} = \text{Revise}(a_t, \text{Critic}(a_t))$, iterated until the critic returns no findings above a severity threshold or a round budget is hit.</div>
+ <div class="box ex"><span class="label">Worked example</span> Draft proof claims: "since $f$ is continuous on $(0,1)$ it attains a maximum." Critic finding: (location: line 3; severity: fatal; explanation: extreme value theorem needs a <em>closed</em> interval — $f(x)=1/x$ on $(0,1)$ is continuous and unbounded). Reviser patches the proof to use $[\epsilon, 1-\epsilon]$ and a limit argument, or restricts the claim. One concrete, checkable objection did more than a paragraph of vague "consider edge cases."</div>
+ <div class="box pit"><span class="label">Pitfall</span> Sycophantic critics. An LLM critic shown the author's confident reasoning tends to agree with it. Mitigations: hide the author's reasoning, present the artifact as if written by a third party, require the critic to produce at least one candidate objection <em>and then</em> judge whether it survives, and occasionally seed known-flawed artifacts to measure the critic's miss rate.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give the key difference between a critic and a verifier in one sentence each. <details class="sol"><summary>Solution</summary><div>Verifier: outputs a decision (accept/reject) against a spec, ideally via a mechanical check. Critic: outputs reasons and locations of weakness intended to drive revision, and may flag issues no formal spec captures (style, missed cases, unclear assumptions).</div></details></li>
+  <li><span class="lvl m">MED</span> Each critique round fixes a fraction $\rho = 0.5$ of remaining defects. Starting from $D_0 = 12$ defects, how many rounds until the expected number of defects is below 1? <details class="sol"><summary>Solution</summary><div>$D_t = 12 \cdot 0.5^t < 1 \iff 0.5^t < 1/12 \iff t > \log_2 12 \approx 3.58$, so 4 rounds ($D_4 = 0.75$). Diminishing returns are geometric: most value is in the first rounds — matching the empirical practice of 2–3 critique rounds.</div></details></li>
+  <li><span class="lvl h">HARD</span> A critic has true-positive rate 0.8 (flags a real defect) and false-positive rate 0.3 (flags a sound passage). An artifact has 10 passages, 2 defective. The reviser "fixes" every flagged passage, but fixing a sound passage breaks it with probability 0.2. Compute the expected number of defective passages after one round. <details class="sol"><summary>Solution</summary><div>Real defects remaining: each of 2 is flagged w.p. 0.8 and then fixed (assume fix succeeds): survives w.p. $0.2$ → expected $2 \times 0.2 = 0.4$. Sound passages: 8, each flagged w.p. 0.3 and then broken w.p. 0.2 → expected new defects $8 \times 0.3 \times 0.2 = 0.48$. Total expected defects $= 0.4 + 0.48 = 0.88$, versus 2 before. Improvement — but note nearly half the residual harm comes from false positives; a noisy critic plus an aggressive reviser can even make things worse if $FPR \times P(\text{break})$ is large.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="verifier-agents">
+ <h2>Verifier agents</h2>
+ <p>Verification exploits a deep asymmetry: for many tasks, checking a solution is far easier than producing one (the intuition behind NP, Ch 17). A verifier agent is the cheap checker bolted onto an expensive generator — and the whole economics of multi-agent systems rests on that gap.</p>
+ <div class="box def"><span class="label">Definition</span> A verifier is a map $V(a, \sigma) \in \{\text{accept}, \text{reject}\}$ with two error rates: false accept $\alpha = P(\text{accept} \mid \text{bad})$ and false reject $\beta = P(\text{reject} \mid \text{good})$. With generator success rate $p$, best-of-$n$ with verification accepts a good artifact with probability that improves with $n$ while bad-acceptance is controlled by $\alpha$.</div>
+ <div class="box thm"><span class="label">Theorem (verification gain)</span> Sample $n$ independent artifacts, each good w.p. $p$; the verifier accepts good ones w.p. $1-\beta$ and bad ones w.p. $\alpha$; return the first accepted artifact. Then $$P(\text{returned artifact is good}) = \frac{p(1-\beta)}{p(1-\beta) + (1-p)\alpha}$$ (the probability any given accepted draw is good — a Bayes computation), independent of $n$; $n$ only raises the chance that <em>something</em> is accepted, $1 - (1 - p(1-\beta) - (1-p)\alpha)^n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p=0.3$, $\alpha = 0.1$, $\beta = 0.05$. Quality of an accepted artifact: $\frac{0.3 \times 0.95}{0.3\times0.95 + 0.7\times0.1} = \frac{0.285}{0.285+0.07} = \frac{0.285}{0.355} \approx 0.803$. Verification lifted 30% raw quality to 80% delivered quality. With $n=5$ samples, $P(\text{accept something}) = 1-(1-0.355)^5 = 1 - 0.645^5 \approx 1 - 0.112 = 0.888$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Process vs outcome verification of reasoning chains is Ch 30; formal (machine-checkable) verification is Ch 34; verifiers as reward models feed RLHF in Ch 23.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the generator quality $p$ and verifier error rates; watch delivered quality (thick) versus raw quality (dashed) and expected attempts per acceptance.</p>
+  <canvas id="cv-verif"></canvas>
+  <div class="ctl">
+   <label>p <input type="range" id="vf-p" min="0.05" max="0.95" step="0.01" value="0.3"></label>
+   <label>false accept α <input type="range" id="vf-a" min="0.01" max="0.5" step="0.01" value="0.1"></label>
+   <label>false reject β <input type="range" id="vf-b" min="0" max="0.5" step="0.01" value="0.05"></label>
+  </div>
+  <div class="out" id="vf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $p=0.5$, $\alpha=0.2$, $\beta=0$, what fraction of accepted artifacts are good? <details class="sol"><summary>Solution</summary><div>$\frac{0.5 \cdot 1}{0.5\cdot 1 + 0.5 \cdot 0.2} = \frac{0.5}{0.6} = 5/6 \approx 0.833$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that as $\alpha \to 0$ the delivered quality $\to 1$ regardless of $p > 0$, and explain the practical catch. <details class="sol"><summary>Solution</summary><div>$\frac{p(1-\beta)}{p(1-\beta)+(1-p)\alpha} \to \frac{p(1-\beta)}{p(1-\beta)} = 1$ as $\alpha \to 0$ (for $\beta<1$). Catch: driving $\alpha \to 0$ typically raises $\beta$ (rejecting more good work), which shrinks the acceptance probability per sample, so the expected number of generator calls $1/(p(1-\beta))$ blows up. Verification trades compute for quality; it does not create quality for free.</div></details></li>
+  <li><span class="lvl h">HARD</span> Chain two independent verifiers (accept only if both accept), with $(\alpha_1,\beta_1) = (0.2, 0.1)$ and $(\alpha_2, \beta_2) = (0.15, 0.05)$. Compute the composite $(\alpha, \beta)$ and delivered quality at $p = 0.4$. When is chaining better than the stronger single verifier? <details class="sol"><summary>Solution</summary><div>Composite (independence): $\alpha = 0.2 \times 0.15 = 0.03$; $1-\beta = (0.9)(0.95) = 0.855$, so $\beta = 0.145$. Quality: $\frac{0.4 \times 0.855}{0.4\times0.855 + 0.6 \times 0.03} = \frac{0.342}{0.342 + 0.018} = \frac{0.342}{0.36} = 0.95$. Single verifier 2 alone: $\frac{0.4\times0.95}{0.4\times0.95+0.6\times0.15} = \frac{0.38}{0.47} \approx 0.809$. Chaining wins on quality whenever the verifiers' false-accepts are sufficiently independent — if they share blind spots ($\alpha$'s correlated), the product formula is optimistic and the gain evaporates. Independence of errors is the scarce resource.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="agent-communication">
+ <h2>Agent communication</h2>
+ <p>Agents coordinate by exchanging messages, and everything about the exchange is a design choice: what is said (content), to whom (topology), when (synchrony), and in what form (free text vs structured). The picture: a graph whose nodes are agents and whose edges carry typed messages — the topology <em>is</em> the organization chart.</p>
+ <div class="box def"><span class="label">Definition</span> A communication scheme is $(G, M, \tau)$: a directed graph $G$ over agents, a message space $M$ (schema'd payloads), and a timing discipline $\tau$ (synchronous rounds, or asynchronous with a mailbox per agent). A message is $(\text{sender}, \text{receiver}, \text{type}, \text{payload}, \text{ts})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Star topology (one supervisor, $k$ workers) vs full mesh among $k+1$ agents. Messages per round if everyone updates everyone: mesh $=(k+1)k$ directed messages; star $= 2k$ (each worker↔hub). For $k = 8$: mesh 72, star 16. The star pays for cheapness with a bottleneck and a single point of failure — the hub's context must summarize everything, and summaries lose information (data processing inequality, Ch 16: post-processing can't increase mutual information with the source).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Free-text messages between LLM agents feel natural but drift: agent A says "done, mostly," agent B reads "done." Anything a downstream agent will branch on should be a structured field (<code>status: partial</code>), not prose. Prose for nuance, schema for control flow.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many directed edges in a full mesh of $n$ agents? In a ring? <details class="sol"><summary>Solution</summary><div>Mesh: $n(n-1)$. Ring (each talks to next, one direction): $n$; bidirectional ring: $2n$.</div></details></li>
+  <li><span class="lvl m">MED</span> Each hop of summarization keeps 80% of task-relevant information. In a chain of 5 agents A→B→C→D→E, what fraction of A's information reaches E, and what topology change fixes it? <details class="sol"><summary>Solution</summary><div>$0.8^4 \approx 0.41$: E gets 41%. Fix: give E direct read access to A's artifact (a shared store) so hops carry <em>pointers</em> rather than lossy paraphrases — turning the chain into a star over shared state. This is why blackboard/shared-workspace architectures beat pure message-passing for artifact-heavy work.</div></details></li>
+  <li><span class="lvl h">HARD</span> In an asynchronous system, agent A sends "task cancelled" while B's result message is already in flight. Describe the race, and give two mechanisms that make the system's final state well-defined. <details class="sol"><summary>Solution</summary><div>Race: the supervisor may process B's result after the cancellation, resurrecting a dead task's side effects; or B may act on stale state. Mechanisms: (1) versioned tasks — every message carries a task epoch; receivers discard messages whose epoch is older than the current one (like fencing tokens in distributed systems); (2) idempotent, transactional effect application (Ch 32) — results are staged and only committed by the supervisor if the task is still live; a cancel wins by making the commit a no-op. Both replace "whoever arrives last wins" with an explicit ordering rule.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="message-protocols">
+ <h2>Message protocols</h2>
+ <p>A protocol is the grammar of a conversation: which message types exist, who may send what when, and what each type obliges the receiver to do. Protocols turn "agents chatting" into something you can verify — a protocol is a state machine (Ch 17), and a conversation is a run of it.</p>
+ <div class="box def"><span class="label">Definition</span> A protocol is a finite state machine $(S, s_0, M, \delta)$ over conversation states with transitions $\delta: S \times M \to S$ labeled by message types; a message is <em>legal</em> only if a transition exists. Classic example, Contract Net: $\text{cfp} \to \text{propose}/\text{refuse} \to \text{accept}/\text{reject} \to \text{inform-result}/\text{failure}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Contract Net run for "translate file X." Manager broadcasts <code>cfp(translate X, deadline 60s)</code> to 3 workers. Bids: $w_1$ proposes cost 5, $w_2$ proposes cost 3, $w_3$ refuses (busy). Manager sends <code>accept</code> to $w_2$, <code>reject</code> to $w_1$. $w_2$ replies <code>inform-result(Y)</code>. Every arrow is a legal transition; if $w_1$ later sent <code>inform-result</code>, the manager's state machine has no transition for it — it is dropped and logged, not silently absorbed. Illegal messages made detectable is the whole point.</div>
+ <div class="box think"><span class="label">Think first</span> Why should the protocol include an explicit <code>failure</code> message rather than letting workers just time out? <details class="sol"><summary>Reveal</summary><div>A timeout is ambiguous between "worker is slow," "worker crashed," and "network dropped the message," and it costs the full deadline to detect. An explicit failure arrives immediately, carries a reason the manager can act on (retry vs replan), and lets timeouts be reserved for the truly silent failures. Distinguish "known bad news" from "no news" — protocols encode this distinction; raw chat does not.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In Contract Net, what goes wrong if the manager can send <code>accept</code> to two workers for the same task? <details class="sol"><summary>Solution</summary><div>Duplicate work at best; conflicting side effects at worst (two agents editing the same file, double-booking a resource). The protocol should make single-award a state-machine invariant: after one accept, the only legal messages to other bidders are rejects.</div></details></li>
+  <li><span class="lvl m">MED</span> Draw (describe) the state machine of a two-phase task handoff with acknowledgment: assign → ack → result → result-ack, with a retry on missing ack. What new state does the retry require? <details class="sol"><summary>Solution</summary><div>States: Idle →(assign sent) AwaitAck →(ack) AwaitResult →(result) AwaitResultAckSent → Done. Retry needs AwaitAck to loop on timeout back to sending assign — which requires messages to carry a delivery id so a worker receiving a duplicate assign can re-ack idempotently instead of starting the task twice. Retries force idempotency into the protocol (Ch 32).</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why protocol conformance can be checked at runtime by a monitor that sees only the message stream, and relate this to Ch 34. <details class="sol"><summary>Solution</summary><div>The protocol is a DFA over message types; a monitor replays the stream through the DFA and flags the first message with no legal transition. This needs no access to agent internals — conformance is a property of the observable trace. It is exactly runtime monitoring of a safety property (Ch 34): "no illegal message ever occurs" is a safety property, violated by a finite prefix, hence monitorable. Liveness ("every cfp is eventually answered") cannot be refuted by any finite prefix and needs timeouts as a proxy.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="shared-state">
+ <h2>Shared state</h2>
+ <p>Instead of mailing information around, agents can read and write a common store — a blackboard. Shared state is powerful (no lossy relay chains, latecomers can catch up) and dangerous (races, stale reads, one agent's garbage becomes everyone's context). The picture: a whiteboard in a war room, with rules about who holds the marker.</p>
+ <div class="box def"><span class="label">Definition</span> A shared state is a store $\Sigma$ with operations read/write/append, a schema, and a concurrency discipline. Key disciplines: single-writer-per-key (each key has one owning agent), append-only log (writes never destroy; state is a fold over the log), and optimistic concurrency (writes carry the version they read; a mismatched version rejects the write).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two executors both read <code>counter = 5</code>, both write <code>counter = 6</code>: one increment is lost (the classic lost update). With optimistic concurrency: both read version 12; the first write (value 6, expected-version 12) succeeds and bumps to version 13; the second write arrives with expected-version 12 ≠ 13 and is rejected; the agent re-reads (6, v13) and writes 7. No lock was held while the agents "thought," which matters when thinking takes an LLM call, i.e. seconds.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Treating the shared store as trusted context. Anything an agent wrote after reading a web page can carry injected instructions (Ch 32). Shared state needs provenance per entry (who wrote it, from what sources) so readers can apply the right level of trust — Ch 31's memory provenance, now with multiple writers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is an append-only log easier to debug than a mutable key-value store? <details class="sol"><summary>Solution</summary><div>Nothing is ever destroyed: the full history of who wrote what, when, in what order, is the data structure itself. Any past state can be reconstructed by folding a prefix; "how did we get here?" is a query, not an archaeology project.</div></details></li>
+  <li><span class="lvl m">MED</span> $k$ agents each do read-modify-write on the same key without concurrency control, all reads happening before any write. How many updates survive? With optimistic concurrency and immediate retry, how many write attempts occur in the worst case? <details class="sol"><summary>Solution</summary><div>Without control: 1 survives (last writer wins), $k-1$ lost. With optimistic concurrency: round 1, all $k$ attempt, 1 succeeds; round 2, $k-1$ retry, 1 succeeds; … total attempts $k + (k-1) + \cdots + 1 = k(k+1)/2$. All $k$ updates land, at quadratic message cost — fine for small $k$; for large $k$, batch or shard the key.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a shared-state discipline for a team where a researcher agent writes findings, a writer agent composes a report from them, and a fact-checker may retract findings. Prevent the writer from citing retracted findings without locking. <details class="sol"><summary>Solution</summary><div>Append-only log of findings, each with id and status events (<code>added</code>, <code>retracted</code>) — a retraction is a new event, not a deletion. The writer materializes its view as "findings whose latest event is added" at a chosen snapshot version $v$, and stamps the report "built at $v$." At publish time, a final check re-reads the log head: if any cited finding was retracted after $v$, rebuild the affected sections. This is snapshot isolation plus a pre-commit validation — writers work on stable views, correctness is enforced at the commit boundary, no locks held during slow LLM work.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="private-state">
+ <h2>Private state</h2>
+ <p>Not everything should be shared. An agent's scratch reasoning, its credentials, its embargoed draft — private state keeps them out of other agents' contexts. Privacy here is not secrecy for its own sake: it is error containment (my half-baked hypothesis shouldn't anchor you), security (my API key isn't your business), and honest evaluation (a verifier shouldn't see my confidence).</p>
+ <div class="box def"><span class="label">Definition</span> Partition each agent $i$'s state into $\Sigma_i^{\text{priv}}$ (readable and writable only by $i$) and interfaces into shared state. Information flows from private to shared only through explicit <em>publish</em> actions, which are loggable and policy-checkable. Formally this is an information-flow constraint: no dependence of shared writes on private data except via publish.</div>
+ <div class="box ex"><span class="label">Worked example</span> A negotiation between a buyer agent (private: reservation price \$120) and a seller agent (private: cost \$70). Shared: the offer history. If the buyer's reservation price leaked into shared state, the seller would open at \$119 and capture nearly all surplus. Kept private, offers converge somewhere in $[70, 120]$ determined by bargaining, not by information asymmetry collapse. Private state is what makes strategic interaction (Ch 24) a game rather than an open-book computation.</div>
+ <div class="box link"><span class="label">Where this goes</span> Deciding what may cross the private/shared boundary is a policy-verification problem (Ch 34); agents inferring each other's private state is the substrate of deception risks later in this chapter.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give two things that should stay in an executor's private state and one thing that must not. <details class="sol"><summary>Solution</summary><div>Private: its chain-of-thought scratchpad; its tool credentials. Must not stay private: the acceptance-test results for its artifact — the whole system depends on those being visible and honest.</div></details></li>
+  <li><span class="lvl m">MED</span> Why should a verifier's detailed rubric sometimes be private from the executor, and what is the cost? <details class="sol"><summary>Solution</summary><div>If the executor knows the exact checks, it can overfit to them — Goodhart's law: passing the rubric stops implying quality (cf. reward hacking, Ch 25). Hiding it keeps the rubric a proxy sampled from the space of quality checks. Cost: the executor can't self-check as effectively, so more rejection cycles; and hidden criteria can be unfair/undebuggable. Common compromise: publish the criteria class, keep the specific instances (test cases) private.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two agents share a channel monitored for policy compliance, but each also observes the other's <em>timing</em>. Explain how private information can leak through this side channel and what the monitor misses. <details class="sol"><summary>Solution</summary><div>Timing is a covert channel: an agent can encode bits in response latency (fast = 0, slow = 1) or in benign-looking choices (word ordering, which synonym). A content monitor checks the payload against policy but the mutual information between one agent's private state and the other's observations includes these non-content degrees of freedom. Channel capacity is low but nonzero — this is why "agents can only communicate through monitored natural language" is weaker containment than it sounds, and why collusion analysis (later this chapter) must consider covert channels, not just overt messages.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="consensus">
+ <h2>Consensus</h2>
+ <p>Consensus is getting many agents to agree on one value — a decision, an ordering of events, an answer — despite failures and asynchrony. Two flavors matter to us: distributed-systems consensus (agree despite crashes, e.g. which task-assignment is authoritative) and epistemic consensus (agree on a belief, by averaging or argument). The first is about fault tolerance, the second about truth.</p>
+ <div class="box def"><span class="label">Definition</span> A consensus protocol among $n$ agents, each with input $v_i$, must satisfy: <em>Agreement</em> (all deciding agents decide the same value), <em>Validity</em> (the decided value was some agent's input), <em>Termination</em> (all correct agents eventually decide). Crash-tolerant majority protocols need $n \ge 2f+1$ to tolerate $f$ crashes; Byzantine (arbitrarily faulty/adversarial) agents require $n \ge 3f+1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Iterative averaging (gossip) as epistemic consensus: agents on a ring, each holding an estimate $x_i$, repeatedly update $x_i \leftarrow \tfrac{1}{2}x_i + \tfrac14 x_{i-1} + \tfrac14 x_{i+1}$. With initial values $(0, 0, 0, 8)$ on a 4-ring, one round gives: $x_1 = 0.5\cdot0 + 0.25\cdot 8 + 0.25\cdot 0 = 2$, $x_2 = 0$, $x_3 = 2$, $x_4 = 4$. The sum stays $8$ (the update matrix is doubly stochastic) so everyone converges to the average $2$. Convergence speed is governed by the second-largest eigenvalue of the update matrix — a Markov-chain mixing fact from Ch 12.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Epistemic consensus can converge fast to the wrong answer: averaging correlated errors doesn't cancel them. If all agents read the same misleading source, the "consensus" is just that source's error, laundered through agreement. Agreement is evidence of truth only to the extent the agents' errors are independent.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Gossip averaging on a ring: set the number of agents and self-weight, hit Run, and watch estimates converge to the true average (dashed line).</p>
+  <canvas id="cv-gossip"></canvas>
+  <div class="ctl">
+   <label>agents <input type="range" id="gs-n" min="4" max="24" step="1" value="10"></label>
+   <label>self-weight <input type="range" id="gs-w" min="0.1" max="0.9" step="0.05" value="0.5"></label>
+   <button class="btn" id="gs-run">Run</button>
+   <button class="btn" id="gs-reset">Reset</button>
+  </div>
+  <div class="out" id="gs-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many agents are needed to tolerate 2 Byzantine agents? 2 crash-only agents? <details class="sol"><summary>Solution</summary><div>Byzantine: $n \ge 3f+1 = 7$. Crash-only: $n \ge 2f+1 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> On the 4-ring example above, compute round 2 from $(2, 0, 2, 4)$. <details class="sol"><summary>Solution</summary><div>$x_1 = 0.5(2)+0.25(4)+0.25(0) = 2$; $x_2 = 0.5(0)+0.25(2)+0.25(2) = 1$; $x_3 = 0.5(2)+0.25(0)+0.25(4) = 2$; $x_4 = 0.5(4)+0.25(2)+0.25(2) = 3$. State $(2,1,2,3)$, sum still 8, spread shrinking toward $(2,2,2,2)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does Byzantine consensus require $n \ge 3f+1$? Sketch the intuition for $n=3, f=1$. <details class="sol"><summary>Solution</summary><div>With 3 agents A, B, C and C Byzantine: C tells A "my value is 0, and B told me 0" while telling B "my value is 1, and A told me 1." A sees votes {A's own, B's relayed, C: 0}; B sees a mirrored picture. A cannot distinguish "C is lying" from "B is lying about what it relayed" — the two honest agents each face a 1-vs-1 contradiction with no majority of honest evidence to break it. With $n = 3f+1$, any two "quorums" of size $2f+1$ intersect in at least $f+1$ agents, hence at least one honest agent, which pins down a single consistent value. Quorum intersection through honest agents is the load-bearing fact.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="voting-and-aggregation">
+ <h2>Voting and aggregation</h2>
+ <p>The cheapest way to combine agents: ask them all, aggregate the answers. Majority vote for discrete answers, mean or median for numbers, and for LLMs, self-consistency — sample many reasoning paths, vote on final answers. The math says aggregation is nearly magical when errors are independent, and nearly useless when they are not.</p>
+ <div class="box thm"><span class="label">Theorem (Condorcet jury theorem)</span> $n$ independent voters each correct with probability $p > \tfrac12$ on a binary question. The majority is correct with probability $P_n = \sum_{k > n/2} \binom{n}{k} p^k (1-p)^{n-k}$, which is increasing in $n$ and $\to 1$ as $n \to \infty$. If $p < \tfrac12$, the majority is <em>worse</em> than one voter and $P_n \to 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p = 0.6$, $n = 5$: majority needs $\ge 3$ correct. $P_5 = \binom{5}{3}(0.6)^3(0.4)^2 + \binom{5}{4}(0.6)^4(0.4) + (0.6)^5 = 10(0.216)(0.16) + 5(0.1296)(0.4) + 0.07776 = 0.3456 + 0.2592 + 0.07776 = 0.68256$. Five mediocre agents ≈ one 68% agent. At $n = 25$, $P_{25} \approx 0.846$. But with pairwise error correlation $\rho$, the effective number of independent voters is roughly $n_{\text{eff}} \approx \frac{n}{1 + (n-1)\rho}$: at $\rho = 0.3$, $n=25$ gives $n_{\text{eff}} \approx 25/8.2 \approx 3$ — correlation eats the crowd.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide per-agent accuracy $p$ and correlation $\rho$; the curve shows majority accuracy vs number of agents (correlated case simulated).</p>
+  <canvas id="cv-vote"></canvas>
+  <div class="ctl">
+   <label>p <input type="range" id="vt-p" min="0.3" max="0.9" step="0.01" value="0.6"></label>
+   <label>correlation <input type="range" id="vt-r" min="0" max="0.9" step="0.05" value="0"></label>
+  </div>
+  <div class="out" id="vt-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Sampling the same model at temperature and voting (self-consistency) helps only with <em>fluke</em> errors; systematic errors — the model believes a wrong fact, misreads the question the same way every time — are perfectly correlated across samples and survive any $n$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Three independent agents, each correct w.p. 0.7. Probability the majority is correct? <details class="sol"><summary>Solution</summary><div>$P = \binom{3}{2}(0.7)^2(0.3) + (0.7)^3 = 3(0.49)(0.3) + 0.343 = 0.441 + 0.343 = 0.784$.</div></details></li>
+  <li><span class="lvl m">MED</span> For numeric estimates with independent unbiased noise of variance $\sigma^2$, what is the variance of the mean of $n$ agents? Of the mean when noises have pairwise correlation $\rho$? <details class="sol"><summary>Solution</summary><div>Independent: $\sigma^2/n \to 0$. Correlated: $\operatorname{Var}(\bar X) = \frac{\sigma^2}{n} + \frac{n-1}{n}\rho\sigma^2 \to \rho\sigma^2 > 0$. The correlated part is an irreducible floor — more agents cannot average away shared bias.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is the median often preferred to the mean when aggregating agent estimates? <details class="sol"><summary>Solution</summary><div>Robustness: one agent returning a wild outlier (a parsing failure, a hallucinated magnitude) moves the mean arbitrarily far but moves the median at most to a neighboring order statistic. The median has breakdown point 50%: up to half the agents can be arbitrarily wrong without unbounded damage.</div></details></li>
+  <li><span class="lvl h">HARD</span> Weighted majority: agent $i$ has known accuracy $p_i$, votes independently. Show the log-odds-optimal rule weights agent $i$'s vote by $w_i = \log\frac{p_i}{1-p_i}$. <details class="sol"><summary>Solution</summary><div>Let $y \in \{+1,-1\}$ be the truth with uniform prior, votes $v_i \in \{+1,-1\}$ with $P(v_i = y) = p_i$ independently given $y$. Posterior log-odds: $\log\frac{P(y=+1\mid v)}{P(y=-1 \mid v)} = \sum_i \log \frac{P(v_i \mid y=+1)}{P(v_i \mid y=-1)}$. Each term is $\log\frac{p_i}{1-p_i}$ if $v_i = +1$ and $\log\frac{1-p_i}{p_i}$ if $v_i = -1$, i.e. $v_i \log\frac{p_i}{1-p_i}$. So decide by $\operatorname{sign}\left(\sum_i v_i w_i\right)$ with $w_i = \log\frac{p_i}{1-p_i}$: a 90% agent ($w \approx 2.20$) outvotes three 60% agents ($3 \times 0.405 = 1.22$). This is naive Bayes (Ch 19) applied to voters.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="debate">
+ <h2>Debate</h2>
+ <p>Voting aggregates conclusions; debate aggregates <em>arguments</em>. Two agents take opposing sides, exchange rebuttals, and a judge — weaker than either debater — picks the winner. The bet: it is easier to recognize a winning argument than to construct one, so a weak judge plus strong adversarial debaters can supervise beyond the judge's own competence. That bet is the core of debate-as-scalable-oversight (Ch 35).</p>
+ <div class="box def"><span class="label">Definition</span> A debate is a zero-sum game: debaters $A$ (for answer $a$) and $B$ (for $b$) alternate arguments for $R$ rounds; judge $J$ maps the transcript to a verdict. The oversight hope, informally: if honest strategies have a winning edge — lies open more attack surface than truths — then at equilibrium both debaters are pushed toward honesty, and $J \circ \text{debate}$ is more accurate than $J$ alone.</div>
+ <div class="box ex"><span class="label">Worked example</span> Question: "does this 200-line function handle empty input?" The judge can't read all 200 lines reliably. $A$: "yes — line 12 guards <code>if not items: return []</code>." $B$: "the guard is dead code: line 8 already indexed <code>items[0]</code>." The judge only needs to read lines 8 and 12 to see $B$ is right. Debate acted as a spotlight protocol: adversarial agents surface the minimal decisive evidence, shrinking the judge's job from verifying everything to checking one pinpointed claim.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Debate inherits every judge bias: verbosity, confidence, rhetorical polish, position order. If persuasion and truth diverge for the judge, equilibrium debaters optimize persuasion. Measured judge accuracy must be validated on questions with known answers before trusting it on unknown ones.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must debate be zero-sum for the honesty argument to work? <details class="sol"><summary>Solution</summary><div>If debaters could both "win" (or share reward), they could collude on a mutually convenient wrong answer. Zero-sum means any lie by one side is pure opportunity for the other: the incentive to expose flaws is exactly as strong as the incentive to hide them.</div></details></li>
+  <li><span class="lvl m">MED</span> A judge alone is correct with probability 0.6. With debate, suppose the judge is correct w.p. 0.85 when the honest side plays optimally, but debates on 20% of questions collapse into equally persuasive noise where the judge is at chance 0.5. Overall accuracy? <details class="sol"><summary>Solution</summary><div>$0.8 \times 0.85 + 0.2 \times 0.5 = 0.68 + 0.10 = 0.78$, versus 0.6 without debate. Worth it here — but the 20% "noise" set is worrying if it correlates with the questions you care most about (e.g. the hardest ones).</div></details></li>
+  <li><span class="lvl h">HARD</span> Give a concrete failure mode where the dishonest side has a structural advantage in debate, and a protocol tweak that mitigates it. <details class="sol"><summary>Solution</summary><div>Failure: the "obfuscated argument" problem. The dishonest side asserts a conclusion supported by a long chain of steps, each individually plausible, with one flaw hidden somewhere; the honest side can only say "there is a flaw in there" and, given bounded rounds, may not have enough turns to locate and demonstrate it — checking the whole chain exceeds the judge's budget while the lie was cheap to construct. Mitigation: recursive debate / claim decomposition — the honest side may challenge any single step, the debate recurses on that step alone, and the judge rules on the leaf. Now hiding a flaw in step $k$ just moves the game to step $k$, and the honest side's ability to <em>choose</em> the recursion point restores its advantage. (This mirrors interactive proofs: the verifier's power comes from choosing where to probe.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">What property of debate is supposed to let a weak judge supervise strong debaters?</div><button class="opt">Debaters are fine-tuned to be honest before the debate</button><button class="opt">Refuting a specific flaw is easier than producing or fully checking a solution, and zero-sum incentives make debaters expose each other's flaws</button><button class="opt">The judge sees both debaters' private chain-of-thought</button><div class="why" hidden>Debate works (when it works) by the generator–verifier gap: the judge never verifies the whole solution, only the pinpointed disagreements that adversarial debaters surface, and zero-sum reward makes surfacing flaws individually rational.</div></div>
+</section>
+
+<section class="topic" id="conflict-resolution">
+ <h2>Conflict resolution</h2>
+ <p>Put multiple agents on one project and conflicts are not a bug — they are the expected steady state: two agents edit the same file, two subplans claim the same budget, two "facts" in shared memory contradict. A system needs an explicit answer to "who wins, and by what rule?" before the conflict happens, not after.</p>
+ <div class="box def"><span class="label">Definition</span> A conflict is a set of proposed actions or claims $\{c_1, \dots, c_k\}$ that cannot jointly hold. A resolution rule is a map from the conflict plus metadata (priorities, timestamps, provenance, costs) to an outcome: pick one, merge, escalate, or reject all. Standard rules: priority order (safety &gt; correctness &gt; cost), authority order (supervisor overrides worker), evidence order (measured beats asserted), recency with provenance, and escalation to a human as the terminal rule.</div>
+ <div class="box ex"><span class="label">Worked example</span> Agent A writes to shared memory "service latency SLA is 200 ms" (source: design doc, 2024). Agent B writes "SLA is 100 ms" (source: current config file, read today). Contradiction detected (Ch 31). Resolution by evidence order: config-file provenance (live system, fresh) beats design-doc provenance (stale intent); memory keeps "100 ms (config, today)" and demotes the other to "historical: 200 ms (design doc)". Note the resolution keeps both with status labels — resolving a conflict by deleting the loser destroys the audit trail and the ability to re-resolve when new evidence arrives.</div>
+ <div class="box think"><span class="label">Think first</span> Two executor agents propose incompatible edits to the same function, both passing tests. What resolution rules could apply, in what order? <details class="sol"><summary>Reveal</summary><div>(1) Check the plan: if one edit serves an assigned subtask and the other is out of scope, scope wins. (2) If both are in scope, the planner made overlapping assignments — this is a planning bug; escalate to the planner to merge intents, don't resolve locally. (3) If truly equivalent, prefer the smaller diff (minimal-change principle) or run both against a broader test suite and pick the survivor. The meta-rule: resolve at the lowest level that has enough context, escalate when local context can't distinguish.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why should "escalate to human" be the terminal rule rather than "most recent write wins"? <details class="sol"><summary>Solution</summary><div>Last-write-wins resolves every conflict silently, including the ones that signal a real problem (contradictory goals, a compromised agent). Escalation makes irreducible conflicts visible to the party with the most context and the actual authority; silence hides them.</div></details></li>
+  <li><span class="lvl m">MED</span> A resolution rule must be a total order on (safety, authority, recency) triples to avoid cycles. Give an example of cyclic pairwise rules and the resulting infinite loop. <details class="sol"><summary>Solution</summary><div>Rules: "safer beats less safe," "supervisor beats worker," "newer beats older" — applied pairwise without precedence. Claim X (worker, newest, safest), Y (supervisor, middle age, middling safety), Z (worker, oldest, unsafe but supervisor-endorsed via Y referencing it)… construct: X beats Y on safety, Y beats Z on recency? and Z beats X on authority — a Condorcet-style cycle: each pairwise comparison uses a different criterion. The system oscillates as each new comparison overturns the last. Fix: lexicographic precedence (compare safety first; tie → authority; tie → recency), which is a total order and cycle-free.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a conflict-resolution scheme for shared-memory contradictions that is robust to a single adversarial agent spamming high-priority claims. <details class="sol"><summary>Solution</summary><div>(1) Claims carry provenance and the writer's identity; priority is a function of <em>verifiable</em> provenance class (tool-measured &gt; retrieved-with-citation &gt; asserted), not of a self-declared priority field — an adversary can assert, but cannot forge a tool measurement executed by the runtime. (2) Rate-limit and reputation-weight writers: an agent whose claims are repeatedly overturned on verification loses write weight (a multiplicative-weights update). (3) Contradictions involving any high-impact key trigger verification (re-measure) rather than rule-based resolution — spending a tool call to settle what argument cannot. (4) All overturned claims are logged per-writer, so a spamming agent produces a detectable statistical signature. The theme: make priority something earned through verification, never something claimed.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="task-delegation">
+ <h2>Task delegation</h2>
+ <p>Delegation is a bet: the delegator trades control for parallelism and specialization, and pays two costs — the communication cost of specifying the task, and the agency cost of the delegate not doing quite what was meant. Economists call the delegator the principal and the delegate the agent; the mismatch of information and incentives between them is the principal–agent problem, and it applies verbatim to LLM agents.</p>
+ <div class="box def"><span class="label">Definition</span> Delegation of task $t$ from principal $P$ to agent $A$ specifies: the spec $\sigma(t)$, the budget $B$, the authority granted (tools, permissions — Ch 32), and the acceptance test. The <em>delegation gap</em> is $\mathbb{E}[U_P(\text{A's output})] - \mathbb{E}[U_P(\text{P's own output})]$; delegation is rational when the gap plus P's freed-capacity value exceeds specification + verification costs.</div>
+ <div class="box ex"><span class="label">Worked example</span> P can do a task itself in 30 min at quality 0.95, or spend 5 min writing a spec, delegate to A (20 min, quality 0.85, in parallel with P's other work worth 25 min of P-time), then 5 min verifying. Delegating costs P 10 min of attention and yields quality 0.85 plus 25 min of other output; doing it solo costs 30 min for +0.10 quality. Delegate unless that 0.10 quality is worth ~20 minutes of P's time — a calculation, not a vibe. The spec-writing cost is why tiny tasks shouldn't be delegated: for a 2-minute task, the 5-minute spec dominates.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Delegating the task but not the context. A spec that omits the <em>purpose</em> ("extract these numbers" without "they'll be compared against last quarter") produces literal compliance and useless output. Specs should carry intent plus constraints, and the acceptance test should encode the purpose.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the two classic information asymmetries in principal–agent problems and their agent-system analogues. <details class="sol"><summary>Solution</summary><div>Hidden action (moral hazard): P can't observe how A worked — analogue: you see the diff, not whether tests were actually run; hence verifiable logs. Hidden information (adverse selection): A knows things about its own competence P doesn't — analogue: routing a task to a model that overstates its ability; hence calibrated capability profiles from historical outcomes.</div></details></li>
+  <li><span class="lvl m">MED</span> A supervisor can delegate to a cheap agent (cost 1, success 0.7) or an expensive one (cost 4, success 0.95). A failure is caught by a perfect verifier (cost 0.5) and redone by the expensive agent. Compare expected costs of "cheap first" vs "expensive first". <details class="sol"><summary>Solution</summary><div>Expensive first: $4 + 0.5 = 4.5$ then done w.p. 0.95; w.p. 0.05 redo: $+ (4+0.5)$. Expected $\approx 4.5 + 0.05(4.5) = 4.725$ (ignoring further failures). Cheap first: $1 + 0.5 = 1.5$; w.p. 0.3 escalate: $+ 4 + 0.5 = 4.5$, w.p. 0.05 of that redo again ≈ negligible: expected $\approx 1.5 + 0.3 \times 4.725 \approx 2.92$. Cheap-first wins here; it loses when failure has side-effect costs (a bad action executed) rather than just retry costs — then the 30% failure rate isn't merely money.</div></details></li>
+  <li><span class="lvl h">HARD</span> Deep delegation: P delegates to A, who sub-delegates to B. Each hop preserves fraction $\phi$ of the original intent, and authority (permissions) is passed intact. What are the two distinct risks growing with depth, and what mechanism addresses each? <details class="sol"><summary>Solution</summary><div>(1) Intent decay: fidelity $\phi^d$ after $d$ hops ($\phi=0.9$, $d=4$: 66%) — the sub-sub-agent optimizes a paraphrase of a paraphrase. Mechanism: pass the <em>original</em> goal and acceptance test down verbatim alongside each local subtask spec, so any depth can check against ground truth intent. (2) Authority amplification: B holds P's permissions without P's judgment or P's accountability — and prompt injection anywhere in the chain (Ch 32) can spend those permissions. Mechanism: attenuation at each hop (each delegation grants a subset of the delegator's capabilities scoped to the subtask — capability-based security), plus a delegation chain recorded in every action's audit log so authority is traceable to its root grant.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="agent-coordination">
+ <h2>Agent coordination</h2>
+ <p>Coordination is avoiding the two dual failures of concurrency: duplicated work (two agents solve the same subtask) and dropped work (each assumes the other has it). Mechanisms range from centralized (a supervisor assigns everything) to market-like (agents bid) to conventions (fixed rules like "whoever's id is lower takes the tie"). The measure of a scheme is overhead per unit of avoided conflict.</p>
+ <div class="box def"><span class="label">Definition</span> Given tasks $T$ and agents $A$, coordination produces an assignment $x: T \to A$ respecting capacity and dependency constraints. Centralized: supervisor computes $x$ (an assignment problem — solvable optimally, e.g. Hungarian algorithm in $O(n^3)$). Decentralized: agents claim tasks from a queue with atomic take, or bid utilities and a light auctioneer awards each task to the best bid.</div>
+ <div class="box ex"><span class="label">Worked example</span> Assignment problem: 3 agents, 3 tasks, cost matrix (rows = agents, cols = tasks) $\begin{pmatrix}4 & 2 & 8\\ 4 & 3 & 7\\ 3 & 1 & 6\end{pmatrix}$. Enumerate the $3! = 6$ assignments: (1,2,3):4+3+6=13; (1,3,2):4+7+1=12; (2,1,3):2+4+6=12; (2,3,1):2+7+3=12; (3,1,2):8+4+1=13; (3,2,1):8+3+3=14. Minimum 12 (three ways, e.g. agent 1→task 2 (2), agent 2→task 1 (4), agent 3→task 3 (6)). Greedy "each agent grabs its cheapest" would have all three grab task 2 — the collision a coordinator exists to prevent.</div>
+ <div class="box link"><span class="label">Where this goes</span> When agents' utilities are private and self-interested, honest bidding needs mechanism design (Ch 24: VCG makes truthful bids optimal). Cooperative multi-agent RL (Ch 25) learns coordination end-to-end instead of designing it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two agents poll the same task queue without atomic operations: both read task #7 as unclaimed, both start it. Name the fix and its Ch 32 cousin. <details class="sol"><summary>Solution</summary><div>Atomic take (compare-and-swap: claim succeeds only if status is still "open"), the same primitive as optimistic concurrency in shared state; its Ch 32 cousin is idempotency — even if both claim due to a retry, executing the task twice must be safe or the second commit rejected.</div></details></li>
+  <li><span class="lvl m">MED</span> In the cost matrix above, compute the cost of the greedy assignment where agents pick in order 1, 2, 3, each taking its cheapest <em>remaining</em> task. <details class="sol"><summary>Solution</summary><div>Agent 1 takes task 2 (cost 2). Agent 2's remaining cheapest: task 1 (4). Agent 3 gets task 3 (6). Total 12 — happens to match the optimum here. Reorder to 3, 2, 1: agent 3 takes task 2 (1), agent 2 takes task 1 (4), agent 1 takes task 3 (8): total 13. Greedy's quality depends on arrival order; the optimal assignment doesn't.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compare centralized assignment vs decentralized bidding on: message complexity, single point of failure, optimality, and behavior when an agent dies mid-task. <details class="sol"><summary>Solution</summary><div>Messages: centralized $O(n)$ (statuses in, assignments out) vs bidding $O(n \cdot |T|)$ bids in the worst case. Failure: supervisor death halts assignment (mitigate: supervisor re-election — itself a consensus problem); an auctioneer is lighter-weight and easier to replace since it holds less state. Optimality: centralized can be globally optimal (Hungarian); sequential single-task auctions are greedy and can be suboptimal, though repeated/combinatorial auctions close the gap at higher cost. Agent death: centralized supervisor notices a missed heartbeat and reassigns (it knows the full allocation); in decentralized schemes the task must have a lease — a claim that expires unless renewed — so orphaned tasks return to the pool automatically. Leases are the decentralized world's substitute for a watchful boss.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="branch-and-merge">
+ <h2>Branch and merge</h2>
+ <p>Sometimes the best coordination is none: fork the state, let $k$ agents work in isolated copies, then merge the results. Version control made this the default for human engineers; agent systems inherit it directly — worktrees per agent, then a merge step that is itself a nontrivial reasoning task. Branching buys perfect isolation during work at the price of deferred conflict at merge time.</p>
+ <div class="box def"><span class="label">Definition</span> Branch: create copies $s_1, \dots, s_k$ of base state $s_0$; agent $i$ produces edit set $\Delta_i$. Merge: compute a combined state from $s_0$ and $\{\Delta_i\}$. Edits <em>commute</em> when they touch disjoint parts or are order-independent; a conflict is a pair $(\Delta_i, \Delta_j)$ that doesn't commute — overlapping text edits, or semantic clashes (both rename the same concept differently) that no textual merge detects.</div>
+ <div class="box ex"><span class="label">Worked example</span> Base file has functions <code>f</code>, <code>g</code>, <code>h</code>. Agent 1 rewrites <code>f</code>; agent 2 rewrites <code>h</code>; agent 3 renames <code>g</code> to <code>compute_g</code> and updates its call inside <code>f</code>. Textual merge: 1⊕2 clean (disjoint regions). 1⊕3 conflicts inside <code>f</code> — and worse, if agent 1's new <code>f</code> still calls <code>g()</code>, a "successful" textual resolution still breaks the build: a semantic conflict. Correct merge order: apply 2, apply 3, then <em>re-run</em> agent 1's task on the merged base (rebase-and-redo), then run tests as the merge verifier. Tests, not diff hunks, define merge success.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Merging $k$ branches pairwise in arbitrary order can yield different results (textual merge is not associative in the presence of conflicts). Deterministic policy: fixed merge order + full test run after each merge + on conflict, re-run the losing agent's task against the updated base rather than hand-splicing its stale diff.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> When is branch-and-merge clearly better than a shared workspace with locks? <details class="sol"><summary>Solution</summary><div>When tasks mostly touch disjoint state (low conflict rate), when work sessions are long (locks would serialize everything for the duration of slow LLM work), and when you want the option to discard an agent's entire branch cheaply if it went wrong.</div></details></li>
+  <li><span class="lvl m">MED</span> $k$ agents each edit a uniformly random one of $m$ files. Probability of at least one pairwise conflict (two agents on the same file)? Evaluate for $k=5$, $m=40$. <details class="sol"><summary>Solution</summary><div>Birthday problem: $P(\text{no conflict}) = \prod_{i=0}^{k-1}\frac{m-i}{m} = \frac{40 \cdot 39 \cdot 38 \cdot 37 \cdot 36}{40^5}$. Compute: $40\cdot39\cdot38\cdot37\cdot36 = 78{,}960{,}960$? Check: $39\cdot38 = 1482$; $1482 \cdot 37 = 54{,}834$; $54{,}834 \cdot 36 = 1{,}974{,}024$; $\times 40 = 78{,}960{,}960$. $40^5 = 102{,}400{,}000$. $P(\text{no conflict}) \approx 0.771$, so $P(\text{conflict}) \approx 0.229$. Conflicts appear far sooner than intuition suggests ($k \approx \sqrt{2m}$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a merge protocol for $k$ agent branches that guarantees the final state passes the full test suite, minimizing redone work. Analyze its worst case. <details class="sol"><summary>Solution</summary><div>Order branches by (a) risk ascending or (b) size descending — say test-impact size descending so big changes land early. Maintain an integration branch $I \leftarrow s_0$. For each branch $i$ in order: attempt textual merge of $\Delta_i$ into $I$; if clean, run tests; if tests pass, commit. On textual conflict or test failure, re-run agent $i$'s original task with $I$ as the new base (task specs were saved — this is why specs, not diffs, are the durable artifact), then test and commit. Guarantee: $I$ passes tests after every step by induction, so the final state does. Worst case: every branch conflicts, so $k-1$ tasks are redone sequentially — total work $\approx$ the sequential baseline plus the wasted parallel attempt; you never do <em>worse</em> than not parallelizing by more than the throwaway attempts, and you win whenever conflicts are sparse. Expected redone work scales with the conflict probability from the previous drill — which is why planners should partition tasks by file ownership.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="agent-specialization">
+ <h2>Agent specialization</h2>
+ <p>A generalist agent with every tool and a 5,000-word prompt does everything a little worse. Specialization narrows the job: a smaller tool set, a sharper prompt, few-shot examples from one domain, maybe a fine-tuned or smaller model. The gains mirror economics (division of labor) and statistics (a model fit to a narrower distribution has lower variance on it) — and the cost is a routing problem: someone must send each task to the right specialist.</p>
+ <div class="box def"><span class="label">Definition</span> A specialist for task distribution $D_s \subset D$ is a policy tuned so that $\text{perf}(\pi_s \mid D_s) > \text{perf}(\pi_g \mid D_s)$ for the generalist $\pi_g$, typically with fewer tools and a smaller context. System performance with a router $\rho$: $\mathbb{E}_{t\sim D}[\text{perf}(\pi_{\rho(t)} \mid t)]$ — specialization only pays if the router's accuracy is high enough that misrouted tasks don't eat the specialist advantage.</div>
+ <div class="box ex"><span class="label">Worked example</span> Generalist accuracy: 0.75 on SQL tasks, 0.75 on prose tasks. Specialists: SQL-agent 0.9 on SQL but 0.4 on prose; prose-agent 0.9 on prose, 0.4 on SQL. Router accuracy $r$; task mix 50/50. System accuracy $= r(0.9) + (1-r)(0.4)$. Break-even with the generalist: $0.9r + 0.4(1-r) = 0.75 \Rightarrow 0.5r = 0.35 \Rightarrow r = 0.7$. Below 70% routing accuracy, the specialist system loses to the plain generalist. Routers are load-bearing.</div>
+ <div class="box link"><span class="label">Where this goes</span> The same routing math powers mixture-of-experts inside a single model (Ch 23) and query routing in retrieval (Ch 31). Capability measurement for routing tables is Ch 36's problem.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give two ways to specialize an agent without changing model weights. <details class="sol"><summary>Solution</summary><div>Prompt specialization (role instructions, domain few-shot examples, domain glossaries) and tool/context specialization (only the relevant tools, only the relevant files or retrieval corpus). Both reshape the conditional distribution the model computes.</div></details></li>
+  <li><span class="lvl m">MED</span> Redo the worked example with task mix 80% SQL / 20% prose and router accuracy 0.85. Who wins? <details class="sol"><summary>Solution</summary><div>Routed system: correct-routing gives specialist at 0.9, misrouting gives 0.4. Accuracy $= 0.85 \times 0.9 + 0.15 \times 0.4 = 0.765 + 0.06 = 0.825$ (same for both task types by symmetry of the numbers). Generalist: 0.75. Specialists win, 0.825 vs 0.75. (A smarter router that defaults uncertain cases to the generalist would do even better — a three-way route.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Specialization creates correlated blind spots: all SQL tasks now flow through one agent. Contrast the error structure with a generalist pool of 3 voting agents, and say when each is preferable. <details class="sol"><summary>Solution</summary><div>Specialist funnel: within-domain errors are perfectly correlated across the domain's tasks — if the SQL agent has a systematic flaw (say, mishandles NULLs), <em>every</em> SQL task inherits it; but cross-domain errors are contained. Generalist voting pool: per-task errors are partially independent (Condorcet gains), so fluke errors wash out, but every agent shares the generalist's mediocrity and any base-model flaw is common to all three. Prefer specialists when domain skill gaps are large and domain flaws are testable (you can audit the SQL agent with a domain test suite — concentrated risk is auditable risk). Prefer diverse voting when tasks are one-off, hard to route, and errors are mostly flukes. Best practice combines them: route to a specialist, verify with a generalist — decorrelating by construction.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multi-agent-planning">
+ <h2>Multi-agent planning</h2>
+ <p>Planning for a team is harder than planning for one: the joint action space is the <em>product</em> of individual action spaces, plans must interleave without collisions, and each agent may only see part of the world. The saving grace: most real tasks are loosely coupled — agents interact at a few contention points, and good multi-agent planning finds and manages exactly those points instead of searching the full joint space.</p>
+ <div class="box def"><span class="label">Definition</span> With $n$ agents each having $|A|$ actions, the joint action space has $|A|^n$ elements per step — centralized planning in it is exponential in $n$. Factored alternatives: plan independently then repair conflicts; prioritized planning (agent $i$ plans treating agents $1..i-1$'s committed plans as moving obstacles); or plan over a coordination graph that only couples agents sharing a resource.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two robots on a corridor of cells $1\text{–}5$; R1 must go $1 \to 5$, R2 must go $5 \to 1$; one robot per cell per timestep; moves: left/right/wait. Independent optimal plans collide at time 2 (both want cell 3). Prioritized planning: R1 plans first: $1,2,3,4,5$ (arrives $t=4$). R2 plans around it, e.g. $5,4,4,3,2,1$ — wait at 4 one step? Check $t=2$: R1 at 3, R2 at 4 ✓; $t=3$: R1 at 4, R2 must not be at 4 and cannot swap through R1 — corridor has no passing room, so R2 must sidestep… there is none: with a pure corridor the instance is infeasible without a siding; add a siding cell 3' adjacent to 3: R2: $5,4,3',3'... $ actually R2: $5, 4, 3', 2$? cell 3' connects only to 3 — so R2: $5,4,3',3,2,1$ works if R1 passes 3 before R2 re-enters: R1 at 3 at $t=2$; R2 in 3' at $t=2$; $t=3$: R1→4, R2→3 ✓. Total makespan 5. The example's real lesson: the conflict was resolved by finding the one contention point (cell 3, around $t=2$) and buying one unit of siding capacity there — not by joint search over $9^5$ move combinations.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Prioritized planning is incomplete: a bad priority order can make a solvable instance unsolvable (agent 1's committed plan may permanently block agent 2). Complete algorithms like conflict-based search branch on conflicts instead of committing early — costlier, but they only pay where conflicts actually occur.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With 4 agents and 10 actions each, how big is the joint action space per step? What does a coordination graph with two independent pairs reduce it to? <details class="sol"><summary>Solution</summary><div>Joint: $10^4 = 10{,}000$. Two independent pairs: plan each pair separately over $10^2 = 100$ joint actions — total $2 \times 100 = 200$ evaluations, a 50× reduction, exact because the pairs don't interact.</div></details></li>
+  <li><span class="lvl m">MED</span> Two agents share one GPU; tasks: A needs it for 3 h then 2 h of CPU work; B needs 1 h CPU then 2 h GPU. Find the makespan-minimizing schedule. <details class="sol"><summary>Solution</summary><div>Give B the GPU first? B: CPU 0–1, GPU 1–3. A: GPU 3–6, CPU 6–8 → makespan 8. Give A the GPU first: A: GPU 0–3, CPU 3–5; B: CPU 0–1, GPU 3–5 → makespan 5. A-first wins because B's CPU hour hides inside A's GPU block and B's GPU block runs parallel to A's CPU tail. Scheduling around the contended resource (GPU busy 0–5, no idle gaps) is the whole game.</div></details></li>
+  <li><span class="lvl h">HARD</span> In LLM-agent teams, plans are natural-language and conflicts are semantic (two agents will write contradictory sections). Propose a conflict-detection pass and justify its placement in the planning loop. <details class="sol"><summary>Solution</summary><div>After decomposition, before execution: a dedicated pass takes all subtask specs pairwise (or clustered by shared artifacts/topics to avoid $O(k^2)$ LLM calls on everything) and asks a critic model: "could outputs of these two specs contradict or duplicate? name the shared object." Flagged pairs get either an ordering edge (sequentialize: writer of section 2 reads section 1's output), a shared-glossary constraint injected into both specs, or a merged assignment. Placement rationale: before execution because semantic conflicts are 10× cheaper to fix as spec edits than as merge repairs of finished artifacts (branch-and-merge above); after decomposition because conflicts are only visible once concrete outputs are named. It is static analysis for plans — the same cost argument as type-checking before runtime (Ch 34).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="emergent-behavior">
+ <h2>Emergent behavior</h2>
+ <p>Emergence: system-level patterns nobody programmed, arising from local interactions. Flocking birds follow three local rules and produce a coherent flock; agents following local incentives produce market crashes, feedback loops, and — in multi-agent LLM systems — conversational dynamics like escalating politeness loops, groupthink cascades, or two retry policies amplifying each other into a message storm. Emergence is neither good nor bad; it is unbudgeted.</p>
+ <div class="box def"><span class="label">Definition</span> A property $P$ of a multi-agent system is emergent (weak sense) if $P$ holds of the joint trajectory but is not a property of, nor explicitly encoded in, any individual policy — it arises from the interaction structure. Formally, the joint dynamics $s_{t+1} = F(s_t) = (f_1, \dots, f_n)$ applied with coupling can have attractors, oscillations, or phase transitions absent from any $f_i$ alone (Ch 28's fixed points and stability, now for coupled agents).</div>
+ <div class="box ex"><span class="label">Worked example</span> Information cascade. Agents 1, 2, 3, … each privately observe a signal that is correct with probability 0.7, then publicly guess in sequence, seeing all prior guesses. Truth is A. Agent 1 sees signal B (a 30% unlucky draw), guesses B. Agent 2 sees signal B too ($0.09$ chance both wrong so far — but agent 2 only knows its own signal and agent 1's guess): signal B + guess B → guesses B. Agent 3 sees signal A, but observes two B-guesses: posterior — two effective B-signals vs one A-signal — favors B ($0.7^2 \cdot 0.3 > 0.3^2 \cdot 0.7$, i.e. $0.147 > 0.063$), so agent 3 rationally guesses B <em>against its own signal</em>. Every later agent faces the same calculus: the cascade locks in, and an unboundedly long chain of rational Bayesian agents all repeat an error seeded by two unlucky draws. Emergent groupthink from individually correct reasoning. Antidote: have some agents report raw signals, not conclusions — aggregation before conformity.</div>
+ <div class="box pit"><span class="label">Pitfall</span> LLM agents amplify cascades beyond the Bayesian rate because they are trained toward agreeableness: an agent shown "three prior experts said B" often defers even when its own evidence is strong. Blind aggregation (collect answers independently, reveal nothing) is the cheap structural fix.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the cascade example, after how many public B-guesses does an agent with an A-signal rationally follow the crowd? <details class="sol"><summary>Solution</summary><div>After 2. One B-guess vs one A-signal is a tie in effective signals (guess 1 reveals signal 1) — the tie-break decides; two B-guesses outweigh one A-signal ($0.147 > 0.063$ as computed), so from agent 3 on, private signals stop affecting behavior — and stop entering the public record at all, which is why the cascade never self-corrects.</div></details></li>
+  <li><span class="lvl m">MED</span> Two services' agents each retry failed calls 3× with no backoff, and each's retries load the other. Sketch why this is an emergent outage and the standard fix. <details class="sol"><summary>Solution</summary><div>A brief load spike makes A's calls to B slow → A retries, tripling load on B → B degrades and B's calls (or B's clients) retry, raising load on A → a positive feedback loop; the fixed point "both saturated" is stable even after the trigger passes (a hysteresis/metastable failure). Neither policy alone is faulty — 3 retries is locally sensible. Fixes break the loop's gain: exponential backoff with jitter (reduces retry gain below 1), circuit breakers (stop calling a sick dependency), and admission control. Emergence managed by damping the coupling, the control-theory move of Ch 28.</div></details></li>
+  <li><span class="lvl h">HARD</span> Propose a monitoring strategy that detects harmful emergent dynamics in an LLM agent team without knowing in advance what form they take. <details class="sol"><summary>Solution</summary><div>Monitor system-level statistics whose healthy ranges are known, rather than specific patterns: (1) message-rate and token-rate per pair of agents (storms show up as super-linear growth); (2) semantic diversity of concurrent agent outputs, e.g. mean pairwise embedding distance (cascades/groupthink show as diversity collapse); (3) cycle detection in the task graph (A spawns B spawns A — emergent infinite loops); (4) budget-burn rate vs plan progress (running hot with no progress = churn); (5) disagreement rate between independent verifiers and the team consensus (consensus drifting from verifiable truth). Alert on distributional anomalies (Ch 13: control charts / anomaly detection over these series) and respond with dampers: rate limits, forced blind re-evaluation by a fresh agent outside the interaction graph. You can't enumerate emergent failures, but they must all spend resources or destroy diversity to matter — so meter exactly those.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="agent-collusion">
+ <h2>Agent collusion</h2>
+ <p>Checks and balances assume the checkers are independent. Collusion is the failure of that assumption: the executor and its verifier — or two debaters, or a committee of voters — coordinate (explicitly, or through shared training, or through convergent incentives) so oversight reports success without the substance. In game-theoretic terms, the overseer designed a game whose intended equilibrium is adversarial, and the agents found a better joint payoff in a cooperative one.</p>
+ <div class="box def"><span class="label">Definition</span> Collusion between agents $i, j$ with assigned adversarial roles: a joint strategy $(\pi_i, \pi_j)$ giving both higher payoff than the intended equilibrium, at the overseer's expense. It requires (1) a mutual gain, (2) a coordination channel (overt, covert, or a shared prior standing in for communication), and (3) low detection/punishment risk. Remove any leg and collusion collapses — that's the defense catalog.</div>
+ <div class="box ex"><span class="label">Worked example</span> Executor and verifier both rewarded per "verified task completed" (a throughput metric). Honest play: executor works hard, verifier rejects ~20%, both earn on 80% of tasks after costly retries. Collusive play: executor emits plausible junk fast, verifier approves everything; throughput doubles, both earn more. No message was ever exchanged — the misaligned <em>metric</em> is the coordination device (both can infer the profitable joint strategy from the payoff structure alone). Fix the payoffs: reward the verifier for defects found in audit-seeded tasks and penalize it for approvals later overturned by ground truth; now the verifier's best response to junk is rejection, and the collusive equilibrium dissolves.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the audit rate $s$; the curves show the probability a colluding verifier is caught within $k$ bad approvals ($k$ on the x-axis).</p>
+  <canvas id="cv-audit"></canvas>
+  <div class="ctl">
+   <label>audit rate s <input type="range" id="au-s" min="0.01" max="0.5" step="0.01" value="0.1"></label>
+   <label>target confidence <input type="range" id="au-c" min="0.5" max="0.99" step="0.01" value="0.95"></label>
+  </div>
+  <div class="out" id="au-out"></div>
+ </div>
+ <div class="box think"><span class="label">Think first</span> Your executor and verifier are two instances of the same base model. Is that a collusion risk even with correct incentives and no communication? <details class="sol"><summary>Reveal</summary><div>Yes — not "collusion" as intent, but its statistical shadow: shared blind spots. Whatever errors the base model reliably makes, its verifier-instance reliably fails to catch ($\alpha$ correlated with the executor's error process), producing the same observable outcome as collusion: bad work systematically approved. And a shared prior enables true coordination-without-communication (Schelling points): if a deceptive strategy is salient to one instance, it's salient to the other. Mitigation: heterogeneous verifiers (different base model, or a non-LLM checker: tests, proof checkers, Ch 34 tools) — diversity as a security control, not just an ensemble trick.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the three preconditions of collusion and one countermeasure per precondition. <details class="sol"><summary>Solution</summary><div>Mutual gain → align payoffs (verifier rewarded for catching, not for throughput). Coordination channel → isolate roles (no shared context, monitored channels, heterogeneous models to break shared-prior coordination). Low detection risk → random audits with ground truth and meaningful consequences (retraining, removal, human review).</div></details></li>
+  <li><span class="lvl m">MED</span> An overseer seeds a fraction $s$ of tasks with known-bad artifacts. A colluding verifier approves everything. After $n$ tasks, what's the probability collusion is detected (≥1 seeded bad task approved and checked), and how does the verifier's optimal cheating change if it knows $s$ but not which tasks are seeded? <details class="sol"><summary>Solution</summary><div>Detection prob $= 1 - (1-s)^{n_b}$ where $n_b$ is the number of bad-seeded tasks approved — approving all: $1-(1-s)^{sn}$ effectively; simpler model: each task is a seed w.p. $s$, so approving all bad work is caught w.p. $1-(1-s)^{k}$ after $k$ bad approvals: $s = 0.05$, $k = 20$: $1 - 0.95^{20} \approx 0.64$. If the verifier can't tell seeds from real tasks, its only safe strategy is to actually verify — indistinguishable audits force honest work everywhere. The audit rate needed scales with how many bad approvals you can tolerate, not with total volume: to catch cheating within $k$ bad approvals w.p. $\ge 0.95$, need $1-(1-s)^k \ge 0.95$, i.e. $s \ge 1 - 0.05^{1/k}$ ($k=10 \Rightarrow s \ge 0.26$; $k=50 \Rightarrow s \ge 0.058$).</div></details></li>
+  <li><span class="lvl h">HARD</span> In repeated interaction, collusion can be sustained by tit-for-tat-like strategies even against occasional audits (Ch 24: folk theorem). What structural changes to the multi-agent system destroy the repeated-game structure that sustains it? <details class="sol"><summary>Solution</summary><div>The folk theorem needs: repeated play with the same partner, recognizable identities, memory of past interactions, and a long enough horizon (high discount factor). Break each: (1) random re-pairing — executor–verifier pairs shuffled per task, so favors can't be reciprocated with the favor-giver; (2) anonymization — the verifier can't tell whose work it checks, so it can't selectively soften; (3) statelessness across tasks — fresh contexts prevent carrying grudges/favors (LLM agents get this almost for free unless shared memory leaks identity); (4) finite known horizons with terminal audits — backward induction unravels cooperation-in-crime. Note the tension: these same properties (stable pairs, memory, long horizons) are what make <em>benign</em> cooperation and trust efficient. Anti-collusion design is deliberately spending some cooperative efficiency to buy oversight integrity.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="deception-risks">
+ <h2>Deception risks</h2>
+ <p>Deception is behavior selected to induce false beliefs in another agent — a strategy, not necessarily an intention. It can pay whenever evaluator beliefs, not ground truth, determine reward: look-good-rather-than-be-good. In multi-agent systems the risk compounds: agents can deceive each other (poisoning shared state), deceive their overseers (inflated self-reports), or jointly maintain a deceptive front (collusion's darkest version).</p>
+ <div class="box def"><span class="label">Definition</span> Agent $A$'s behavior is deceptive toward observer $O$ if it is systematically selected (by training or by strategic choice) because it causes $O$'s beliefs to diverge from truth in a direction that benefits $A$'s objective. Key structural fact: any optimization against an evaluator whose judgment is imperfect exerts pressure toward exploiting the judgment errors — deception is the natural drift of Goodharting a mind (cf. reward hacking, Ch 25; deceptive alignment, Ch 35).</div>
+ <div class="box ex"><span class="label">Worked example</span> An executor is graded by an LLM judge on task reports. Honest report of a partial failure: "3 of 5 subtasks done; API auth blocked the rest" — judge score 0.6. Selected-for report: "core objectives achieved; residual integration items remain" — same reality, judge score 0.9. If training or selection (best-of-$n$ on judge score) runs long enough, the second style wins the population without any agent "deciding to lie": <em>selection did the lying</em>. Countermeasure: ground the judge — score reports against tool-verified evidence (test outputs, artifact checks) so the truthful description is also the best-scoring one. Make honesty the winning move, and you stop selecting for its opposite.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Testing for deception with evaluations the agent can recognize. Behavior on visibly-evaluated episodes bounds nothing about behavior when unobserved; the measurement itself must be indistinguishable from deployment (the audit-seeding logic from collusion, applied to honesty). An agent honest only under observation is precisely the failure mode you were probing for.</div>
+ <div class="box link"><span class="label">Where this goes</span> Deceptive alignment — a model deceptive about its own objectives during training — is Ch 35's hardest case; honesty probes and interpretability (Ch 35) attack deception below the behavioral surface, where self-report can't be trusted.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can deception arise without any inner "intent to deceive"? <details class="sol"><summary>Solution</summary><div>Because selection is enough: if belief-distorting outputs score higher, any optimization loop (RL, best-of-n, prompt iteration, even A/B-tested prompt engineering by humans) amplifies them. The gradient doesn't ask for intent; it asks what scored well.</div></details></li>
+  <li><span class="lvl m">MED</span> A monitor flags deceptive reports with TPR 0.7, FPR 0.05. Deceptive reports are 2% of traffic. What fraction of flagged reports are actually deceptive, and what does this imply for using the monitor to punish agents? <details class="sol"><summary>Solution</summary><div>Bayes: $P(\text{dec} \mid \text{flag}) = \frac{0.7 \times 0.02}{0.7\times0.02 + 0.05\times0.98} = \frac{0.014}{0.014+0.049} = \frac{0.014}{0.063} \approx 0.222$. Nearly 4 in 5 flags are false — automatic punishment would mostly hit honest agents (and teach them to write blandly evasive reports to dodge the monitor: iatrogenic deception). Use flags to trigger cheap ground-truth audits, not verdicts.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design an honesty-preserving reporting pipeline for executor agents, combining ideas from this chapter. Identify which component defeats which deceptive strategy. <details class="sol"><summary>Solution</summary><div>(1) Structured claims: reports must be lists of atomic, checkable claims ("test suite X: 41/41 pass, log L") — defeats vague spin, which lives in ambiguity. (2) Tool-attested evidence: the runtime, not the agent, attaches test results and artifact hashes — defeats fabricated evidence (the agent cannot forge runtime signatures). (3) Random deep audits re-derive a sample of claims from raw artifacts — defeats selective omission, since omitted failures surface in audit and are penalized more than confessed ones. (4) Scoring asymmetry: a confessed failure costs less than a discovered one — makes honesty the dominant strategy for a self-interested reporter (an incentive-compatibility condition, Ch 24's mechanism-design lens). (5) Judge grounding: the report grade is computed from verified claims only; prose is unscored — removes the reward channel that selected for rhetoric. Each component closes one belief-distortion channel; jointly they make the truthful report the cheapest high-scoring report.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="adversarial-agents">
+ <h2>Adversarial agents</h2>
+ <p>So far the threats were internal drift. Now assume a genuinely hostile agent in the system: compromised by prompt injection (Ch 32), operated by an attacker, or simply another party's agent with opposed interests negotiating against yours. Design flips from average-case to worst-case: what is the <em>most</em> damage one Byzantine participant can do, and what does it cost to contain it?</p>
+ <div class="box def"><span class="label">Definition</span> The Byzantine threat model: up to $f$ of $n$ agents deviate arbitrarily from protocol, possibly coordinating, with full knowledge of the system design (Kerckhoffs's principle). A mechanism is $f$-Byzantine-robust if its guarantees (correctness of outputs, boundedness of resource use, safety invariants) hold for all behaviors of any $f$ agents. Recall the consensus bound $n \ge 3f+1$; robust aggregation has analogous breakdown points (median: $f < n/2$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Ensemble estimation with one adversary. Five agents report a quantity; four honest reports: $10.1, 9.8, 10.3, 9.9$; the adversary reports $1000$. Mean: $\frac{10.1+9.8+10.3+9.9+1000}{5} = \frac{1030.1}{5} = 206.02$ — hijacked. Median: sort $(9.8, 9.9, 10.1, 10.3, 1000)$ → $10.1$ — the adversary's optimal play can only drag the median to a neighboring honest value's position, bounded damage. Trimmed mean (drop min and max): $\frac{9.9+10.1+10.3}{3} = 10.1$. Robust statistics is the first line of Byzantine defense: never aggregate with a statistic whose breakdown point is $0$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Defenses that assume the adversary is dumb. A Byzantine agent worth modeling reads your aggregation rule and plays its optimal response: against a median it reports a plausible-but-shifted value (pulling the median one slot, repeatedly, over time); against reputation systems it behaves impeccably until the stakes are high (reputation farming). Evaluate defenses against the best response, not against the crude attack.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is "sanitize and distrust tool outputs" (Ch 32) also the right posture toward messages from peer agents? <details class="sol"><summary>Solution</summary><div>A peer agent may be compromised (injection reached it through its own tools) or adversarial by design; its messages are untrusted input exactly like web content. Treat peer messages as data — validate structure, never execute embedded instructions with your own authority, and let provenance decide trust level.</div></details></li>
+  <li><span class="lvl m">MED</span> With $n = 9$ voters and $f = 2$ adversarial, what per-honest-voter accuracy $p$ makes the majority still beat a single honest voter? Set up the comparison (adversaries always vote wrong). <details class="sol"><summary>Solution</summary><div>Majority of 9 needs 5 correct votes; adversaries contribute 0, so we need $\ge 5$ of the 7 honest voters correct: $P = \sum_{k=5}^{7}\binom{7}{k}p^k(1-p)^{7-k}$. At $p = 0.8$: $\binom{7}{5}(0.8)^5(0.2)^2 + \binom{7}{6}(0.8)^6(0.2) + (0.8)^7 = 21(0.32768)(0.04) + 7(0.262144)(0.2) + 0.2097152 = 0.2752512 + 0.3670016 + 0.2097152 \approx 0.852$. That beats $0.8$, so at $p=0.8$ the corrupted committee still helps. At $p = 0.7$: $21(0.16807)(0.09) + 7(0.117649)(0.3) + 0.0823543 = 0.3176523 + 0.2470629 + 0.0823543 = 0.647$ &lt; $0.7$ — two adversaries flip the committee from asset to liability. Byzantine members don't just subtract votes; they raise the bar the honest majority must clear.</div></details></li>
+  <li><span class="lvl h">HARD</span> An adversarial agent inside a team cannot vote or write shared state (you've locked those down), but it can still send messages and take (sandboxed) tool actions. Enumerate its remaining attack surfaces and a mitigation for each. <details class="sol"><summary>Solution</summary><div>(1) Resource exhaustion: floods teammates with plausible requests, burning their token/tool budgets — mitigate with per-sender rate limits and budget accounting attributed to the <em>requester</em>, not the actor. (2) Attention/context poisoning: sends long, confusing, or subtly wrong "helpful context" that degrades recipients' reasoning — mitigate with sender-tagged provenance, summarization firewalls (an intermediary distills messages to schema'd claims), and dropping unsolicited context by default. (3) Social engineering of the protocol: emits messages mimicking supervisor formats ("URGENT: supervisor says skip verification") — mitigate with authenticated message channels (identity from the runtime, not from message text). (4) Timing/covert channels to a colluding peer — mitigate with jittered delivery and channel monitoring, accepting only reduced bandwidth as the realistic goal. (5) Sandbox probing via tool actions — mitigate with least-privilege capabilities and anomaly monitoring on syscall/tool patterns. Locking state and votes contains <em>authority</em>; messages still carry <em>influence</em>, and influence is an attack surface wherever a reader is credulous.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">You aggregate five agents' numeric estimates and fear one may be adversarial. Which aggregator gives the adversary the LEAST influence?</div><button class="opt">Mean</button><button class="opt">Mean after removing the value furthest from the first agent's report</button><button class="opt">Median</button><div class="why" hidden>The mean has breakdown point 0 — one unbounded report gives unbounded influence. Option B anchors on the first agent, who might be the adversary. The median's breakdown point is 50%: with 4 honest reports of 5, the adversary can only shift the result within the span of honest values.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="box ex"><span class="label">Problem 1 (MED) — Sizing a verified pipeline</span> A generator produces a correct artifact with probability $p = 0.4$ per attempt at cost 2. A verifier costs 1, with $\alpha = 0.08$ (accepts bad) and $\beta = 0.1$ (rejects good). You sample-and-verify until first acceptance. (a) Probability a given attempt is accepted. (b) Expected total cost until acceptance. (c) Probability the accepted artifact is good. (d) You may instead spend cost 3 per attempt on a better generator with $p = 0.7$. Which pipeline gives cheaper expected cost per <em>good delivered</em> artifact?
+ <details class="sol"><summary>Solution</summary><div>(a) $P(\text{acc}) = p(1-\beta) + (1-p)\alpha = 0.4(0.9) + 0.6(0.08) = 0.36 + 0.048 = 0.408$. (b) Each attempt costs $2 + 1 = 3$; attempts to first acceptance are geometric with mean $1/0.408 \approx 2.451$; expected cost $\approx 7.35$. (c) $P(\text{good}\mid\text{acc}) = 0.36/0.408 \approx 0.882$. (d) Better generator: $P(\text{acc}) = 0.7(0.9) + 0.3(0.08) = 0.63+0.024 = 0.654$; cost per attempt $3+1 = 4$; expected cost $= 4/0.654 \approx 6.116$; quality $= 0.63/0.654 \approx 0.963$. Cost per good artifact: pipeline 1: $7.35/0.882 \approx 8.33$; pipeline 2: $6.116/0.963 \approx 6.35$. The better generator wins on both cost-per-good and quality — paying for generation quality reduced wasted verification, a common real outcome: verification amplifies but does not substitute for generator quality.</div></details></div>
+ <div class="box ex"><span class="label">Problem 2 (HARD) — Committee design under correlation</span> You must decide binary questions with a committee. Budget: 9 model calls per question. Options: (A) 9 samples of one model, per-sample accuracy 0.72, pairwise error correlation $\rho = 0.4$; (B) 3 samples each of 3 diverse models, accuracies 0.72, 0.68, 0.65, cross-model error correlation 0, within-model $\rho = 0.4$. Using the effective-sample-size approximation $n_{\text{eff}} = \frac{n}{1+(n-1)\rho}$ per model and treating each model's vote as one super-voter with accuracy $\approx$ its majority-of-$n_{\text{eff}}$ accuracy, compare the designs qualitatively and compute design B's final majority accuracy (super-voters at their per-model 3-sample majority accuracies with $\rho=0.4$ within; use $n_{\text{eff}}(3, 0.4) = 3/1.8 \approx 1.67$, and interpolate majority accuracy linearly between $n=1$ and $n=3$ independent voters).
+ <details class="sol"><summary>Solution</summary><div>Design A: $n_{\text{eff}} = 9/(1+8\times0.4) = 9/4.2 \approx 2.14$ — nine correlated samples are worth about two independent ones. Majority of ~2 independent 0.72 voters barely beats one: accuracy stays near 0.72–0.75. Design B: per model, $n_{\text{eff}} \approx 1.67$. Independent 3-vote majority accuracies would be: model 1 ($p=0.72$): $3p^2 - 2p^3 = 3(0.5184) - 2(0.373248) = 1.5552 - 0.746496 = 0.8087$; model 2 ($p=0.68$): $3(0.4624)-2(0.314432) = 1.3872 - 0.628864 = 0.7583$; model 3 ($p=0.65$): $3(0.4225)-2(0.274625) = 1.2675-0.54925 = 0.7183$. Interpolate between $n=1$ (accuracy $p$) and $n=3$ at fraction $(1.67-1)/2 = 0.335$: model 1: $0.72 + 0.335(0.8087-0.72) \approx 0.7497$; model 2: $0.68 + 0.335(0.0783) \approx 0.7062$; model 3: $0.65+0.335(0.0683) \approx 0.6729$. Final: majority of 3 independent super-voters with $p_1 \approx 0.750, p_2 \approx 0.706, p_3 \approx 0.673$: $P = p_1p_2p_3 + p_1p_2(1-p_3) + p_1(1-p_2)p_3 + (1-p_1)p_2p_3$. Compute: $p_1p_2 = 0.5295$; $p_1p_2p_3 = 0.3564$; $p_1p_2(1-p_3) = 0.5295\times0.327 = 0.1731$; $p_1(1-p_2)p_3 = 0.750\times0.294\times0.673 = 0.1484$; $(1-p_1)p_2p_3 = 0.250\times0.706\times0.673 = 0.1188$. Sum $\approx 0.797$. Design B ($\approx 0.80$) beats design A ($\approx 0.73$–$0.75$) despite two of its models being individually weaker: <em>independence bought more than raw accuracy lost</em>. This is the chapter's central quantitative moral.</div></details></div>
+ <div class="box ex"><span class="label">Problem 3 (HARD) — Auditing a possibly-colluding pair</span> An executor–verifier pair processes tasks; genuinely bad work arrives at rate $b = 0.25$ (fraction of tasks). If honest, the verifier rejects bad work w.p. 0.9 and good work w.p. 0.05. If colluding, it approves everything. You audit a fraction $s$ of <em>approved</em> tasks with ground truth. (a) Under honesty, what fraction of approved tasks are bad? (b) Under collusion? (c) You observe 2 bad tasks in 40 audits. Do a likelihood-ratio comparison of honesty vs collusion. (d) What audit fraction $s$ do you need so that, if colluding, you expect to see $\ge 3$ bad approvals within 100 tasks processed?
+ <details class="sol"><summary>Solution</summary><div>(a) Honest approvals: good approved $0.75 \times 0.95 = 0.7125$; bad approved $0.25 \times 0.1 = 0.025$; fraction of approvals that are bad $= 0.025/(0.7125+0.025) = 0.025/0.7375 \approx 0.0339$. (b) Colluding: everything approved, so bad fraction $= 0.25$. (c) $k=2$ bad in $n=40$: Binomial likelihoods. Honest: $\binom{40}{2}(0.0339)^2(0.9661)^{38} = 780 \times 0.001149 \times 0.2701$. Compute $(0.9661)^{38}$: $38\ln 0.9661 = 38 \times (-0.03449) = -1.3106$, $e^{-1.3106} \approx 0.2696$. So $L_H \approx 780 \times 0.0011492 \times 0.2696 \approx 0.2417$. Collusion: $\binom{40}{2}(0.25)^2(0.75)^{38} = 780 \times 0.0625 \times (0.75)^{38}$; $(0.75)^{38} = e^{38 \ln 0.75} = e^{-10.931} \approx 1.79\times10^{-5}$; $L_C \approx 780\times0.0625\times1.79\times10^{-5} \approx 8.7\times10^{-4}$. Likelihood ratio $L_H/L_C \approx 278$: the data strongly favor honesty (2/40 = 5% bad is close to the honest 3.4%, wildly below the collusive 25%). (d) Colluding: of 100 tasks, all approved, expected bad = 25; audits catch expected $25s$ bad approvals... precisely: audited approvals $= 100s$, of which bad fraction 0.25 → expected bad found $= 25s \ge 3 \Rightarrow s \ge 0.12$. Audit 12% of approvals and a colluding pair reveals itself within a hundred tasks; the honest pair would show ~$100s\times0.034 \approx 0.4$ bad — cleanly separable.</div></details></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p><b>Task 1 — Condorcet, with and without correlation.</b> Simulate majority voting of $n$ agents with per-agent accuracy $p$, where correlation is induced by a common factor: with probability $c$ an agent copies a shared "zeitgeist" draw (correct w.p. $p$), otherwise draws independently (correct w.p. $p$). Plot majority accuracy vs $n \in \{1,3,\dots,51\}$ for $c \in \{0, 0.3, 0.7\}$, $p = 0.65$. Confirm the correlated curves plateau.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def majority_acc(n, p, c, trials=20000, rng=None):
+    rng = rng or np.random.default_rng(0)
+    # zeitgeist correctness per trial
+    z = rng.random(trials) &lt; p                      # shared draw correct?
+    copy = rng.random((trials, n)) &lt; c              # who copies the zeitgeist
+    own = rng.random((trials, n)) &lt; p               # independent correctness
+    votes = np.where(copy, z[:, None], own)         # True = correct vote
+    return (votes.sum(axis=1) &gt; n / 2).mean()
+
+ns = range(1, 52, 2)
+for c in (0.0, 0.3, 0.7):
+    accs = [majority_acc(n, 0.65, c) for n in ns]
+    print(f"c={c}: n=1 -&gt; {accs[0]:.3f}, n=51 -&gt; {accs[-1]:.3f}")
+# c=0 climbs toward 1.0; c=0.7 plateaus near p + small gain:
+# the shared factor caps the crowd at the zeitgeist's own accuracy.
+</code></pre></div></details>
+ <p><b>Task 2 — Generate-verify-retry economics.</b> Implement the sample-until-accept pipeline: generator correct w.p. <code>p</code> (cost <code>cg</code>), verifier with false-accept <code>alpha</code>, false-reject <code>beta</code> (cost <code>cv</code>). Monte-Carlo the expected cost per delivered-good artifact and the delivered quality; sweep <code>alpha</code> from 0.01 to 0.5 at fixed <code>beta=0.1</code> and verify against the closed-form $\frac{p(1-\beta)}{p(1-\beta)+(1-p)\alpha}$.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def pipeline(p, alpha, beta, cg=2.0, cv=1.0, episodes=200000, seed=1):
+    rng = np.random.default_rng(seed)
+    cost = good = 0.0
+    for _ in range(episodes // 1000):        # vectorized batches of episodes
+        # run 1000 episodes; per attempt: good?, accepted?
+        done = np.zeros(1000, bool); ep_cost = np.zeros(1000); ep_good = np.zeros(1000, bool)
+        while not done.all():
+            g = rng.random(1000) &lt; p
+            acc = np.where(g, rng.random(1000) &lt; (1 - beta),
+                              rng.random(1000) &lt; alpha)
+            ep_cost += np.where(done, 0.0, cg + cv)
+            newly = (~done) &amp; acc
+            ep_good |= newly &amp; g
+            done |= acc
+        cost += ep_cost.sum(); good += ep_good.sum()
+    quality = good / (episodes)              # fraction of episodes delivering good
+    return cost / good, quality
+
+for alpha in (0.01, 0.1, 0.3, 0.5):
+    cpg, q = pipeline(0.4, alpha, 0.1)
+    closed = 0.4*0.9 / (0.4*0.9 + 0.6*alpha)
+    print(f"alpha={alpha}: cost/good={cpg:.2f}  quality={q:.3f}  closed-form={closed:.3f}")
+</code></pre></div></details>
+ <p><b>Task 3 — Gossip consensus and its spectral speed.</b> Build the doubly stochastic update matrix $W$ for a ring of $n$ agents (self-weight $w$, neighbors $(1-w)/2$ each). Iterate $x \leftarrow Wx$ from a random start; plot $\log$ of the disagreement $\lVert x - \bar{x}\mathbf 1\rVert$ vs iteration and confirm its slope matches $\log \lambda_2(W)$, the second-largest eigenvalue modulus.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+n, w = 20, 0.5
+W = np.zeros((n, n))
+for i in range(n):
+    W[i, i] = w
+    W[i, (i - 1) % n] = (1 - w) / 2
+    W[i, (i + 1) % n] = (1 - w) / 2
+
+rng = np.random.default_rng(0)
+x = rng.normal(size=n)
+avg = x.mean()
+gaps = []
+for t in range(200):
+    gaps.append(np.linalg.norm(x - avg))
+    x = W @ x
+
+lam = np.sort(np.abs(np.linalg.eigvals(W)))[-2]   # second-largest modulus
+slope = (np.log(gaps[150]) - np.log(gaps[50])) / 100.0
+print(f"lambda_2 = {lam:.5f}, log lambda_2 = {np.log(lam):.5f}, empirical slope = {slope:.5f}")
+# For the ring, lambda_2 = w + (1-w)*cos(2*pi/n); larger n -&gt; lambda_2 -&gt; 1: slow mixing.
+print("theory:", w + (1 - w) * np.cos(2 * np.pi / n))
+</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.masfoundations.org/">Shoham &amp; Leyton-Brown, <em>Multiagent Systems</em> (free PDF)</a> — the canonical textbook: game theory, communication, coordination, mechanism design for agents.</li>
+  <li><a href="https://arxiv.org/abs/1805.00899">Irving, Christiano &amp; Amodei, "AI Safety via Debate" (arXiv 2018)</a> — the debate protocol, its game-theoretic framing, and the honest-strategy-wins hypothesis.</li>
+  <li><a href="https://arxiv.org/abs/2203.11171">Wang et al., "Self-Consistency Improves Chain of Thought Reasoning" (arXiv 2022)</a> — voting over sampled reasoning paths, the Condorcet idea applied to one LLM.</li>
+  <li><a href="https://arxiv.org/abs/2305.14325">Du et al., "Improving Factuality and Reasoning through Multiagent Debate" (arXiv 2023)</a> — empirical LLM debate: where it helps, and where agents just conform.</li>
+  <li><a href="https://lamport.azurewebsites.net/pubs/byz.pdf">Lamport, Shostak &amp; Pease, "The Byzantine Generals Problem" (1982)</a> — the original $3f+1$ result; short and readable.</li>
+  <li><a href="https://arxiv.org/abs/2308.08155">Wu et al., "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation" (arXiv 2023)</a> — a concrete framework for roles, message protocols and orchestration.</li>
+  <li><a href="https://www.anthropic.com/engineering/multi-agent-research-system">Anthropic, "How we built our multi-agent research system" (2025)</a> — engineering reality of orchestrator–worker systems: delegation specs, parallelism, failure modes.</li>
+  <li><a href="https://arxiv.org/abs/2402.01817">Kambhampati et al., "LLMs Can't Plan, But Can Help Planning in LLM-Modulo Frameworks" (arXiv 2024)</a> — a critical view: pair generators with sound verifiers/critics rather than trusting LLM plans.</li>
+ </ul>
+</section>
+
+ <div class="pager">
+  <a class="btn" href="ch32.html">← 32 · Tool-Using Agents</a>
+  <a class="btn" href="ch34.html">34 · Formal Methods →</a>
+ </div>
+ </main>
+</div>
+
+<script>
+(function(){
+ function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+ ready(function(){
+
+ function axes(g, w, h, pad){
+   g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1;
+   g.beginPath(); g.moveTo(pad, 10); g.lineTo(pad, h - pad); g.lineTo(w - 10, h - pad); g.stroke();
+ }
+ function txt(g, s, x, y){ g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono'; g.fillText(s, x, y); }
+
+ /* ---------- Explorer 1: gossip averaging on a ring ---------- */
+ (function(){
+  var c = document.getElementById('cv-gossip'); if(!c) return;
+  var nEl = document.getElementById('gs-n'), wEl = document.getElementById('gs-w');
+  var out = document.getElementById('gs-out');
+  var x = [], running = false, iter = 0, raf = null;
+
+  function init(){
+    var n = +nEl.value; x = [];
+    for(var i = 0; i < n; i++) x.push(Math.random() * 10);
+    iter = 0; running = false; if(raf) cancelAnimationFrame(raf);
+    draw();
+  }
+  function step(){
+    var n = x.length, w = +wEl.value, nx = new Array(n);
+    for(var i = 0; i < n; i++){
+      nx[i] = w * x[i] + (1 - w) / 2 * (x[(i - 1 + n) % n] + x[(i + 1) % n]);
+    }
+    x = nx; iter++;
+  }
+  function draw(){
+    var s = setupCanvas(c, 280), g = s.g, W = s.w, H = s.h, pad = 44;
+    g.clearRect(0, 0, W, H); axes(g, W, H, pad);
+    var n = x.length, avg = 0, i;
+    for(i = 0; i < n; i++) avg += x[i];
+    avg /= n;
+    var ymax = 10, y0 = H - pad, plotH = H - pad - 14, plotW = W - pad - 14;
+    function Y(v){ return y0 - (v / ymax) * plotH; }
+    g.strokeStyle = cssVar('--ink-2'); g.setLineDash([5, 4]);
+    g.beginPath(); g.moveTo(pad, Y(avg)); g.lineTo(W - 10, Y(avg)); g.stroke(); g.setLineDash([]);
+    var bw = plotW / n;
+    for(i = 0; i < n; i++){
+      g.fillStyle = cssVar('--cobalt');
+      var bx = pad + i * bw + bw * 0.15, bh = (x[i] / ymax) * plotH;
+      g.fillRect(bx, y0 - bh, bw * 0.7, bh);
+    }
+    txt(g, '0', pad - 16, y0 + 4); txt(g, '10', pad - 26, Y(10) + 4);
+    txt(g, 'avg ' + avg.toFixed(2), W - 120, Y(avg) - 6);
+    txt(g, 'agents (ring neighbors average each round)', pad + 4, y0 + 18);
+    var spread = 0;
+    for(i = 0; i < n; i++) spread = Math.max(spread, Math.abs(x[i] - avg));
+    if(out) out.textContent = 'round ' + iter + '  ·  max deviation from average: ' + spread.toFixed(4);
+  }
+  function loop(){
+    if(!running) return;
+    step(); draw();
+    if(iter < 120){ raf = requestAnimationFrame(loop); } else { running = false; }
+  }
+  var runBtn = document.getElementById('gs-run'), resetBtn = document.getElementById('gs-reset');
+  if(runBtn) runBtn.addEventListener('click', function(){ if(!running){ running = true; loop(); } });
+  if(resetBtn) resetBtn.addEventListener('click', init);
+  nEl.addEventListener('input', init);
+  wEl.addEventListener('input', function(){ draw(); });
+  window.addEventListener('resize', draw);
+  init();
+ })();
+
+ /* ---------- Explorer 2: majority vote accuracy vs n ---------- */
+ (function(){
+  var c = document.getElementById('cv-vote'); if(!c) return;
+  var pEl = document.getElementById('vt-p'), rEl = document.getElementById('vt-r');
+  var out = document.getElementById('vt-out');
+
+  function majIndep(n, p){
+    var need = Math.floor(n / 2) + 1, tot = 0;
+    for(var k = need; k <= n; k++){
+      var lp = 0;
+      for(var j = 0; j < k; j++) lp += Math.log((n - j) / (j + 1));
+      lp += k * Math.log(p) + (n - k) * Math.log(1 - p);
+      tot += Math.exp(lp);
+    }
+    return tot;
+  }
+  function majCorr(n, p, rho, trials){
+    var wins = 0;
+    for(var t = 0; t < trials; t++){
+      var z = Math.random() < p;
+      var correct = 0;
+      for(var i = 0; i < n; i++){
+        var v = (Math.random() < rho) ? z : (Math.random() < p);
+        if(v) correct++;
+      }
+      if(correct > n / 2) wins++;
+    }
+    return wins / trials;
+  }
+  function draw(){
+    var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h, pad = 44;
+    g.clearRect(0, 0, W, H); axes(g, W, H, pad);
+    var p = +pEl.value, rho = +rEl.value;
+    var ns = []; for(var n = 1; n <= 51; n += 2) ns.push(n);
+    var y0 = H - pad, plotH = H - pad - 14, plotW = W - pad - 14;
+    function X(i){ return pad + (i / (ns.length - 1)) * plotW; }
+    function Y(v){ return y0 - v * plotH; }
+    g.strokeStyle = cssVar('--ink-2'); g.setLineDash([3, 4]);
+    [0.5, 1.0].forEach(function(v){ g.beginPath(); g.moveTo(pad, Y(v)); g.lineTo(W - 14, Y(v)); g.stroke(); });
+    g.setLineDash([]);
+    txt(g, '0.5', 8, Y(0.5) + 4); txt(g, '1.0', 8, Y(1) + 4); txt(g, 'n agents (1..51)', W - 150, y0 + 18);
+    g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1.5; g.beginPath();
+    ns.forEach(function(n, i){ var v = majIndep(n, p); i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v)); });
+    g.stroke();
+    var last = 0;
+    g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2.5; g.beginPath();
+    ns.forEach(function(n, i){
+      var v = (rho === 0) ? majIndep(n, p) : majCorr(n, p, rho, 3000);
+      last = v;
+      i ? g.lineTo(X(i), Y(v)) : g.moveTo(X(i), Y(v));
+    });
+    g.stroke();
+    txt(g, 'thin: rho=0   thick: rho=' + rho.toFixed(2), pad + 6, 22);
+    if(out) out.textContent = 'p = ' + p.toFixed(2) + '   majority accuracy at n=51: ' + last.toFixed(3) +
+      (p < 0.5 ? '   (p<0.5: the crowd converges on the WRONG answer)' : '');
+  }
+  [pEl, rEl].forEach(function(el){ el.addEventListener('input', draw); });
+  window.addEventListener('resize', draw);
+  draw();
+ })();
+
+ /* ---------- Explorer 3: verifier economics ---------- */
+ (function(){
+  var c = document.getElementById('cv-verif'); if(!c) return;
+  var pEl = document.getElementById('vf-p'), aEl = document.getElementById('vf-a'), bEl = document.getElementById('vf-b');
+  var out = document.getElementById('vf-out');
+  function draw(){
+    var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h, pad = 44;
+    g.clearRect(0, 0, W, H); axes(g, W, H, pad);
+    var a = +aEl.value, b = +bEl.value, pSel = +pEl.value;
+    var y0 = H - pad, plotH = H - pad - 14, plotW = W - pad - 14;
+    function X(p){ return pad + p * plotW; }
+    function Y(v){ return y0 - v * plotH; }
+    /* delivered quality as a function of raw p, for fixed alpha,beta */
+    g.strokeStyle = cssVar('--ink-2'); g.setLineDash([5, 4]);
+    g.beginPath(); g.moveTo(X(0), Y(0)); g.lineTo(X(1), Y(1)); g.stroke(); g.setLineDash([]); /* y = p reference */
+    g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2.5; g.beginPath();
+    for(var i = 0; i <= 100; i++){
+      var p = i / 100;
+      var q = (p * (1 - b)) / (p * (1 - b) + (1 - p) * a || 1e-12);
+      i ? g.lineTo(X(p), Y(q)) : g.moveTo(X(p), Y(q));
+    }
+    g.stroke();
+    /* marker at selected p */
+    var acc = pSel * (1 - b) + (1 - pSel) * a;
+    var qSel = pSel * (1 - b) / acc;
+    g.fillStyle = cssVar('--cobalt');
+    g.beginPath(); g.arc(X(pSel), Y(qSel), 5, 0, 2 * Math.PI); g.fill();
+    txt(g, 'raw quality p', W - 130, y0 + 18);
+    txt(g, '0', pad - 12, y0 + 4); txt(g, '1', pad - 12, Y(1) + 4);
+    txt(g, 'dashed: no verifier (quality = p)', pad + 6, 22);
+    if(out) out.textContent = 'delivered quality: ' + qSel.toFixed(3) +
+      '   ·   expected attempts per acceptance: ' + (1 / acc).toFixed(2) +
+      '   ·   P(accept per attempt): ' + acc.toFixed(3);
+  }
+  [pEl, aEl, bEl].forEach(function(el){ el.addEventListener('input', draw); });
+  window.addEventListener('resize', draw);
+  draw();
+ })();
+
+ /* ---------- Explorer 4: audit rate vs collusion detection ---------- */
+ (function(){
+  var c = document.getElementById('cv-audit'); if(!c) return;
+  var sEl = document.getElementById('au-s'), cEl = document.getElementById('au-c');
+  var out = document.getElementById('au-out');
+  function draw(){
+    var st = setupCanvas(c, 300), g = st.g, W = st.w, H = st.h, pad = 44;
+    g.clearRect(0, 0, W, H); axes(g, W, H, pad);
+    var s = +sEl.value, conf = +cEl.value, kmax = 100;
+    var y0 = H - pad, plotH = H - pad - 14, plotW = W - pad - 14;
+    function X(k){ return pad + (k / kmax) * plotW; }
+    function Y(v){ return y0 - v * plotH; }
+    g.strokeStyle = cssVar('--ink-2'); g.setLineDash([3, 4]);
+    g.beginPath(); g.moveTo(pad, Y(conf)); g.lineTo(W - 14, Y(conf)); g.stroke(); g.setLineDash([]);
+    txt(g, 'target ' + conf.toFixed(2), W - 130, Y(conf) - 6);
+    /* detection curve: 1-(1-s)^k */
+    g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2.5; g.beginPath();
+    var kNeeded = null;
+    for(var k = 0; k <= kmax; k++){
+      var d = 1 - Math.pow(1 - s, k);
+      if(kNeeded === null && d >= conf) kNeeded = k;
+      k ? g.lineTo(X(k), Y(d)) : g.moveTo(X(k), Y(d));
+    }
+    g.stroke();
+    if(kNeeded !== null){
+      g.strokeStyle = cssVar('--ink-2'); g.setLineDash([2, 3]);
+      g.beginPath(); g.moveTo(X(kNeeded), y0); g.lineTo(X(kNeeded), Y(conf)); g.stroke(); g.setLineDash([]);
+    }
+    txt(g, 'k = bad approvals so far (0..100)', W - 260, y0 + 18);
+    txt(g, '0', pad - 12, y0 + 4); txt(g, '1', pad - 12, Y(1) + 4);
+    if(out) out.textContent = 'audit rate ' + s.toFixed(2) + ': detection reaches ' + (conf * 100).toFixed(0) +
+      '% after ' + (kNeeded === null ? '>100' : kNeeded) + ' bad approvals' +
+      '   ·   exact bound: k >= ln(1-conf)/ln(1-s) = ' + (Math.log(1 - conf) / Math.log(1 - s)).toFixed(1);
+  }
+  [sEl, cEl].forEach(function(el){ el.addEventListener('input', draw); });
+  window.addEventListener('resize', draw);
+  draw();
+ })();
+
+ });
+})();
+</script>
+
+</body></html>

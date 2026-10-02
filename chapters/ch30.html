@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 30 Reasoning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','30')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">30</div><h1>Reasoning</h1><p class="lede">Deduction, induction and search over thoughts.</p>
+   <div class="meta"><span class="chip">20 topics</span><span class="chip">needs: chapters 3, 11, 13, 16, 23, 26, 27</span><span class="chip">feeds: chapters 31, 32, 34, 36</span></div>
+  </div>
+
+<section class="topic" id="deductive-reasoning">
+ <h2>Deductive reasoning</h2>
+ <p>Deduction is the only kind of reasoning that comes with a guarantee: if the premises are true and the steps are valid, the conclusion cannot be false. It transmits truth like a pipe transmits water — nothing new is created, but nothing leaks. Everything in Chapter 3's logic was built for exactly this.</p>
+ <div class="box def"><span class="label">Definition</span> An argument from premises $P_1,\dots,P_n$ to conclusion $C$ is <em>deductively valid</em> iff $C$ is true in every interpretation in which all $P_i$ are true: $P_1\wedge\cdots\wedge P_n \models C$. It is <em>sound</em> if additionally the premises are actually true. Core inference rules: modus ponens ($p,\; p\to q \vdash q$), modus tollens ($\neg q,\; p\to q \vdash \neg p$), universal instantiation ($\forall x\,P(x) \vdash P(a)$), and resolution ($p\vee q,\; \neg p \vee r \vdash q\vee r$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Premises: (1) $\forall x\,(\mathrm{Prime}(x) \wedge x&gt;2 \to \mathrm{Odd}(x))$; (2) $\mathrm{Prime}(97)$; (3) $97&gt;2$. Universal instantiation on (1) with $x=97$: $\mathrm{Prime}(97)\wedge 97&gt;2 \to \mathrm{Odd}(97)$. Conjunction of (2),(3) then modus ponens: $\mathrm{Odd}(97)$. Valid <em>and</em> sound. Contrast the invalid form "affirming the consequent": from $\mathrm{Odd}(9)$ and rule (1) you may <em>not</em> conclude $\mathrm{Prime}(9)$ — and indeed $9 = 3^2$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Validity is about form, not content. "All fish fly; goldfish are fish; therefore goldfish fly" is perfectly valid (and unsound — a false premise). LLMs frequently do the reverse error: accept invalid arguments whose conclusions happen to be plausible (belief bias). Checking validity means asking "could the premises be true and the conclusion false?", never "is the conclusion true?".</div>
+ <div class="box link"><span class="label">Where this goes</span> Proof search (this chapter) automates deduction; Chapter 34's verifiers make it mechanical and trustworthy.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Premises: "If it trained on the data, the benchmark is contaminated" and "The benchmark is not contaminated". What follows deductively? <details class="sol"><summary>Solution</summary><div>Modus tollens: "It did not train on the data." ($p\to q$, $\neg q \vdash \neg p$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Classify each as valid or invalid: (a) $p\to q,\ q \vdash p$; (b) $p\to q,\ \neg p \vdash \neg q$; (c) $p\vee q,\ \neg p \vdash q$. <details class="sol"><summary>Solution</summary><div>(a) Invalid — affirming the consequent (counter-model: $p$ false, $q$ true). (b) Invalid — denying the antecedent (same counter-model). (c) Valid — disjunctive syllogism: if $p\vee q$ holds and $p$ fails, $q$ must hold in every model.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use resolution to show the premise set $\{p\vee q,\ \neg p\vee r,\ \neg q\vee r,\ \neg r\}$ is unsatisfiable. <details class="sol"><summary>Solution</summary><div>Resolve $p\vee q$ with $\neg p\vee r$ on $p$: get $q\vee r$. Resolve $q\vee r$ with $\neg q\vee r$ on $q$: get $r\vee r = r$. Resolve $r$ with $\neg r$: the empty clause $\square$. Deriving $\square$ proves unsatisfiability (resolution is refutation-complete for propositional logic, Chapter 3/17). Equivalently: the premises force $r$ (by cases on $p$) yet assert $\neg r$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inductive-reasoning">
+ <h2>Inductive reasoning</h2>
+ <p>Induction runs the pipe backwards: from observed instances to a general rule. The sun rose every day so far; the 10,000 training examples fit the pattern; therefore, probably, the rule holds. No guarantee is possible — induction's conclusions outrun its premises — but its confidence can be made quantitative, and all of machine learning is induction with the accounting done properly.</p>
+ <div class="box def"><span class="label">Definition</span> Inductive reasoning infers a general hypothesis $h$ from finitely many observations, with the conclusion held probabilistically: $p(h \mid \text{data}) \propto p(\text{data}\mid h)\,p(h)$ (Bayes, Chapter 11). Two quantitative anchors: the <em>rule of succession</em> — after $s$ successes in $n$ trials with a uniform prior on the success rate, $p(\text{success next}) = \frac{s+1}{n+2}$; and generalization bounds (Chapter 20) — with probability $1-\delta$, a hypothesis consistent with $n$ i.i.d. samples from a finite class $\mathcal H$ has true error $\le \frac{\ln|\mathcal H| + \ln(1/\delta)}{n}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A tool has succeeded 9 times in 9 calls. Rule of succession: $p(\text{next success}) = \frac{9+1}{9+2} = \frac{10}{11}\approx 0.909$ — not 1.0. Now the bound: an agent picks a routing rule consistent with all $n = 50$ logged cases from a class of $|\mathcal H| = 1024$ candidate rules, $\delta = 0.05$. True error $\le \frac{\ln 1024 + \ln 20}{50} = \frac{6.931 + 2.996}{50} = \frac{9.927}{50} \approx 0.199$. Fifty clean examples buy you only "wrong at most 20% of the time, probably" — induction is honest about its debts.</div>
+ <div class="box think"><span class="label">Think first</span> Every raven you've seen is black ($n = 100$). Which claim does induction better support: "the next raven I see will be black" or "all ravens are black" — and why are they different? <details class="sol"><summary>Reveal</summary><div>The next-instance prediction. It needs only that your sampling distribution stays the same ($p\approx\frac{101}{102}$ by succession). "All ravens" is a universal over an unobserved population — a single white raven anywhere falsifies it, your 100 samples may be from a biased region, and no finite sample makes a universal certain. Universal generalization requires either exhaustion or a deductive mechanism (e.g. a genetic argument), not enumeration.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Chapter 20 is this topic made rigorous (PAC learning); Chapter 36's few-shot generalization is induction under pressure.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> After 3 successes in 4 trials, what does the rule of succession give for the next trial? <details class="sol"><summary>Solution</summary><div>$\frac{3+1}{4+2} = \frac46 = \frac23 \approx 0.667$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the rule of succession from the Beta-Binomial machinery of Chapters 11/13. <details class="sol"><summary>Solution</summary><div>Uniform prior = Beta(1,1). After $s$ successes, $n-s$ failures, the posterior is Beta$(s+1,\; n-s+1)$ by conjugacy. The predictive probability of a success is the posterior mean: $\mathbb E[\theta] = \frac{s+1}{(s+1)+(n-s+1)} = \frac{s+1}{n+2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Hume's problem: any justification of induction ("it has worked so far") is itself inductive. How do the formal frameworks dodge rather than solve this — what do PAC bounds and Bayesian updating each <em>assume</em>? <details class="sol"><summary>Solution</summary><div>They convert the problem into conditional guarantees. PAC (Chapter 20): <em>if</em> future data is i.i.d. from the same distribution as training data, then error bounds hold with high probability — the i.i.d. assumption is precisely "the future resembles the past", assumed, not proven. Bayes: <em>if</em> your prior assigns the truth nonzero mass and the likelihood is right, the posterior concentrates — but the prior and the exchangeability assumption encode the same uniformity-of-nature bet. No-free-lunch theorems (Chapter 20) sharpen Hume: averaged over all possible worlds, no inductive method beats any other; induction works only in worlds with structure, and that structure is an assumption every learner must make. The practical resolution is engineering, not philosophy: monitor for distribution shift (Chapter 19) and detect when the assumption breaks.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="abductive-reasoning">
+ <h2>Abductive reasoning</h2>
+ <p>Abduction is inference to the best explanation: the lawn is wet — it probably rained. It runs from effect to cause, which deduction forbids and diagnosis requires. Doctors, debuggers and detectives all live here, and formally it is a search over hypotheses scored by how well they explain, weighed against how plausible they were to begin with.</p>
+ <div class="box def"><span class="label">Definition</span> Given observation $e$ and candidate hypotheses $\{h_i\}$, abduction selects $h^\ast = \arg\max_i p(h_i\mid e) = \arg\max_i p(e\mid h_i)\,p(h_i)$ — maximize explanatory power (likelihood) times prior plausibility. It is formally the MAP inference of Chapter 13 over explanations. Unlike deduction it is <em>not</em> truth-preserving: the logical shape is "affirming the consequent" ($h\to e$, $e$, conclude $h$), invalid as deduction but reasonable as ranked belief when the $h_i$ enumerate the plausible causes.</div>
+ <div class="box ex"><span class="label">Worked example</span> A service returns errors ($e$). Hypotheses with priors: $h_1$ = bad deploy ($p=0.01$/day), $h_2$ = dependency outage ($p = 0.005$), $h_3$ = traffic spike ($p = 0.05$). Likelihoods of seeing exactly this error pattern: $p(e\mid h_1) = 0.9$, $p(e\mid h_2) = 0.8$, $p(e\mid h_3) = 0.05$. Unnormalized posteriors: $h_1: 0.009$, $h_2: 0.004$, $h_3: 0.0025$. Normalize by the sum $0.0155$: $p(h_1\mid e) = 0.581$, $p(h_2\mid e) = 0.258$, $p(h_3\mid e) = 0.161$. Best explanation: the deploy — despite the traffic spike being the most common event a priori, it explains this evidence poorly. Note the ranking, not just the winner, matters: check $h_1$ first, but don't close the incident before ruling out $h_2$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Abduction is only as good as the hypothesis set. If the true cause isn't among the candidates, the "best explanation" is the best <em>wrong</em> explanation, delivered with full confidence. Good abductive practice always carries an explicit "something else" hypothesis with nonzero prior — the posterior on it rising is the signal that your hypothesis space is broken.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two hypotheses, equal priors. $p(e\mid h_1) = 0.6$, $p(e\mid h_2) = 0.2$. Compute $p(h_1\mid e)$. <details class="sol"><summary>Solution</summary><div>$\frac{0.6}{0.6+0.2} = 0.75$.</div></details></li>
+  <li><span class="lvl m">MED</span> In the worked example, a second observation arrives: the dependency's status page reports degradation, with $p(\text{report}\mid h_2) = 0.7$ and $p(\text{report}\mid h_1) = p(\text{report}\mid h_3) = 0.05$ (false alarms). Update the posteriors (assume conditional independence of the two observations given each $h$). <details class="sol"><summary>Solution</summary><div>Multiply each unnormalized posterior by the new likelihood: $h_1: 0.581\cdot0.05 = 0.02905$; $h_2: 0.258\cdot0.7 = 0.1806$; $h_3: 0.161\cdot0.05 = 0.00805$. Sum $= 0.2177$. New posteriors: $h_1 = 0.133$, $h_2 = 0.830$, $h_3 = 0.037$. The best explanation flips to the dependency outage — abduction is defeasible: new evidence can overturn the current best.</div></details></li>
+  <li><span class="lvl h">HARD</span> Occam's razor emerges from the math rather than being bolted on. Show how, using either priors or marginal likelihoods, and relate to MDL (Chapter 16). <details class="sol"><summary>Solution</summary><div>Two routes. (1) Priors: a complex hypothesis is one of exponentially many of its complexity class, so any non-dogmatic prior spreads mass thinly across complex hypotheses — description length $L(h)$ bits implies prior $p(h)\approx 2^{-L(h)}$ (the MDL/Solomonoff prior), and the MAP score $\log p(e\mid h) + \log p(h) = \log p(e\mid h) - L(h)\ln 2 / \ln 2$ literally trades fit against complexity: MDL's two-part code. (2) Marginal likelihood (Bayesian Occam factor): a flexible hypothesis class spreads its predictive mass $p(e\mid h) = \int p(e\mid\theta,h)p(\theta\mid h)d\theta$ over many possible datasets, so on any particular dataset it scores lower than a constrained hypothesis that concentrates its predictions there — complexity is penalized automatically, even with equal priors over the classes. Both say: the best explanation is the shortest one that fits, which is compression-as-abduction.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">Abduction's logical form ($h\to e$; observe $e$; conclude $h$) is deductively invalid. Why is it still rational practice?</div><button class="opt">Because in practice the implication usually runs both ways</button><button class="opt">Because deduction is too slow for diagnosis</button><button class="opt">Because it is used as ranked probabilistic belief over an explicit hypothesis set, not as a certainty claim</button><div class="why" hidden>Abduction = MAP inference: conclusions are graded posteriors $p(h\mid e)$, revisable by evidence, and only meaningful relative to the enumerated candidate causes. Treated that way, "affirming the consequent" becomes Bayes' theorem, which is exactly valid.</div></div>
+</section>
+
+<section class="topic" id="analogical-reasoning">
+ <h2>Analogical reasoning</h2>
+ <p>An analogy says: this new problem has the same skeleton as one I've solved, so the old solution's structure should transfer. Heat flows like water flows; the atom is (usefully, imperfectly) a solar system. The power is in mapping relations, not surface features — and so is the danger.</p>
+ <div class="box def"><span class="label">Definition</span> An analogy is a mapping $m$ from a source domain $S$ to a target domain $T$ that preserves relational structure: for relations $R$ in $S$, $R(a,b) \Rightarrow R'(m(a), m(b))$ in $T$ (structure-mapping theory). Inference proceeds by <em>projection</em>: relations known in $S$ but unverified in $T$ are conjectured to hold in $T$. In embedding terms, relational analogy is approximate vector arithmetic — the classic $\;v_{\text{king}} - v_{\text{man}} + v_{\text{woman}} \approx v_{\text{queen}}$: the <em>difference</em> vector encodes the relation, and applying it to a new entity projects the relation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ohm's law by analogy. Source: water in a pipe — flow rate $Q = \Delta P / R_{\text{hyd}}$ (pressure difference over hydraulic resistance). Mapping: pressure difference $\to$ voltage $V$, flow $\to$ current $I$, pipe narrowness $\to$ resistance $R$. Projected law: $I = V/R$ — correct. Projected composition rule: two pipes in series add resistances $\to$ $R = R_1 + R_2$ — correct. Now push too far: "water leaks out of a cut pipe, so current leaks out of a cut wire" — false (charge needs a circuit; the analogy's conserved-flow structure holds but the open-boundary behavior differs). The analogy transfers the <em>relational algebra</em> (potentials, flows, resistances) and breaks outside it.</div>
+ <div class="box think"><span class="label">Think first</span> With word embeddings, you compute $v_{\text{Paris}} - v_{\text{France}} + v_{\text{Japan}}$ and find the nearest vector. What relation must the embedding have learned, as a geometric property, for "Tokyo" to come out? <details class="sol"><summary>Reveal</summary><div>The relation "capital-of" must be encoded as an approximately <em>constant offset vector</em>: $v_{\text{capital}(x)} - v_x \approx c$ for all countries $x$. Then $v_{\text{Paris}} - v_{\text{France}} \approx c$ and adding it to $v_{\text{Japan}}$ lands near $v_{\text{Tokyo}}$. This is a strong linearity claim about the representation (parallel relation vectors across the space); it holds well for frequent, one-to-one relations and degrades for rare or many-to-many ones.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> Surface similarity is the great impostor. Problems that look alike (same nouns, same numbers) often have different structure, and problems that look different often have the same structure. LLMs are especially vulnerable: trained on surface co-occurrence, they can retrieve a memorized template for a superficially similar problem and apply it to a structurally different one. The defense is to name the mapping explicitly — what corresponds to what — and check that the <em>relations</em>, not the objects, line up.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Complete the proportional analogy and name the relation: "neuron : brain :: transistor : ?". <details class="sol"><summary>Solution</summary><div>"Chip" (or processor/computer). Relation: elementary switching/computing unit to the aggregate computing substrate composed of billions of them.</div></details></li>
+  <li><span class="lvl m">MED</span> The "atom as solar system" analogy maps sun→nucleus, planets→electrons, gravity→Coulomb attraction. Name one relation that transfers correctly and two that fail, with the physics reason. <details class="sol"><summary>Solution</summary><div>Transfers: central inverse-square attractive force binding light bodies to a heavy center (both $\propto 1/r^2$), hence bound "orbits" with most mass at the center. Fails: (1) electrons don't have definite trajectories — quantum mechanics replaces orbits with orbitals (standing-wave probability distributions); classical orbiting charges would radiate energy and spiral into the nucleus in ~$10^{-11}$ s. (2) Planets can orbit at any radius/energy; electrons occupy discrete (quantized) energy levels, and two electrons can't share a full quantum state (Pauli exclusion) while planets have no such constraint.</div></details></li>
+  <li><span class="lvl h">HARD</span> Analogical projection is induction over relations. Frame "transfer from source problem to target problem" as a Bayesian inference and identify what plays the role of the prior, the likelihood, and the failure mode. <details class="sol"><summary>Solution</summary><div>Hypothesis: "the target shares generative structure $G$ with the source." Prior $p(G\ \text{shared})$: how often, in your experience, do problems with this kind of correspondence share deep structure — raised by each verified structural correspondence, not by surface overlap. Likelihood: the probability of observing the (already-checked) matching relations in the target if the structure were <em>not</em> shared — many independent relational matches are unlikely by coincidence, so they drive the posterior up (this is why analogies are confirmed by testing their entailed relations, one at a time). Projection then predicts unchecked relations with confidence equal to the posterior. Failure mode: counting surface matches as relational evidence — surface features are highly correlated with each other, so ten of them are not ten independent confirmations; the posterior is inflated and the projection (the memorized template) misfires. Formally, it is a mis-specified likelihood that treats correlated evidence as independent.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="probabilistic-reasoning">
+ <h2>Probabilistic reasoning</h2>
+ <p>When knowledge is uncertain, the rules of logic must be exchanged for the rules of probability — and remarkably, those rules are forced: any system of graded belief that dodges Dutch-book incoherence must obey the probability axioms. Probabilistic reasoning is deduction's rigor applied to induction's subject matter.</p>
+ <div class="box def"><span class="label">Definition</span> Probabilistic reasoning manipulates degrees of belief with the calculus of Chapter 11: the product rule $p(a,b) = p(a\mid b)p(b)$, the sum rule $p(a) = \sum_b p(a,b)$, and Bayes' theorem $p(h\mid e) = \frac{p(e\mid h)p(h)}{p(e)}$. The odds-and-evidence form makes chained reasoning additive: with prior odds $O(h) = \frac{p(h)}{p(\neg h)}$ and likelihood ratio $\Lambda = \frac{p(e\mid h)}{p(e\mid\neg h)}$, posterior odds $= \Lambda\cdot O(h)$, i.e. $\log O_{\text{post}} = \log O_{\text{prior}} + \log\Lambda$ — each independent piece of evidence adds its log-likelihood ratio.</div>
+ <div class="box ex"><span class="label">Worked example</span> Base-rate reasoning done right. A test for a condition with prevalence 1%: sensitivity $p(+\mid \text{sick}) = 0.95$, false-positive rate $p(+\mid \text{healthy}) = 0.05$. Prior odds $= \frac{0.01}{0.99} = 1{:}99$. Likelihood ratio $= 0.95/0.05 = 19$. Posterior odds $= 19{:}99$, so $p(\text{sick}\mid +) = \frac{19}{19+99} = \frac{19}{118} \approx 0.161$. A "95% accurate" test leaves you at 16% — the prior does most of the work. A second independent positive test: odds $19\cdot19 : 99 = 361:99$, $p \approx 0.785$. Evidence compounds multiplicatively in odds, which is why one more independent test transforms the picture.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Base-rate neglect — reporting $p(e\mid h)$ as if it were $p(h\mid e)$ — is the most consequential reasoning error in practice (medicine, law, ML evaluation: a 99%-specific anomaly detector on a stream with 1-in-10⁵ anomalies produces ~1000 false alarms per true alarm). The odds form makes the prior impossible to forget.</div>
+ <div class="box link"><span class="label">Where this goes</span> Reasoning under uncertainty (this chapter) composes these updates over structured problems; Chapter 35's honesty and calibration ask whether models' stated confidences obey this calculus.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prior $p(h) = 0.2$; evidence with likelihood ratio $\Lambda = 8$. Compute the posterior. <details class="sol"><summary>Solution</summary><div>Prior odds $0.2/0.8 = 0.25$. Posterior odds $= 2$. $p = 2/3 \approx 0.667$.</div></details></li>
+  <li><span class="lvl m">MED</span> Three independent weak clues, each with $\Lambda = 2$, versus one strong clue with $\Lambda = 8$. Starting from even odds, compare the posteriors, and state the general principle in log-odds. <details class="sol"><summary>Solution</summary><div>Independent evidence multiplies likelihood ratios: $2^3 = 8$, identical to the single strong clue — posterior odds $8{:}1$, $p = 8/9\approx0.889$ either way. In log-odds, each clue adds $\log 2 \approx 0.693$ nats; evidence is additive, so many weak independent signals equal one strong one. The catch is independence: three <em>correlated</em> clues (all downstream of one source) can be worth little more than one.</div></details></li>
+  <li><span class="lvl h">HARD</span> A weather model says $p(\text{rain}) = 0.7$; a second, independent-ish model says $0.4$. Someone averages to 0.55. Using log-odds pooling with equal weights instead, compute the pooled probability, and explain when pooling should push <em>outside</em> the two estimates rather than between them. <details class="sol"><summary>Solution</summary><div>Log-odds: $\mathrm{logit}(0.7) = \ln(7/3) = 0.847$; $\mathrm{logit}(0.4) = \ln(2/3) = -0.405$. Equal-weight mean $= 0.221$; pooled $p = 1/(1+e^{-0.221}) = 0.555$ — here similar to the linear average (logit pooling with weights summing to 1 always stays between). But if the two forecasters share a <em>common prior</em> (say both start from base rate $p_0 = 0.5$) and observed <em>independent</em> evidence, the right combination adds both evidence contributions relative to the prior: $\mathrm{logit}(p_{\text{pool}}) = \mathrm{logit}(p_1) + \mathrm{logit}(p_2) - \mathrm{logit}(p_0) = 0.847 - 0.405 - 0 = 0.442$, $p \approx 0.609$; and if both said 0.7 independently, $\mathrm{logit} = 0.847+0.847 = 1.694$, $p = 0.845 &gt; 0.7$: two independent confirmations are stronger than either alone, so proper aggregation of independent evidence extrapolates beyond the individual estimates. Averaging is right when the forecasts share (unknown amounts of) the same evidence; adding log-odds increments is right when their evidence is disjoint.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="causal-reasoning">
+ <h2>Causal reasoning</h2>
+ <p>Probabilities tell you what tends to co-occur; causal reasoning tells you what would happen if you <em>acted</em>. The difference is one word — seeing versus doing — and Chapter 27 built the machinery: graphs, interventions, adjustment. Here we treat causal reasoning as a reasoning <em>skill</em>: choosing the right query, and refusing to answer causal questions with correlational math.</p>
+ <div class="box def"><span class="label">Definition</span> A causal query asks about $p(y \mid \mathrm{do}(x))$ — the distribution of $Y$ if $X$ is set by intervention — which generally differs from the observational $p(y\mid x)$. With a causal DAG, the backdoor adjustment (Chapter 27) identifies it: if $Z$ blocks all backdoor paths from $X$ to $Y$ and contains no descendant of $X$, then $p(y\mid\mathrm{do}(x)) = \sum_z p(y\mid x, z)\,p(z)$. Reasoning causally = (1) draw the mechanism graph, (2) classify the query (rung 1 seeing / rung 2 doing / rung 3 imagining), (3) check identifiability, (4) only then compute.</div>
+ <div class="box ex"><span class="label">Worked example</span> Confounded tools. An agent's logs show: tasks where it used a search tool succeeded 40%; tasks without, 70%. Naive conclusion: search hurts. Graph: task difficulty $D$ → tool use $X$ (hard tasks trigger search) and $D$ → success $Y$. Backdoor adjustment over $D$ (hard/easy, $p(\text{hard}) = 0.5$): logged numbers are $p(Y\mid X{=}1, \text{hard}) = 0.35$, $p(Y\mid X{=}0, \text{hard}) = 0.20$, $p(Y\mid X{=}1, \text{easy}) = 0.80$, $p(Y\mid X{=}0, \text{easy}) = 0.75$. Then $p(Y\mid \mathrm{do}(X{=}1)) = 0.5\cdot0.35 + 0.5\cdot0.80 = 0.575$ and $p(Y\mid\mathrm{do}(X{=}0)) = 0.5\cdot0.20 + 0.5\cdot0.75 = 0.475$. Search <em>helps</em> by 10 points; the raw comparison was Simpson's paradox in the wild — search was simply assigned to harder tasks.</div>
+ <div class="box link"><span class="label">Where this goes</span> Counterfactual reasoning is the next rung (next topic); world models (Chapter 29) implement do-operations as action-conditioned rollouts; agent evaluation (Chapter 32) is riddled with exactly this confounding.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify each query by rung: (a) "How likely is rain given the barometer fell?" (b) "If we force the barometer needle down, will it rain?" (c) "Had the barometer not fallen, would it have rained?" <details class="sol"><summary>Solution</summary><div>(a) Rung 1, association: $p(\text{rain}\mid \text{barometer})$ — high, barometer is evidence. (b) Rung 2, intervention: $p(\text{rain}\mid\mathrm{do}(\text{needle}))$ — unchanged base rate; the needle doesn't cause weather. (c) Rung 3, counterfactual on a specific day — requires the structural model plus abduction of that day's atmospheric state.</div></details></li>
+  <li><span class="lvl m">MED</span> In the worked example, recompute the naive (unadjusted) success rates from these joint stats and confirm the reversal, given: among hard tasks 80% used search, among easy tasks 20% did. <details class="sol"><summary>Solution</summary><div>$p(Y\mid X{=}1) = \frac{p(\text{hard})0.8\cdot0.35 + p(\text{easy})0.2\cdot0.80}{p(\text{hard})0.8 + p(\text{easy})0.2} = \frac{0.5(0.28) + 0.5(0.16)}{0.5(0.8)+0.5(0.2)} = \frac{0.14+0.08}{0.5} = \frac{0.22}{0.5} = 0.44$. $p(Y\mid X{=}0) = \frac{0.5\cdot0.2\cdot0.20 + 0.5\cdot0.8\cdot0.75}{0.5\cdot0.2 + 0.5\cdot0.8} = \frac{0.02 + 0.30}{0.5} = 0.64$. So observationally $0.44$ vs $0.64$ (search "hurts" by 20 points) while causally it helps by 10 — the confounder $D$ manufactures the reversal.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can't any amount of purely observational data, without assumptions, settle a rung-2 question? State the formal obstruction and the two standard escapes. <details class="sol"><summary>Solution</summary><div>Obstruction: distinct causal structures can induce the <em>identical</em> observational joint distribution. E.g. $X\to Y$ versus $X\leftarrow U \to Y$ (pure confounding) can be parameterized to give the same $p(x,y)$, yet imply different $p(y\mid\mathrm{do}(x))$ (in the first it equals $p(y\mid x)$; in the second it equals $p(y)$). Since the data only ever reveals $p(x,y)$, the causal query is under-determined — non-identifiable without assumptions. Escapes: (1) experiment — randomizing $X$ severs incoming edges, making $p(y\mid x)_{\text{RCT}} = p(y\mid\mathrm{do}(x))$ by design; (2) assumptions + structure — assume a graph (from mechanism knowledge) under which the query is identifiable (backdoor/frontdoor/do-calculus, Chapter 27), or exploit natural experiments (instrumental variables). "No causes in, no causes out."</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="counterfactual-reasoning">
+ <h2>Counterfactual reasoning</h2>
+ <p>"If I had left five minutes earlier, I'd have caught the train." No experiment can rerun that morning — yet the claim feels checkable, and structural causal models make it so: keep everything about that specific morning fixed except the one change, and recompute. Counterfactuals are how agents assign credit, feel regret, and learn from single episodes.</p>
+ <div class="box def"><span class="label">Definition</span> In an SCM with mechanisms $v_i = f_i(\mathrm{pa}_i, u_i)$ (Chapter 27), the counterfactual $Y_{X\leftarrow x'}(u)$ — "$Y$ had $X$ been $x'$, in the situation that actually occurred" — is computed in three steps: <em>abduction</em> (infer the exogenous noise $u$ from the observed evidence), <em>action</em> (replace $X$'s mechanism with $X := x'$), <em>prediction</em> (recompute downstream variables with the same $u$). It differs from intervention $p(y\mid\mathrm{do}(x'))$ by conditioning on the actual episode's noise rather than averaging over it.</div>
+ <div class="box ex"><span class="label">Worked example</span> SCM: departure delay $X$ (minutes), traffic $U\sim$ that day's condition, arrival margin $Y = 10 - X - U$; catch train iff $Y \ge 0$. Observed: you left with $X = 8$ and missed it with margin $Y = -3$. Abduction: $-3 = 10 - 8 - U \Rightarrow U = 5$ (heavy traffic that day). Action: set $X = 3$ (leave 5 minutes earlier). Prediction with the <em>same</em> $U = 5$: $Y = 10 - 3 - 5 = 2 \ge 0$ — you'd have caught it. Contrast the interventional average with $U\sim\mathrm{Uniform}\{2,5,8\}$: $p(\text{catch}\mid\mathrm{do}(X{=}3)) = p(U \le 7) = 2/3$ — a different number answering a different question ("in general", not "that day").</div>
+ <div class="box think"><span class="label">Think first</span> An agent's episode failed at step 7 of 10. Why is the counterfactual "would the episode have succeeded had step 7 been action $b$?" more useful for credit assignment than the interventional "does action $b$ at such states succeed on average?" <details class="sol"><summary>Reveal</summary><div>The counterfactual holds this episode's specific circumstances fixed (the same task instance, the same randomness), isolating step 7's contribution: if the answer is "still fails", step 7 wasn't the culprit and blame lies elsewhere — one episode yields targeted credit. The interventional average mixes over all circumstances, so it confounds "this action is generally bad" with "this episode was doomed anyway"; it needs many samples to say anything, and what it says is not about this failure. Counterfactual credit assignment (e.g. hindsight/counterfactual baselines in RL) exploits exactly this variance reduction.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> Counterfactuals are the least identifiable rung: even a randomized experiment pins down only interventional distributions, and distinct SCMs agreeing on <em>all</em> interventions can disagree on counterfactuals. Any counterfactual claim carries mechanism assumptions that data alone cannot verify — state them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Same SCM, observed $X = 4$, $Y = 1$. Would you have caught the train having left 3 minutes later ($X = 7$)? <details class="sol"><summary>Solution</summary><div>Abduction: $1 = 10 - 4 - U \Rightarrow U = 5$. Action $X = 7$: $Y = 10 - 7 - 5 = -2 &lt; 0$. No — you'd have missed it.</div></details></li>
+  <li><span class="lvl m">MED</span> Define, in the train SCM with $U\sim\mathrm{Uniform}\{2,5,8\}$ and default behavior $X=8$: the probability of necessity PN $= p(Y_{X\leftarrow 3}\ge 0 \mid X{=}8, Y&lt;0)$... compute instead: given you left at 8 and missed, what's the probability leaving at 3 would have saved you? <details class="sol"><summary>Solution</summary><div>Missing with $X = 8$ means $10 - 8 - U &lt; 0 \Rightarrow U &gt; 2$, so $U\in\{5, 8\}$, each with posterior probability $\tfrac12$ (abduction under uniform prior). Counterfactual with $X = 3$: catch iff $10 - 3 - U \ge 0 \Rightarrow U \le 7$, i.e. $U = 5$ yes, $U = 8$ no. Answer: $\tfrac12$. This is a probabilistic counterfactual: abduction gives a posterior over $u$, not a point value, and the counterfactual is an expectation over it.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct two SCMs over binary $X, Y$ that have identical $p(y\mid\mathrm{do}(x))$ for both $x$, yet different counterfactuals $p(Y_{X\leftarrow 1}{=}1\mid X{=}0, Y{=}0)$. <details class="sol"><summary>Solution</summary><div>Both have $X\sim\mathrm{Bern}(\tfrac12)$ and marginal behavior $p(Y{=}1\mid\mathrm{do}(x)) = \tfrac12$ for both $x$. SCM A: $Y = U$, $U\sim\mathrm{Bern}(\tfrac12)$ — $Y$ ignores $X$ entirely. Counterfactual: given $X{=}0, Y{=}0$, abduce $U = 0$; set $X{=}1$: $Y = U = 0$. So $p(Y_{X\leftarrow1}{=}1\mid X{=}0,Y{=}0) = 0$. SCM B: $Y = X\oplus U$, $U\sim\mathrm{Bern}(\tfrac12)$ — $X$ always flips-or-not $Y$ via $U$. Interventions: $p(Y{=}1\mid\mathrm{do}(x)) = p(U = 1\oplus x)\cdot$... $= \tfrac12$ for both $x$. ✓ identical. Counterfactual: given $X{=}0, Y{=}0$, abduce $U = 0$; set $X = 1$: $Y = 1\oplus 0 = 1$. So the counterfactual probability is $1$ in SCM B vs $0$ in SCM A. Same rung-2 content, opposite rung-3 answers: counterfactuals depend on the functional form ($Y$ insensitive to $X$ vs. $X$ XOR-coupled), which interventional data cannot distinguish.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="formal-reasoning">
+ <h2>Formal reasoning</h2>
+ <p>Formal reasoning trades intuition for certainty: fix a formal language, axioms, and inference rules, and let correctness become a mechanical property of symbol strings — checkable by a dumb, fast program. This is the gold standard the rest of the chapter tries to approximate: an LLM's "proof" becomes knowledge only when a formal checker says yes.</p>
+ <div class="box def"><span class="label">Definition</span> A formal system is $(\mathcal L, A, R)$: a language of well-formed formulas, axioms $A$, and inference rules $R$. A <em>proof</em> of $\varphi$ is a finite sequence of formulas, each an axiom or derived from earlier ones by a rule, ending in $\varphi$; write $\vdash \varphi$. Two meta-properties tie syntax to truth: <em>soundness</em> ($\vdash\varphi \Rightarrow \models\varphi$: everything provable is true in all models) and <em>completeness</em> ($\models\varphi\Rightarrow\vdash\varphi$; holds for first-order logic — Gödel's completeness theorem). Gödel's <em>incompleteness</em> theorem is the boundary: any consistent, effectively axiomatized system containing arithmetic has true statements it cannot prove.</div>
+ <div class="box ex"><span class="label">Worked example</span> A machine-checkable proof, in a Hilbert-style propositional system with axioms A1: $\varphi\to(\psi\to\varphi)$, A2: $(\varphi\to(\psi\to\chi))\to((\varphi\to\psi)\to(\varphi\to\chi))$ and rule modus ponens. Claim: $\vdash p \to p$.
+ 1. $p \to ((p\to p)\to p)$ — A1 with $\varphi{=}p, \psi{=}p{\to}p$.
+ 2. $(p \to ((p\to p)\to p)) \to ((p\to(p\to p))\to(p\to p))$ — A2 with $\varphi{=}p,\psi{=}p{\to}p,\chi{=}p$.
+ 3. $(p\to(p\to p))\to(p\to p)$ — MP on 1, 2.
+ 4. $p\to(p\to p)$ — A1 with $\varphi{=}p,\psi{=}p$.
+ 5. $p\to p$ — MP on 4, 3. ∎
+ Every line is verifiable by pattern-matching alone — no understanding required. That is the point.</div>
+ <div class="box link"><span class="label">Where this goes</span> Proof assistants (Lean, Coq) industrialize this (Chapter 34); proof search and tool-verified reasoning (this chapter) put an LLM in the loop with the checker as judge.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is verifying a formal proof computationally easy even when finding it is hard? <details class="sol"><summary>Solution</summary><div>Verification is a linear scan: for each line, check it is an axiom instance or matches a rule applied to earlier lines — syntactic pattern matching, polynomial in proof length. Finding a proof means searching the exponentially branching space of possible derivations. This asymmetry (cheap checking, expensive search) is the same NP-flavored asymmetry as SAT (Chapter 17) and is what makes "generator proposes, verifier disposes" architectures sound.</div></details></li>
+  <li><span class="lvl m">MED</span> Soundness and completeness: which one would you sacrifice last in an automated math agent, and what does losing each cost? <details class="sol"><summary>Solution</summary><div>Keep soundness at all costs. Losing soundness means some "proved" statements are false — the system's outputs become worthless as knowledge, since each must be independently re-verified (the property you built the system for is gone). Losing completeness only means some true statements are unreachable — the system is a weaker mathematician but every answer it does give still counts. All practical systems accept incompleteness (Gödel forces it anyway for arithmetic); none accept unsoundness — a proof assistant with a soundness bug is a broken instrument.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gödel's incompleteness is often misquoted as "there are truths machines can't know but humans can". Give the accurate statement and explain why it cuts equally against humans-as-formal-reasoners. <details class="sol"><summary>Solution</summary><div>Accurate statement: for any <em>fixed</em> consistent, effectively axiomatizable theory $T$ extending arithmetic, there is a sentence $G_T$ (roughly "this sentence is unprovable in $T$") that is true (in the standard model, assuming $T$ consistent) but unprovable in $T$. The unprovable sentence depends on $T$: a stronger theory $T'$ proves $G_T$ but has its own $G_{T'}$. Nothing privileges humans: to "see" that $G_T$ is true, a human must assume $T$'s consistency — which is itself one of the unprovable-in-$T$ statements (second incompleteness theorem). If human mathematical reasoning is consistent and mechanizable, it too has its Gödel sentence; if it isn't mechanizable, that's an assumption, not a consequence of the theorem (this is the flaw in the Lucas–Penrose argument). The honest reading: incompleteness bounds every fixed formal system, human or machine, and says nothing about a comparison between them.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="proof-search">
+ <h2>Proof search</h2>
+ <p>Finding a proof is a search problem: nodes are proof states (goals yet to prove), edges are rule or tactic applications, and you win by reaching a state with no goals left. Everything Chapter 26 taught — heuristics, best-first, UCT — applies, with one gift: the checker gives perfect, instant feedback at every node.</p>
+ <div class="box def"><span class="label">Definition</span> Backward (goal-directed) proof search maintains a set of open goals; applying a tactic to a goal either closes it or replaces it with subgoals. The search space is a tree/DAG over proof states with branching factor = number of applicable tactics. Modern neural theorem provers (AlphaProof, LeanDojo-style systems) use a policy $\pi(\text{tactic}\mid\text{state})$ (an LM reading the goal) to rank tactics and a value/heuristic to prioritize states, run best-first or MCTS over the tactic tree, and rely on the kernel (Lean/Coq) to validate every step — the LM proposes, the kernel is ground truth.</div>
+ <div class="box ex"><span class="label">Worked example</span> Branching arithmetic. Suppose 30 tactics are applicable per state and proofs of interest are 10 steps deep: blind search touches $\sim 30^{10} \approx 5.9\times10^{14}$ states — hopeless. A learned policy whose top-3 suggestions contain the right tactic 90% of the time, searched with beam width 3: the beam covers the true proof path at each depth with probability $\ge 0.9$, so a full 10-step proof is found with probability $\gtrsim 0.9^{10} \approx 0.35$ while expanding only $\le 3\cdot 30\cdot 10 = 900$ candidate steps' worth of work ($3$ beam states $\times$ ranking $30$ tactics $\times$ $10$ depths). The policy converts an exponential problem into a linear one, at the price of incompleteness — the 65% of cases where the proof falls off the beam.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Premise selection and lemma reuse dominate real proving: most human proofs are short <em>given the right lemmas</em>. A prover that searches deeply but retrieves poorly from the library re-derives mathematics from scratch and drowns; retrieval (Chapter 31's machinery) is as important as search.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With branching factor $b = 20$ and depth $d = 6$, how many leaf states does exhaustive backward search reach, and how many with a beam of width 5 that expands 20 children per state? <details class="sol"><summary>Solution</summary><div>Exhaustive: $20^6 = 6.4\times10^7$ leaves. Beam: at each depth keep 5 states, expand $5\times20 = 100$ children, keep 5 — total expansions $\approx 100\times6 = 600$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is proof search a nearly ideal RL environment compared to, say, robotics? Name three properties. <details class="sol"><summary>Solution</summary><div>(1) Perfect, cheap, verifiable reward: the kernel says with certainty whether the proof is complete — no reward noise, no reward hacking possible (a "proof" that checks <em>is</em> a proof). (2) Perfect simulator: the environment (proof state transitions) is exactly known and resettable; unlimited self-play/search with no sim-to-real gap. (3) Automatic curriculum &amp; data flywheel: every found proof is new, guaranteed-correct training data (state → tactic pairs), and failed searches still yield value targets. Plus determinism and cheap parallelism. The hard part is purely the astronomical search space.</div></details></li>
+  <li><span class="lvl h">HARD</span> AlphaProof-style training generates its own problems by formalizing informal statements and also proving <em>variants</em> (e.g. weakenings) of target theorems. Explain, via the beam-miss analysis in the worked example, why training on solved easy variants raises the probability of solving the hard target. <details class="sol"><summary>Solution</summary><div>The failure probability $1 - \prod_t p_t$ (with $p_t$ = probability the correct tactic at step $t$ survives the beam) is driven by the <em>weakest steps</em> — states where the policy's prior on the right tactic is low, typically novel intermediate goal shapes. Solved variants of the target manufacture training data precisely on those shapes: the variant's proof passes through intermediate states similar to the target's (shared structure), so policy training on them raises the low $p_t$'s where it matters. Formally it is importance-focused data augmentation: rather than raising average tactic accuracy, it raises the minimum along the target trajectory, which controls the product. It also trains the value function to recognize near-target states as promising, keeping them on the beam. This is the RL data flywheel: each solved problem reshapes the policy so previously-off-beam proofs come on-beam — capability expands outward from the solved frontier.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="program-synthesis">
+ <h2>Program synthesis</h2>
+ <p>Program synthesis asks a machine to write code from a specification — examples, types, tests, or a sentence. It is reasoning made executable: a synthesized program is a hypothesis you can run, and the spec is a verifier. The modern twist: LLMs propose candidate programs, and the compiler-plus-tests filter them.</p>
+ <div class="box def"><span class="label">Definition</span> Given a specification $\phi$ (input–output examples $\{(x_i,y_i)\}$, a logical spec, or natural language + tests), synthesis finds a program $P$ in a language/DSL with $\forall i:\ P(x_i) = y_i$ (or $\phi(P)$). Classical approaches: enumerative search over the DSL grammar (smallest-first), constraint-based (compile to SMT, Chapter 17), and CEGIS — counterexample-guided inductive synthesis: propose $P$ from finitely many constraints, ask a verifier for a counterexample, add it, repeat. Neural approach: sample $k$ programs from an LLM conditioned on the spec, keep those passing the tests (best-of-$k$ with an executable verifier).</div>
+ <div class="box ex"><span class="label">Worked example</span> Enumerative synthesis over a tiny DSL: expressions built from <code>x</code>, constants <code>1,2</code>, operators <code>+,*</code>. Spec: $f(1) = 3,\ f(2) = 5$. Enumerate by size — size 1: <code>x</code> ($f(1){=}1$ ✗), <code>1</code> ✗, <code>2</code> ✗. Size 3: <code>x+1</code> → $2,3$ ✗; <code>x+2</code> → $3,4$ ✗ (fails second example); <code>x*2</code> → $2,4$ ✗; <code>x*x</code> → $1,4$ ✗; <code>x+x</code> → $2,4$ ✗. Size 5: <code>x*2+1</code> → $3, 5$ ✓. Return <code>2x+1</code> — and by smallest-first enumeration it is also the <em>shortest</em> consistent program, an MDL-style Occam guarantee against overfitting the two examples (compare: <code>x*x+2*x... </code> variants that fit could be found later, but shorter wins).</div>
+ <div class="box think"><span class="label">Think first</span> Two examples were enough to pick $2x+1$ over $x^2+2$ only because of smallest-first ordering — both fit $f(1)=3$! Check: does $x^2+2$ fit both examples? What third example would disambiguate the two? <details class="sol"><summary>Reveal</summary><div>$x^2 + 2$ at $x=1$ gives 3 ✓ but at $x=2$ gives 6 ≠ 5 ✗ — so it's already eliminated by the second example. A hypothesis like $x^2 + x + 1$? At 1: 3 ✓; at 2: 7 ✗. But e.g. $\frac{x^3+...}{}$ — infinitely many polynomials fit any two points; the ones that fit both examples and differ from $2x+1$ first differ at some $x^\ast$; asking for $f(3)$ (is it 7?) kills all quadratics fitting the first two points, since a quadratic through $(1,3),(2,5),(3,7)$ must be the line itself (three collinear points force the degree-2 coefficient to 0). Example selection = experiment design: pick the input where surviving hypotheses disagree most.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Test-filtered generation is the core of coding agents (Chapters 31–32); CEGIS's propose-verify loop is the template for tool-verified reasoning below.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An LLM samples 50 candidate programs; each independently passes the test suite with probability 0.08. What is the probability at least one passes? <details class="sol"><summary>Solution</summary><div>$1 - 0.92^{50} = 1 - e^{50\ln0.92} = 1 - e^{-4.169} \approx 1 - 0.0155 = 0.985$.</div></details></li>
+  <li><span class="lvl m">MED</span> Describe one full CEGIS round for spec "$P(x) = |x|$" over a linear-DSL synthesizer that first proposes $P(x) = x$ (consistent with the single seed example $P(3)=3$). <details class="sol"><summary>Solution</summary><div>Verifier checks $\forall x: P(x) = |x|$ against the proposal $P(x) = x$: finds a counterexample, e.g. $x = -1$ where $P(-1) = -1 \ne 1$. Add $(−1, 1)$ to the constraint set. Synthesizer now needs a program with $P(3) = 3, P(-1) = 1$: no linear $ax+b$ works ($3a+b=3,\ -a+b=1 \Rightarrow a = \tfrac12, b = \tfrac32$; check: it does! $P(x) = \tfrac{x+3}{2}$ — satisfies both). Verifier finds a new counterexample, e.g. $x = 1$: $P(1) = 2 \ne 1$. Add it; now no linear function fits $(3,3), (-1,1), (1,1)$ (first two force $a=\tfrac12,b=\tfrac32$, contradicting the third), so the synthesizer must leave the linear fragment (e.g. propose <code>if x&lt;0 then -x else x</code>), which the verifier accepts. Each round either terminates or provably eliminates candidates — the counterexamples are chosen adversarially and drive progress.</div></details></li>
+  <li><span class="lvl h">HARD</span> Passing $n$ i.i.d. random tests is weaker than correctness. If a wrong program fails a random test with probability $\ge\epsilon$, bound the probability it survives $n$ tests, and compute $n$ for 99.9% confidence at $\epsilon = 0.05$. Then explain why real test suites break the i.i.d. assumption in a dangerous direction. <details class="sol"><summary>Solution</summary><div>Survival probability $\le (1-\epsilon)^n \le e^{-\epsilon n}$. Want $e^{-\epsilon n} \le 0.001$: $n \ge \ln(1000)/\epsilon = 6.908/0.05 \approx 138.2$, so $n = 139$ tests. Danger: real suites are not random draws from the input distribution — they cluster on typical cases and round numbers, while wrong programs (especially LLM-generated ones sharing training-set biases with test authors) fail precisely on edge cases the suite under-samples (empty input, overflow, unicode, concurrency). For such programs the effective $\epsilon$ against the suite is far below the true error rate, so "passes all tests" wildly overstates correctness; hence property-based/fuzz testing (drive $\epsilon$ up by sampling adversarially) and formal verification (Chapter 34) for the cases where it matters.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="neuro-symbolic-reasoning">
+ <h2>Neuro-symbolic reasoning</h2>
+ <p>Neural networks are superb at perception and fuzzy generalization, terrible at guaranteed multi-step exactness; symbolic engines are the reverse. Neuro-symbolic systems split the labor: the network reads the messy world into symbols, the symbolic engine reasons over them exactly, and (in the tighter integrations) gradients flow through the logic.</p>
+ <div class="box def"><span class="label">Definition</span> A neuro-symbolic system combines learned components $f_\theta$ (perception, proposal, ranking) with symbolic components (logic programs, solvers, algebra systems, planners) in one pipeline. Integration styles: <em>(i) pipeline</em> — neural parses to symbols, solver reasons (AlphaGeometry: LM proposes auxiliary constructions, a symbolic deduction engine closes the proof); <em>(ii) differentiable logic</em> — relax truth values to $[0,1]$ so rules become arithmetic, e.g. product t-norm: $\mathrm{AND}(a,b) = ab$, $\mathrm{OR}(a,b) = a + b - ab$, $\mathrm{NOT}(a) = 1 - a$, making logical loss terms differentiable; <em>(iii) semantic loss</em> — penalize the network by $-\log p(\text{constraint satisfied})$ under its output distribution.</div>
+ <div class="box ex"><span class="label">Worked example</span> Differentiable rule check. Constraint: "if the light is red, the car must stop" — $\mathrm{red}\to\mathrm{stop}$, i.e. $\mathrm{OR}(\mathrm{NOT}(\mathrm{red}), \mathrm{stop})$. The perception net outputs $p(\mathrm{red}) = 0.9$; the policy net outputs $p(\mathrm{stop}) = 0.3$. Fuzzy truth of the rule: $\mathrm{NOT}(0.9) = 0.1$; $\mathrm{OR}(0.1, 0.3) = 0.1 + 0.3 - 0.03 = 0.37$. Semantic loss $= -\log 0.37 = 0.994$ nats — large, and differentiable: $\frac{\partial\,\mathrm{OR}}{\partial\, p(\mathrm{stop})} = 1 - 0.1 = 0.9$, so gradient descent pushes $p(\mathrm{stop})$ up steeply while the light looks red. If the net instead output $p(\mathrm{stop}) = 0.95$: rule truth $= 0.1 + 0.95 - 0.095 = 0.955$, loss $0.046$ — nearly satisfied.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The interface is the weak point: if the neural parser emits the wrong symbols, the symbolic engine reasons impeccably to the wrong answer — garbage in, theorem out. Symbolic exactness downstream can even <em>launder</em> perceptual errors into confident conclusions. Robust systems propagate uncertainty across the interface (distributions over parses, not argmax) or verify the parse independently.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the product-t-norm truth of $(a \wedge b) \vee c$ for $a = 0.8, b = 0.5, c = 0.2$. <details class="sol"><summary>Solution</summary><div>$a\wedge b = 0.4$. OR with $c$: $0.4 + 0.2 - 0.08 = 0.52$.</div></details></li>
+  <li><span class="lvl m">MED</span> In AlphaGeometry, why is the LM asked to propose only <em>auxiliary constructions</em> (new points/lines) while a symbolic engine does all deduction? <details class="sol"><summary>Solution</summary><div>Deduction from a fixed diagram is mechanical and complete-ish for the geometry fragment: the symbolic engine (angle/ratio chasing closure) exhaustively derives everything derivable — fast and sound, no learning needed. What it cannot do is the creative step: the search space of possible auxiliary constructions is unbounded, and which point to add is exactly the ill-defined, intuition-shaped judgment neural nets learn well from data. So the split assigns each part its comparative advantage: LM = propose from the infinite creative space; engine = verify/saturate exactly. The LM can't break soundness (its constructions are just new objects; wrong ones merely waste time), so the system's outputs remain proofs.</div></details></li>
+  <li><span class="lvl h">HARD</span> Product t-norm AND of $n$ literals each with truth $0.9$ has truth $0.9^n$. Compute for $n = 20$, explain the "vanishing truth" problem for deep symbolic circuits, and give the standard remedy. <details class="sol"><summary>Solution</summary><div>$0.9^{20} = e^{20\ln0.9} = e^{-2.107} \approx 0.122$: a conjunction of 20 individually-quite-true facts is rated mostly false, and its gradient signal, split across 20 factors, is weak per-literal ($\partial/\partial a_i = \prod_{j\ne i}a_j \approx 0.135$ — and it decays exponentially deeper). Long chains of fuzzy conjunctions vanish exactly like products of sub-unit Jacobians (Chapter 21's vanishing gradients — the same math). Remedies: work in log-space (log of product t-norm = sum of logs — semantic loss does this: $-\log\prod a_i = \sum -\log a_i$, turning the product into a well-conditioned sum); use Gödel t-norm $\mathrm{AND} = \min$ (truth doesn't decay with chain length, gradient routes to the weakest literal only — a max-margin flavor); or normalize/anneal truth values. The choice of t-norm is an optimization decision as much as a semantic one.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tool-verified-reasoning">
+ <h2>Tool-verified reasoning</h2>
+ <p>An LLM's arithmetic is a probability distribution; a calculator's is a fact. Tool-verified reasoning routes the parts of a chain of thought that a tool can check — arithmetic, code execution, unit checks, proof steps, database lookups — through the tool, so the surviving chain inherits the tool's reliability where it was applied.</p>
+ <div class="box def"><span class="label">Definition</span> In tool-verified reasoning the model emits <em>checkable artifacts</em> — a program, an equation, a formal step — which an external executor/verifier evaluates; results are fed back and the chain continues or is repaired. Canonical patterns: PAL/program-of-thought (write code instead of doing mental math; run it); self-debugging loops (run tests, read the traceback, fix); formal-checker loops (Lean kernel as referee). Reliability composition: if a $k$-step chain has per-step correctness $p$ unverified, the chain is right with probability $\le p^k$ (errors compound multiplicatively); verifying a step replaces its $p$ with the tool's reliability ($\approx 1$) <em>for the property the tool checks</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 6-step solution where steps 2, 4, 5 are pure computation. Unverified, with per-step accuracy $0.95$: $p(\text{all correct}) = 0.95^6 = 0.735$. Route the three computational steps through executed code (reliability $\approx 1$ given correct code — assume the model writes the right one-liner with $0.99$): $p \approx 0.95^3\cdot0.99^3 = 0.857\cdot0.970 = 0.831$. Now also add a final dimensional-analysis check that catches 80% of the remaining logic errors and never rejects correct chains, with one retry that succeeds independently with the same $0.831$: $p \approx 0.831 + (1-0.831)\cdot0.8\cdot0.831 = 0.831 + 0.112 = 0.943$. Each verifiable surface converted is a multiplicative leak plugged.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The tool verifies exactly what it is given and nothing more. If the model formalizes the <em>wrong</em> problem — a subtly off equation, a test asserting the wrong behavior — the tool certifies the wrong thing with full authority. Tool-verified is not spec-verified: the translation step from intent to checkable artifact remains the unguarded flank (Chapter 34 attacks it with formal specifications; Chapter 32 with output validation).</div>
+ <div class="box link"><span class="label">Where this goes</span> This is the reasoning-level version of Chapter 32's tool-using agents, and the mechanism behind the verifiability asymmetry exploited by test-time compute below.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A 10-step unverified chain with per-step accuracy 0.9: what is the chance the whole chain is correct? <details class="sol"><summary>Solution</summary><div>$0.9^{10} \approx 0.349$. Long unverified chains are coin flips.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does "have the model check its own arithmetic in words" add far less reliability than "have the model write and run code for the arithmetic"? <details class="sol"><summary>Solution</summary><div>Self-checking in words draws from the same error distribution that made the mistake: the model's verbal arithmetic errors are correlated between generation and checking (same tokenization of numbers, same learned heuristics, same blind spots), so the check's false-pass rate on the model's own errors is high. Executed code fails <em>independently</em> of the model's mental arithmetic — the interpreter shares no weights with the model. Verification helps in proportion to the independence of its error modes from the generator's; a tool is valuable precisely because it is a different kind of machine.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design the verification stack for an LLM answering "how many days between date A and date B, given these timezone changes?" List three independent checks with different error modes and estimate the combined failure probability if the raw model is right 85% of the time, check 1 (executed datetime code) catches 95% of errors, check 2 (inverse reconstruction: add the computed delta back to A, compare to B) catches 90% of survivors, check 3 (order-of-magnitude sanity vs. year difference) catches 50% of survivors — assuming a caught error is fixed correctly. <details class="sol"><summary>Solution</summary><div>Checks: (1) compute via executed code with a real datetime library (catches mental-calendar errors, leap years, DST); (2) inverse check — a self-consistency probe with a different computation path, so its failures (e.g. wrong problem setup) only partially overlap; (3) sanity bound — days ≈ 365 × year-gap ± slack — catches gross setup errors that both precise checks might share if the model mis-read the dates the same way twice. Error survives only if it slips all three: $p(\text{wrong final}) = 0.15\times(1-0.95)\times(1-0.90)\times(1-0.50) = 0.15\times0.05\times0.10\times0.5 = 3.75\times10^{-4}$ — under the (idealized) independence-and-perfect-repair assumptions: from 15% error to 0.0375%. The realistic caveat: setup errors (wrong dates extracted from the question) are correlated across all three checks, and they, not arithmetic, become the dominant residual failure mode — the stack's floor is set by its most correlated layer.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">The main reason executing code beats the model "double-checking" its own reasoning in text:</div><button class="opt">Code runs faster than a second model pass</button><button class="opt">The interpreter's errors are independent of the model's error distribution, while self-checks share the generator's blind spots</button><button class="opt">Code can express computations that language cannot</button><div class="why" hidden>A verifier adds reliability in proportion to how decorrelated its failures are from the generator's. Self-review reuses the same weights, heuristics and biases that produced the error; an interpreter is a physically different machine whose failure modes barely overlap. Speed and expressiveness are secondary.</div></div>
+</section>
+
+<section class="topic" id="self-consistency">
+ <h2>Self-consistency</h2>
+ <p>Ask the model once and you get one sample from a distribution over reasoning paths; ask it twenty times at nonzero temperature and vote, and the noise partially cancels. Self-consistency is the ensemble method of Chapter 19 applied to a single model's own stochasticity — embarrassingly simple, reliably worth several accuracy points on reasoning tasks.</p>
+ <div class="box def"><span class="label">Definition</span> Sample $k$ independent chains of thought $c_1,\dots,c_k \sim p_\theta(\cdot\mid x)$ (temperature $&gt;0$), extract each chain's final answer $a(c_i)$, and output the majority (plurality) answer $\hat a = \arg\max_a \#\{i: a(c_i) = a\}$. For a binary-outcome model where each chain is independently correct with probability $p$, the majority of $k$ (odd) is correct with probability $P_k = \sum_{j&gt;k/2}\binom{k}{j}p^j(1-p)^{k-j}$, which $\to 1$ as $k\to\infty$ iff $p &gt; \tfrac12$ (Condorcet's jury theorem) — and $\to 0$ if $p &lt; \tfrac12$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p = 0.6$, $k = 5$: $P_5 = \binom{5}{3}(0.6)^3(0.4)^2 + \binom{5}{4}(0.6)^4(0.4) + (0.6)^5 = 10(0.216)(0.16) + 5(0.1296)(0.4) + 0.07776 = 0.3456 + 0.2592 + 0.0778 = 0.6826$. At $k = 21$ (compute or trust the CLT): $P_{21}\approx 0.83$. The same formula with $p = 0.45$: $P_5 = 0.4069$ — voting made it <em>worse</em>. Majority voting amplifies whatever side of 50% you're on.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide per-sample accuracy $p$ and the number of sampled chains $k$: the curve shows majority-vote accuracy. Watch the amplification flip direction at $p = 0.5$.</p>
+  <canvas id="cv-sc"></canvas>
+  <div class="ctl">
+   <label>per-chain accuracy p <input type="range" id="sc-p" min="0.05" max="0.95" step="0.01" value="0.6"></label>
+   <label>max chains k <input type="range" id="sc-k" min="5" max="101" step="2" value="41"></label>
+  </div>
+  <div class="out" id="sc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The independence assumption is generous: chains from one model share systematic errors (same misreading of the question, same wrong formula), so real gains saturate well below the jury-theorem curve. Self-consistency cancels <em>sampling</em> noise, never <em>bias</em> — if the model reliably falls for the trap, twenty samples fall for it twenty times.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $p = 0.7$, $k = 3$. Compute the majority-vote accuracy. <details class="sol"><summary>Solution</summary><div>$P_3 = \binom{3}{2}(0.7)^2(0.3) + (0.7)^3 = 3(0.49)(0.3) + 0.343 = 0.441 + 0.343 = 0.784$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must self-consistency vote over <em>final answers</em> rather than over full chains of thought, and what does this imply about tasks with free-form outputs? <details class="sol"><summary>Solution</summary><div>Distinct chains virtually never coincide token-for-token — every chain is unique, so voting over chains has no repeats to count; the marginalization only works over a small answer space where different paths can agree ($\hat a = \arg\max_a \sum_i \mathbf 1[a(c_i) = a]$ estimates $\arg\max_a p(a\mid x)$, marginalizing out the path). For free-form outputs (essays, proofs, code) there is no canonical equivalence class to vote in; you need either an equivalence relation (execution results for code — vote on outputs; semantic clustering) or a different aggregator (a verifier/reward model picking the best sample — best-of-$n$, next topics).</div></details></li>
+  <li><span class="lvl h">HARD</span> Model correlated chains: with probability $\rho$ all chains copy one shared draw (correct w.p. $p$), with probability $1-\rho$ they are independent. Write majority accuracy for $k\to\infty$ and evaluate at $p = 0.6, \rho = 0.3$. What is the ceiling as $k \to\infty$, and what does it teach about scaling $k$? <details class="sol"><summary>Solution</summary><div>$P_\infty = \rho\,p + (1-\rho)\cdot\mathbf 1[p &gt; \tfrac12]$ — with the shared draw, the majority just echoes it (right w.p. $p$); in the independent case the jury theorem drives majority accuracy to 1. At $p = 0.6, \rho = 0.3$: $P_\infty = 0.3\cdot0.6 + 0.7\cdot1 = 0.88$. The ceiling $0.88 &lt; 1$ no matter how many samples: correlation puts a hard limit on what sampling more can buy, and the marginal value of extra chains decays quickly toward it (most practical curves flatten by $k\approx 20$–$40$). To go beyond the ceiling you must reduce $\rho$ — diversify the ensemble (different prompts, temperatures, models, tools), not just enlarge it. Same lesson as bagging vs. correlated trees in random forests (Chapter 19).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tree-of-thought-search">
+ <h2>Tree-of-thought search</h2>
+ <p>Chain-of-thought commits to one line of reasoning; if step 2 was a wrong turn, everything after is wasted. Tree-of-thought makes reasoning a search tree: propose several candidate next steps, evaluate which partial states look promising, expand the best, and back up from dead ends — Chapter 26's search algorithms, with thoughts as nodes and the model as both move generator and evaluator.</p>
+ <div class="box def"><span class="label">Definition</span> Tree-of-thought (ToT) search over reasoning states $s$ (problem + partial reasoning): a <em>proposer</em> samples $b$ candidate next thoughts per state; an <em>evaluator</em> scores states $v(s)$ (model-judged promise, or a verifiable check where available); a search strategy — breadth-first with beam width $w$, DFS with backtracking, or MCTS — decides expansion order. Compute cost $\approx$ (states expanded) × (proposals + evaluations per state); CoT is the degenerate tree $b = w = 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Game-of-24 style accounting. Depth 3 (three combining operations), proposer generates $b = 5$ candidate steps per state, beam keeps $w = 3$. Expansions: depth 1: 1 state × 5 proposals = 5 candidates, keep 3; depth 2: 3 × 5 = 15, keep 3; depth 3: 15 more — total 35 proposer calls + 35 evaluations ≈ 70 LM calls vs. 1 for CoT. Payoff (from the original ToT experiments' regime): CoT solves ~4–7% of Game-of-24 instances; ToT with $b{=}5, w{=}5$ solves ~74%. The task is search-shaped — one early wrong combination dooms a chain, and CoT can't undo it — so 70× compute buys ~15× accuracy. On tasks that are retrieval-shaped (one obvious path), the same 70× buys almost nothing.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch beam search climb a reasoning tree with hidden step qualities. Widen the beam and branching; see when the correct path (gold) survives pruning and when a greedy beam loses it.</p>
+  <canvas id="cv-tot"></canvas>
+  <div class="ctl">
+   <label>branching b <input type="range" id="tt-b" min="2" max="5" step="1" value="3"></label>
+   <label>beam width w <input type="range" id="tt-w" min="1" max="5" step="1" value="2"></label>
+   <label>evaluator noise <input type="range" id="tt-noise" min="0" max="1" step="0.05" value="0.3"></label>
+   <button class="btn" id="tt-new">New tree</button>
+  </div>
+  <div class="out" id="tt-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The evaluator is a learned guesser, not ground truth: a systematically miscalibrated $v(s)$ (e.g. one that loves verbose, confident-sounding partial reasoning) steers the whole search into fluent dead ends — search amplifies the evaluator's biases exactly as it amplifies its signal. ToT helps most when some evaluation is <em>verifiable</em> (arithmetic checks, constraint satisfaction) rather than vibes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> ToT with depth 4, branching 4, beam 2: how many proposer calls (count candidates generated)? <details class="sol"><summary>Solution</summary><div>Depth 1: $1\times4 = 4$. Depths 2–4: $2\times4 = 8$ each. Total $4 + 3\times8 = 28$ candidates.</div></details></li>
+  <li><span class="lvl m">MED</span> A task has a "crux" at step 2: only 1 of the model's typical 5 ideas is right, and the model's per-sample chance of picking it in a linear chain is 20%. Show how ToT with $b = 5, w = 2$ and a decent evaluator (ranks the right idea top-2 with prob 0.8) changes the chance of surviving the crux, vs. self-consistency with 5 chains. <details class="sol"><summary>Solution</summary><div>Linear chain: survives with 0.2. Self-consistency, 5 chains: at least one chain survives the crux with $1 - 0.8^5 = 0.672$ — but voting doesn't know which chain is right; unless survivors converge on a distinctive answer and the 4 failed chains scatter, the majority is likely wrong (the 80% who missed the crux may agree on the same wrong answer). ToT: the proposer generates 5 ideas at step 2 — the right one appears with high probability (it's 1 of the typical 5, so ≈ prob. it's in a 5-sample draw: $1 - 0.8^5 = 0.672$ if each sample independently hits it with 0.2) — and the evaluator keeps it in the beam with 0.8: survive ≈ $0.672\times0.8 = 0.538$, <em>and</em> the search then continues down the correct branch rather than merely having a correct vote drowned out. The structural advantage: ToT filters at the crux, self-consistency filters only at the end.</div></details></li>
+  <li><span class="lvl h">HARD</span> When is ToT provably no better than best-of-$n$ CoT with matched compute? Characterize the task property, and connect to the value of intermediate verification. <details class="sol"><summary>Solution</summary><div>If the evaluator carries no information about final success ($v(s)$ independent of the outcome given the state's depth), pruning is random: a beam of width $w$ exploring with uninformative selection is a random sample of $w$ full chains plus overhead — at matched compute it stochastically <em>underperforms</em> best-of-$n$ (which at least evaluates complete answers, where judging is easier). ToT's edge is precisely the mutual information between the evaluator's score of a <em>partial</em> state and eventual success — i.e. how early errors become detectable. Tasks where wrongness only manifests at the end (a subtle flaw invisible until the final contradiction) have near-zero early-detectability and gain nothing from tree search; tasks with checkable intermediate invariants (arithmetic states, constraint counts, proof obligations) give the evaluator early signal and ToT dominates. Design rule: invest in tree search in proportion to how verifiable your intermediate states are.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="process-verification">
+ <h2>Process verification</h2>
+ <p>An answer can be right for the wrong reasons — a lucky guess, two errors cancelling, a memorized result. Process verification checks the <em>reasoning</em>, step by step, rather than the final answer alone. It catches error where it is born, gives partial credit where it is due, and produces the dense training signal that outcome checking cannot.</p>
+ <div class="box def"><span class="label">Definition</span> Given a solution decomposed into steps $s_1,\dots,s_k$, process verification assigns each step a label (correct / incorrect / neutral) — by human annotation (as in the PRM800K dataset), by automated checkers where steps are formal, or by model-estimated labels (e.g. Monte-Carlo: mark $s_i$ by the empirical success rate of completions continuing from $s_1..s_i$). A solution is process-correct iff every step is valid; the first invalid step localizes the error. Outcome verification is the special case that reads only a final-answer check.</div>
+ <div class="box ex"><span class="label">Worked example</span> Cancelling errors. Problem: "compute $\frac{6\cdot 35}{15}$". A chain: step 1: "$6\cdot35 = 190$" (wrong: 210); step 2: "$190/15 = 14$" (wrong: $12.67$; but 14 <em>is</em> the true final answer $210/15$). Outcome verification: final answer 14 ✓ — chain accepted, and if used as training data it teaches both mistakes. Process verification: step 1 flagged (first error at $i=1$), chain rejected. Now the statistics: if 8% of accepted-by-outcome chains contain such internal errors, an outcome-supervised reward model trains on 8% poisoned positives; the process-supervised one doesn't — this is why process supervision won on MATH-style benchmarks (Lightman et al.: PRM-reranking beat ORM-reranking clearly at scale).</div>
+ <div class="box link"><span class="label">Where this goes</span> Process reward models (next) operationalize this as a trained scorer; Chapter 35's scalable oversight asks whether step-level judging stays feasible when steps exceed human ability to check.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A 5-step solution has step-validity probabilities $(1, 1, 0.6, 1, 1)$ as judged by a perfect process verifier. What is the probability the solution is process-correct, and where should a repair loop focus? <details class="sol"><summary>Solution</summary><div>$1\cdot1\cdot0.6\cdot1\cdot1 = 0.6$; focus on step 3 — process verification localizes the fault, so only step 3 needs regeneration (then recheck 4–5, which depended on it).</div></details></li>
+  <li><span class="lvl m">MED</span> Describe the Monte-Carlo (automated) way to label a step's quality without humans, and its systematic bias. <details class="sol"><summary>Solution</summary><div>From the partial solution $s_1..s_i$, sample $m$ continuations with the policy and record the fraction reaching a verified-correct final answer; use it as step $i$'s value/label (Math-Shepherd-style). Bias: it labels steps by the <em>policy's ability to finish from there</em>, not by validity — a perfectly valid but unusual step the policy can't continue gets labeled bad (penalizing correct-but-hard paths and originality), while an invalid step from which the policy's errors often cancel, or which leads to a guessable answer, gets labeled good. The labels entangle "step correctness" with "policy competence" — fine for improving that policy, dangerous as ground truth about reasoning.</div></details></li>
+  <li><span class="lvl h">HARD</span> Argue both sides with mechanisms: process supervision as safer (fewer wrong-reason answers) vs. process supervision as a straitjacket (penalizing novel reasoning). What property of the step-judge determines which effect dominates? <details class="sol"><summary>Solution</summary><div>Safer: outcome-only training assigns reward to any path hitting the answer, so it reinforces guessing, shortcut heuristics and cancelling-error patterns — high reward-hacking surface (Chapter 25); process supervision constrains credit to locally-valid steps, shrinking the space of rewarded wrong reasoning and making the model's chains more auditable. Straitjacket: the step-judge encodes a distribution over <em>recognized</em> reasoning moves; a genuinely novel valid move (an unusual substitution, an unconventional lemma) is out-of-distribution for the judge and gets scored down, so training against it clips exactly the tail where new problem-solving strategies live — the model is optimized toward the judge's notion of normal reasoning. The deciding property: whether the judge evaluates <em>validity</em> (is this step entailed/consistent — checkable in principle for any move, novel or not, e.g. a formal checker) or <em>familiarity</em> (does this look like good reasoning — a learned prior over styles). Validity-judges get safety without the straitjacket; familiarity-judges trade one for the other, and most learned PRMs are somewhere between.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="process-reward-models">
+ <h2>Process reward models</h2>
+ <p>A process reward model (PRM) is process verification distilled into a neural scorer: feed it a problem and a partial solution, it returns the probability that the latest step is sound. Once you have one, every search and RL method in this chapter gets a dense compass — score steps during beam search, rerank candidates, or shape RL rewards step by step.</p>
+ <div class="box def"><span class="label">Definition</span> A PRM is a model $r_\psi(x, s_{1:i}) \in [0,1]$ trained on step-labeled data $\{(x, s_{1:i}, y_i)\}$ (labels from humans, checkers, or Monte-Carlo rollouts) with cross-entropy on $y_i$. Uses: (1) <em>reranking</em>: score sampled solutions by aggregating step scores — $\min_i r_\psi(s_{1:i})$ (weakest step) or $\prod_i r_\psi$ — and pick the best (best-of-$n$); (2) <em>search guidance</em>: use $r_\psi$ as the value $v(s)$ in ToT/beam/MCTS; (3) <em>RL signal</em>: per-step rewards densify the sparse outcome reward, attacking credit assignment over long chains.</div>
+ <div class="box ex"><span class="label">Worked example</span> PRM reranking of 3 sampled solutions (per-step PRM scores):
+ A: $(0.95, 0.9, 0.92)$ — min $0.90$, product $0.786$.
+ B: $(0.99, 0.4, 0.98)$ — min $0.40$, product $0.388$.
+ C: $(0.85, 0.85, 0.85)$ — min $0.85$, product $0.614$.
+ Min-aggregation ranks A ≻ C ≻ B; product agrees here. B illustrates the PRM's edge over an outcome scorer: its final step looks great ($0.98$) and its answer may well match a plausible target, but the chain hinges on a dubious step 2 — a chain is as strong as its weakest inference, which is why min-style aggregation is the common default.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A PRM is an optimization target, and Goodhart applies (Chapter 35): search hard enough against a learned PRM and you harvest its errors — steps that <em>look</em> rigorous to the model (formula-dense, confident, familiar-shaped) but aren't. Symptom: best-of-$n$ accuracy rises with $n$, then falls as $n$ grows further — the tail of $n$ samples contains ever-better exploits of the scorer. Mitigations: cap $n$, ensemble PRMs, mix in verifiable checks, refresh the PRM on the policy's new distribution.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solutions D: steps $(0.9, 0.9, 0.9, 0.9)$ and E: $(1.0, 1.0, 0.65, 1.0)$. Rank by min and by product. <details class="sol"><summary>Solution</summary><div>Min: D $= 0.9$ &gt; E $= 0.65$ — D wins. Product: D $= 0.9^4 = 0.656$ vs E $= 0.65$ — D wins narrowly. Both pick D; note product punishes length (many good steps still decay), one reason min is preferred for variable-length solutions.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does a PRM give better <em>search guidance</em> than an outcome reward model even when both rerank final solutions equally well? <details class="sol"><summary>Solution</summary><div>Search needs value estimates at <em>partial</em> states to decide what to expand. An ORM is trained only on complete solutions; evaluated on prefixes it is out of distribution and gives poorly calibrated, weakly informative scores — so the beam prunes nearly blind until late. A PRM is trained exactly on prefixes: its score at step $i$ is meaningful early, so errors are pruned at birth and compute concentrates on live branches. The earlier the signal, the exponentially larger the subtree you avoid wasting (branching$^{\text{depth remaining}}$).</div></details></li>
+  <li><span class="lvl h">HARD</span> You train a PRM on Monte-Carlo labels from policy $\pi_0$, then improve the policy to $\pi_1$ by searching against the PRM. Explain the two distinct distribution shifts that now degrade the PRM, and why periodic relabeling with $\pi_1$ fixes one but can amplify a bias in the other. <details class="sol"><summary>Solution</summary><div>Shift 1 — input shift: $\pi_1$ produces different reasoning styles/steps than $\pi_0$; the PRM scores states it never trained on, so its accuracy drops exactly on the new policy's trajectories (covariate shift, Chapter 19). Relabeling MC rollouts with $\pi_1$ on $\pi_1$'s states fixes this: fresh labels on the current input distribution. Shift 2 — label semantics drift: MC labels mean "probability $\pi$ finishes correctly from here"; as the policy improves, previously 'bad' (unfinishable) valid steps become 'good', but also any invalid-step-plus-self-correction patterns $\pi_1$ has learned get labeled good — the label conflates validity with the current policy's recovery ability. Relabeling with $\pi_1$ <em>amplifies</em> this: each iteration bakes the policy's idiosyncrasies deeper into the "ground truth", a co-adaptation loop (the PRM certifies whatever the policy does, the policy optimizes what the PRM certifies) that can drift arbitrarily far from step validity. Anchors needed: a fixed validity-based label source (formal checks, held-out human labels) mixed in every round.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="outcome-reward-models">
+ <h2>Outcome reward models</h2>
+ <p>The outcome reward model (ORM) judges only the finished product: solution in, score out. It is cheaper to train — final-answer labels are often free (does the code pass? does the answer match?) — and it never straitjackets the path. Its weaknesses are exactly its blindnesses: sparse signal, no error localization, and applause for lucky guesses.</p>
+ <div class="box def"><span class="label">Definition</span> An ORM is $R_\psi(x, s_{1:k}) \in [0,1]$ trained to predict whether a complete solution is correct, from outcome labels alone (matched final answers, passed tests, human end-judgments). Used for best-of-$n$ selection ($\hat s = \arg\max_j R_\psi(x, s^{(j)})$) and as the reward in RL. Signal structure: one bit per trajectory, delivered at the end — the credit-assignment problem over $k$ steps is left entirely to the learning algorithm (Chapter 25's eligibility/advantage machinery, or the model's own internalization).</div>
+ <div class="box ex"><span class="label">Worked example</span> Label noise from guessable answers. A dataset's answers are multiple-choice (4 options). A policy that reasons correctly 40% of the time and guesses uniformly otherwise scores $0.4 + 0.6\times0.25 = 0.55$ correct outcomes. Trained on outcome labels, the ORM learns that the 15-percentage-points of lucky-guess trajectories are "good" — over a quarter of its positive labels ($0.15/0.55 \approx 27\%$) are reasoning-invalid. An RL policy optimized against outcomes on such data is directly reinforced for confident guessing; with free-form numeric answers (guess success $\approx 0$) the same pipeline is far cleaner. Outcome supervision quality is set by how unguessable the outcome is.</div>
+ <div class="box link"><span class="label">Where this goes</span> ORMs with <em>verifiable</em> outcomes (RL from verifiable rewards: math answers, unit tests, proof checkers) power the reasoning-model training runs behind o1/R1-class systems — Chapter 23's RLHF machinery with a checker in place of human preference.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Best-of-$n$ with a perfect ORM: the policy solves a problem per-sample with $p = 0.3$. What is accuracy at $n = 8$? <details class="sol"><summary>Solution</summary><div>Perfect ORM picks a correct sample iff one exists: $1 - 0.7^8 = 1 - 0.0576 = 0.942$.</div></details></li>
+  <li><span class="lvl m">MED</span> Same setting but the ORM is imperfect: it scores each correct sample above every incorrect one only with probability $q = 0.8$ (else ranking is adversarially unlucky). Give a lower bound on best-of-8 accuracy and compare to the perfect case. <details class="sol"><summary>Solution</summary><div>Lower bound: accuracy $\ge p(\exists\ \text{correct})\times q = 0.942\times0.8 = 0.754$ (pessimistically assuming one bad comparison sinks selection). The 19-point drop is all verifier: with imperfect selection, raising $n$ eventually stops helping — more samples give more chances for a wrong sample to fool the ORM. Formally, as $n\to\infty$, accuracy tends to the probability that the top-scored sample is correct under the score distribution, not to 1: the verifier's discrimination, not the policy's coverage, becomes the binding constraint.</div></details></li>
+  <li><span class="lvl h">HARD</span> ORM vs PRM for RL training signal: analyze credit assignment variance. A 20-step chain gets outcome reward $R\in\{0,1\}$; compare the variance of the per-step gradient signal under (a) outcome reward broadcast to all steps, (b) per-step PRM rewards, in terms of Chapter 25's advantage-estimation trade-offs. <details class="sol"><summary>Solution</summary><div>(a) Every step's policy-gradient term is weighted by the same end-of-chain $R$ (minus a baseline): a step's weight includes the noise of everything the other 19 steps did — the return's variance is shared undiminished by all steps; effective signal-to-noise per step shrinks roughly with chain length, and unrelated steps' randomness dominates (the high-variance, unbiased Monte-Carlo end of the bias-variance spectrum in advantage estimation). (b) A PRM provides an immediate reward per step: each step's gradient is weighted by locally-attributable signal — variance from other steps is largely excluded, like TD/GAE with small effective horizon: far lower variance, so faster and stabler learning — but now <em>biased</em> exactly to the extent the PRM mis-scores steps, and optimizing against it invites per-step Goodharting. The practical resolution mirrors GAE: blend — verifiable outcome reward as the unbiased anchor, PRM/process signal as the variance-reducing shaping term.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">Best-of-n accuracy with a learned ORM often rises then plateaus or degrades as n grows because:</div><button class="opt">More samples mean more chances for an incorrect solution to fool the verifier, and verifier discrimination becomes the bottleneck</button><button class="opt">The policy's per-sample accuracy drops when sampling more</button><button class="opt">Compute limits force lower-quality decoding at large n</button><div class="why" hidden>With an imperfect scorer, $n\to\infty$ accuracy converges to the probability that the argmax-scored sample is correct — governed by the verifier's error tail, not the policy. Each extra sample is another lottery ticket for a scorer-fooling wrong answer: Goodhart's law applied to best-of-n.</div></div>
+</section>
+
+<section class="topic" id="test-time-compute">
+ <h2>Test-time compute</h2>
+ <p>For decades the recipe for a smarter model was more training. The reasoning-model era added a second axis: spend more compute <em>at inference</em> — longer chains, more samples, deeper search, more verification — and accuracy climbs, often log-linearly in compute. Thinking longer partially substitutes for being bigger.</p>
+ <div class="box def"><span class="label">Definition</span> Test-time compute scaling: accuracy as a function of inference FLOPs, $\mathrm{Acc}(C_{\text{inf}})$, holding the model fixed. Mechanisms: (i) longer chain-of-thought (serial: revise, check, branch within one context — trained into o1/R1-class models via RL on verifiable rewards); (ii) parallel sampling + aggregation (self-consistency, best-of-$n$ with a verifier); (iii) explicit search (ToT/MCTS with a PRM). Empirically each mechanism gives roughly $\mathrm{Acc} \approx a + b\log C$ over a range, then saturates at a mechanism-specific ceiling (correlation ceiling for voting; verifier ceiling for best-of-$n$; policy-coverage ceiling for search). A compute-optimal policy allocates $C$ across mechanisms and across problems (easy ones need none; hard ones repay a lot) — small models with large $C_{\text{inf}}$ can match much larger models on reasoning-shaped tasks.</div>
+ <div class="box ex"><span class="label">Worked example</span> Where to spend 64 units of compute (1 unit = one sampled solution)? Policy: per-sample accuracy $p = 0.2$; a verifier with per-comparison reliability that gives best-of-$n$ accuracy $\approx \frac{n p}{1 + np}\cdot$... use the explicit forms: voting accuracy from the binomial (correct answer must also be the plurality — for this problem assume wrong answers scatter, so voting accuracy $= 1-(1-p)^n$ truncated by agreement...). Concretely compare with clean formulas: (a) 64 independent samples + <em>perfect</em> verifier: $1 - 0.8^{64} = 1 - 6.3\times10^{-7} \approx 1.0$. (b) 64 samples + majority vote where wrong answers concentrate on one distractor with per-sample prob 0.35 (&gt; p!): voting converges on the <em>distractor</em> — accuracy $\to 0$ as $n$ grows. (c) One 64×-longer serial chain whose trained accuracy at that length is 0.55 (from its RL scaling curve). Lesson: with a verifiable outcome (code that must pass tests) parallel + verify wins decisively; with a seductive-distractor task, voting is actively harmful and serial reasoning (which can <em>notice</em> the trap) wins; real allocation is task-dependent and hinges on whether verification or self-correction is the stronger tool.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Compare three ways to spend n samples of compute: majority voting, best-of-n with an imperfect verifier, and a perfect verifier. Slide per-sample accuracy and verifier quality.</p>
+  <canvas id="cv-ttc"></canvas>
+  <div class="ctl">
+   <label>per-sample accuracy p <input type="range" id="tc-p" min="0.05" max="0.9" step="0.05" value="0.25"></label>
+   <label>verifier AUC-ish q <input type="range" id="tc-q" min="0.5" max="1" step="0.02" value="0.8"></label>
+  </div>
+  <div class="out" id="tc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Test-time compute only buys what the base policy can in-principle produce and the aggregator can recognize. If the correct answer has probability $\approx 0$ under the policy (missing knowledge, not missing search), no $n$ helps — sampling explores the model's distribution, not the truth. And log-linear gains mean each additional accuracy point costs multiplicatively more: budgets belong on problems whose value justifies exponential spend.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $p = 0.1$ per sample and a perfect verifier, how many samples for 95% accuracy? <details class="sol"><summary>Solution</summary><div>$1 - 0.9^n \ge 0.95 \Rightarrow 0.9^n \le 0.05 \Rightarrow n \ge \ln 0.05/\ln 0.9 = 28.4$, so $n = 29$.</div></details></li>
+  <li><span class="lvl m">MED</span> Accuracy follows $\mathrm{Acc} = 0.3 + 0.1\log_2 C$ up to its ceiling. Cost per unit $C$ is \$0.001. What does moving from 90%→claim... compute the cost of going from Acc 0.5 to 0.6, and from 0.6 to 0.7. <details class="sol"><summary>Solution</summary><div>$0.5 = 0.3 + 0.1\log_2 C \Rightarrow C = 4$; $0.6 \Rightarrow C = 8$; $0.7 \Rightarrow C = 16$. Cost 0.5→0.6: $(8-4)\times\$0.001 = \$0.004$; 0.6→0.7: $\$0.008$ — each equal accuracy increment doubles in price. Ten points more (0.8) costs \$0.016 more, etc.: log-linear scaling = exponentially priced accuracy.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute-optimal allocation: you have budget $B$ samples across $M$ problems; problem $j$'s solve probability per sample is $p_j$, all-or-nothing value 1 per problem, perfect verifier. Show the greedy marginal-value rule and that it implies giving no samples to problems that are too hard, using $p_1 = 0.5, p_2 = 0.05, p_3 = 0.001$, $B = 20$. <details class="sol"><summary>Solution</summary><div>Expected value of $n_j$ samples on $j$: $1 - (1-p_j)^{n_j}$. Marginal value of one more sample: $\Delta_j(n) = (1-p_j)^{n}p_j$ — decreasing in $n$. Optimal allocation (integer greedy on a concave separable objective is optimal): repeatedly give the next sample to the largest current $\Delta_j$. Marginals: problem 1: $0.5, 0.25, 0.125, 0.0625, 0.031, 0.016, ...$; problem 2: $0.05, 0.0475, 0.0451, 0.0429, ...$ (decays slowly); problem 3: $0.001, ...$. Greedy order: p1 gets samples while its marginal exceeds 0.05 — that's 3 samples ($0.5, 0.25, 0.125$), 4th sample marginal $0.0625 &gt; 0.05$, take it too; 5th is $0.03125 &lt; 0.05$ → switch to p2. p2's marginals stay above p1's remaining ($0.03$) until $(0.95)^n 0.05 &lt; 0.03125 \Rightarrow n &gt; \ln(0.625)/\ln(0.95) = 9.2$, so p2 gets 10 samples, then alternate: p1's 5th ($0.03125$) beats p2's 11th ($0.0299$); remaining budget $20 - 4 - 10 = 6$: give p1 its 5th (0.03125), p2 its 11th (0.0299), p2 12th (0.0284), p2 13th (0.0270), p2 14th (0.0257), p2 15th (0.0244) — final: $n_1 = 5, n_2 = 15, n_3 = 0$. Problem 3 gets nothing: its best marginal (0.001) never competes. Expected score $= (1-0.5^5) + (1 - 0.95^{15}) + 0 = 0.969 + 0.537 = 1.51$ of 3. The rule: fund problems by marginal solve-probability, and accept that some problems are (at this policy quality) not worth any inference compute — spend there goes to training instead.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reasoning-under-uncertainty">
+ <h2>Reasoning under uncertainty</h2>
+ <p>Real reasoning chains are built from uncertain links: premises you half-believe, rules that usually hold, evidence of mixed reliability. Reasoning under uncertainty composes those graded beliefs coherently — tracking how confidence decays along a chain and how it should be reported at the end. A reasoner that outputs "therefore X" without carrying the uncertainty forward is lying about its epistemic state.</p>
+ <div class="box def"><span class="label">Definition</span> Uncertainty composes along inference according to probability, not logic: for a chain of implications each holding with independent reliability, confidence multiplies — from premises $p(A) = a$ and a rule $p(B\mid A) = r$ (with a floor $p(B\mid\neg A) \ge 0$), $p(B) = r\,a + p(B\mid\neg A)(1-a) \ge ra$. Over structured problems this bookkeeping is a graphical model (Chapter 11/13's Bayes nets): beliefs propagate by marginalization and conditioning. The reasoner's outputs should be <em>calibrated</em> (Chapter 13): of the claims asserted with confidence 0.8, about 80% should be true.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 4-link argument: premise trusted at 0.9; three inference steps, each valid-with-probability 0.9 (and assume a wrong step dooms the conclusion; a false premise too). Confidence in the conclusion: $0.9^4 = 0.656$ — the honest number to report is "about two-thirds", not "therefore". To reach 0.9 confidence in the conclusion you need per-link reliability $r$ with $r^4 \ge 0.9 \Rightarrow r \ge 0.9^{1/4} = 0.974$. Long chains demand near-perfect links — which is precisely why tool-verified steps ($r\approx1$) rescue long-form reasoning, and why a 40-step informal argument at $r = 0.95$ per step ($0.95^{40} = 0.129$) is closer to a guess than a proof.</div>
+ <div class="box think"><span class="label">Think first</span> A model answers a question and states 90% confidence. What experiment over many such statements distinguishes "well-calibrated reasoning under uncertainty" from "confident noise"? <details class="sol"><summary>Reveal</summary><div>Bucket its assertions by stated confidence and measure empirical accuracy per bucket (reliability diagram / Expected Calibration Error, Chapter 13). Calibrated: the 90%-bucket is right ~90% of the time, the 60%-bucket ~60%. Confident noise: accuracy is flat across buckets (stated confidence carries no information) or the 90% bucket sits far below 0.9 (overconfidence — the common LLM failure). Also test <em>resolution</em>: a model saying 70% on everything can be calibrated but useless; good uncertainty reasoning separates the buckets.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Calibration and honesty are Chapter 35 concerns; abstention — refusing to answer when confidence is low — is a decision-theoretic act from Chapter 24.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A conclusion rests on two independent premises believed at 0.8 and 0.9, through a certain (reliability 1) inference. Confidence in the conclusion? <details class="sol"><summary>Solution</summary><div>Needs both premises: $0.8\times0.9 = 0.72$.</div></details></li>
+  <li><span class="lvl m">MED</span> Same conclusion is also supported by an independent second argument giving it probability 0.6 on its own. The two arguments share no premises; the conclusion's prior was 0.5. Combine them via log-odds (naive-Bayes pooling from the shared prior). <details class="sol"><summary>Solution</summary><div>Evidence contributions relative to the even prior add in log-odds: $\mathrm{logit}(0.72) = \ln(0.72/0.28) = 0.944$; $\mathrm{logit}(0.6) = \ln(1.5) = 0.405$; prior logit 0. Combined logit $= 0.944 + 0.405 = 1.349$; $p = 1/(1+e^{-1.349}) = 0.794$. Two independent decent arguments beat either alone — and the combination exceeds both inputs, as independent corroboration should.</div></details></li>
+  <li><span class="lvl h">HARD</span> The chain-confidence model $p = r^k$ assumes step errors are fatal and independent. Real reasoning has error <em>correction</em>: later steps can catch earlier slips. Model a chain where each step errs with prob $1-r$ but each subsequent step detects-and-repairs an existing error with prob $c$, and compute the probability the final conclusion is sound for $r = 0.9, c = 0.5, k = 4$ (error states: carry at most one active error; a repaired chain continues clean). <details class="sol"><summary>Solution</summary><div>Track $q_i$ = probability the chain is clean after step $i$. Transitions: clean → clean w.p. $r$; clean → errored w.p. $1-r$; errored → clean w.p. $c\cdot r$ (detect+repair, then the step itself must also be sound — model repair-and-step as one sound action w.p. $cr$); errored → errored otherwise. $q_0 = 1$. Step 1: $q_1 = 0.9$. Step 2: $q_2 = 0.9 q_1 + 0.45(1-q_1) = 0.81 + 0.045 = 0.855$. Step 3: $q_3 = 0.9(0.855) + 0.45(0.145) = 0.7695 + 0.06525 = 0.83475$. Step 4: $q_4 = 0.9(0.83475) + 0.45(0.16525) = 0.751275 + 0.0743625 = 0.8256$. Versus $r^4 = 0.656$ with no correction: self-repair lifts 4-step soundness by 17 points, and $q_i$ converges to the stationary $q^* = \frac{cr}{1 - r + cr} = \frac{0.45}{0.55} = 0.818$ rather than decaying to 0 — error-correcting chains have a <em>floor</em>, not exponential decay. This is the quantitative case for training models to check-and-revise (the serial test-time-compute mechanism): correction converts multiplicative rot into a stationary reliability.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="metareasoning">
+ <h2>Metareasoning</h2>
+ <p>Reasoning about your own reasoning: which problems deserve thought, which strategy to deploy, when to stop thinking and act. Since thinking costs time and compute, deciding how much to think is itself a decision problem — and the currency is the value of computation: think exactly while the expected improvement in your decision exceeds the cost of the thought.</p>
+ <div class="box def"><span class="label">Definition</span> Metareasoning treats computations as actions in a meta-level decision problem. The <em>value of computation</em> (VOC) of a step $c$: $\mathrm{VOC}(c) = \mathbb E[\,U(\text{decision after } c)\,] - \mathbb E[\,U(\text{decision now})\,] - \mathrm{cost}(c)$; the rational metareasoner performs computations with $\mathrm{VOC} &gt; 0$ and acts when no computation has positive VOC (Russell &amp; Wefald's framework; MCTS node selection and anytime algorithms are instances). Bounded rationality: since exact metareasoning is itself intractable, real agents use learned or heuristic meta-policies — e.g. a router that predicts problem difficulty and allocates chain length, or an early-exit rule on confidence.</div>
+ <div class="box ex"><span class="label">Worked example</span> To think or to answer? Current best answer is correct with probability 0.7; a further reasoning pass costs the equivalent of 0.02 utility and, from experience on similar states, improves the answer to correctness 0.78 with probability 0.5 and does nothing otherwise (utility = 1 for correct, 0 for wrong). VOC $= [0.5\times0.78 + 0.5\times0.7] - 0.7 - 0.02 = 0.74 - 0.72 = 0.02 &gt; 0$ → think. After that pass, suppose the same numbers now give improvement to 0.8 from 0.78: VOC $= [0.5(0.8)+0.5(0.78)] - 0.78 - 0.02 = 0.79 - 0.8 = -0.01 &lt; 0$ → stop and answer. Diminishing returns turn the VOC negative; the stopping point <em>is</em> the rational amount of thought.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>An anytime reasoner's accuracy grows with thinking time but each second costs. Slide the curve's steepness and the cost rate; the marker shows the VOC-optimal stopping time.</p>
+  <canvas id="cv-meta"></canvas>
+  <div class="ctl">
+   <label>learning speed λ <input type="range" id="mr-lam" min="0.2" max="3" step="0.1" value="1"></label>
+   <label>cost per unit time <input type="range" id="mr-cost" min="0.005" max="0.1" step="0.005" value="0.03"></label>
+   <label>starting accuracy <input type="range" id="mr-a0" min="0.1" max="0.7" step="0.05" value="0.3"></label>
+  </div>
+  <div class="out" id="mr-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Both failure directions are real and observed in reasoning models: <em>underthinking</em> (answering hard questions reflexively) and <em>overthinking</em> — spending thousands of tokens re-deriving a trivial answer, sometimes talking themselves out of an initially correct one. A meta-policy trained only to maximize accuracy will overthink whenever compute is unpriced during training; pricing thought (length penalties, cost-aware RL) is part of alignment between the meta-level and what we actually want.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Current decision utility 0.6; a computation costing 0.05 leads to utility 0.68 for sure. Another costs 0.01 and yields 0.63 for sure. Which does a VOC-maximizer take first, and is the other still worth it after? <details class="sol"><summary>Solution</summary><div>VOCs: A $= 0.68 - 0.6 - 0.05 = 0.03$; B $= 0.63 - 0.6 - 0.01 = 0.02$. Take A first. (If improvements overlap — both fix the same flaw — B afterward may add nothing: from 0.68, B's gain is $\max(0.63, 0.68) - 0.68 - 0.01 = -0.01$, skip. VOC must always be computed from the <em>current</em> state.)</div></details></li>
+  <li><span class="lvl m">MED</span> Show that a fixed "always think for T tokens" policy is dominated by a difficulty-adaptive policy whenever problem difficulties vary, using a two-type example: 80% easy problems (accuracy 0.95 with no thinking, 0.96 with T) and 20% hard (0.4 no-think, 0.7 with T), thinking cost 0.02 per problem-thought. <details class="sol"><summary>Solution</summary><div>Always-think: accuracy $0.8(0.96) + 0.2(0.7) = 0.908$, cost $0.02$, net $0.888$. Never-think: $0.8(0.95) + 0.2(0.4) = 0.84$, net $0.84$. Adaptive (think only on hard, assuming a free perfect difficulty oracle): $0.8(0.95) + 0.2(0.7) = 0.90$, cost $0.2\times0.02 = 0.004$, net $0.896 &gt; 0.888$. The always-think policy pays 0.016 of cost across easy problems to buy $0.8\times0.01 = 0.008$ of accuracy — negative VOC on 80% of its spend. A realistic (imperfect, slightly costly) difficulty router keeps most of the gap; this is why routing/adaptive computation shows up in every serious inference stack.</div></details></li>
+  <li><span class="lvl h">HARD</span> Metareasoning is itself a computation: estimating VOC costs compute, whose allocation would require meta-metareasoning, and so on. Why doesn't the regress collapse the framework? Give the two standard answers. <details class="sol"><summary>Solution</summary><div>(1) Amortization: the meta-level policy is not computed at decision time but <em>learned offline</em> — a cheap function (a difficulty classifier, a confidence threshold, MCTS's UCB rule) trained or designed once, whose per-decision cost is negligible and whose quality is measured empirically. The regress terminates because level-2 reasoning is compiled into a reflex, exactly as habits compile object-level reasoning. (2) Diminishing returns up the hierarchy: each meta-level's decisions move less utility than the level below (choosing how long to think perturbs outcomes less than choosing the answer; choosing how long to think-about-thinking, less still), so a bounded agent truncates the tower at the level where expected gains fall below any positive floor — the truncation is itself justified by the framework it truncates, applied approximately. Bounded optimality (Russell): don't demand optimal decisions, demand the optimal <em>program</em> for the machine you have — a fixed point rather than an infinite tower.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A reasoning model spends 3,000 tokens on "what is 2+2?", exploring alternative interpretations before answering 4. From the metareasoning standpoint this is:</div><button class="opt">Rational: more computation never reduces expected utility</button><button class="opt">A negative-VOC computation: the expected decision improvement was ~0, the cost wasn't</button><button class="opt">Optimal if the model is uncertain about arithmetic</button><div class="why" hidden>VOC = expected utility gain minus cost. The no-think answer was already correct with ~probability 1, so the gain is ~0 and the tokens are pure cost — overthinking. (And more computation CAN reduce expected utility even ignoring cost: models sometimes talk themselves out of correct answers.)</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>The reasoning stack, priced.</b> A model solves a competition problem per-sample with $p = 0.15$; sampling one solution costs 1 unit. A verifier (executes checkable parts) accepts correct solutions always and rejects incorrect ones 90% of the time; running it costs 0.2 units per solution. Strategy S: sample until the verifier accepts, up to 20 samples, then output the accepted one (or the last if none accepted). (a) Probability the output is correct if some sample is accepted — first: probability a given sample is accepted. (b) Expected number of samples drawn. (c) Overall accuracy and expected cost of S. <details class="sol"><summary>Solution</summary><div>(a) Per sample: accepted w.p. $0.15\cdot1 + 0.85\cdot0.1 = 0.235$; given accepted, correct w.p. $\frac{0.15}{0.235} = 0.638$. (b) Draws follow a truncated geometric with success 0.235: $\mathbb E[\text{draws}] = \frac{1 - 0.765^{20}}{0.235}$. $0.765^{20} = e^{20\ln0.765} = e^{-5.359} = 0.00470$. So $\mathbb E \approx \frac{0.99530}{0.235} = 4.235$. (c) Accuracy: accept happens within 20 w.p. $1 - 0.765^{20} = 0.9953$, and then correct w.p. 0.638; if never accepted (0.0047), output last sample, correct w.p. — conditioned on rejection every time, a sample is correct w.p. $\frac{0.15\cdot 0}{...}$ — a correct sample is never rejected, so all 20 rejected means all were incorrect except... careful: correct samples are always accepted, so 20 rejections ⇒ all 20 incorrect ⇒ the fallback is wrong w.p. 1. Accuracy $= 0.9953\times0.638 + 0.0047\times0 = 0.635$. Cost $= \mathbb E[\text{draws}]\times(1 + 0.2) = 4.235\times1.2 = 5.08$ units. Summary: 15% → 63.5% accuracy for ~5× compute; the residual error is entirely the verifier's 10% false-accept tail — improving the verifier now beats sampling more.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Vote, verify, or think longer?</b> Per-sample accuracy $p = 0.3$; when wrong, the model outputs the same seductive distractor with probability 0.5 (else scattered unique wrong answers). Budget: 15 samples. Compare: (a) majority vote over 15; (b) best-of-15 with a verifier that scores correct solutions higher than any single incorrect one with probability 0.85 (take accuracy $\approx P(\exists\,\text{correct})\times 0.85$); (c) 3 samples of a 5×-longer serial chain with per-sample accuracy 0.55, majority of 3 (distractor behavior gone at this depth — wrong answers scatter). Compute all three accuracies and rank. <details class="sol"><summary>Solution</summary><div>(a) Correct-answer count $\sim\mathrm{Bin}(15, 0.3)$, distractor count $\sim\mathrm{Bin}(15, 0.35)$ and they compete (scattered wrongs don't). Since per-sample the distractor (0.35) beats the truth (0.3), at $n = 15$ the vote favors the distractor more often than not: rough normal check — difference $D$ = correct − distractor per sample has mean $-0.05\cdot15 = -0.75$, variance $\approx 15[0.3(0.7) + 0.35(0.65) + 2\cdot0.3\cdot0.35] = 15[0.21 + 0.2275 + 0.21] = 9.71$, σ ≈ 3.12; $P(D &gt; 0) \approx \Phi(-0.75/3.12$ from the other side$) = \Phi(-0.24)\approx 0.40$... i.e. accuracy ≈ 0.40 (and it <em>decreases</em> with more samples). (b) $P(\exists\ \text{correct in 15}) = 1 - 0.7^{15} = 1 - 0.00475 = 0.995$; accuracy ≈ $0.995\times0.85 = 0.846$. (c) Majority of 3 at $p = 0.55$: $\binom{3}{2}(0.55)^2(0.45) + 0.55^3 = 3(0.3025)(0.45) + 0.166 = 0.408 + 0.166 = 0.575$. Ranking: verify (0.85) ≻ think-longer (0.575) ≻ vote (0.40). Morals: voting is poison under a dominant distractor; verification converts coverage (99.5%) into accuracy at the price of its own error rate; serial depth helps but 5× length only moved per-sample accuracy to 0.55 here. The best stack would combine (c)'s samples with (b)'s verifier: $[1 - 0.45^3]\times0.85 = 0.909\times0.85 = 0.772$ — still below (b) because 3 samples cap coverage: with a good verifier, coverage (many cheap samples) beats quality (few good ones) for this parameter regime.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Diagnose the reasoner.</b> An agent must find why a data pipeline's output metric dropped 12%. Knowledge: three candidate causes with priors — code change (0.5), upstream data shift (0.3), infra/hardware (0.2). Available (costly) reasoning actions, each usable once: T1 = git-bisect run (cost 3; if cause is the code change, flags it with prob 0.9; false-flags otherwise with prob 0.05); T2 = distribution test on inputs (cost 1; detects data shift w.p. 0.8; false alarm 0.1); T3 = rerun on old hardware (cost 5; detects infra cause w.p. 0.95, false alarm 0.02). Utility: +20 for naming the true cause, 0 for wrong; total = utility − costs. (a) With no tests, what's the expected utility of guessing? (b) Compute the expected utility of running T2 first, then guessing optimally (consider both outcomes). (c) Is running T2 alone better than running T1 alone? Use VOC. <details class="sol"><summary>Solution</summary><div>(a) Guess the prior mode (code): $0.5\times20 = 10$. (b) T2 outcomes: positive w.p. $0.3(0.8) + 0.7(0.1) = 0.24 + 0.07 = 0.31$. Posterior on data-shift given +: $0.24/0.31 = 0.774$ → guess data-shift, correct w.p. 0.774. Given −(0.69): posterior data-shift $= \frac{0.3\times0.2}{0.69} = 0.087$; code: $\frac{0.5\times0.9}{0.69} = 0.652$; infra: $\frac{0.2\times0.9}{0.69} = 0.261$ → guess code, correct w.p. 0.652. Expected utility $= 20[0.31\times0.774 + 0.69\times0.652] - 1 = 20[0.240 + 0.450] - 1 = 20(0.690) - 1 = 12.80$. VOC(T2) $= 12.80 - 10 = +2.80$. (c) T1 outcomes: flags w.p. $0.5(0.9) + 0.5(0.05) = 0.45 + 0.025 = 0.475$. Given flag: $p(\text{code}) = 0.45/0.475 = 0.947$ → guess code. Given no flag (0.525): code $= \frac{0.5\times0.1}{0.525} = 0.0952$; data $= \frac{0.3\times0.95}{0.525} = 0.543$; infra $= \frac{0.2\times0.95}{0.525} = 0.362$ → guess data-shift, correct w.p. 0.543. EU $= 20[0.475(0.947) + 0.525(0.543)] - 3 = 20[0.450 + 0.285] - 3 = 20(0.735) - 3 = 11.70$. VOC(T1) $= +1.70$. T2 first is better (12.80 &gt; 11.70): although T1 targets the most likely cause, T2's information is nearly as decision-relevant at a third of the cost — the metareasoning lesson: buy information per unit cost, not raw detection power. (A full solution would continue: after T2−, T1 has high VOC since code dominates the posterior; sequential testing beats any single test.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Build the chapter's quantitative claims: voting curves, search vs. sampling, and a CEGIS synthesizer.</p>
+ <div class="box ex"><span class="label">Lab 1 — Self-consistency and its ceiling</span> Simulate majority voting with correlated chains: with probability ρ all k chains copy one shared draw, else they're independent, each correct w.p. p. Plot accuracy vs k for ρ ∈ {0, 0.3, 0.6} at p = 0.6, and verify the ceiling formula ρp + (1−ρ).
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+def majority_acc(p, k, rho, trials=200000):
+    shared = rng.random(trials) &lt; rho              # correlated trial?
+    # correlated: majority == the single shared draw
+    corr_correct = rng.random(trials) &lt; p
+    # independent: majority of k Bernoulli(p); ties impossible for odd k
+    votes = rng.random((trials, k)) &lt; p
+    ind_correct = votes.sum(1) &gt; k/2
+    return np.where(shared, corr_correct, ind_correct).mean()
+
+p = 0.6
+for rho in [0.0, 0.3, 0.6]:
+    accs = [majority_acc(p, k, rho) for k in [1, 5, 21, 101]]
+    ceiling = rho*p + (1 - rho)
+    print(f'rho={rho}: k=1,5,21,101 -&gt; {[round(a,3) for a in accs]}  ceiling={ceiling:.3f}')
+# rho=0 climbs toward 1.0; rho=0.3 flattens near 0.88; rho=0.6 near 0.76.</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Lab 2 — Beam search vs best-of-n on a synthetic reasoning tree</span> Build random trees (depth 6, branching 4) where each edge is "correct" or not; a leaf is a solution iff its path is all-correct. A noisy evaluator scores partial paths. Compare: best-of-n rollouts (sample paths using the evaluator only at the end) vs beam search (prune with the evaluator at each depth) at matched node-expansion budgets.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+D, B = 6, 4          # depth, branching
+P_GOOD = 0.35        # chance a child edge is 'correct'
+NOISE = 0.5          # evaluator noise (std)
+
+def make_tree():
+    # edges[d] has shape (B**d, B): 1 if that child edge is correct
+    # ensure at least one all-correct path exists by planting one
+    edges, plant = [], 0
+    for d in range(D):
+        e = (rng.random((B**d, B)) &lt; P_GOOD).astype(float)
+        gold = rng.integers(0, B)
+        e[plant, gold] = 1.0
+        plant = plant*B + gold
+        edges.append(e)
+    return edges
+
+def evaluate(depth_correct_so_far):     # noisy value of a partial path
+    return depth_correct_so_far + NOISE*rng.standard_normal()
+
+def best_of_n(edges, n):
+    hits = 0
+    for _ in range(n):
+        node, ok = 0, True
+        for d in range(D):
+            c = rng.integers(0, B)
+            ok = ok and edges[d][node, c] == 1
+            node = node*B + c
+        hits += ok
+    return hits &gt; 0, n*D                # solved?, expansions
+
+def beam(edges, w):
+    front = [(0, 0)]                     # (node, num correct edges)
+    exp = 0
+    for d in range(D):
+        cand = []
+        for node, k in front:
+            for c in range(B):
+                exp += 1
+                k2 = k + (edges[d][node, c] == 1)
+                cand.append((evaluate(k2), node*B + c, k2))
+        cand.sort(reverse=True)
+        front = [(n, k) for _, n, k in cand[:w]]
+    return any(k == D for _, k in front), exp
+
+for w in [2, 4, 8]:
+    bs, ex = zip(*[beam(make_tree(), w) for _ in range(2000)])
+    budget = int(np.mean(ex))
+    n = max(1, budget // D)
+    bn = [best_of_n(make_tree(), n)[0] for _ in range(2000)]
+    print(f'beam w={w}: solve={np.mean(bs):.3f} (~{budget} expansions)  '
+          f'best-of-{n}: solve={np.mean(bn):.3f}')
+# Beam wins at matched budget because the evaluator prunes early;
+# raise NOISE to 3.0 and the advantage disappears (uninformative evaluator).</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Lab 3 — CEGIS for tiny arithmetic programs</span> Implement counterexample-guided synthesis over the DSL of expressions on x with +, *, constants 0–5, up to size 7 (smallest-first). Spec: a hidden target function over integers in [−10, 10]. Verifier = exhaustive check on that range; synthesizer sees only accumulated counterexamples.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import itertools
+
+def gen_exprs(max_size):
+    # yields (size, func, text) smallest-first
+    atoms = [(1, lambda x: x, 'x')] + [(1, (lambda c: lambda x: c)(c), str(c))
+                                       for c in range(6)]
+    layers = {1: atoms}
+    for size in range(1, max_size + 1):
+        for expr in layers.get(size, []):
+            yield expr
+        # build size s from left(size a) op right(size b), a+b+1 = s+? (op costs 1)
+        s = size + 1
+        combos = []
+        for a in range(1, s - 1):
+            b = s - 1 - a
+            for (sa, fa, ta) in layers.get(a, []):
+                for (sb, fb, tb) in layers.get(b, []):
+                    combos.append((s, (lambda f, g: lambda x: f(x) + g(x))(fa, fb),
+                                   f'({ta}+{tb})'))
+                    combos.append((s, (lambda f, g: lambda x: f(x) * g(x))(fa, fb),
+                                   f'({ta}*{tb})'))
+        if combos: layers[s] = combos
+
+def cegis(target, max_size=7, domain=range(-10, 11)):
+    constraints = []                       # list of (x, y)
+    rounds = 0
+    while True:
+        rounds += 1
+        prog = next(((f, t) for _, f, t in gen_exprs(max_size)
+                     if all(f(x) == y for x, y in constraints)), None)
+        if prog is None:
+            return None, rounds
+        f, text = prog
+        cex = next((x for x in domain if f(x) != target(x)), None)
+        if cex is None:
+            return text, rounds
+        constraints.append((cex, target(cex)))
+
+for name, tgt in [('2x+1', lambda x: 2*x + 1),
+                  ('x^2+3', lambda x: x*x + 3),
+                  ('3x^2+2x', lambda x: 3*x*x + 2*x)]:
+    text, rounds = cegis(tgt)
+    print(f'{name}: synthesized {text} in {rounds} CEGIS rounds')
+# Each round adds one adversarial example; programs are found with 2-4
+# counterexamples -- far fewer than testing every input, and the returned
+# program is the SHORTEST consistent one (Occam guarantee of smallest-first).</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://arxiv.org/abs/2201.11903">Wei et al., "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models"</a> — the paper that made intermediate reasoning tokens a first-class object.</li>
+  <li><a href="https://arxiv.org/abs/2203.11171">Wang et al., "Self-Consistency Improves Chain of Thought Reasoning"</a> — sample-and-vote, with the marginalization framing used here.</li>
+  <li><a href="https://arxiv.org/abs/2305.10601">Yao et al., "Tree of Thoughts: Deliberate Problem Solving with LLMs"</a> — reasoning as search with model-based state evaluation.</li>
+  <li><a href="https://arxiv.org/abs/2305.20050">Lightman et al., "Let's Verify Step by Step"</a> — process vs outcome supervision, PRM800K, and why step-level reward wins on MATH.</li>
+  <li><a href="https://arxiv.org/abs/2408.03314">Snell et al., "Scaling LLM Test-Time Compute Optimally can be More Effective than Scaling Model Parameters"</a> — compute-optimal allocation across sampling, search and revision.</li>
+  <li><a href="https://arxiv.org/abs/2501.12948">DeepSeek-AI, "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning"</a> — RL on verifiable rewards producing long serial reasoning.</li>
+  <li><a href="https://www.nature.com/articles/s41586-023-06747-5">Trinh et al., "Solving Olympiad Geometry without Human Demonstrations" (AlphaGeometry, Nature)</a> — the neuro-symbolic split: LM proposes constructions, symbolic engine deduces.</li>
+  <li><a href="http://incompleteideas.net/book/the-book-2nd.html">Sutton &amp; Barto, <em>Reinforcement Learning</em> (free)</a> — credit assignment and value estimation background for ORM/PRM trade-offs.</li>
+  <li><a href="https://plato.stanford.edu/entries/abduction/">Stanford Encyclopedia of Philosophy, "Abduction"</a> — the philosophical grounding for inference to the best explanation.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch29.html">← 29 · World Models</a>
+ <a class="btn" href="ch31.html">31 · Agent Architectures →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function axes(g, w, h, pad){
+  g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1; g.globalAlpha = 0.5;
+  g.beginPath(); g.moveTo(pad, pad/2); g.lineTo(pad, h - pad); g.lineTo(w - pad/2, h - pad); g.stroke();
+  g.globalAlpha = 1; g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+}
+function logChoose(n, k){ var s = 0, i; for(i = 0; i < k; i++) s += Math.log(n - i) - Math.log(i + 1); return s; }
+function majAcc(p, k){ // k odd
+  var acc = 0, j;
+  for(j = Math.floor(k/2) + 1; j <= k; j++)
+    acc += Math.exp(logChoose(k, j) + j*Math.log(p) + (k - j)*Math.log(1 - p));
+  return acc;
+}
+
+/* ---- Explorer 1: self-consistency ---- */
+function drawSC(){
+  var c = document.getElementById('cv-sc'); if(!c) return;
+  var s = setupCanvas(c, 280), g = s.g, w = s.w, h = s.h, pad = 44;
+  g.clearRect(0, 0, w, h);
+  var p = val('sc-p'), kmax = Math.round(val('sc-k'));
+  function X(k){ return pad + (w - pad*1.5)*(k - 1)/(kmax - 1); }
+  function Y(a){ return h - pad - (h - pad*1.5)*a; }
+  axes(g, w, h, pad);
+  g.fillText('k chains', w - pad - 60, h - pad + 18);
+  g.fillText('1.0', 6, Y(1) + 4); g.fillText('0.5', 6, Y(0.5) + 4); g.fillText('0.0', 6, Y(0) + 4);
+  // reference line at p and at 0.5
+  g.strokeStyle = cssVar('--ink-2'); g.setLineDash([3, 4]); g.globalAlpha = 0.6;
+  g.beginPath(); g.moveTo(pad, Y(0.5)); g.lineTo(w - pad/2, Y(0.5)); g.stroke();
+  g.beginPath(); g.moveTo(pad, Y(p)); g.lineTo(w - pad/2, Y(p)); g.stroke();
+  g.setLineDash([]); g.globalAlpha = 1;
+  g.fillText('p', pad - 16, Y(p) + 4);
+  // curve over odd k
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2.5; g.beginPath();
+  var first = true, kk, a = p;
+  for(kk = 1; kk <= kmax; kk += 2){
+    a = majAcc(p, kk);
+    if(first){ g.moveTo(X(kk), Y(a)); first = false; } else g.lineTo(X(kk), Y(a));
+  }
+  g.stroke();
+  // dots
+  g.fillStyle = cssVar('--cobalt');
+  for(kk = 1; kk <= kmax; kk += 2){ g.beginPath(); g.arc(X(kk), Y(majAcc(p, kk)), 2.5, 0, 7); g.fill(); }
+  var out = document.getElementById('sc-out');
+  if(out) out.textContent = 'p=' + p.toFixed(2) + '  majority@k=' + kmax + ': ' + majAcc(p, kmax).toFixed(3) +
+    (p > 0.5 ? '  — voting amplifies toward 1' : p < 0.5 ? '  — below 0.5, voting amplifies the ERROR' : '  — exactly neutral');
+}
+
+/* ---- Explorer 2: tree-of-thought beam ---- */
+var totTree = null;
+function totNew(){
+  var b = Math.round(val('tt-b')), depth = 4;
+  // tree of edge qualities; plant one gold path
+  totTree = { b: b, depth: depth, good: [], gold: [] };
+  var plant = 0;
+  for(var d = 0; d < depth; d++){
+    var n = Math.pow(b, d), layer = [];
+    for(var i = 0; i < n; i++){
+      var kids = [];
+      for(var j = 0; j < b; j++) kids.push(Math.random() < 0.3 ? 1 : 0);
+      layer.push(kids);
+    }
+    var goldChild = Math.floor(Math.random()*b);
+    layer[plant][goldChild] = 1;
+    totTree.gold.push(plant*b + goldChild);
+    plant = plant*b + goldChild;
+    totTree.good.push(layer);
+  }
+}
+function drawTOT(){
+  var c = document.getElementById('cv-tot'); if(!c) return;
+  if(!totTree || totTree.b !== Math.round(val('tt-b'))) totNew();
+  var s = setupCanvas(c, 300), g = s.g, w = s.w, h = s.h;
+  g.clearRect(0, 0, w, h);
+  var T = totTree, b = T.b, depth = T.depth, noise = val('tt-noise'), W = Math.round(val('tt-w'));
+  // run beam: state = node index at layer d, with count of correct edges
+  var front = [{ node: 0, k: 0 }], d, beams = [front.slice()];
+  for(d = 0; d < depth; d++){
+    var cand = [];
+    for(var fi = 0; fi < front.length; fi++){
+      for(var ch = 0; ch < b; ch++){
+        var k2 = front[fi].k + T.good[d][front[fi].node][ch];
+        cand.push({ node: front[fi].node*b + ch, k: k2, score: k2 + noise*(Math.random()*2 - 1) });
+      }
+    }
+    cand.sort(function(x, y){ return y.score - x.score; });
+    front = cand.slice(0, W);
+    beams.push(front.slice());
+  }
+  // layout: layer d has b^d nodes... too many at d=4 for b=5; draw only nodes on beams + gold path
+  function pos(d, node){
+    var n = Math.pow(b, d);
+    return { x: 30 + (w - 60)*(n === 1 ? 0.5 : node/(n - 1)), y: 24 + (h - 48)*d/depth };
+  }
+  // gold path
+  g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1; g.globalAlpha = 0.9;
+  var prev = 0;
+  g.strokeStyle = '#c9a227';
+  for(d = 0; d < depth; d++){
+    var a = pos(d, prev), bb = pos(d + 1, T.gold[d]);
+    g.beginPath(); g.moveTo(a.x, a.y); g.lineTo(bb.x, bb.y); g.lineWidth = 3; g.stroke();
+    prev = T.gold[d];
+  }
+  g.globalAlpha = 1;
+  // beam nodes per layer
+  var survived = false;
+  for(d = 0; d <= depth; d++){
+    for(var i = 0; i < beams[d].length; i++){
+      var nd = beams[d][i], pp = pos(d, nd.node);
+      var onGold = (d === 0) || (nd.node === T.gold[d - 1] && nd.k === d);
+      if(d === depth && nd.k === depth) survived = true;
+      g.fillStyle = nd.k === d ? cssVar('--cobalt') : cssVar('--ink-2');
+      g.beginPath(); g.arc(pp.x, pp.y, d === 0 ? 6 : 5, 0, 7); g.fill();
+      if(false && onGold){}
+    }
+  }
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('root', 10, 28);
+  g.fillText('gold path in yellow · blue dots = beam states with all-correct steps', 10, h - 6);
+  var out = document.getElementById('tt-out');
+  if(out) out.textContent = (survived ? 'Beam FOUND an all-correct path.' : 'Beam lost the correct path (pruned at some depth).') +
+    '  b=' + b + ' w=' + W + ' noise=' + noise.toFixed(2) + ' — press New tree / adjust noise to see pruning luck change.';
+}
+
+/* ---- Explorer 3: test-time compute ---- */
+function drawTTC(){
+  var c = document.getElementById('cv-ttc'); if(!c) return;
+  var s = setupCanvas(c, 280), g = s.g, w = s.w, h = s.h, pad = 44;
+  g.clearRect(0, 0, w, h);
+  var p = val('tc-p'), q = val('tc-q'), nmax = 101;
+  function X(n){ return pad + (w - pad*1.5)*Math.log(n)/Math.log(nmax); }
+  function Y(a){ return h - pad - (h - pad*1.5)*a; }
+  axes(g, w, h, pad);
+  g.fillText('n (log scale)', w - pad - 90, h - pad + 18);
+  g.fillText('1.0', 8, Y(1) + 4); g.fillText('0.5', 8, Y(0.5) + 4);
+  [1, 3, 10, 30, 100].forEach(function(n){ g.fillText(String(n), X(n) - 6, h - pad + 18); });
+  var series = [
+    { name: 'perfect verifier', col: cssVar('--cobalt'), fn: function(n){ return 1 - Math.pow(1 - p, n); } },
+    { name: 'imperfect verifier', col: '#c9622a', fn: function(n){
+        // coverage x P(top-scored is correct): approx q^log2(n) discrimination decay... use: coverage * q, floor at p
+        var cov = 1 - Math.pow(1 - p, n);
+        return Math.max(p, cov*q);
+      } },
+    { name: 'majority vote', col: '#5a9e6f', fn: function(n){ var k = (n % 2 === 1) ? n : n - 1; return k < 1 ? p : majAcc(p, k); } }
+  ];
+  series.forEach(function(sr, si){
+    g.strokeStyle = sr.col; g.lineWidth = 2; g.beginPath();
+    var first = true;
+    for(var n = 1; n <= nmax; n += 2){
+      var a = Math.min(1, sr.fn(n));
+      if(first){ g.moveTo(X(n), Y(a)); first = false; } else g.lineTo(X(n), Y(a));
+    }
+    g.stroke();
+    g.fillStyle = sr.col; g.fillText(sr.name, pad + 8, pad/2 + 14 + 16*si);
+  });
+  var out = document.getElementById('tc-out');
+  if(out) out.textContent = 'p=' + p.toFixed(2) + ', verifier q=' + q.toFixed(2) +
+    '  @n=101: perfect=' + (1 - Math.pow(1 - p, 101)).toFixed(3) +
+    ', imperfect=' + Math.max(p, (1 - Math.pow(1 - p, 101))*q).toFixed(3) +
+    ', vote=' + majAcc(p, 101).toFixed(3) + (p < 0.5 ? ' (vote collapses: p<0.5)' : '');
+}
+
+/* ---- Explorer 4: metareasoning stopping ---- */
+function drawMR(){
+  var c = document.getElementById('cv-meta'); if(!c) return;
+  var s = setupCanvas(c, 280), g = s.g, w = s.w, h = s.h, pad = 44;
+  g.clearRect(0, 0, w, h);
+  var lam = val('mr-lam'), cost = val('mr-cost'), a0 = val('mr-a0'), tmax = 10;
+  function acc(t){ return 1 - (1 - a0)*Math.exp(-lam*t); }
+  function net(t){ return acc(t) - cost*t; }
+  // optimal t: d/dt acc = cost -> (1-a0) lam e^{-lam t} = cost
+  var tstar = (1 - a0)*lam > cost ? Math.log((1 - a0)*lam/cost)/lam : 0;
+  tstar = Math.max(0, Math.min(tmax, tstar));
+  function X(t){ return pad + (w - pad*1.5)*t/tmax; }
+  function Y(v){ return h - pad - (h - pad*1.5)*Math.max(0, Math.min(1, v)); }
+  axes(g, w, h, pad);
+  g.fillText('thinking time', w - pad - 90, h - pad + 18);
+  g.fillText('1.0', 8, Y(1) + 4); g.fillText('0.5', 8, Y(0.5) + 4);
+  // accuracy curve
+  g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1.5; g.setLineDash([4, 4]); g.beginPath();
+  for(var i = 0; i <= 200; i++){ var t = tmax*i/200; i === 0 ? g.moveTo(X(t), Y(acc(t))) : g.lineTo(X(t), Y(acc(t))); }
+  g.stroke(); g.setLineDash([]);
+  // net utility curve
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2.5; g.beginPath();
+  for(i = 0; i <= 200; i++){ t = tmax*i/200; i === 0 ? g.moveTo(X(t), Y(net(t))) : g.lineTo(X(t), Y(net(t))); }
+  g.stroke();
+  // optimum marker
+  g.fillStyle = '#c9622a';
+  g.beginPath(); g.arc(X(tstar), Y(net(tstar)), 6, 0, 7); g.fill();
+  g.strokeStyle = '#c9622a'; g.setLineDash([3, 3]);
+  g.beginPath(); g.moveTo(X(tstar), Y(net(tstar))); g.lineTo(X(tstar), h - pad); g.stroke(); g.setLineDash([]);
+  g.fillStyle = cssVar('--ink-2');
+  g.fillText('accuracy (dashed)', pad + 8, pad/2 + 14);
+  g.fillStyle = cssVar('--cobalt'); g.fillText('net utility = accuracy − cost·t', pad + 8, pad/2 + 30);
+  var out = document.getElementById('mr-out');
+  if(out) out.textContent = 'VOC-optimal stop t*=' + tstar.toFixed(2) + '  accuracy there=' + acc(tstar).toFixed(3) +
+    '  net=' + net(tstar).toFixed(3) + (tstar === 0 ? '  (thinking never pays: answer immediately)' : '') +
+    '  — marginal accuracy gain equals marginal cost at the marker.';
+}
+
+function redrawAll(){ drawSC(); drawTOT(); drawTTC(); drawMR(); }
+['sc-p','sc-k'].forEach(function(id){ on(id, 'input', drawSC); });
+['tt-b','tt-w','tt-noise'].forEach(function(id){ on(id, 'input', drawTOT); });
+on('tt-new', 'click', function(){ totNew(); drawTOT(); });
+['tc-p','tc-q'].forEach(function(id){ on(id, 'input', drawTTC); });
+['mr-lam','mr-cost','mr-a0'].forEach(function(id){ on(id, 'input', drawMR); });
+window.addEventListener('resize', redrawAll);
+if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', redrawAll);
+else redrawAll();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,1142 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 21 Deep Learning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','21')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">21</div><h1>Deep Learning</h1><p class="lede">Neural networks from the neuron to the transformer.</p>
+   <div class="meta"><span class="chip">60 topics</span><span class="chip">needs: chapters 8, 9, 15, 16, 19</span><span class="chip">feeds: chapters 22, 23</span></div>
+  </div>
+
+<section class="topic" id="neural-networks">
+ <h2>Neural networks</h2>
+ <p>A neural network is a function built by stacking simple pieces: multiply by a matrix, add a vector, bend the result with a nonlinearity, repeat. Each layer re-describes its input in new coordinates, and training adjusts the matrices so the final description makes the task easy. Nothing mystical: it is a big parameterized function $f_\theta$ fitted by gradient descent (Ch 15) to minimize a loss (Ch 19).</p>
+ <div class="box def"><span class="label">Definition</span> A feedforward neural network with $L$ layers computes $h^{(0)}=x$, then $h^{(\ell)}=\sigma\!\big(W^{(\ell)}h^{(\ell-1)}+b^{(\ell)}\big)$ for $\ell=1,\dots,L$, where $W^{(\ell)}$ are weight matrices, $b^{(\ell)}$ bias vectors, and $\sigma$ an elementwise nonlinear activation. The parameters are $\theta=\{W^{(\ell)},b^{(\ell)}\}_{\ell=1}^{L}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 2&rarr;2&rarr;1 network with ReLU hidden layer: $W^{(1)}=\begin{pmatrix}1&-1\\1&1\end{pmatrix}$, $b^{(1)}=\begin{pmatrix}0\\-1\end{pmatrix}$, $W^{(2)}=(1,\,-2)$, $b^{(2)}=0$. Input $x=(2,1)^\top$: pre-activation $W^{(1)}x+b^{(1)}=(2-1,\,2+1-1)^\top=(1,2)^\top$; ReLU leaves it $(1,2)^\top$; output $=1\cdot 1-2\cdot 2=-3$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Every architecture in this chapter, every generative model in Ch 22 and every LLM in Ch 23 is a neural network in this sense.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many parameters does a fully connected 3&rarr;4&rarr;2 network have (weights and biases)?<details class="sol"><summary>Solution</summary><div>Layer 1: $4\times3=12$ weights $+4$ biases $=16$. Layer 2: $2\times4=8$ weights $+2$ biases $=10$. Total $26$.</div></details></li>
+  <li><span class="lvl m">MED</span> With the worked-example network, compute the output for $x=(0,-1)^\top$.<details class="sol"><summary>Solution</summary><div>Pre-activation: $(0-(-1),\,0+(-1)-1)^\top=(1,-2)^\top$. ReLU: $(1,0)^\top$. Output $=1\cdot1-2\cdot0=1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that a network with all activations $\sigma(z)=z$ (identity), no matter how many layers, computes only an affine function of $x$.<details class="sol"><summary>Solution</summary><div>By induction: $h^{(1)}=W^{(1)}x+b^{(1)}$ is affine. If $h^{(\ell-1)}=Ax+c$ is affine, then $h^{(\ell)}=W^{(\ell)}(Ax+c)+b^{(\ell)}=(W^{(\ell)}A)x+(W^{(\ell)}c+b^{(\ell)})$, again affine. So the composition collapses to a single affine map: depth without nonlinearity adds no expressive power.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="perceptrons">
+ <h2>Perceptrons</h2>
+ <p>The perceptron is the 1958 ancestor: one neuron that takes a weighted vote of its inputs and fires if the vote clears a threshold. It draws a single straight line (hyperplane) through input space and labels the two sides. Its learning rule — nudge the weights toward each misclassified point — provably finds a separating line when one exists.</p>
+ <div class="box def"><span class="label">Definition</span> A perceptron computes $\hat y=\mathrm{sign}(w^\top x+b)\in\{-1,+1\}$. The perceptron learning rule: on a misclassified example $(x_i,y_i)$ (i.e. $y_i(w^\top x_i+b)\le 0$), update $w\leftarrow w+y_i x_i$, $b\leftarrow b+y_i$.</div>
+ <div class="box thm"><span class="label">Theorem (perceptron convergence)</span> If the data are linearly separable with margin $\gamma>0$ and $\|x_i\|\le R$ for all $i$, the perceptron makes at most $R^2/\gamma^2$ mistakes before finding a separator.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data: $x_1=(1,0),y_1=+1$; $x_2=(-1,0),y_2=-1$. Start $w=(0,0)$, $b=0$. Point $x_1$: $w^\top x_1+b=0$, misclassified (not strictly positive). Update: $w=(1,0)$, $b=1$. Now $x_1$: $1+1=2>0$ ✓; $x_2$: $-1+1=0\le 0$, misclassified. Update: $w=(1,0)-(-1,0)=(2,0)$, $b=0$. Check: $x_1\mapsto 2>0$ ✓, $x_2\mapsto -2<0$ ✓. Done in two updates.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A single perceptron cannot compute XOR: the four points $(0,0),(1,1)\mapsto -1$ and $(0,1),(1,0)\mapsto +1$ are not linearly separable. This 1969 observation (Minsky &amp; Papert) stalled the field — the fix is hidden layers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give weights $w,b$ so that $\mathrm{sign}(w^\top x+b)$ computes AND on inputs in $\{0,1\}^2$ (output $+1$ iff both inputs are 1).<details class="sol"><summary>Solution</summary><div>$w=(1,1)$, $b=-1.5$: then $(1,1)\mapsto 0.5>0$ and the other three points give $-1.5$ or $-0.5<0$. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Prove XOR is not linearly separable.<details class="sol"><summary>Solution</summary><div>Suppose $w_1x_1+w_2x_2+b$ is $>0$ at $(0,1)$ and $(1,0)$ and $<0$ at $(0,0)$ and $(1,1)$. Adding the two positive conditions: $w_1+w_2+2b>0$. Adding the two negative: $w_1+w_2+2b<0$. Contradiction.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch the proof of the convergence theorem.<details class="sol"><summary>Solution</summary><div>Let $w^*$ (with $\|w^*\|=1$, absorbing bias into an extra coordinate) separate with margin $\gamma$: $y_i w^{*\top}x_i\ge\gamma$. After $M$ mistakes, $w^\top w^*\ge M\gamma$ (each update adds $y_iw^{*\top}x_i\ge\gamma$), while $\|w\|^2\le MR^2$ (each update adds $2y_iw^\top x_i+\|x_i\|^2\le R^2$ since the point was misclassified so $y_iw^\top x_i\le0$). Cauchy–Schwarz: $M\gamma\le w^\top w^*\le\|w\|\le\sqrt{M}R$, hence $M\le R^2/\gamma^2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multilayer-perceptrons">
+ <h2>Multilayer perceptrons</h2>
+ <p>Stack perceptron-like layers and let the hidden layers invent intermediate features: the first layer draws many lines, the next layer combines the half-planes into regions, and so on. An MLP with ReLU activations computes a piecewise-linear function whose pieces multiply with depth — that folding is where the power comes from.</p>
+ <div class="box def"><span class="label">Definition</span> A multilayer perceptron (MLP) is a feedforward network of fully connected layers: $h^{(\ell)}=\sigma(W^{(\ell)}h^{(\ell-1)}+b^{(\ell)})$, with a final linear (or softmax) output layer. "Hidden" layers are those between input and output.</div>
+ <div class="box ex"><span class="label">Worked example</span> XOR with one hidden layer. Hidden units $h_1=\mathrm{ReLU}(x_1+x_2-0.5)$, $h_2=\mathrm{ReLU}(x_1+x_2-1.5)$; output $y=h_1-2h_2$. Check: $(0,0)$: $h=(0,0)$, $y=0$. $(1,0)$ and $(0,1)$: $h=(0.5,0)$, $y=0.5$. $(1,1)$: $h=(1.5,0.5)$, $y=1.5-1=0.5$... recompute: $y=1.5-2(0.5)=0.5$. That fails, so use output $y=h_1-2h_2$ with threshold: values are $0,\,0.5,\,0.5,\,0.5$ — still wrong at $(1,1)$. Correct choice: $h_2=\mathrm{ReLU}(x_1+x_2-1)$ gives $h$ values $(0,0),(0.5,0),(0.5,0),(1.5,1)$ and $y=h_1-2h_2$ gives $0,\,0.5,\,0.5,\,-0.5$: threshold at $0.25$ classifies XOR correctly. The hidden layer bends the single line the perceptron could not.</div>
+ <div class="box think"><span class="label">Think first</span> Why can't the two hidden ReLUs above be replaced by identity units? <details class="sol"><summary>Reveal</summary><div>Without the nonlinearity the whole network collapses to one affine function (see the neural-networks drill), and XOR is not linearly separable. The kink of ReLU at 0 is exactly what lets $h_1-2h_2$ be non-monotone in $x_1+x_2$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An MLP has layers 784&rarr;256&rarr;256&rarr;10. How many weight parameters (ignore biases)?<details class="sol"><summary>Solution</summary><div>$784\cdot256+256\cdot256+256\cdot10=200704+65536+2560=268800$.</div></details></li>
+  <li><span class="lvl m">MED</span> A ReLU MLP computes a piecewise-linear function. Explain why in one paragraph.<details class="sol"><summary>Solution</summary><div>Each ReLU is piecewise linear; compositions of piecewise-linear functions with affine maps are piecewise linear (affine maps preserve linearity on each piece; ReLU splits each piece into at most two). Induction over layers: the network is linear on each cell of a finite polyhedral partition of input space.</div></details></li>
+  <li><span class="lvl h">HARD</span> With inputs in $\mathbb{R}$, one hidden layer of $k$ ReLUs, and a linear output, what is the maximum number of linear pieces of the output? Prove it.<details class="sol"><summary>Solution</summary><div>$k+1$. Each ReLU $\mathrm{ReLU}(w_ix+b_i)$ has one breakpoint at $x=-b_i/w_i$ (if $w_i\ne0$). The output, a linear combination, is linear between consecutive breakpoints; $k$ distinct breakpoints partition $\mathbb{R}$ into $k+1$ intervals, so at most $k+1$ pieces, achieved when all breakpoints are distinct and all units contribute.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="universal-approximation">
+ <h2>Universal approximation</h2>
+ <p>One hidden layer, if wide enough, can approximate any continuous function on a box to any accuracy — the network builds the target out of soft bumps and steps. This says nothing about learnability or how many neurons you need (possibly exponentially many); depth often buys the same accuracy with far fewer units.</p>
+ <div class="box thm"><span class="label">Theorem (Cybenko 1989 / Hornik 1991)</span> Let $\sigma$ be a continuous, non-polynomial activation. For any continuous $f:[0,1]^d\to\mathbb{R}$ and $\varepsilon>0$ there exist $k$, weights $w_i\in\mathbb{R}^d$, $b_i,a_i\in\mathbb{R}$ with $$\sup_{x\in[0,1]^d}\Big|f(x)-\sum_{i=1}^{k}a_i\,\sigma(w_i^\top x+b_i)\Big|<\varepsilon.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Approximate a bump with two ReLU-like steps in 1D using steep sigmoids: $g(x)=\sigma(100(x-0.3))-\sigma(100(x-0.7))$ is $\approx0$ for $x<0.3$, $\approx1$ on $(0.3,0.7)$, $\approx0$ for $x>0.7$ — an indicator of an interval. Sums of scaled indicators approximate any step function, and step functions approximate any continuous function uniformly on a compact interval. That is the whole proof strategy in 1D.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Universal approximation is an existence statement. It does not say gradient descent will find the approximating weights, nor that the required width is practical: approximating a generic Lipschitz function on $[0,1]^d$ to accuracy $\varepsilon$ can require width exponential in $d$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is a polynomial activation excluded from the theorem?<details class="sol"><summary>Solution</summary><div>If $\sigma$ is a polynomial of degree $p$, every function $\sum a_i\sigma(w_i^\top x+b_i)$ is a polynomial of degree $\le p$, and polynomials of bounded degree form a finite-dimensional space that cannot uniformly approximate, e.g., $\sin(10x)$ arbitrarily well.</div></details></li>
+  <li><span class="lvl m">MED</span> Using ReLU units, write $f(x)=|x|$ exactly with 2 hidden units, and $f(x)=\max(x_1,x_2)$ with 3.<details class="sol"><summary>Solution</summary><div>$|x|=\mathrm{ReLU}(x)+\mathrm{ReLU}(-x)$. $\max(a,b)=\tfrac{a+b}{2}+\tfrac{|a-b|}{2}=\tfrac12\big(\mathrm{ReLU}(a+b)-\mathrm{ReLU}(-a-b)\big)+\tfrac12\big(\mathrm{ReLU}(a-b)+\mathrm{ReLU}(b-a)\big)$ — 4 units in general, but if inputs can feed the output linearly too: $\max(a,b)=a+\mathrm{ReLU}(b-a)$, one hidden unit plus a skip; with pure hidden-layer form, 3 units suffice when a linear pass-through of $a$ counts as allowed: $a=\mathrm{ReLU}(a)-\mathrm{ReLU}(-a)$ uses 2, plus $\mathrm{ReLU}(b-a)$ makes 3.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show a depth-2 ReLU network needs $\Omega(2^n)$ width to represent the "sawtooth" $s_n$ obtained by composing the tent map $T(x)=2\min(x,1-x)$ with itself $n$ times, while depth $n$ needs only $O(n)$ units.<details class="sol"><summary>Solution</summary><div>$s_n=T^{\circ n}$ has $2^n$ linear pieces on $[0,1]$. A one-hidden-layer ReLU net with $k$ units has at most $k+1$ pieces (previous section's drill), so $k\ge 2^n-1$. Deep: $T(x)=2\,\mathrm{ReLU}(x)-4\,\mathrm{ReLU}(x-\tfrac12)$ (for $x\in[0,1]$) uses 2 units; composing $n$ copies uses $2n$ units total. Depth creates pieces multiplicatively, width only additively.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="activation-functions">
+ <h2>Activation functions</h2>
+ <p>The activation is the bend between layers. Its shape decides how gradients flow backward: saturating activations (sigmoid, tanh) squash and can kill gradients; ReLU-family activations pass gradients through cleanly on their active side. Choosing an activation is choosing a trade between expressiveness, gradient health and compute.</p>
+ <div class="box def"><span class="label">Definition</span> An activation function is a scalar nonlinearity $\sigma:\mathbb{R}\to\mathbb{R}$ applied elementwise. Key examples: sigmoid $\sigma(z)=1/(1+e^{-z})$, $\tanh(z)$, $\mathrm{ReLU}(z)=\max(0,z)$, $\mathrm{GELU}(z)=z\,\Phi(z)$ with $\Phi$ the standard normal CDF.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the input scale and compare each activation and its derivative — watch sigmoid/tanh derivatives collapse for large $|z|$ while ReLU stays at 1.</p>
+  <canvas id="cv-act"></canvas>
+  <div class="ctl"><label>zoom (x-range) <input type="range" id="act-range" min="2" max="12" step="0.5" value="5"></label>
+  <label>show derivative <input type="checkbox" id="act-deriv" checked></label></div>
+  <div class="out" id="act-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> At $z=2$: sigmoid $=1/(1+e^{-2})\approx0.881$, derivative $\sigma(1-\sigma)\approx0.881\cdot0.119\approx0.105$. $\tanh(2)\approx0.964$, derivative $1-\tanh^2\approx0.071$. ReLU $=2$, derivative $1$. Already at $z=2$ the saturating activations pass only $\sim$10% and 7% of the gradient; ReLU passes 100%.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the maximum value of the sigmoid's derivative, and where?<details class="sol"><summary>Solution</summary><div>$\sigma'(z)=\sigma(z)(1-\sigma(z))$ is maximized when $\sigma(z)=\tfrac12$, i.e. $z=0$, giving $\sigma'(0)=\tfrac14$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\tanh(z)=2\sigma(2z)-1$ and deduce $\tanh'(0)$.<details class="sol"><summary>Solution</summary><div>$2\sigma(2z)-1=\frac{2}{1+e^{-2z}}-1=\frac{1-e^{-2z}}{1+e^{-2z}}=\frac{e^{z}-e^{-z}}{e^{z}+e^{-z}}=\tanh z$. Then $\tanh'(z)=4\sigma'(2z)$, so $\tanh'(0)=4\cdot\tfrac14=1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> An activation $\sigma$ is used in a 50-layer net where each layer's Jacobian contributes a factor $\le\max_z\sigma'(z)$ to the gradient norm along a path. Compare the worst-case attenuation for sigmoid vs tanh after 50 layers.<details class="sol"><summary>Solution</summary><div>Sigmoid: factor $\le(1/4)^{50}=2^{-100}\approx7.9\times10^{-31}$. Tanh: $\max\tanh'=1$, so no forced attenuation from the activation bound alone (though saturation still hurts off-center). This is one reason tanh beats sigmoid in deep nets, and why both lose to ReLU whose active-side derivative is exactly 1.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sigmoid">
+ <h2>Sigmoid</h2>
+ <p>The sigmoid squashes any real number into $(0,1)$, so its output reads as a probability. That makes it the right final layer for binary classification — and, since it saturates on both sides, usually the wrong choice for hidden layers of deep nets.</p>
+ <div class="box def"><span class="label">Definition</span> $\displaystyle\sigma(z)=\frac{1}{1+e^{-z}}$. Properties: $\sigma(-z)=1-\sigma(z)$, $\sigma'(z)=\sigma(z)(1-\sigma(z))$, $\log\frac{\sigma(z)}{1-\sigma(z)}=z$ (it inverts the log-odds).</div>
+ <div class="box ex"><span class="label">Worked example</span> A logistic output unit produces $z=w^\top x+b=1.5$, true label $y=1$. Probability $\sigma(1.5)=1/(1+e^{-1.5})\approx0.818$. Log loss $=-\log 0.818\approx0.201$. Gradient of loss w.r.t. $z$ is $\sigma(z)-y\approx-0.182$ — the clean form that makes sigmoid + cross-entropy the standard pairing.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Pairing sigmoid with squared error gives gradient $(\sigma(z)-y)\,\sigma'(z)$, which vanishes when the unit is confidently wrong ($\sigma'\approx0$). Cross-entropy cancels the $\sigma'$ factor and keeps learning fast exactly when errors are large.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\sigma(0)$, $\sigma(\ln 3)$.<details class="sol"><summary>Solution</summary><div>$\sigma(0)=\tfrac12$. $\sigma(\ln 3)=\frac{1}{1+e^{-\ln3}}=\frac{1}{1+\tfrac13}=\tfrac34$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $\sigma'(z)=\sigma(z)(1-\sigma(z))$ by differentiation.<details class="sol"><summary>Solution</summary><div>$\sigma=(1+e^{-z})^{-1}$, so $\sigma'=-(1+e^{-z})^{-2}\cdot(-e^{-z})=\frac{e^{-z}}{(1+e^{-z})^2}=\frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}=\sigma(1-\sigma)$, using $\frac{e^{-z}}{1+e^{-z}}=1-\sigma$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For binary label $y\in\{0,1\}$ and prediction $p=\sigma(z)$, show $\frac{\partial}{\partial z}\big[-y\log p-(1-y)\log(1-p)\big]=p-y$.<details class="sol"><summary>Solution</summary><div>$\frac{\partial L}{\partial p}=-\frac{y}{p}+\frac{1-y}{1-p}=\frac{p-y}{p(1-p)}$. Chain rule with $\frac{dp}{dz}=p(1-p)$: $\frac{\partial L}{\partial z}=\frac{p-y}{p(1-p)}\cdot p(1-p)=p-y$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tanh">
+ <h2>Tanh</h2>
+ <p>Tanh is a sigmoid rescaled to output in $(-1,1)$ and centered at zero. Zero-centered outputs keep the next layer's inputs balanced in sign, which helps optimization; it still saturates at both ends, so very deep plain tanh networks still starve of gradient.</p>
+ <div class="box def"><span class="label">Definition</span> $\displaystyle\tanh(z)=\frac{e^{z}-e^{-z}}{e^{z}+e^{-z}}$, with $\tanh'(z)=1-\tanh^2(z)$, $\tanh(0)=0$, $\tanh'(0)=1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\tanh(1)=\frac{e-e^{-1}}{e+e^{-1}}=\frac{2.7183-0.3679}{2.7183+0.3679}=\frac{2.3504}{3.0862}\approx0.7616$; derivative $1-0.7616^2\approx0.420$. Compare sigmoid at the "same place" ($z=2$, since $\tanh(z)=2\sigma(2z)-1$): $\sigma'(2)\approx0.105$, and indeed $4\times0.105=0.42$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are $\lim_{z\to\infty}\tanh z$ and $\tanh(-z)$ in terms of $\tanh(z)$?<details class="sol"><summary>Solution</summary><div>Limit is $1$; $\tanh$ is odd: $\tanh(-z)=-\tanh(z)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $\tanh'(z)=1-\tanh^2(z)$.<details class="sol"><summary>Solution</summary><div>With $s=\sinh z=\frac{e^z-e^{-z}}2$, $c=\cosh z=\frac{e^z+e^{-z}}2$: $s'=c$, $c'=s$, $c^2-s^2=1$. Then $(\tanh z)'=(s/c)'=\frac{c\cdot c-s\cdot s}{c^2}=\frac{1}{c^2}=1-\frac{s^2}{c^2}=1-\tanh^2 z$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A 1-unit-per-layer network computes $h_\ell=\tanh(w h_{\ell-1})$ with all $w=1$. Starting from $h_0=1$, argue $h_\ell\to0$ and estimate the rate.<details class="sol"><summary>Solution</summary><div>For $z>0$, $\tanh z<z$, so $h_\ell$ decreases and is bounded below by 0, hence converges to a fixed point of $\tanh$, which is $0$. Near $0$, $\tanh z\approx z-z^3/3$, so $h_{\ell+1}\approx h_\ell-h_\ell^3/3$: this is slower than geometric; solving $\dot h=-h^3/3$ gives $h_\ell\approx\sqrt{3/(2\ell)}$ — signals shrink like $\ell^{-1/2}$, one face of signal degradation in deep plain nets.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="relu">
+ <h2>ReLU</h2>
+ <p>ReLU is the simplest useful nonlinearity: pass positives, zero out negatives. Its derivative is exactly 1 on the active side, so gradients travel through many layers without shrinking, and it is nearly free to compute. Its one hazard: a unit that goes negative for every input stops learning ("dies").</p>
+ <div class="box def"><span class="label">Definition</span> $\mathrm{ReLU}(z)=\max(0,z)$, with derivative $1$ for $z>0$, $0$ for $z<0$ (subgradient $[0,1]$ at $z=0$; implementations use 0 or 1). Leaky ReLU uses $\max(\alpha z,z)$ with small $\alpha>0$ to keep dead units trainable.</div>
+ <div class="box ex"><span class="label">Worked example</span> Layer input $z=(-2,\,0.5,\,3)$. Output $(0,\,0.5,\,3)$. Upstream gradient $(1,1,1)$ backpropagates to $(0,\,1,\,1)$ elementwise — the negative coordinate transmits nothing, the rest pass unchanged.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Dying ReLU: a large gradient step can push a unit's bias so negative that its pre-activation is $<0$ on all data. Then output and gradient are identically 0 and the unit never recovers. Mitigations: lower learning rate, He initialization, Leaky ReLU/GELU.</div>
+ <div class="quiz" data-answer="1"><div class="q">A ReLU network layer receives only negative pre-activations on every training example. What is the gradient of the loss w.r.t. that layer's incoming weights?</div><button class="opt">Small but nonzero</button><button class="opt">Exactly zero</button><button class="opt">Depends on the loss</button><div class="why" hidden>The ReLU output is constant 0, its local derivative is 0 everywhere it is evaluated, so by the chain rule every weight gradient through it is exactly 0 — the unit is dead.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\mathrm{ReLU}(-3)+\mathrm{ReLU}(3)$ and $\frac{d}{dz}\mathrm{ReLU}(z)$ at $z=5$.<details class="sol"><summary>Solution</summary><div>$0+3=3$; derivative at 5 is $1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show ReLU is positively homogeneous: $\mathrm{ReLU}(\lambda z)=\lambda\,\mathrm{ReLU}(z)$ for $\lambda\ge0$, and give one consequence for weight rescaling.<details class="sol"><summary>Solution</summary><div>If $z\ge0$: both sides $=\lambda z$. If $z<0$: both sides $=0$ (since $\lambda z\le0$). Consequence: in $W_2\,\mathrm{ReLU}(W_1x)$, scaling $W_1\to cW_1$, $W_2\to W_2/c$ ($c>0$) leaves the function unchanged — ReLU nets have continuous rescaling symmetries, so minima come in flat families.</div></details></li>
+  <li><span class="lvl h">HARD</span> With inputs $x\sim\mathcal N(0,1)$ into a unit $\mathrm{ReLU}(x)$, compute $\mathbb E[\mathrm{ReLU}(x)]$ and $\mathbb E[\mathrm{ReLU}(x)^2]$.<details class="sol"><summary>Solution</summary><div>$\mathbb E[\max(0,x)]=\int_0^\infty x\phi(x)dx=[-\phi(x)]_0^\infty=\phi(0)=\frac{1}{\sqrt{2\pi}}\approx0.399$. $\mathbb E[\max(0,x)^2]=\int_0^\infty x^2\phi(x)dx=\tfrac12\mathbb E[x^2]=\tfrac12$ by symmetry. (The $\tfrac12$ is the source of the factor 2 in He initialization.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gelu">
+ <h2>GELU</h2>
+ <p>GELU is a smooth ReLU: instead of a hard gate at zero, it gates the input by the probability that a standard Gaussian falls below it. Near zero it curves gently (and even dips slightly negative), which gives nonzero gradients everywhere; for large $|z|$ it matches ReLU. It is the default activation in transformer MLP blocks.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathrm{GELU}(z)=z\,\Phi(z)$ where $\Phi(z)=\mathbb P(Z\le z)$, $Z\sim\mathcal N(0,1)$. Common approximation: $\mathrm{GELU}(z)\approx\tfrac{z}{2}\big(1+\tanh[\sqrt{2/\pi}(z+0.044715z^3)]\big)$. Derivative: $\Phi(z)+z\phi(z)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathrm{GELU}(1)=1\cdot\Phi(1)\approx0.8413$. $\mathrm{GELU}(-1)=-1\cdot\Phi(-1)\approx-0.1587$: a negative input passes through slightly negative, unlike ReLU's hard 0. Derivative at $-1$: $\Phi(-1)+(-1)\phi(-1)=0.1587-0.2420=-0.0833$ — small but nonzero, so the unit still learns.</div>
+ <div class="box link"><span class="label">Where this goes</span> Transformer feedforward blocks (this chapter) and essentially all LLMs in Ch 23 use GELU or its gated variants (GEGLU/SwiGLU).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are $\mathrm{GELU}(0)$ and $\lim_{z\to\infty}\mathrm{GELU}(z)-z$?<details class="sol"><summary>Solution</summary><div>$0\cdot\Phi(0)=0$; and $z(\Phi(z)-1)\to0$ since $1-\Phi(z)$ decays like $\phi(z)/z$, so the limit is $0$: GELU asymptotes to the identity.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive $\frac{d}{dz}\mathrm{GELU}(z)=\Phi(z)+z\phi(z)$ and evaluate at $z=0$.<details class="sol"><summary>Solution</summary><div>Product rule on $z\Phi(z)$ with $\Phi'=\phi$: $\Phi(z)+z\phi(z)$. At $0$: $\Phi(0)+0=\tfrac12$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find where GELU attains its minimum (numerically, to 2 decimals) and its minimum value.<details class="sol"><summary>Solution</summary><div>Set $\Phi(z)+z\phi(z)=0$ for $z<0$. Try $z=-0.75$: $\Phi=0.2266$, $z\phi=-0.75\cdot0.3011=-0.2258$, sum $\approx0.0008$. So $z^*\approx-0.75$ (more precisely $-0.7518$). Minimum value $z\Phi(z)\approx-0.75\cdot0.2266\approx-0.17$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="softmax">
+ <h2>Softmax</h2>
+ <p>Softmax turns a vector of scores into a probability distribution: exponentiate (so bigger scores dominate) and normalize. A temperature knob controls how peaked the result is. It is the final layer of every classifier and every language model's next-token head.</p>
+ <div class="box def"><span class="label">Definition</span> For logits $z\in\mathbb R^K$ and temperature $T>0$: $$\mathrm{softmax}(z)_i=\frac{e^{z_i/T}}{\sum_{j=1}^{K}e^{z_j/T}}.$$ It is invariant to adding a constant to all logits: $\mathrm{softmax}(z+c\mathbf 1)=\mathrm{softmax}(z)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the temperature and watch four fixed logits $(2.0,\,1.0,\,0.5,\,-1.0)$ sharpen toward argmax as $T\to0$ and flatten toward uniform as $T\to\infty$.</p>
+  <canvas id="cv-softmax"></canvas>
+  <div class="ctl"><label>temperature $T$ <input type="range" id="sm-temp" min="0.05" max="5" step="0.05" value="1"></label></div>
+  <div class="out" id="sm-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> $z=(2,1,0)$, $T=1$: $e^2\approx7.389$, $e^1\approx2.718$, $e^0=1$; sum $\approx11.107$. Probabilities $\approx(0.665,\,0.245,\,0.090)$. At $T=0.5$ logits double: $(4,2,0)$ gives $e^4\approx54.60$, $e^2\approx7.389$, $1$; sum $62.99$; probabilities $\approx(0.867,\,0.117,\,0.016)$ — sharper.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Computing $e^{z_i}$ directly overflows for large logits. Always subtract the max first: $\mathrm{softmax}(z)=\mathrm{softmax}(z-\max_j z_j)$ — the log-sum-exp trick from Ch 18.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\mathrm{softmax}((0,0,\ln 2))$.<details class="sol"><summary>Solution</summary><div>Exponentials $(1,1,2)$, sum 4: probabilities $(\tfrac14,\tfrac14,\tfrac12)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that the Jacobian of softmax $p=\mathrm{softmax}(z)$ is $\frac{\partial p_i}{\partial z_j}=p_i(\delta_{ij}-p_j)$.<details class="sol"><summary>Solution</summary><div>$p_i=e^{z_i}/S$ with $S=\sum_k e^{z_k}$. For $i=j$: $\frac{\partial p_i}{\partial z_i}=\frac{e^{z_i}S-e^{z_i}e^{z_i}}{S^2}=p_i-p_i^2=p_i(1-p_i)$. For $i\ne j$: $\frac{\partial p_i}{\partial z_j}=-\frac{e^{z_i}e^{z_j}}{S^2}=-p_ip_j$. Both cases: $p_i(\delta_{ij}-p_j)$.</div></details></li>
+  <li><span class="lvl m">MED</span> For cross-entropy loss $L=-\log p_y$ with $p=\mathrm{softmax}(z)$, show $\frac{\partial L}{\partial z_j}=p_j-\delta_{jy}$.<details class="sol"><summary>Solution</summary><div>$L=-z_y+\log\sum_k e^{z_k}$, so $\frac{\partial L}{\partial z_j}=-\delta_{jy}+\frac{e^{z_j}}{\sum_k e^{z_k}}=p_j-\delta_{jy}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that as $T\to0^+$, $\mathrm{softmax}(z/\,;T)$ converges to the uniform distribution over the argmax set of $z$.<details class="sol"><summary>Solution</summary><div>Let $m=\max_j z_j$ and $A=\{j:z_j=m\}$. Then $\mathrm{softmax}(z)_i=\frac{e^{(z_i-m)/T}}{\sum_j e^{(z_j-m)/T}}$. Each exponent is $\le0$; for $j\in A$ it is $0$ (term $\to1$), for $j\notin A$ it is negative (term $\to0$). So the ratio $\to \mathbf 1[i\in A]/|A|$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="forward-propagation">
+ <h2>Forward propagation</h2>
+ <p>Forward propagation is just evaluating the network: push the input through each layer in order, caching every intermediate value. The cache is not an optimization detail — backpropagation will need exactly those intermediates to compute gradients.</p>
+ <div class="box def"><span class="label">Definition</span> Given input $x$, forward propagation computes and stores $a^{(\ell)}=W^{(\ell)}h^{(\ell-1)}+b^{(\ell)}$ (pre-activations) and $h^{(\ell)}=\sigma(a^{(\ell)})$ for $\ell=1,\dots,L$, then the loss $L(h^{(L)},y)$. Cost: one matrix–vector product per layer, $O(\sum_\ell n_\ell n_{\ell-1})$ flops.</div>
+ <div class="box ex"><span class="label">Worked example</span> Network 2&rarr;2&rarr;1, $\sigma=\tanh$, $W^{(1)}=\begin{pmatrix}1&0\\0&1\end{pmatrix}$, $b^{(1)}=(0,0)^\top$, $W^{(2)}=(1,1)$, $b^{(2)}=0$, squared loss against $y=1$, input $x=(0.5,-0.5)^\top$. Forward: $a^{(1)}=(0.5,-0.5)^\top$; $h^{(1)}=(\tanh0.5,\tanh(-0.5))=(0.4621,-0.4621)$; $a^{(2)}=0$; prediction $\hat y=0$ (linear output). Loss $=\tfrac12(0-1)^2=0.5$. All four cached values will be reused in the backward pass below.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a batch of $B$ inputs stored as rows of $X\in\mathbb R^{B\times d}$, write the batched first-layer computation.<details class="sol"><summary>Solution</summary><div>$A^{(1)}=XW^{(1)\top}+\mathbf 1 b^{(1)\top}\in\mathbb R^{B\times n_1}$, then $H^{(1)}=\sigma(A^{(1)})$ elementwise — one matrix–matrix product handles the whole batch.</div></details></li>
+  <li><span class="lvl m">MED</span> Count the flops (multiply–adds) of a forward pass through layers 784&rarr;512&rarr;512&rarr;10 for one input.<details class="sol"><summary>Solution</summary><div>$784\cdot512+512\cdot512+512\cdot10=401408+262144+5120=668672$ multiply–adds, $\approx1.34$M flops counting multiply and add separately.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why must $h^{(\ell)}$ (or $a^{(\ell)}$) be stored for the backward pass, and what is the memory cost for depth $L$, width $n$, batch $B$? Name the standard trade-off used when this doesn't fit.<details class="sol"><summary>Solution</summary><div>Backprop needs $\sigma'(a^{(\ell)})$ and $h^{(\ell-1)}$ to form $\partial L/\partial W^{(\ell)}=\delta^{(\ell)}h^{(\ell-1)\top}$, so activations must be available at backward time. Memory: $O(LBn)$. When too large, gradient checkpointing stores activations only every $\sqrt L$ layers and recomputes the rest, cutting memory to $O(\sqrt L\,Bn)$ at the price of one extra forward pass.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="backpropagation">
+ <h2>Backpropagation</h2>
+ <p>Backpropagation is the chain rule organized to run backward: compute how the loss changes with the output, then walk layer by layer toward the input, reusing each layer's cached values to convert "gradient at layer $\ell$" into "gradient at layer $\ell-1$" plus the weight gradients. One forward plus one backward pass costs about three forward passes and yields the gradient of the loss with respect to every parameter at once.</p>
+ <div class="box def"><span class="label">Definition</span> Define $\delta^{(\ell)}=\partial L/\partial a^{(\ell)}$. Then for a feedforward net: $$\delta^{(L)}=\nabla_{h^{(L)}}L\odot\sigma'(a^{(L)}),\qquad \delta^{(\ell)}=\big(W^{(\ell+1)\top}\delta^{(\ell+1)}\big)\odot\sigma'(a^{(\ell)}),$$ $$\frac{\partial L}{\partial W^{(\ell)}}=\delta^{(\ell)}h^{(\ell-1)\top},\qquad \frac{\partial L}{\partial b^{(\ell)}}=\delta^{(\ell)}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Continue the forward-propagation example ($\hat y=0$, $y=1$, loss $\tfrac12(\hat y-y)^2$). Output layer is linear: $\delta^{(2)}=\hat y-y=-1$. Weight grads: $\partial L/\partial W^{(2)}=\delta^{(2)}h^{(1)\top}=(-0.4621,\,0.4621)$, $\partial L/\partial b^{(2)}=-1$. Backward to layer 1: $W^{(2)\top}\delta^{(2)}=(-1,-1)^\top$; $\sigma'(a^{(1)})=1-\tanh^2(\pm0.5)=1-0.2136=0.7864$ for both. So $\delta^{(1)}=(-0.7864,-0.7864)^\top$. Then $\partial L/\partial W^{(1)}=\delta^{(1)}x^\top=\begin{pmatrix}-0.3932&0.3932\\-0.3932&0.3932\end{pmatrix}$, $\partial L/\partial b^{(1)}=(-0.7864,-0.7864)^\top$.</div>
+ <div class="box think"><span class="label">Think first</span> Why compute $\delta$'s backward rather than differentiating each weight separately by forward perturbation? <details class="sol"><summary>Reveal</summary><div>Perturbing each of $P$ weights separately costs $P$ forward passes. Backprop shares the common subexpressions: the loss is one scalar, so reverse-mode differentiation (Ch 18) computes all $P$ partials in one backward sweep, $O(1)$ times the cost of a forward pass — a factor-$P$ saving. Reverse mode wins whenever outputs (1) are fewer than inputs ($P$).</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> This is reverse-mode automatic differentiation (Ch 18) specialized to layered graphs; Ch 9 derived it as the multivariable chain rule. Every training run in Ch 22–23 is this loop at scale.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a single unit $L=\tfrac12(\sigma(wx+b)-y)^2$ with $\sigma=$ identity, $x=2$, $y=1$, $w=1$, $b=0$: compute $\partial L/\partial w$.<details class="sol"><summary>Solution</summary><div>$\hat y=2$, error $=1$, $\partial L/\partial w=(\hat y-y)x=1\cdot2=2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the worked example's $\partial L/\partial W^{(1)}_{11}$ by finite differences: change $W^{(1)}_{11}$ from 1 to 1.01 and recompute the loss.<details class="sol"><summary>Solution</summary><div>New $a^{(1)}_1=1.01\cdot0.5=0.505$, $h_1=\tanh(0.505)\approx0.4660$, $h_2=-0.4621$, $\hat y\approx0.00394$, loss $\approx\tfrac12(0.00394-1)^2\approx0.49608$. Old loss $0.5$. Slope $\approx(0.49608-0.5)/0.01\approx-0.392$, matching $-0.3932$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the recursion $\delta^{(\ell)}=(W^{(\ell+1)\top}\delta^{(\ell+1)})\odot\sigma'(a^{(\ell)})$ from the chain rule.<details class="sol"><summary>Solution</summary><div>$a^{(\ell+1)}=W^{(\ell+1)}\sigma(a^{(\ell)})+b^{(\ell+1)}$, so $\frac{\partial a^{(\ell+1)}_k}{\partial a^{(\ell)}_i}=W^{(\ell+1)}_{ki}\sigma'(a^{(\ell)}_i)$. Chain rule: $\delta^{(\ell)}_i=\sum_k\delta^{(\ell+1)}_k\frac{\partial a^{(\ell+1)}_k}{\partial a^{(\ell)}_i}=\sigma'(a^{(\ell)}_i)\sum_kW^{(\ell+1)}_{ki}\delta^{(\ell+1)}_k$, which in matrix form is the claimed expression.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="computational-graphs">
+ <h2>Computational graphs</h2>
+ <p>A computational graph records a computation as a DAG: nodes are operations, edges carry values. Forward evaluation flows along edges; differentiation flows against them, each node multiplying incoming gradients by its local Jacobian and summing over paths. Frameworks like PyTorch build this graph dynamically as your code runs.</p>
+ <div class="box def"><span class="label">Definition</span> A computational graph is a DAG whose nodes compute $v_k=f_k(\text{parents}(v_k))$. Reverse-mode autodiff computes adjoints $\bar v_k=\partial L/\partial v_k$ by the recurrence $\bar v_k=\sum_{c\,\in\,\text{children}(k)}\bar v_c\,\frac{\partial v_c}{\partial v_k}$, initialized with $\bar L=1$, visiting nodes in reverse topological order.</div>
+ <div class="box ex"><span class="label">Worked example</span> $L=(x\cdot y+\sin x)^2$ at $x=1$, $y=2$. Forward: $u=xy=2$, $s=\sin 1\approx0.8415$, $v=u+s\approx2.8415$, $L=v^2\approx8.074$. Backward: $\bar v=2v\approx5.683$; $\bar u=\bar v=5.683$; $\bar s=\bar v=5.683$; $\bar x=\bar u\cdot y+\bar s\cdot\cos x=5.683\cdot2+5.683\cdot0.5403\approx11.366+3.071=14.44$; $\bar y=\bar u\cdot x=5.683$. Note $\bar x$ sums over the two paths $x\to u\to v$ and $x\to s\to v$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 18 covers forward vs reverse mode in full; Ch 31's DAG task execution reuses the same topological-order machinery for agent workflows.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Draw (describe) the graph for $L=(a+b)\cdot c$ and give $\bar a,\bar b,\bar c$ at $a=1,b=2,c=3$.<details class="sol"><summary>Solution</summary><div>Nodes: $s=a+b=3$, $L=s\cdot c=9$. $\bar s=c=3$, $\bar c=s=3$, $\bar a=\bar s\cdot1=3$, $\bar b=3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must adjoints be summed when a node has multiple children?<details class="sol"><summary>Solution</summary><div>The multivariable chain rule: if $L$ depends on $v$ through children $c_1,\dots,c_m$, then $\frac{\partial L}{\partial v}=\sum_i\frac{\partial L}{\partial c_i}\frac{\partial c_i}{\partial v}$ — total derivative sums contributions over all paths. Forgetting the sum is the classic hand-rolled-backprop bug for shared/tied weights.</div></details></li>
+  <li><span class="lvl h">HARD</span> $L=f(x, g(x))$ with $f(a,b)=ab$, $g(x)=x^2$, at $x=3$. Compute $dL/dx$ via the graph and check symbolically.<details class="sol"><summary>Solution</summary><div>Forward: $b=g=9$, $L=x\cdot b=27$. Backward: $\bar L=1$; through $f$: $\bar x_{\text{(direct)}}=b=9$, $\bar b=x=3$; through $g$: $\bar x_{\text{(via }g)}=\bar b\cdot 2x=3\cdot6=18$. Sum: $dL/dx=27$. Symbolically $L=x^3$, $L'=3x^2=27$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradient-flow">
+ <h2>Gradient flow</h2>
+ <p>"Gradient flow" names the health of the backward signal: as $\delta^{(\ell)}$ passes through layer after layer it gets multiplied by $W^\top$ and by $\sigma'$, so its norm evolves roughly like a product of per-layer factors. If typical factors sit below 1 the signal decays exponentially with depth; above 1 it explodes. Architecture choices — activations, initialization, normalization, residual connections — are largely engineering to keep those factors near 1.</p>
+ <div class="box def"><span class="label">Definition</span> Along the backward pass, $\delta^{(\ell)}=J_{\ell+1}^\top\cdots J_L^\top\,\delta^{(L)}$ where $J_k=\mathrm{diag}(\sigma'(a^{(k)}))W^{(k)}$ is layer $k$'s input–output Jacobian. Gradient magnitudes are governed by the singular values of the product $\prod_k J_k$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Set depth and a per-layer gain $g$ (typical Jacobian factor); the plot shows gradient norm $g^{\,\ell}$ per layer on a log scale. Toggle residual connections, which replace the factor $g$ by $1+g/\sqrt{\text{depth}}$-style behavior (here: $\max(1,g)$ shown as $1+ (g-1)/L$ per layer) to see why they rescue deep nets.</p>
+  <canvas id="cv-flow"></canvas>
+  <div class="ctl"><label>depth $L$ <input type="range" id="gf-depth" min="5" max="100" step="1" value="40"></label>
+  <label>per-layer gain $g$ <input type="range" id="gf-gain" min="0.7" max="1.3" step="0.01" value="0.9"></label>
+  <label>residuals <input type="checkbox" id="gf-res"></label></div>
+  <div class="out" id="gf-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Suppose each layer multiplies the gradient norm by $0.9$ on average. After 50 layers: $0.9^{50}=e^{50\ln0.9}\approx e^{-5.27}\approx0.0051$ — the first layer receives half a percent of the output-layer gradient. With gain $1.1$: $1.1^{50}\approx117$ — a 100&times; blow-up. Only gains very near 1 give trainable 50-layer plain networks.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> At per-layer gain $0.95$, what fraction of gradient reaches layer 1 of a 100-layer net?<details class="sol"><summary>Solution</summary><div>$0.95^{100}=e^{100\ln0.95}\approx e^{-5.13}\approx0.0059$, about $0.6\%$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why do the singular values of a product of random matrices, not the average entry size, control gradient flow?<details class="sol"><summary>Solution</summary><div>$\|J v\|$ is bounded between $\sigma_{\min}(J)\|v\|$ and $\sigma_{\max}(J)\|v\|$; through a product, gradient components align with the product's top singular directions, so growth/decay is governed by the spectrum of the product Jacobian. Entries can be small while a singular value is large (or vice versa), and the spectrum of products of random matrices concentrates (Lyapunov exponents), giving the exponential-in-depth behavior.</div></details></li>
+  <li><span class="lvl h">HARD</span> Each layer's Jacobian is $J=\mathrm{diag}(m)W$ where $m_i\in\{0,1\}$ are ReLU masks with $\Pr(m_i=1)=\tfrac12$ and $W$ has i.i.d. $\mathcal N(0,\sigma_w^2/n)$ entries. Estimate $\mathbb E\|J^\top\delta\|^2/\|\delta\|^2$ and the critical $\sigma_w^2$.<details class="sol"><summary>Solution</summary><div>$\mathbb E\|W^\top\mathrm{diag}(m)\delta\|^2 = \sigma_w^2\,\mathbb E\|\mathrm{diag}(m)\delta\|^2=\sigma_w^2\cdot\tfrac12\|\delta\|^2$ (each column of $W$ contributes variance $\sigma_w^2/n$ per of the $n$ output coords; masks keep half the energy in expectation). Per-layer factor $=\sigma_w^2/2$; criticality at $\sigma_w^2=2$ — exactly He initialization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vanishing-gradients">
+ <h2>Vanishing gradients</h2>
+ <p>When per-layer factors are below 1, early layers receive exponentially tiny gradients: the network's first layers effectively stop learning while the last layers do all the work. Classic causes: saturating activations (sigmoid caps the factor at $1/4$), too-small initialization, and long recurrent chains through time.</p>
+ <div class="box def"><span class="label">Definition</span> Vanishing gradients: $\|\partial L/\partial\theta^{(\ell)}\|\to0$ exponentially as depth-from-output $L-\ell$ grows, i.e. $\big\|\prod_{k=\ell+1}^{L}J_k\big\|\le c\,\rho^{\,L-\ell}$ with $\rho<1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 30-layer sigmoid MLP with weights of spectral norm 1: each backward factor is at most $\max\sigma'\cdot\|W\|=\tfrac14$. Gradient bound at layer 1: $(1/4)^{29}=2^{-58}\approx3.5\times10^{-18}$ — below float32 resolution around values of order 1; the early layers are numerically frozen.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Vanishing gradients often masquerade as "the model converged": the loss plateaus because early layers can't move, not because the network is at a good minimum. Diagnose by logging per-layer gradient norms, not just the loss.</div>
+ <div class="box link"><span class="label">Where this goes</span> The fixes form half this chapter: ReLU/GELU, careful initialization, batch/layer norm, residual connections, and gated RNNs (LSTM/GRU).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does sigmoid cap each layer's backward factor at $\tfrac14\|W\|$?<details class="sol"><summary>Solution</summary><div>The layer Jacobian is $\mathrm{diag}(\sigma'(a))W$ and $\sigma'\le1/4$ everywhere, so its norm is at most $\tfrac14\|W\|$.</div></details></li>
+  <li><span class="lvl m">MED</span> An RNN carries state $h_t=\tanh(Wh_{t-1}+Ux_t)$. Write $\partial h_T/\partial h_1$ and explain why long time gaps vanish.<details class="sol"><summary>Solution</summary><div>$\frac{\partial h_T}{\partial h_1}=\prod_{t=2}^{T}\mathrm{diag}(\tanh'(a_t))\,W$. It is a product of $T-1$ matrices each typically of norm $<1$ (since $\tanh'\le1$ with equality only at 0, and often $\|W\|\le1$ after training for stability), so the derivative decays exponentially in the gap $T-1$: influence of early inputs on late losses is exponentially small.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if every $\|J_k\|\le\rho<1$ then for parameters at layer $\ell$, $\|\nabla_{W^{(\ell)}}L\|\le c\,\rho^{L-\ell}$, and conclude a learning-rate increase cannot fix vanishing gradients uniformly.<details class="sol"><summary>Solution</summary><div>$\nabla_{W^{(\ell)}}L=\delta^{(\ell)}h^{(\ell-1)\top}$ and $\|\delta^{(\ell)}\|\le\|\delta^{(L)}\|\prod_{k>\ell}\|J_k\|\le\|\delta^{(L)}\|\rho^{L-\ell}$; with bounded activations $\|h^{(\ell-1)}\|\le c'$, the bound follows. Raising the learning rate by $\rho^{-(L-\ell)}$ to compensate layer $\ell$ would multiply layer $L$'s effective step by the same huge factor, exploding it: one global rate cannot equalize exponentially disparate gradient scales — the cure must change the factors themselves.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exploding-gradients">
+ <h2>Exploding gradients</h2>
+ <p>The mirror problem: per-layer factors above 1 amplify the backward signal exponentially, producing giant, erratic updates, NaNs, and sudden loss spikes. It is most common in RNNs and very deep nets early in training. The blunt, effective fix is gradient clipping; the structural fixes are the same as for vanishing gradients.</p>
+ <div class="box def"><span class="label">Definition</span> Exploding gradients: $\|\nabla_\theta L\|$ grows exponentially with depth/sequence length. Gradient clipping by global norm replaces $g=\nabla_\theta L$ with $g\cdot\min\!\big(1,\tfrac{\tau}{\|g\|}\big)$ for threshold $\tau$, preserving direction while capping magnitude.</div>
+ <div class="box ex"><span class="label">Worked example</span> Gradient $g=(3,4)$, $\|g\|=5$, threshold $\tau=1$. Clipped gradient $=g\cdot\tfrac15=(0.6,0.8)$ — same direction, norm exactly 1. If instead each coordinate were clipped elementwise to $[-1,1]$ we would get $(1,1)$, which changes the direction; norm clipping is usually preferred for that reason.</div>
+ <div class="quiz" data-answer="2"><div class="q">Training loss is smooth for 2000 steps, then jumps to NaN in one step. Most likely immediate cause?</div><button class="opt">Vanishing gradients froze the early layers</button><button class="opt">The learning-rate schedule decayed too fast</button><button class="opt">An exploding gradient produced an overflow (e.g. through a large logit or division)</button><div class="why" hidden>NaN onset in a single step is the signature of numeric overflow from an exploded update — vanishing gradients and fast decay both make training <em>quieter</em>, not NaN. Standard response: clip gradients, lower LR, check for extreme inputs/logits.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Clip $g=(6,8)$ to norm threshold $\tau=5$.<details class="sol"><summary>Solution</summary><div>$\|g\|=10>5$: $g\cdot\tfrac{5}{10}=(3,4)$.</div></details></li>
+  <li><span class="lvl m">MED</span> A linear RNN has $h_t=Wh_{t-1}$ with $W$'s spectral radius $1.05$. How much larger is $\|\partial h_{100}/\partial h_0\|$ along the top eigendirection than at radius $0.95$?<details class="sol"><summary>Solution</summary><div>$1.05^{100}\approx e^{100\cdot0.04879}\approx131.5$ vs $0.95^{100}\approx0.0059$. Ratio $\approx 131.5/0.0059\approx2.2\times10^4$ — a $5\%$ change in radius swings the 100-step Jacobian by four orders of magnitude.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show norm clipping is equivalent to using an adaptive per-step learning rate $\eta_t=\eta\min(1,\tau/\|g_t\|)$ on the unclipped gradient, and explain why this stabilizes SGD near cliffs.<details class="sol"><summary>Solution</summary><div>The update $-\eta\,\mathrm{clip}(g_t)=-\eta\min(1,\tau/\|g_t\|)g_t=-\eta_t g_t$. Near a "cliff" (a region of huge curvature), $\|g\|$ is enormous; clipping caps the step length at $\eta\tau$ regardless, so the iterate can't be catapulted far from the current region — the step direction is kept, only the overshoot removed.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="weight-initialization">
+ <h2>Weight initialization</h2>
+ <p>Before training, the weights set the initial gain of every layer. Initialize too small and both activations and gradients shrink layer by layer; too large and they blow up or saturate the nonlinearity. Good initialization makes the variance of signals roughly constant across layers — the criticality condition that Xavier and He schemes solve for specific activations.</p>
+ <div class="box def"><span class="label">Definition</span> For a layer $a=Wh$ with $W_{ij}$ i.i.d., mean 0, variance $\sigma_w^2/n_{\text{in}}$, and inputs $h_i$ i.i.d. mean 0 variance $q$: $\mathrm{Var}(a_i)=\sigma_w^2\,q$. Variance-preserving initialization chooses $\sigma_w^2$ so that the post-activation variance returns to $q$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Linear activation, $n_{\text{in}}=1000$: choose entrywise variance $1/1000$ (std $\approx0.0316$). Then each $a_i=\sum_j W_{ij}h_j$ has variance $1000\cdot\frac{1}{1000}\cdot q=q$: unit gain. Had we used std $0.1$ (variance $10^{-2}$), the gain per layer would be $1000\cdot10^{-2}=10$: after 10 layers, activations grow by $10^{5}$ in variance.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Initializing all weights to the same constant (e.g. zero) makes all units in a layer compute identical functions and receive identical gradients forever — the symmetry never breaks and the layer behaves as a single unit. Randomness in initialization is not optional.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can biases safely be initialized to zero when weights are random?<details class="sol"><summary>Solution</summary><div>The random weights already break the symmetry between units (each unit gets different weight vectors, hence different gradients); a constant bias adds no symmetry problem.</div></details></li>
+  <li><span class="lvl m">MED</span> With uniform initialization $W_{ij}\sim U[-a,a]$, what $a$ gives variance $1/n_{\text{in}}$?<details class="sol"><summary>Solution</summary><div>$\mathrm{Var}(U[-a,a])=a^2/3$. Set $a^2/3=1/n_{\text{in}}$: $a=\sqrt{3/n_{\text{in}}}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the forward-variance recursion $q^{(\ell)}=\sigma_w^2\,\mathbb E[\sigma(\sqrt{q^{(\ell-1)}}Z)^2]$, $Z\sim\mathcal N(0,1)$, for wide nets, and find the fixed-point condition for $\sigma=\tanh$ near small $q$.<details class="sol"><summary>Solution</summary><div>In a wide layer, pre-activations are approximately Gaussian with variance $q_a^{(\ell)}=\sigma_w^2\,\mathbb E[h^2]=\sigma_w^2\,\mathbb E[\sigma(a^{(\ell-1)})^2]$ where $a^{(\ell-1)}\sim\mathcal N(0,q_a^{(\ell-1)})$ — that is the recursion. For small $q$, $\tanh(x)\approx x$, so $\mathbb E[\tanh(\sqrt qZ)^2]\approx q$, giving $q^{(\ell)}\approx\sigma_w^2q^{(\ell-1)}$: fixed nonzero variance requires $\sigma_w^2=1$ — the Xavier condition for tanh.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="xavier-initialization">
+ <h2>Xavier initialization</h2>
+ <p>Xavier (Glorot) initialization balances two demands at once: keep activation variance constant going forward ($\sigma_w^2=1/n_{\text{in}}$) and gradient variance constant going backward ($\sigma_w^2=1/n_{\text{out}}$). The compromise is the harmonic mean of the two. It is the right scale for activations that are roughly linear near zero: tanh, sigmoid (rescaled), identity.</p>
+ <div class="box def"><span class="label">Definition</span> Xavier/Glorot: $W_{ij}\sim\mathcal N\!\Big(0,\ \frac{2}{n_{\text{in}}+n_{\text{out}}}\Big)$, or uniform $U\big[-a,a\big]$ with $a=\sqrt{\frac{6}{n_{\text{in}}+n_{\text{out}}}}$ (same variance, since $a^2/3=\frac{2}{n_{\text{in}}+n_{\text{out}}}$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Layer 512&rarr;256. Gaussian Xavier variance $=2/(512+256)=2/768\approx0.0026$, std $\approx0.051$. Uniform version: $a=\sqrt{6/768}=\sqrt{0.0078125}\approx0.0884$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the Xavier-uniform bound $a$ for a square layer $n\to n$ with $n=100$.<details class="sol"><summary>Solution</summary><div>$a=\sqrt{6/200}=\sqrt{0.03}\approx0.173$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that with $\sigma_w^2=\frac{2}{n_{\text{in}}+n_{\text{out}}}$, forward gain is $\frac{2n_{\text{in}}}{n_{\text{in}}+n_{\text{out}}}$ and backward gain is $\frac{2n_{\text{out}}}{n_{\text{in}}+n_{\text{out}}}$ (linear activation), and note both equal 1 only when $n_{\text{in}}=n_{\text{out}}$.<details class="sol"><summary>Solution</summary><div>Forward: $\mathrm{Var}(a_i)=n_{\text{in}}\sigma_w^2q=\frac{2n_{\text{in}}}{n_{\text{in}}+n_{\text{out}}}q$. Backward: $\delta^{(\ell)}=W^\top\delta^{(\ell+1)}$ sums $n_{\text{out}}$ terms of variance $\sigma_w^2$ each: gain $=n_{\text{out}}\sigma_w^2=\frac{2n_{\text{out}}}{n_{\text{in}}+n_{\text{out}}}$. Equal fan-in/out makes both exactly 1; otherwise Xavier splits the error evenly between directions.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is Xavier wrong for ReLU networks, quantitatively?<details class="sol"><summary>Solution</summary><div>ReLU zeroes the negative half: for $a\sim\mathcal N(0,q_a)$, $\mathbb E[\mathrm{ReLU}(a)^2]=q_a/2$ (ReLU drill). The forward recursion becomes $q^{(\ell)}=n_{\text{in}}\sigma_w^2\cdot\frac{q^{(\ell-1)}}{ }\cdot\frac12$ per unit-variance normalization, i.e. gain $=\tfrac12 n_{\text{in}}\sigma_w^2$. Xavier ($\sigma_w^2\approx1/n$) gives gain $\approx\tfrac12$: activations halve in variance each layer, vanishing as $2^{-L}$ over $L$ layers. The fix is to double the variance — He initialization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="he-initialization">
+ <h2>He initialization</h2>
+ <p>He (Kaiming) initialization is Xavier corrected for ReLU: since ReLU throws away half the signal's energy, double the weight variance to compensate. With $\sigma_w^2=2/n_{\text{in}}$, a deep ReLU stack preserves activation variance layer after layer, which is why 50+ layer ReLU CNNs became trainable.</p>
+ <div class="box def"><span class="label">Definition</span> He initialization: $W_{ij}\sim\mathcal N\!\big(0,\ \tfrac{2}{n_{\text{in}}}\big)$ (fan-in mode), for ReLU-family activations. Uniform version: $U[-a,a]$ with $a=\sqrt{6/n_{\text{in}}}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Layer 1024&rarr;1024 with ReLU. He std $=\sqrt{2/1024}\approx0.0442$. Check the gain: pre-activation variance $=1024\cdot\frac{2}{1024}\cdot\mathbb E[h^2]=2\,\mathbb E[h^2]$; after ReLU, $\mathbb E[\mathrm{ReLU}(a)^2]=\tfrac12\mathrm{Var}(a)=\mathbb E[h^2]$ — unit gain, exactly. ✓</div>
+ <div class="box think"><span class="label">Think first</span> Should the very last (output) layer of a classifier also use He init? <details class="sol"><summary>Reveal</summary><div>The output layer has no ReLU after it, so the factor 2 is unjustified; Xavier (or even smaller, e.g. zero-init of the final layer in some residual recipes) is more appropriate. Many practical recipes deliberately shrink the last layer's init so initial logits are near zero and the initial loss equals $\ln K$ — a useful sanity check.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> He std for fan-in 200?<details class="sol"><summary>Solution</summary><div>$\sqrt{2/200}=\sqrt{0.01}=0.1$.</div></details></li>
+  <li><span class="lvl m">MED</span> A 40-layer ReLU net is initialized with Xavier instead of He. Estimate the activation variance at the top relative to the bottom.<details class="sol"><summary>Solution</summary><div>Per-layer gain $\approx\tfrac12$ (previous drill), so variance ratio $\approx2^{-40}\approx9\times10^{-13}$ — activations (and by symmetry gradients) are numerically dead.</div></details></li>
+  <li><span class="lvl h">HARD</span> For Leaky ReLU $\sigma(z)=\max(\alpha z,z)$, derive the corrected He variance.<details class="sol"><summary>Solution</summary><div>For $a\sim\mathcal N(0,q)$: $\mathbb E[\sigma(a)^2]=\mathbb E[a^2\mathbf 1_{a>0}]+\alpha^2\mathbb E[a^2\mathbf 1_{a<0}]=\tfrac q2(1+\alpha^2)$. Unit gain needs $n_{\text{in}}\sigma_w^2\cdot\tfrac{1+\alpha^2}{2}=1$, so $\sigma_w^2=\frac{2}{(1+\alpha^2)\,n_{\text{in}}}$ — reducing to He at $\alpha=0$ and Xavier-like $1/n$ at $\alpha=1$ (linear).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="batch-normalization">
+ <h2>Batch normalization</h2>
+ <p>Batch norm re-standardizes each feature across the current mini-batch — subtract the batch mean, divide by the batch std — then lets the network scale and shift the result with learned parameters. It keeps every layer's input distribution in a healthy range regardless of what earlier layers do, allowing much larger learning rates and making deep nets far easier to train.</p>
+ <div class="box def"><span class="label">Definition</span> For feature $x$ over a batch $\{x_1,\dots,x_B\}$: $\mu=\tfrac1B\sum_i x_i$, $\sigma^2=\tfrac1B\sum_i(x_i-\mu)^2$, $$\hat x_i=\frac{x_i-\mu}{\sqrt{\sigma^2+\varepsilon}},\qquad y_i=\gamma\hat x_i+\beta,$$ with learned $\gamma,\beta$. At inference, $\mu,\sigma^2$ are replaced by running averages collected during training.</div>
+ <div class="box ex"><span class="label">Worked example</span> Batch values $(1,2,3,6)$, $\varepsilon=0$. $\mu=3$, $\sigma^2=\tfrac14[(−2)^2+(−1)^2+0^2+3^2]=\tfrac{14}{4}=3.5$, $\sigma\approx1.8708$. Normalized: $(-1.069,-0.535,0,1.604)$. With $\gamma=2,\beta=1$: $(-1.139,-0.069,1,4.207)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Train/eval mismatch: forgetting to switch to running statistics at inference (model.eval() in PyTorch) makes predictions depend on the test batch's composition — a single example in a "batch" of one normalizes itself to zero. Batch norm also breaks when batches are tiny, and it leaks information across examples, which is why transformers use layer norm instead.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Normalize the batch $(0,0,4,4)$ (set $\varepsilon=0$).<details class="sol"><summary>Solution</summary><div>$\mu=2$, $\sigma^2=4$, $\sigma=2$: $\hat x=(-1,-1,1,1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that BN makes the layer invariant to any (uniform positive) rescaling of the incoming weights: replacing $W$ by $cW$ ($c>0$) leaves the BN output unchanged.<details class="sol"><summary>Solution</summary><div>Pre-activations scale to $ca_i$; batch mean and std scale to $c\mu$ and $c\sigma$; so $\hat x_i=\frac{ca_i-c\mu}{c\sigma}=\frac{a_i-\mu}{\sigma}$ — identical. Consequently the effective learning rate on $W$'s direction is what matters, and weight decay interacts with BN in nontrivial ways.</div></details></li>
+  <li><span class="lvl h">HARD</span> With $\varepsilon=0$ and $L=\sum_i\ell(y_i)$, derive $\frac{\partial L}{\partial x_i}$ through BN (per feature), given $g_i=\frac{\partial L}{\partial \hat x_i}$.<details class="sol"><summary>Solution</summary><div>Standard result: $\frac{\partial L}{\partial x_i}=\frac{1}{B\sigma}\Big(Bg_i-\sum_j g_j-\hat x_i\sum_j g_j\hat x_j\Big)$. Derivation: $\hat x_i$ depends on $x_i$ directly ($1/\sigma$), through $\mu$ ($-1/(B\sigma)$ each), and through $\sigma^2$ ($\partial\sigma^2/\partial x_i=2(x_i-\mu)/B$, and $\partial\hat x_j/\partial\sigma^2=-\tfrac12(x_j-\mu)\sigma^{-3}$); summing the three contributions and simplifying with $\hat x_j=(x_j-\mu)/\sigma$ gives the formula. Note it subtracts the batch-mean gradient and the component along $\hat x$ — BN's backward pass centers and decorrelates gradients too.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="layer-normalization">
+ <h2>Layer normalization</h2>
+ <p>Layer norm normalizes across the features of a single example instead of across the batch: each token/example is standardized on its own. No batch statistics, no train/eval mismatch, works with batch size 1 and variable-length sequences — which is why it, not batch norm, lives inside every transformer block.</p>
+ <div class="box def"><span class="label">Definition</span> For one example's feature vector $x\in\mathbb R^d$: $\mu=\tfrac1d\sum_k x_k$, $\sigma^2=\tfrac1d\sum_k(x_k-\mu)^2$, $$\mathrm{LN}(x)=\gamma\odot\frac{x-\mu}{\sqrt{\sigma^2+\varepsilon}}+\beta,$$ with learned $\gamma,\beta\in\mathbb R^d$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $x=(2,-2,4,0)$, $\varepsilon=0$, $\gamma=\mathbf 1$, $\beta=\mathbf 0$. $\mu=1$, deviations $(1,-3,3,-1)$, $\sigma^2=\tfrac{1+9+9+1}{4}=5$, $\sigma=\sqrt5\approx2.236$. Output $\approx(0.447,-1.342,1.342,-0.447)$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Pre-LN transformer blocks apply LN before attention and before the MLP; Ch 23's training stability at scale leans heavily on this placement.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is $\mathrm{LN}(x)$ for $x=(5,5,5,5)$ (with $\varepsilon>0$, $\gamma=\mathbf1,\beta=\mathbf0$)?<details class="sol"><summary>Solution</summary><div>$\mu=5$, $\sigma^2=0$: output $=\mathbf 0$ (the $\varepsilon$ prevents division by zero). Constant vectors carry no shape information and are zeroed.</div></details></li>
+  <li><span class="lvl m">MED</span> Contrast: for a batch of $B$ tokens each with $d$ features, over which axis do BN and LN normalize, and which statistic count does each compute?<details class="sol"><summary>Solution</summary><div>BN: per feature, across the $B$ examples — $d$ means and variances from $B$ numbers each. LN: per example, across the $d$ features — $B$ means and variances from $d$ numbers each. LN's statistics are per-token, so batch composition and size are irrelevant.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show LN output is invariant to $x\mapsto ax+b\mathbf 1$ for scalars $a>0,b$.<details class="sol"><summary>Solution</summary><div>Mean maps to $a\mu+b$; deviations to $a(x-\mu)$; std to $a\sigma$. So $\frac{(ax+b)-(a\mu+b)}{a\sigma}=\frac{x-\mu}{\sigma}$: identical. LN throws away each token's overall scale and offset, keeping only its "shape".</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rmsnorm">
+ <h2>RMSNorm</h2>
+ <p>RMSNorm is layer norm minus the mean-centering: just divide by the root-mean-square of the features and rescale. It drops one statistic and the $\beta$ shift, is measurably faster, and works just as well in practice — so most modern LLMs (Llama-family and others) use it in place of LN.</p>
+ <div class="box def"><span class="label">Definition</span> $$\mathrm{RMSNorm}(x)=\gamma\odot\frac{x}{\mathrm{RMS}(x)},\qquad \mathrm{RMS}(x)=\sqrt{\tfrac1d\sum_{k=1}^{d}x_k^2+\varepsilon}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> $x=(3,-4,0,0)$, $d=4$, $\varepsilon=0$: $\mathrm{RMS}=\sqrt{(9+16)/4}=\sqrt{6.25}=2.5$. Output (with $\gamma=\mathbf1$): $(1.2,-1.6,0,0)$. Note the mean of $x$ is $-0.25\ne0$ and stays uncentered — RMSNorm only fixes the scale.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\mathrm{RMSNorm}((1,1,1,1))$ with $\gamma=\mathbf1$, $\varepsilon=0$.<details class="sol"><summary>Solution</summary><div>$\mathrm{RMS}=1$: output $(1,1,1,1)$ — unlike LN, a constant vector passes through (LN would zero it).</div></details></li>
+  <li><span class="lvl m">MED</span> When does RMSNorm equal LN (with $\beta=0$) exactly?<details class="sol"><summary>Solution</summary><div>When the feature mean is zero: then $\sigma^2=\tfrac1d\sum x_k^2=\mathrm{RMS}^2$ and the two coincide. High-dimensional activations often have near-zero mean, which is one reason dropping centering costs little.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\|\mathrm{RMSNorm}(x)\|_2=\sqrt d\,$ (for $\gamma=\mathbf 1$, $\varepsilon=0$, $x \neq 0$), i.e. it projects onto a sphere of radius $\sqrt d$, and compute the Jacobian–vector product $J v$ at $x$.<details class="sol"><summary>Solution</summary><div>$\|x/\mathrm{RMS}(x)\|^2=\frac{\sum x_k^2}{\frac1d\sum x_k^2}=d$. Jacobian: with $r=\mathrm{RMS}(x)$, $y=x/r$, $\partial y/\partial x=\frac1r\Big(I-\frac{xx^\top}{d\,r^2}\Big)$, so $Jv=\frac1r\Big(v-\frac{(x^\top v)}{d\,r^2}x\Big)$ — it removes the radial component of $v$ (scaled), passing tangential directions with gain $1/r$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dropout">
+ <h2>Dropout</h2>
+ <p>Dropout randomly zeroes each unit with probability $p$ during training, forcing the network to spread information across units instead of relying on fragile co-adapted pathways. It behaves like training an exponential ensemble of subnetworks with shared weights; at test time the full network runs once, with activations scaled so expectations match.</p>
+ <div class="box def"><span class="label">Definition</span> Inverted dropout with keep probability $q=1-p$: during training, $\tilde h=\frac{m\odot h}{q}$ where $m_i\sim\mathrm{Bernoulli}(q)$ i.i.d.; at test time $\tilde h=h$. The $1/q$ scaling makes $\mathbb E[\tilde h]=h$, so no test-time change is needed.</div>
+ <div class="box ex"><span class="label">Worked example</span> $h=(2,4,6)$, $p=0.5$ ($q=0.5$), sampled mask $m=(1,0,1)$. Output $=\frac{(2,0,6)}{0.5}=(4,0,12)$. Expected value over masks: $\mathbb E[\tilde h_i]=\frac{q\cdot h_i}{q}=h_i$ ✓. Variance added to unit 1: $\mathrm{Var}(\tilde h_1)=h_1^2\frac{1-q}{q}=4\cdot1=4$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Applying dropout at inference (forgetting eval mode) makes predictions stochastic and biased; conversely, "vanilla" (non-inverted) dropout requires multiplying activations by $q$ at test time — mixing the two conventions silently mis-scales every activation by $1/q$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $p=0.2$, what fraction of units are kept, and by what factor are surviving activations scaled (inverted dropout)?<details class="sol"><summary>Solution</summary><div>Keep $q=0.8$ of units; scale survivors by $1/0.8=1.25$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\mathrm{Var}(\tilde h_i)=h_i^2\,\frac{p}{1-p}$ for inverted dropout (treating $h_i$ fixed).<details class="sol"><summary>Solution</summary><div>$\tilde h_i=\frac{m_i}{q}h_i$ with $\mathrm{Var}(m_i)=q(1-q)$. $\mathrm{Var}(\tilde h_i)=\frac{h_i^2}{q^2}q(1-q)=h_i^2\frac{1-q}{q}=h_i^2\frac{p}{1-p}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For a linear model $\hat y=w^\top(m\odot x)/q$ with squared loss, show that dropout's expected loss equals the no-dropout loss plus an $L_2$-like penalty $\frac{1-q}{q}\sum_i w_i^2x_i^2/2\cdot 2$ (i.e. $\frac{p}{q}\cdot\frac12\sum_i w_i^2 x_i^2$ scaled appropriately).<details class="sol"><summary>Solution</summary><div>$\mathbb E[\hat y]=w^\top x$. $\mathbb E[(\hat y-y)^2]=(\mathbb E\hat y-y)^2+\mathrm{Var}(\hat y)=(w^\top x-y)^2+\sum_i w_i^2x_i^2\frac{1-q}{q}$, using independence of the $m_i$ and $\mathrm{Var}(m_i/q)=\frac{1-q}{q}$. The second term is a data-dependent ridge penalty $\frac{p}{1-p}\sum_iw_i^2x_i^2$ — dropout on a linear model is (adaptive) $L_2$ regularization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="weight-decay">
+ <h2>Weight decay</h2>
+ <p>Weight decay shrinks every weight a little at each step, pulling the model toward simpler functions and countering the drift toward huge weights that overfit noise. For plain SGD it coincides with $L_2$ regularization; for Adam it does not, which is exactly why AdamW exists (Ch 15).</p>
+ <div class="box def"><span class="label">Definition</span> Weight decay with coefficient $\lambda$: the update becomes $\theta\leftarrow(1-\eta\lambda)\theta-\eta\nabla_\theta L$. For SGD this equals gradient descent on $L(\theta)+\frac\lambda2\|\theta\|^2$; for adaptive optimizers the two differ (decoupled weight decay = AdamW).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\theta=2$, $\eta=0.1$, $\lambda=0.01$, gradient $\nabla L=0.5$. Update: $\theta\leftarrow(1-0.001)\cdot2-0.1\cdot0.5=1.998-0.05=1.948$. The decay contributed $-0.002$; over 10,000 such steps with zero gradient, $\theta$ would shrink by factor $(0.999)^{10^4}\approx e^{-10}\approx4.5\times10^{-5}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Decaying everything: biases, layer-norm gains $\gamma$, and embedding norms are usually excluded from weight decay — shrinking them harms calibration and expressiveness without any regularization benefit. Check your framework's parameter groups.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Show that gradient descent on $L(\theta)+\frac\lambda2\|\theta\|^2$ gives the update $\theta\leftarrow(1-\eta\lambda)\theta-\eta\nabla L$.<details class="sol"><summary>Solution</summary><div>The regularized gradient is $\nabla L+\lambda\theta$; the step $\theta-\eta(\nabla L+\lambda\theta)=(1-\eta\lambda)\theta-\eta\nabla L$.</div></details></li>
+  <li><span class="lvl m">MED</span> For quadratic loss $L(\theta)=\frac12 a(\theta-\theta^*)^2$ ($a>0$), find the minimizer of $L+\frac\lambda2\theta^2$.<details class="sol"><summary>Solution</summary><div>Set $a(\theta-\theta^*)+\lambda\theta=0$: $\theta=\frac{a}{a+\lambda}\theta^*$ — the solution shrinks toward 0, more strongly where curvature $a$ is small. This is the ridge-regression shrinkage picture applied per-eigendirection.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why $L_2$-regularizing weights that feed into batch norm does not constrain the represented function, yet still affects training.<details class="sol"><summary>Solution</summary><div>BN makes the layer invariant to positive rescaling of the incoming weights (BN drill), so shrinking $\|W\|$ changes nothing about the function — the network can always be rescaled back. But decay does keep $\|W\|$ bounded, which <em>increases</em> the effective learning rate (relative step size $\eta\|\nabla\|/\|W\|$ grows as $\|W\|$ shrinks), acting as an implicit learning-rate schedule rather than a function-space regularizer.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="residual-connections">
+ <h2>Residual connections</h2>
+ <p>A residual connection adds the block's input to its output: the block learns only the <em>correction</em> to the identity. Gradients then have an express lane — an identity path from the loss straight to any layer — so depth stops strangling the signal. Residual connections are the single reason 100+-layer networks (and transformers) train at all.</p>
+ <div class="box def"><span class="label">Definition</span> A residual block computes $h^{(\ell+1)}=h^{(\ell)}+F_\ell(h^{(\ell)})$, where $F_\ell$ is a small subnetwork (e.g. norm&rarr;linear&rarr;activation&rarr;linear). Backward: $\frac{\partial h^{(\ell+1)}}{\partial h^{(\ell)}}=I+\frac{\partial F_\ell}{\partial h^{(\ell)}}$.</div>
+ <div class="box thm"><span class="label">Theorem (gradient highway)</span> Across a stack of residual blocks, $$\frac{\partial h^{(L)}}{\partial h^{(\ell)}}=\prod_{k=\ell}^{L-1}\Big(I+\frac{\partial F_k}{\partial h^{(k)}}\Big)=I+\sum_{k}\frac{\partial F_k}{\partial h^{(k)}}+\cdots,$$ which always contains the identity term: the gradient at layer $\ell$ includes an unattenuated copy of the output gradient.</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar toy: 3 residual blocks with $F_k(h)=w_kh$, $w=(-0.1,\,0.2,\,-0.05)$. End-to-end derivative $=(1-0.1)(1+0.2)(1-0.05)=0.9\cdot1.2\cdot0.95=1.026$ — near 1 even though the same $w$'s composed <em>without</em> the skip give $(-0.1)(0.2)(-0.05)=0.001$: three orders of magnitude difference in gradient flow.</div>
+ <div class="box link"><span class="label">Where this goes</span> Every transformer layer (below) is two residual blocks (attention, MLP); Ch 23's deep LLM stacks depend on pre-norm residual arithmetic for stable scaling.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $F$ is initialized so $F(h)\approx0$, what function does a fresh 50-block residual network compute?<details class="sol"><summary>Solution</summary><div>Approximately the identity: $h^{(L)}\approx h^{(0)}$. Training starts from a sensible map and learns perturbations — much easier than learning from a random deep composition.</div></details></li>
+  <li><span class="lvl m">MED</span> Why do residual connections require the block's input and output dimensions to match, and what is done when they don't (e.g. downsampling in a CNN)?<details class="sol"><summary>Solution</summary><div>The sum $h+F(h)$ needs both operands in the same space. When shapes change, the skip uses a learned linear projection ($1\times1$ convolution / matrix $P$): $h^{(\ell+1)}=Ph^{(\ell)}+F(h^{(\ell)})$, preserving the highway at the cost of a cheap linear map.</div></details></li>
+  <li><span class="lvl h">HARD</span> Consider $h^{(\ell+1)}=h^{(\ell)}+F_\ell(h^{(\ell)})$ where each $\|\partial F_k/\partial h\|\le\epsilon$. Bound $\|\partial h^{(L)}/\partial h^{(0)}\|$ above and below, and compare to the non-residual bound.<details class="sol"><summary>Solution</summary><div>Each factor satisfies $1-\epsilon\le\|I+\partial F_k\|\le1+\epsilon$ (lower bound from $\|(I+A)v\|\ge(1-\|A\|)\|v\|$). So the product lies in $[(1-\epsilon)^L,(1+\epsilon)^L]\approx[e^{-\epsilon L},e^{\epsilon L}]$: gradients degrade only if $\epsilon L\gg1$. A plain net with per-layer norm $\le\epsilon$ would be bounded by $\epsilon^L\to0$ — catastrophic for any $\epsilon<1$. Residuals convert multiplicative decay into decay only in the deviation from identity.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convolution">
+ <h2>Convolution</h2>
+ <p>A convolution slides a small filter across the input and, at each position, takes a dot product. The same weights are reused everywhere, so a feature detector learned in one location works in all locations — translation equivariance for free, with dramatically fewer parameters than a dense layer.</p>
+ <div class="box def"><span class="label">Definition</span> Discrete 1D convolution of input $x$ with kernel $w$ of size $k$ (machine-learning convention, i.e. cross-correlation): $$(x*w)[i]=\sum_{j=0}^{k-1}w[j]\,x[i+j].$$ Output length with padding $p$ and stride $s$: $\big\lfloor\frac{n+2p-k}{s}\big\rfloor+1$. In 2D the sum runs over a $k\times k$ window and over input channels.</div>
+ <div class="box ex"><span class="label">Worked example</span> $x=(1,2,3,4,5)$, $w=(1,0,-1)$, no padding, stride 1. Outputs: $1\cdot1+0\cdot2-1\cdot3=-2$; $2-4=-2$; $3-5=-2$. Result $(-2,-2,-2)$: the kernel is a (negated) discrete derivative and the input has constant slope, so the response is constant. Output length $5-3+1=3$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 14's convolution theorem explains why convolution diagonalizes in the frequency domain; here it is the workhorse layer of CNNs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Output size of a $32\times32$ image convolved with a $5\times5$ kernel, padding 0, stride 1?<details class="sol"><summary>Solution</summary><div>$32-5+1=28$: a $28\times28$ map.</div></details></li>
+  <li><span class="lvl m">MED</span> Convolve $x=(2,0,1,3)$ with $w=(1,2)$, padding 0, stride 1. Then with stride 2.<details class="sol"><summary>Solution</summary><div>Stride 1: $(2+0,\,0+2,\,1+6)=(2,2,7)$. Stride 2: positions 0 and 2: $(2,7)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A conv layer maps $C_{in}=64$ channels to $C_{out}=128$ with $3\times3$ kernels. Count parameters (with biases) and compare to a dense layer between the same $56\times56$ feature maps.<details class="sol"><summary>Solution</summary><div>Conv: $128\cdot64\cdot9+128=73728+128=73856$. Dense: $(64\cdot56^2)\cdot(128\cdot56^2)+128\cdot56^2=200704\cdot401408+401408\approx8.06\times10^{10}$ — the conv layer is about a million times smaller because of weight sharing and locality.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cnns">
+ <h2>CNNs</h2>
+ <p>A convolutional neural network stacks conv layers, nonlinearities and downsampling so that early layers detect edges and textures, middle layers detect parts, and late layers detect objects. Its inductive biases — locality, weight sharing, hierarchy — match the statistics of images, which is why CNNs learn vision tasks from far less data than MLPs would need.</p>
+ <div class="box def"><span class="label">Definition</span> A CNN is a network whose core layers are convolutions: $h^{(\ell+1)}=\sigma(\mathrm{Conv}(h^{(\ell)};W^{(\ell)})+b^{(\ell)})$, interleaved with pooling or strided convolutions to shrink spatial size while channel count grows, ending in a small head (global pooling + linear) for the task.</div>
+ <div class="box ex"><span class="label">Worked example</span> A tiny digit classifier for $28\times28$ grayscale images: conv $1\to8$ ($3\times3$, pad 1) &rarr; ReLU &rarr; $2\times2$ max pool ($\to8\times14\times14$) &rarr; conv $8\to16$ ($3\times3$, pad 1) &rarr; ReLU &rarr; pool ($\to16\times7\times7$) &rarr; flatten (784) &rarr; linear to 10 logits. Parameters: $8\cdot9+8=80$; $16\cdot8\cdot9+16=1168$; $784\cdot10+10=7850$; total $9098$ — under 10k parameters for a &gt;98%-accurate MNIST model.</div>
+ <div class="quiz" data-answer="0"><div class="q">Why does a CNN generalize from an object seen in the image's corner to the same object in the center?</div><button class="opt">Weight sharing: the same filters are applied at every spatial position</button><button class="opt">Pooling deletes all spatial information</button><button class="opt">The softmax output is position-dependent</button><div class="why" hidden>Convolution applies identical weights everywhere, so feature detection is translation-equivariant; pooling then adds local invariance. Nothing about the corner had to be re-learned for the center.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does "padding 1" preserve for a $3\times3$ conv, and why is that convenient?<details class="sol"><summary>Solution</summary><div>Spatial size: $n+2-3+1=n$. Same-size maps let you stack layers and add residual connections without shape bookkeeping.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the multiply–adds of a $3\times3$ conv from 64 to 64 channels on a $56\times56$ map.<details class="sol"><summary>Solution</summary><div>Per output element: $64\cdot9=576$ MACs. Outputs: $64\cdot56\cdot56=200704$. Total $\approx1.16\times10^8$ MACs.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why a fully convolutional network can process inputs of any spatial size, and what changes in the output.<details class="sol"><summary>Solution</summary><div>Convolutions, pooling and elementwise ops are defined per-window, not per fixed input size; only dense layers fix dimensions. Replacing the head with global average pooling (or $1\times1$ convs) removes the constraint. A larger input yields a larger output map — effectively evaluating the classifier over a grid of receptive fields, which is how detection/segmentation heads reuse classification backbones.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="receptive-fields">
+ <h2>Receptive fields</h2>
+ <p>A unit's receptive field is the patch of input that can influence it. Each conv layer widens it by a kernel's worth (times the accumulated stride), so depth is how a CNN comes to "see" whole objects while each layer looks only at neighbors.</p>
+ <div class="box def"><span class="label">Definition</span> For a stack of layers with kernel sizes $k_\ell$ and strides $s_\ell$, the receptive field after $L$ layers is $$r_L=1+\sum_{\ell=1}^{L}(k_\ell-1)\prod_{m=1}^{\ell-1}s_m.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Three $3\times3$ convs, stride 1: $r=1+2+2+2=7$ — the same $7\times7$ field as one $7\times7$ conv, but with $3\cdot9c^2=27c^2$ weights instead of $49c^2$, plus two extra nonlinearities. Add a stride-2 pool after the first conv (pool $k=2$: adds $(2-1)\cdot1=1$; later convs' increments double): $r=1+2+1+2\cdot2+2\cdot2=12$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Receptive field of two stacked $5\times5$ convs, stride 1?<details class="sol"><summary>Solution</summary><div>$1+4+4=9$: a $9\times9$ field.</div></details></li>
+  <li><span class="lvl m">MED</span> How many stride-1 $3\times3$ layers are needed for a receptive field covering a $224\times224$ image, and what is the practical alternative?<details class="sol"><summary>Solution</summary><div>$1+2L\ge224\Rightarrow L\ge112$ layers. Practical nets downsample instead: each stride-2 stage doubles later layers' increments, reaching global fields in ~5 stages; dilated convolutions or attention are other routes.</div></details></li>
+  <li><span class="lvl h">HARD</span> A layer uses dilation $d$ (kernel taps spaced $d$ apart). Modify the formula and compute $r$ for three $3\times3$ layers with dilations 1, 2, 4 (stride 1).<details class="sol"><summary>Solution</summary><div>Effective kernel size $k'=d(k-1)+1$, so each layer adds $d_\ell(k_\ell-1)\prod_{m<\ell}s_m$. Here $r=1+2+4+8=15$ — exponential growth with constant compute, the trick behind WaveNet-style stacks.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pooling">
+ <h2>Pooling</h2>
+ <p>Pooling summarizes each small window by one number — its max or mean — shrinking the map while keeping the strongest evidence. It buys local translation invariance (shift a feature one pixel and the max barely changes) and cuts compute for the layers above.</p>
+ <div class="box def"><span class="label">Definition</span> Max pooling with window $k$ and stride $s$: $y[i]=\max_{0\le j<k}x[si+j]$ (per channel; 2D uses $k\times k$ windows). Average pooling replaces max with the mean. Global average pooling averages the whole map into one value per channel.</div>
+ <div class="box ex"><span class="label">Worked example</span> $2\times2$ max pool, stride 2, on $\begin{pmatrix}1&3&2&0\\5&2&1&4\\0&1&3&2\\2&2&1&1\end{pmatrix}$: windows give $\max\{1,3,5,2\}=5$, $\max\{2,0,1,4\}=4$, $\max\{0,1,2,2\}=2$, $\max\{3,2,1,1\}=3$: output $\begin{pmatrix}5&4\\2&3\end{pmatrix}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Max pooling's gradient flows only to the argmax element of each window; the rest get zero. With large windows this starves most positions of learning signal — one reason modern nets prefer stride-2 convs or small $2\times2$ pools.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Average-pool the same $4\times4$ matrix with $2\times2$ windows, stride 2.<details class="sol"><summary>Solution</summary><div>Means: $\frac{11}4=2.75$, $\frac{7}4=1.75$, $\frac{5}4=1.25$, $\frac{7}4=1.75$: $\begin{pmatrix}2.75&1.75\\1.25&1.75\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Through the worked example's max-pool, upstream gradient $\begin{pmatrix}1&1\\1&1\end{pmatrix}$ arrives. Give the gradient on the $4\times4$ input.<details class="sol"><summary>Solution</summary><div>Each 1 routes to its window's argmax: to the 5 (row 2, col 1), the 4 (row 2, col 4), the 2 (bottom-left window: first max at row 4, col 1 by tie-break) and the 3 (row 3, col 3). The other 12 entries get 0.</div></details></li>
+  <li><span class="lvl h">HARD</span> For 1D max pooling with non-overlapping windows ($k=s$), when is the output exactly unchanged under an input shift by 1?<details class="sol"><summary>Solution</summary><div>Iff for every window the shifted window's max equals the original's — guaranteed when each window's max is interior (not shifted out) and no larger value shifts in. So invariance is local and conditional, not exact: pooling gives robustness to small shifts of isolated strong features, which suffices in practice.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="graph-neural-networks">
+ <h2>Graph neural networks</h2>
+ <p>Molecules, social networks and meshes are graphs, not grids. A GNN learns node representations by repeatedly letting each node aggregate its neighbors' vectors and update its own — the graph analogue of convolution, sharing weights across nodes instead of pixel positions.</p>
+ <div class="box def"><span class="label">Definition</span> A GNN layer updates node features $h_v$ by $$h_v^{(\ell+1)}=\phi\Big(h_v^{(\ell)},\ \bigoplus_{u\in\mathcal N(v)}\psi\big(h_u^{(\ell)},h_v^{(\ell)},e_{uv}\big)\Big),$$ where $\bigoplus$ is a permutation-invariant aggregator (sum/mean/max), $\psi$ the message function, $\phi$ the update. A simple instance (GCN-style): $H^{(\ell+1)}=\sigma(\hat AH^{(\ell)}W^{(\ell)})$ with $\hat A$ a normalized adjacency matrix.</div>
+ <div class="box ex"><span class="label">Worked example</span> Path graph $1\!-\!2\!-\!3$, scalar features $h=(1,2,3)$, update $h_v'=\mathrm{ReLU}(h_v+\mathrm{mean}_{u\sim v}h_u)$. Node 1: $1+2=3$. Node 2: $2+\frac{1+3}2=4$. Node 3: $3+2=5$. New $h=(3,4,5)$. After one layer, node 1 "knows about" node 2; a second layer propagates node 3's information to node 1 — $\ell$ layers see $\ell$-hop neighborhoods.</div>
+ <div class="box link"><span class="label">Where this goes</span> Self-attention is a GNN on the complete graph of tokens, with attention weights as a learned, input-dependent adjacency.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must the aggregator be permutation-invariant?<details class="sol"><summary>Solution</summary><div>A node's neighbors have no canonical order; the output must not depend on the arbitrary order in which the data structure lists them. Sum, mean and max qualify; concatenation does not.</div></details></li>
+  <li><span class="lvl m">MED</span> Run a second layer of the worked example.<details class="sol"><summary>Solution</summary><div>From $h=(3,4,5)$: node 1: $3+4=7$; node 2: $4+\frac{3+5}2=8$; node 3: $5+4=9$. $h=(7,8,9)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Oversmoothing: for $H^{(\ell+1)}=\hat AH^{(\ell)}$ with $\hat A=D^{-1}A$ the random-walk matrix of a connected non-bipartite graph, what happens as $\ell\to\infty$?<details class="sol"><summary>Solution</summary><div>$\hat A$ is the transition matrix of an ergodic chain (Ch 12): $\hat A^\ell\to\mathbf 1\pi^\top$ with $\pi$ the stationary distribution. All rows converge to the same vector — every node's feature becomes the identical weighted average of initial features and nodes become indistinguishable. This is why very deep plain GNNs fail, and why residuals/normalization are used there too.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="message-passing">
+ <h2>Message passing</h2>
+ <p>Message passing is the general protocol underneath every GNN: each edge computes a message from its endpoint features, each node aggregates its incoming messages, and each node updates its state. Choosing the three functions — message, aggregate, update — specifies the architecture.</p>
+ <div class="box def"><span class="label">Definition</span> One round: $$m_{u\to v}=\psi(h_u,h_v,e_{uv}),\qquad m_v=\bigoplus_{u\in\mathcal N(v)}m_{u\to v},\qquad h_v'=\phi(h_v,m_v).$$ After $T$ rounds, $h_v$ depends exactly on the $T$-hop neighborhood of $v$. A readout $\bigoplus_vh_v$ gives one vector per graph.</div>
+ <div class="box ex"><span class="label">Worked example</span> Triangle graph $\{1,2,3\}$, $h=(1,0,2)$, messages $m_{u\to v}=h_u$, sum aggregation, update $h_v'=m_v$. Round 1: $h_1'=0+2=2$, $h_2'=1+2=3$, $h_3'=1+0=1$. Round 2 from $(2,3,1)$: $h_1''=3+1=4$, $h_2''=2+1=3$, $h_3''=2+3=5$. Total mass $\sum h$: $3\to6\to12$ — sum aggregation on a 2-regular graph doubles it each round; unnormalized aggregation can blow up, which is why mean/normalized variants exist.</div>
+ <div class="box think"><span class="label">Think first</span> Two different graphs give a GNN identical outputs after any number of rounds. What structural fact could explain it? <details class="sol"><summary>Reveal</summary><div>Message passing with anonymous features cannot distinguish graphs that the Weisfeiler–Leman (1-WL) color-refinement test cannot distinguish — e.g. two disjoint triangles vs a 6-cycle (both 2-regular). GNN expressive power is bounded by 1-WL; fixes include positional/structural features or higher-order GNNs.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In matrix form, what is one round of "sum neighbors, replace state" on features $H$?<details class="sol"><summary>Solution</summary><div>$H'=AH$ with $A$ the adjacency matrix.</div></details></li>
+  <li><span class="lvl m">MED</span> With mean aggregation instead, redo round 1 of the worked example.<details class="sol"><summary>Solution</summary><div>$h_1'=\frac{0+2}2=1$, $h_2'=\frac{1+2}2=1.5$, $h_3'=\frac{1+0}2=0.5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Exhibit neighbor multisets that mean and max cannot distinguish but sum can, and state the general principle.<details class="sol"><summary>Solution</summary><div>$\{2,2\}$ vs $\{2\}$: mean $2=2$, max $2=2$, sums $4\ne2$. Mean and max discard multiplicity here; sum does not. In general, sum aggregation over countable feature domains can be made injective on bounded multisets (the GIN result), achieving full 1-WL power; mean/max lose cardinality information.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sequence-modeling">
+ <h2>Sequence modeling</h2>
+ <p>Text, audio, code and time series arrive as ordered sequences of arbitrary length. A sequence model must consume variable-length input, share parameters across positions, and capture dependencies between distant elements. The remaining architectures — RNNs, LSTMs, attention, transformers — are successive answers to "how do we remember the past?"</p>
+ <div class="box def"><span class="label">Definition</span> A sequence model defines a distribution or map over sequences $x_{1:T}$. The autoregressive factorization writes the joint as $$p(x_{1:T})=\prod_{t=1}^{T}p(x_t\mid x_{1:t-1}),$$ reducing sequence modeling to next-element prediction given a growing context.</div>
+ <div class="box ex"><span class="label">Worked example</span> Character model over $\{a,b\}$: first char is always $a$; after $a$, next is $a$ or $b$ with prob $\tfrac12$ each; after $b$, always $a$. Then $p(aba)=1\cdot\tfrac12\cdot1=\tfrac12$ and $p(aab)=1\cdot\tfrac12\cdot\tfrac12=\tfrac14$. Any device producing correct conditionals — table, RNN, transformer — defines the same joint.</div>
+ <div class="box link"><span class="label">Where this goes</span> Autoregressive and language modeling below, the generative models of Ch 22, and the pretraining objective of Ch 23 all live inside this factorization.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does parameter sharing across time steps matter for variable-length sequences?<details class="sol"><summary>Solution</summary><div>Position-specific parameters can't handle unseen lengths and grow with $T$; shared parameters define the model for every $T$ at once and let patterns learned at one position transfer to all others.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the autoregressive factorization is exact for any distribution over sequences.<details class="sol"><summary>Solution</summary><div>Chain rule of probability (Ch 11): $p(x_1,\dots,x_T)=p(x_1)p(x_2\mid x_1)\cdots p(x_T\mid x_{1:T-1})$ — an identity, no assumption. Modeling choices enter only in how the conditionals are parameterized.</div></details></li>
+  <li><span class="lvl h">HARD</span> An order-$k$ Markov table over vocabulary $V$ has how many free parameters, and what is the statistical (not just memory) problem for $k=10$, $V=50{,}000$?<details class="sol"><summary>Solution</summary><div>$V^k(V-1)$ — here $50000^{10}\cdot49999$, astronomically large. Statistically, almost every 10-token context occurs zero or one time in any corpus, so table estimates are undefined or degenerate: generalization requires sharing strength across contexts — learned representations, which is exactly what neural sequence models provide.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rnns">
+ <h2>RNNs</h2>
+ <p>A recurrent network keeps a fixed-size hidden state and updates it once per time step with the same weights: the state is a running summary of everything seen so far. Elegant and $O(T)$ in compute, but the summary squeezes through a fixed-size bottleneck, gradients must traverse $T$ multiplications (vanishing/exploding), and steps cannot be parallelized across time.</p>
+ <div class="box def"><span class="label">Definition</span> A vanilla RNN: $$h_t=\tanh(W_hh_{t-1}+W_xx_t+b),\qquad y_t=W_yh_t+c,$$ with $h_0$ fixed (usually $\mathbf 0$). Training unrolls the recurrence and backpropagates through time (BPTT).</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar RNN $h_t=\tanh(0.5h_{t-1}+x_t)$, $h_0=0$, inputs $(1,-1)$. Step 1: $h_1=\tanh(1)\approx0.7616$. Step 2: $h_2=\tanh(0.5\cdot0.7616-1)=\tanh(-0.6192)\approx-0.5504$. BPTT factor: $\frac{\partial h_2}{\partial h_1}=0.5(1-h_2^2)\approx0.5\cdot0.697=0.349$ — one step already attenuates the gradient to a third.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Truncated BPTT (backpropagating only $k$ steps) silently caps learnable dependencies at range $k$: the model may look like it "chose" to ignore long-range structure when in fact it never received gradient about it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many parameters does an RNN cell with input size 100 and hidden size 200 have?<details class="sol"><summary>Solution</summary><div>$W_h:200\cdot200=40000$, $W_x:200\cdot100=20000$, $b:200$: total $60200$.</div></details></li>
+  <li><span class="lvl m">MED</span> Continue the worked example with $x_3=0$; compute $h_3$ and $\frac{\partial h_3}{\partial h_1}$.<details class="sol"><summary>Solution</summary><div>$h_3=\tanh(-0.2752)\approx-0.2685$. $\frac{\partial h_3}{\partial h_2}=0.5(1-h_3^2)\approx0.5\cdot0.9279=0.4640$; so $\frac{\partial h_3}{\partial h_1}\approx0.4640\cdot0.349\approx0.162$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that an RNN with an $n$-bit finite-precision hidden state is a finite state machine, and name a consequence.<details class="sol"><summary>Solution</summary><div>The state space has $\le2^n$ values; the update is a function (state, input) → state — a DFA over $2^n$ states (Ch 17). Consequence: with finite precision it recognizes only regular languages; unbounded counting (balanced parentheses of arbitrary depth) is impossible exactly — fine in practice until the counter saturates.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lstms">
+ <h2>LSTMs</h2>
+ <p>The LSTM fixes vanishing gradients with a separate cell state that flows through time nearly untouched — a conveyor belt — plus three learned gates deciding what to erase, write and reveal. Gradient along the belt is multiplied by the forget gate rather than by $W^\top\mathrm{diag}(\tanh')$, so information can persist for hundreds of steps.</p>
+ <div class="box def"><span class="label">Definition</span> With $\sigma$ the logistic sigmoid and $[\cdot,\cdot]$ concatenation: $$f_t=\sigma(W_f[h_{t-1},x_t]+b_f),\quad i_t=\sigma(W_i[h_{t-1},x_t]+b_i),\quad o_t=\sigma(W_o[h_{t-1},x_t]+b_o),$$ $$\tilde c_t=\tanh(W_c[h_{t-1},x_t]+b_c),\qquad c_t=f_t\odot c_{t-1}+i_t\odot\tilde c_t,\qquad h_t=o_t\odot\tanh(c_t).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar step with $c_{t-1}=2$ and gate values $f_t=\sigma(2)\approx0.881$, $i_t=\sigma(0)=0.5$, $\tilde c_t=\tanh(1)\approx0.762$, $o_t=\sigma(1)\approx0.731$. Then $c_t=0.881\cdot2+0.5\cdot0.762=2.143$; $h_t=0.731\cdot\tanh(2.143)\approx0.731\cdot0.9726\approx0.711$. Old memory survived at 88% strength while new content was written at half strength.</div>
+ <div class="box think"><span class="label">Think first</span> Why initialize the forget-gate bias $b_f$ to a positive value like 1? <details class="sol"><summary>Reveal</summary><div>$b_f=1$ makes $f_t\approx0.73$ at the start, so the cell begins by <em>remembering</em>. With $b_f=0$, $f_t\approx0.5$ and memory halves each step ($0.5^{20}\approx10^{-6}$ over 20 steps) before the gates learn anything — the model can never discover long dependencies it has already forgotten.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which gate settings keep the cell state exactly constant and the hidden output silent?<details class="sol"><summary>Solution</summary><div>$f_t\approx1$, $i_t\approx0$, $o_t\approx0$: $c_t=c_{t-1}$, $h_t\approx0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Treating gates as constants, show $\frac{\partial c_t}{\partial c_{t-1}}=f_t$, hence the $k$-step gradient is $\prod f$.<details class="sol"><summary>Solution</summary><div>$c_t=f_tc_{t-1}+i_t\tilde c_t$ is linear in $c_{t-1}$ with coefficient $f_t$. Chaining: $\frac{\partial c_{t+k}}{\partial c_t}=\prod_{j=1}^kf_{t+j}$; with $f\approx1$ the product stays near 1 over long spans — the gradient highway (the full derivative adds gate-dependence terms, but this path dominates when gates saturate).</div></details></li>
+  <li><span class="lvl h">HARD</span> Count parameters of an LSTM with input size $d$, hidden size $n$.<details class="sol"><summary>Solution</summary><div>Four blocks ($f,i,o,\tilde c$), each $n(n+d)$ weights $+n$ biases: $4n(n+d+1)$. E.g. $d=n=256$: $4\cdot256\cdot513=525312$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="grus">
+ <h2>GRUs</h2>
+ <p>The GRU is the LSTM simplified: merge cell and hidden state, use two gates instead of three. The update gate interpolates directly between "keep old state" and "take new candidate", so remembering is the default. Fewer parameters, comparable performance on many tasks.</p>
+ <div class="box def"><span class="label">Definition</span> $$z_t=\sigma(W_z[h_{t-1},x_t]),\quad r_t=\sigma(W_r[h_{t-1},x_t]),\quad \tilde h_t=\tanh(W_h[r_t\odot h_{t-1},\,x_t]),$$ $$h_t=(1-z_t)\odot h_{t-1}+z_t\odot\tilde h_t.$$ $z_t$: update gate (how much to rewrite); $r_t$: reset gate (how much past to consult in the candidate).</div>
+ <div class="box ex"><span class="label">Worked example</span> Scalar GRU with $h_{t-1}=0.8$, $z_t=0.25$, $r_t=1$, $\tilde h_t=\tanh(0.2)\approx0.1974$. Then $h_t=0.75\cdot0.8+0.25\cdot0.1974=0.6+0.0494=0.6494$: the state moved a quarter of the way to the candidate.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What do $z_t\to0$ and $z_t\to1$ mean for the update?<details class="sol"><summary>Solution</summary><div>$z_t\to0$: $h_t\approx h_{t-1}$, perfect memory. $z_t\to1$: $h_t\approx\tilde h_t$, full rewrite.</div></details></li>
+  <li><span class="lvl m">MED</span> Count GRU parameters (input $d$, hidden $n$, biases included) and compare to the LSTM.<details class="sol"><summary>Solution</summary><div>Three blocks: $3n(n+d+1)$ — exactly $3/4$ of the LSTM's $4n(n+d+1)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For scalar gates, show $h_T=\big(\prod_{t=1}^T(1-z_t)\big)h_0+\sum_{t=1}^{T}z_t\big(\prod_{s=t+1}^{T}(1-z_s)\big)\tilde h_t$ and interpret.<details class="sol"><summary>Solution</summary><div>Induction: true at $T=1$ by the update rule; the step from $T-1$ multiplies all earlier coefficients by $(1-z_T)$ and appends $z_T\tilde h_T$. Coefficients are nonnegative and sum to 1 (telescoping): $h_T$ is a convex combination — an exponential moving average of candidates with learned, data-dependent rates.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="attention">
+ <h2>Attention</h2>
+ <p>Attention lets a model look things up instead of remembering them: a query is compared against a set of keys, the match scores become softmax weights, and the output is the weighted average of the values. No fixed-size bottleneck, no decay with distance — any position can pull information from any other in one step.</p>
+ <div class="box def"><span class="label">Definition</span> Scaled dot-product attention for queries $Q\in\mathbb R^{m\times d_k}$, keys $K\in\mathbb R^{n\times d_k}$, values $V\in\mathbb R^{n\times d_v}$: $$\mathrm{Attn}(Q,K,V)=\mathrm{softmax}\!\Big(\frac{QK^\top}{\sqrt{d_k}}\Big)V,$$ softmax row-wise. Row $i$ of the output is $\sum_j\alpha_{ij}v_j$ with $\alpha_{ij}\propto e^{q_i\cdot k_j/\sqrt{d_k}}$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the query vector's angle and watch attention weights over four fixed keys change; the orange vector is the output — the weighted average of the values.</p>
+  <canvas id="cv-attn"></canvas>
+  <div class="ctl"><label>query angle <input type="range" id="at-angle" min="0" max="360" step="1" value="30"></label>
+  <label>sharpness (≈ $1/\sqrt{d_k}$ scale) <input type="range" id="at-sharp" min="0.5" max="8" step="0.1" value="3"></label></div>
+  <div class="out" id="at-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> $d_k=4$ (so $\sqrt{d_k}=2$), query $q=(1,0,1,0)$, keys $k_1=(1,0,1,0)$, $k_2=(0,1,0,1)$, values $v_1=(1,0)$, $v_2=(0,1)$. Scores: $q\cdot k_1/2=1$; $q\cdot k_2/2=0$. Softmax: $(0.731,0.269)$. Output $=0.731(1,0)+0.269(0,1)=(0.731,0.269)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Without the $\sqrt{d_k}$ scaling, dot products of random $d_k$-dimensional vectors have variance $\propto d_k$; at $d_k=64$ typical scores are $\sim\pm8$ and softmax saturates to near one-hot, killing gradients through the attention weights. The scale keeps score variance $\approx1$ regardless of $d_k$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With scores $(0,0,\ln4)$ over scalar values $1,2,3$, compute the attention output.<details class="sol"><summary>Solution</summary><div>Weights $(1,1,4)/6=(\tfrac16,\tfrac16,\tfrac23)$. Output $=\tfrac16+\tfrac26+2=2.5$.</div></details></li>
+  <li><span class="lvl m">MED</span> If $q,k$ have i.i.d. mean-0 variance-1 entries, show $\mathrm{Var}(q\cdot k)=d_k$.<details class="sol"><summary>Solution</summary><div>$q\cdot k=\sum_iq_ik_i$: terms are independent, mean 0, variance $\mathbb E[q_i^2]\mathbb E[k_i^2]=1$; variances add to $d_k$. Dividing by $\sqrt{d_k}$ restores variance 1.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show single-query attention is the Nadaraya–Watson kernel estimator with $K(q,k)=e^{q\cdot k/\sqrt{d_k}}$, and state one implied property.<details class="sol"><summary>Solution</summary><div>The output $\sum_j\frac{e^{q\cdot k_j/\sqrt{d_k}}}{\sum_le^{q\cdot k_l/\sqrt{d_k}}}v_j$ is exactly $\frac{\sum_jK(q,k_j)v_j}{\sum_jK(q,k_j)}$. Implication: the output is a convex combination of the values (stays in their convex hull), varies smoothly with the query, and acts as differentiable soft dictionary lookup — Ch 31's retrieval in continuous form.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="self-attention">
+ <h2>Self-attention</h2>
+ <p>In self-attention the sequence attends to itself: every token produces its own query, key and value by three learned linear maps of its embedding, then gathers a weighted summary of all tokens. One layer relates every pair of positions directly — path length 1 between any two tokens, versus $O(T)$ in an RNN.</p>
+ <div class="box def"><span class="label">Definition</span> For embeddings $X\in\mathbb R^{T\times d}$: $Q=XW_Q$, $K=XW_K$, $V=XW_V$, and $$\mathrm{SelfAttn}(X)=\mathrm{softmax}\!\Big(\frac{QK^\top}{\sqrt{d_k}}\Big)V\in\mathbb R^{T\times d_v}.$$ Cost: $O(T^2d)$ time, $O(T^2)$ attention-matrix memory.</div>
+ <div class="box ex"><span class="label">Worked example</span> $T=2$, $d=d_k=d_v=2$, all projections $=I$, $X=\begin{pmatrix}1&0\\0&2\end{pmatrix}$. $QK^\top=XX^\top=\begin{pmatrix}1&0\\0&4\end{pmatrix}$; scaled by $\sqrt2$: diag $(0.707,\,2.828)$, off-diagonals 0. Row 1 softmax: $(0.670,0.330)$; row 2: $(0.056,0.944)$. Output row 1: $(0.670,\,0.660)$; row 2: $(0.056,\,1.888)$. Token 2 mostly attends to itself because its key is large.</div>
+ <div class="box link"><span class="label">Where this goes</span> Stacked with MLPs and residuals this becomes the transformer; the $O(T^2)$ cost drives Ch 23's efficient-attention and long-context sections.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For sequence length 1000, how many entries has one head's attention matrix?<details class="sol"><summary>Solution</summary><div>$1000^2=10^6$, regardless of $d_k$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show self-attention without positional information is permutation-equivariant.<details class="sol"><summary>Solution</summary><div>For permutation matrix $P$, $X'=PX$ gives $Q'K'^\top=PQK^\top P^\top$; row-wise softmax commutes with this conjugation, so output $=P\,\mathrm{softmax}(S)P^\top PV=P\cdot\mathrm{SelfAttn}(X)$. Without positional encodings the model treats the sequence as a bag of tokens.</div></details></li>
+  <li><span class="lvl h">HARD</span> What can the learned bilinear score $x_i^\top W_QW_K^\top x_j$ express that the raw dot product $x_i\cdot x_j$ cannot?<details class="sol"><summary>Solution</summary><div>A general asymmetric, low-rank bilinear form: A can attend to B without B attending to A (adjectives seeking nouns), attention to <em>dissimilar</em> but relevant tokens, and focus on task-relevant subspaces. The rank-$d_k$ factorization also costs $2dd_k$ parameters instead of $d^2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cross-attention">
+ <h2>Cross-attention</h2>
+ <p>Cross-attention makes queries from one sequence and keys/values from another: the decoder asks, the encoder answers. It is how a translation's target words consult the source sentence, how a diffusion model's image patches consult a text prompt, and how retrieval-augmented models consult documents.</p>
+ <div class="box def"><span class="label">Definition</span> Given target states $Y\in\mathbb R^{m\times d}$ and source states $X\in\mathbb R^{n\times d}$: $$\mathrm{CrossAttn}(Y,X)=\mathrm{softmax}\!\Big(\frac{(YW_Q)(XW_K)^\top}{\sqrt{d_k}}\Big)(XW_V).$$ Output has $Y$'s length $m$; its content is gathered from $X$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Decoder state $y=(1,1)$, source states $x_1=(2,0)$, $x_2=(0,2)$, identity projections, $d_k=2$. Scores: $2/\sqrt2=1.414$ for both — equal weights, output $(1,1)$. Shift $y$ to $(2,0)$: scores $(2.828,0)$, weights $(0.944,0.056)$, output $\approx(1.887,0.113)$ — the query now retrieves source token 1.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In a translation model, which sequence supplies queries and which keys/values?<details class="sol"><summary>Solution</summary><div>The target (decoder) supplies queries — each target position asks what it needs; the source (encoder) supplies keys and values.</div></details></li>
+  <li><span class="lvl m">MED</span> Shapes of the attention matrix and output for $m=10$ target, $n=500$ source tokens, $d_v=64$?<details class="sol"><summary>Solution</summary><div>Attention $10\times500$; output $10\times64$. Cost is $O(mn)$, not $O(\max(m,n)^2)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> If a source token receives near-zero attention from every target query, show its encoder representation gets near-zero gradient from the decoder loss, and name the consequence.<details class="sol"><summary>Solution</summary><div>The loss reaches $x_j$ through the value path ($\alpha_{ij}(XW_V)_j$, gradient carries factor $\alpha_{ij}$) and the key path (softmax gradient terms also carry $\alpha_{ij}$). If $\alpha_{ij}\approx0\ \forall i$, both vanish, so $\partial L/\partial x_j\approx0$. Consequence: tokens ignored early can stay ignored — a rich-get-richer effect; dropout on attention, label smoothing and multiple heads mitigate it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multi-head-attention">
+ <h2>Multi-head attention</h2>
+ <p>One attention head must compromise: a single set of weights decides what to look for. Multi-head attention runs $h$ small attentions in parallel on learned subspaces — one head can track syntax, another coreference, another position — then concatenates their outputs and mixes them with a final linear map. Same total compute as one full-width head, far more expressive.</p>
+ <div class="box def"><span class="label">Definition</span> With $d_k=d_v=d/h$: $$\mathrm{head}_i=\mathrm{Attn}(XW_Q^{(i)},XW_K^{(i)},XW_V^{(i)}),\qquad \mathrm{MHA}(X)=[\mathrm{head}_1;\dots;\mathrm{head}_h]\,W_O,$$ with $W_O\in\mathbb R^{d\times d}$ mixing the concatenated heads.</div>
+ <div class="box ex"><span class="label">Worked example</span> $d=512$, $h=8$: each head has $d_k=64$. Parameters: $W_Q,W_K,W_V$ are effectively $512\times512$ each (eight $512\times64$ blocks side by side) plus $W_O$: $4\cdot512^2=1{,}048{,}576$ per attention block, independent of $h$. Choosing $h$ trades the number of simultaneous views against each view's dimension.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $d=768$ and 12 heads, what is each head's dimension?<details class="sol"><summary>Solution</summary><div>$768/12=64$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show total score-computation flops across heads equal those of one full-width head.<details class="sol"><summary>Solution</summary><div>$h\cdot T^2d_k=h\cdot T^2\cdot\frac dh=T^2d$ — identical. The gain is expressivity per flop: $h$ separate softmaxes realize $h$ different attention patterns simultaneously, which one softmax cannot (one distribution per query).</div></details></li>
+  <li><span class="lvl h">HARD</span> Exhibit a behavior multi-head attention can express that single-head (same total width) cannot.<details class="sol"><summary>Solution</summary><div>A query token needing value information from token A in output coordinates 1–32 and from token B in coordinates 33–64 with <em>different</em> attention weights (0.9/0.1 vs 0.1/0.9). Single-head output $\sum_j\alpha_jv_j$ uses ONE weight vector for all output coordinates, so coordinates cannot mix values with different weights (for generic values). Two heads each get their own $\alpha^{(i)}$ and write disjoint slices before $W_O$ — realizing it exactly. Hence strict inclusion of function classes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="causal-attention">
+ <h2>Causal attention</h2>
+ <p>A language model must not peek at the future it is trying to predict. Causal (masked) attention zeroes every query→key edge pointing forward in time by adding $-\infty$ to those scores before the softmax, so position $t$ aggregates only positions $\le t$. The mask is what lets one forward pass train next-token prediction at every position simultaneously.</p>
+ <div class="box def"><span class="label">Definition</span> $$\mathrm{Attn}(Q,K,V)=\mathrm{softmax}\!\Big(\frac{QK^\top}{\sqrt{d_k}}+M\Big)V,\qquad M_{ij}=\begin{cases}0&j\le i\\-\infty&j>i\end{cases}$$ — a lower-triangular constraint on the attention matrix.</div>
+ <div class="box ex"><span class="label">Worked example</span> $T=3$, raw scores all 0. Masked rows: row 1: $(0,-\infty,-\infty)\to(1,0,0)$; row 2: $(0,0,-\infty)\to(\tfrac12,\tfrac12,0)$; row 3: $(0,0,0)\to(\tfrac13,\tfrac13,\tfrac13)$. Early positions average fewer tokens — position 1 can only see itself.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Masking <em>after</em> the softmax leaks future information through the normalization constant. The mask must enter as $-\infty$ (in practice a very large negative number) <em>before</em> softmax.</div>
+ <div class="quiz" data-answer="1"><div class="q">Why can a causal LM compute the training loss for all $T$ positions in one forward pass?</div><button class="opt">Because the loss only uses the last position</button><button class="opt">Because the causal mask makes each position's output depend only on earlier tokens, so all $T$ next-token predictions are simultaneously valid</button><button class="opt">Because teacher forcing removes the need for attention</button><div class="why" hidden>With the mask, position $t$'s output is a function of $x_{1..t}$ only, so it is a legitimate prediction of $x_{t+1}$; the $T$ cross-entropies come from one pass. This parallel training is the transformer's decisive advantage over sequential RNN training.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many unmasked entries does a causal attention matrix have for $T=100$?<details class="sol"><summary>Solution</summary><div>$\frac{100\cdot101}{2}=5050$.</div></details></li>
+  <li><span class="lvl m">MED</span> Row 3's raw scores over positions 1..3 are $(1,2,5)$. Compute the causal weights.<details class="sol"><summary>Solution</summary><div>All three are past/self, none masked: $\propto(e^1,e^2,e^5)=(2.718,7.389,148.413)$, sum $158.52$: $(0.017,0.047,0.936)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that with causal masking in every layer, the output at position $t$ depends only on $x_{1:t}$, for any depth.<details class="sol"><summary>Solution</summary><div>Induction over layers. Base: embeddings at $t$ depend on $x_t$ (plus position). Step: if layer-$\ell$ states $h_s^{(\ell)}$ depend only on $x_{1:s}$, layer $\ell{+}1$ at $t$ combines $\{h_s^{(\ell)}:s\le t\}$ (masked attention) and $h_t^{(\ell)}$ (MLP/residual), each depending only on $x_{1:s}\subseteq x_{1:t}$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="positional-encoding">
+ <h2>Positional encoding</h2>
+ <p>Attention is a bag-of-tokens operation — permute the input and the output permutes along. To give the model word order, we inject position information: add a position-dependent vector to each embedding (sinusoidal or learned), or rotate queries and keys by position-dependent angles (RoPE) so attention scores depend on relative offsets.</p>
+ <div class="box def"><span class="label">Definition</span> Sinusoidal encoding: for position $t$ and dimension pairs $i=0,\dots,d/2-1$ with $\omega_i=10000^{-2i/d}$: $$PE_{t,2i}=\sin(\omega_it),\qquad PE_{t,2i+1}=\cos(\omega_it),$$ added to the token embedding. Rotary embeddings (RoPE) instead rotate each 2D slice of $q_t,k_s$ by angles $\omega_it$, $\omega_is$, making scores depend only on $t-s$ (Ch 14 treats both as signals).</div>
+ <div class="box ex"><span class="label">Worked example</span> $d=4$: $\omega_0=1$, $\omega_1=10000^{-1/2}=0.01$. Position $t=2$: $PE_2=(\sin2,\cos2,\sin0.02,\cos0.02)\approx(0.909,-0.416,0.020,0.9998)$. The fast pair distinguishes nearby positions; the slow pair barely moves until $t\sim100$ — a multi-scale clock.</div>
+ <div class="box thm"><span class="label">Theorem (relative shift)</span> For each frequency, $\begin{pmatrix}\sin\omega(t+k)\\\cos\omega(t+k)\end{pmatrix}=\begin{pmatrix}\cos\omega k&\sin\omega k\\-\sin\omega k&\cos\omega k\end{pmatrix}\begin{pmatrix}\sin\omega t\\\cos\omega t\end{pmatrix}$: the encoding of $t+k$ is a fixed rotation of the encoding of $t$, enabling learned relative addressing.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is $PE_0$ for any even $d$?<details class="sol"><summary>Solution</summary><div>$(\sin0,\cos0,\dots)=(0,1,0,1,\dots)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the relative-shift theorem by expanding $\sin(\omega t+\omega k)$ and $\cos(\omega t+\omega k)$.<details class="sol"><summary>Solution</summary><div>$\sin(\omega t{+}\omega k)=\sin\omega t\cos\omega k+\cos\omega t\sin\omega k$; $\cos(\omega t{+}\omega k)=\cos\omega t\cos\omega k-\sin\omega t\sin\omega k$ — exactly the stated rotation acting on $(\sin\omega t,\cos\omega t)^\top$ (angle addition, Ch 6). ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> With RoPE, $q_t'=R_{\theta t}q$, $k_s'=R_{\theta s}k$ per 2D slice. Show $q_t'\cdot k_s'$ depends only on $s-t$.<details class="sol"><summary>Solution</summary><div>Rotations are orthogonal and compose additively: $q_t'\cdot k_s'=q^\top R_{\theta t}^\top R_{\theta s}k=q^\top R_{\theta(s-t)}k$ — a function of the offset alone. Scores become translation-invariant in absolute position, aiding length generalization (Ch 23, long context).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="transformers">
+ <h2>Transformers</h2>
+ <p>The transformer assembles everything above: token embeddings plus positional information, then a stack of identical blocks, each doing (pre-)LayerNorm → multi-head attention → residual add, then LayerNorm → position-wise MLP → residual add. Attention moves information <em>between</em> positions; the MLP processes information <em>within</em> each position; residuals and norms keep signals healthy at depth.</p>
+ <div class="box def"><span class="label">Definition</span> A pre-norm transformer block: $$z=x+\mathrm{MHA}(\mathrm{LN}(x)),\qquad y=z+\mathrm{MLP}(\mathrm{LN}(z)),$$ with $\mathrm{MLP}(u)=W_2\,\mathrm{GELU}(W_1u)$, hidden width typically $4d$. A transformer is $L$ such blocks between an embedding layer and a task head.</div>
+ <div class="box ex"><span class="label">Worked example</span> Parameters per block at $d=512$: attention $4d^2\approx1.05$M; MLP $2\cdot512\cdot2048\approx2.10$M; LN params $\approx2$k. Block $\approx3.15$M; a 12-block stack $\approx37.8$M plus embeddings ($50\text{k}\times512\approx25.6$M). Roughly $\tfrac23$ of block parameters live in the MLPs — worth remembering for Ch 23's scaling discussions.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 22 uses transformers as generative backbones; Ch 23 is entirely about training and running large transformer LMs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which sublayer lets token 7 use information from token 3, and which cannot?<details class="sol"><summary>Solution</summary><div>Attention mixes across positions (7 can read 3); the MLP acts on each position independently and cannot move information between tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> Pre-norm vs post-norm ($y=\mathrm{LN}(x+\mathrm{Sublayer}(x))$): which keeps an unnormalized identity path, and why does that matter at depth?<details class="sol"><summary>Solution</summary><div>Pre-norm: the residual stream is touched only by additions; LN sits inside branches. Post-norm puts LN <em>on</em> the highway, rescaling the through-gradient at every block and reintroducing depth-dependent attenuation. Pre-norm stacks train stably at hundreds of layers; post-norm typically needs careful warmup.</div></details></li>
+  <li><span class="lvl h">HARD</span> Estimate the multiply–adds of one block's forward pass for sequence length $T$, width $d$.<details class="sol"><summary>Solution</summary><div>Projections $Q,K,V,O$: $4Td^2$. Scores $QK^\top$: $T^2d$. Weighted sum $\alpha V$: $T^2d$. MLP: $8Td^2$. Total $\approx12Td^2+2T^2d$. Attention's quadratic term dominates when $T\gtrsim6d$ — e.g. beyond ~25k tokens at $d=4096$; below that, projections and MLPs dominate.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="encoder-architectures">
+ <h2>Encoder architectures</h2>
+ <p>An encoder-only transformer (BERT-style) uses bidirectional attention: every token sees the whole sequence. That is ideal for <em>understanding</em> tasks — classification, retrieval embeddings, tagging — where the full input exists up front and nothing is generated token by token.</p>
+ <div class="box def"><span class="label">Definition</span> An encoder applies unmasked self-attention in every layer, producing contextual representations $h_1,\dots,h_T$ of the full input. Typical pretraining: masked language modeling — hide ~15% of tokens and reconstruct them from both sides: $\max\sum_{t\in\mathcal M}\log p(x_t\mid x_{\setminus\mathcal M})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> "The [MASK] barked at the mailman." An encoder predicts the masked token using left context ("The") <em>and</em> right context ("barked at the mailman") — the right context makes "dog" nearly certain. A causal model at that position could use only "The" and would spread probability over thousands of nouns.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can't an encoder-only model generate text autoregressively out of the box?<details class="sol"><summary>Solution</summary><div>Its representations depend on future positions, so per-position outputs aren't valid conditionals $p(x_t\mid x_{<t})$; left-to-right generation would need re-encoding after every token, and its objective never taught coherent continuation.</div></details></li>
+  <li><span class="lvl m">MED</span> Masked LM supervises ~15% of positions per pass; causal LM 100%. Implication and compensation?<details class="sol"><summary>Solution</summary><div>The encoder extracts ~6–7× fewer prediction losses per token processed. Compensation: each masked prediction is bidirectionally conditioned (richer gradient per prediction), and understanding tasks may need fewer tokens. For generation at scale, the causal objective's full-density supervision is a major reason decoders won (Ch 23).</div></details></li>
+  <li><span class="lvl h">HARD</span> For retrieval embeddings, why prefer a bidirectional encoder with mean pooling over the last hidden state of a causal decoder?<details class="sol"><summary>Solution</summary><div>Causal states are asymmetric: $h_t$ summarizes only the prefix, so early tokens never see later disambiguating context, and the last state overweights the sequence end. A bidirectional encoder gives every token full-context representations; mean pooling aggregates position-symmetrically — better-conditioned geometry for cosine-similarity retrieval (Ch 31).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="decoder-architectures">
+ <h2>Decoder architectures</h2>
+ <p>A decoder-only transformer (GPT-style) is a stack of causally masked blocks trained on plain next-token prediction. Simple objective, supervision at every position, one architecture for both learning and generating — the design of essentially every modern LLM.</p>
+ <div class="box def"><span class="label">Definition</span> Causal self-attention throughout, trained by maximum likelihood: $$\mathcal L=-\sum_{t=1}^{T-1}\log p_\theta(x_{t+1}\mid x_{1:t}),$$ cross-entropy of the next token at every position. Generation feeds sampled tokens back autoregressively.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sequence "a b c" after a start token s: one pass computes $-\log p(a\mid s)$, $-\log p(b\mid s\,a)$, $-\log p(c\mid s\,a\,b)$. With probabilities $0.5,0.25,0.8$: loss $=0.693+1.386+0.223=2.302$ nats, $0.767$ nats/token — perplexity $e^{0.767}\approx2.15$.</div>
+ <div class="box link"><span class="label">Where this goes</span> All of Ch 23 — pretraining, KV cache, decoding, fine-tuning, RLHF — assumes this architecture.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Average held-out loss is 1.10 nats/token. Perplexity?<details class="sol"><summary>Solution</summary><div>$e^{1.10}\approx3.00$ — as uncertain as choosing among 3 equally likely tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> Generation with a KV cache still costs $O(T^2d)$ total attention flops, same as training. Where is the real difference?<details class="sol"><summary>Solution</summary><div>Step $t$ attends to $t$ cached keys: $\sum_tO(td)=O(T^2d)$. The difference is parallelism and memory traffic: training does one big matrix multiply per layer (compute-bound); generation does $T$ sequential small ones (memory-bandwidth-bound, latency-dominated). Ch 23 quantifies this.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show minimizing expected per-token cross-entropy equals minimizing $\mathrm{KL}(p_{\text{data}}\|p_\theta)$ over sequences, up to a constant.<details class="sol"><summary>Solution</summary><div>$\mathbb E_{x\sim p_{\text{data}}}[-\log p_\theta(x)]=H(p_{\text{data}})+\mathrm{KL}(p_{\text{data}}\|p_\theta)$, and $-\log p_\theta(x)=\sum_t-\log p_\theta(x_{t+1}\mid x_{1:t})$ by the autoregressive factorization; $H(p_{\text{data}})$ is constant in $\theta$ (Ch 16).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="encoder-decoder-architectures">
+ <h2>Encoder-decoder architectures</h2>
+ <p>The original transformer: an encoder reads the source bidirectionally; a decoder generates the target with causal self-attention plus cross-attention into the encoder's outputs. It cleanly separates "understand the input" from "produce the output" and remains strong for translation, summarization and speech (T5, Whisper).</p>
+ <div class="box def"><span class="label">Definition</span> Encoder: $H=\mathrm{Enc}(x_{1:n})$ (unmasked). Decoder block: causal self-attention over $y_{1:t}$, then cross-attention (queries from decoder states, keys/values from $H$), then MLP; trained on $-\sum_t\log p(y_{t+1}\mid y_{1:t},x_{1:n})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Translating 40 source tokens into 50: encoder self-attention $\propto40^2$; decoder self-attention $\propto50^2$; cross-attention $\propto50\cdot40$. The encoder runs once; $H$ is reused for all 50 decoding steps — conditioning is "free" after the first pass.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which of the three attention types uses a causal mask?<details class="sol"><summary>Solution</summary><div>Only the decoder's self-attention; encoder self-attention and cross-attention are unmasked.</div></details></li>
+  <li><span class="lvl m">MED</span> A decoder-only model can translate via "source [SEP] target". What does the encoder-decoder still buy?<details class="sol"><summary>Solution</summary><div>Bidirectional source encoding (each source token sees the whole source), a once-computed reusable representation, separate capacity for input vs output, shorter causal sequences. Decoder-only buys simplicity and unified pretraining — which in practice has won at scale (Ch 23).</div></details></li>
+  <li><span class="lvl h">HARD</span> Trace how gradient from target position $t$ reaches source token $j$.<details class="sol"><summary>Solution</summary><div>Loss at $t$ → decoder states (positions $\le t$) → cross-attention there: through attention weights (score $q_ik_j$) and values $v_j$ → encoder output $h_j$ → back through the encoder's bidirectional self-attention to all source tokens. Every target loss can shape every source representation, with magnitude gated by cross-attention weights (cross-attention drill).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="autoregressive-modeling">
+ <h2>Autoregressive modeling</h2>
+ <p>Autoregression turns generation into repeated prediction: model the joint as a product of next-element conditionals, then sample one element at a time, feeding each choice back as context. Exact likelihoods, stable maximum-likelihood training, and one glaring cost: generation is inherently sequential.</p>
+ <div class="box def"><span class="label">Definition</span> $$p_\theta(x_{1:T})=\prod_{t=1}^{T}p_\theta(x_t\mid x_{1:t-1}),$$ trained by maximizing $\sum_t\log p_\theta(x_t\mid x_{<t})$ with teacher forcing (conditionals evaluated on the <em>true</em> prefix). Sampling draws $x_t\sim p_\theta(\cdot\mid x_{<t})$ sequentially.</div>
+ <div class="box ex"><span class="label">Worked example</span> Vocabulary $\{A,B\}$: $p(x_1{=}A)=0.6$; $p(A\mid A)=0.8$, $p(A\mid B)=0.3$ (first-order for simplicity). Likelihood of "AAB": $0.6\cdot0.8\cdot0.2=0.096$. Most likely length-3 string: "AAA" $=0.6\cdot0.8\cdot0.8=0.384$; the best B-containing competitor "BBB" $=0.4\cdot0.7\cdot0.7=0.196$. "AAA" wins.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Exposure bias: training always conditions on true prefixes, but generation conditions on the model's own (possibly off-distribution) outputs, so errors can compound in ways training never penalized. Related: the most likely <em>sequence</em> is not the sequence of most likely <em>tokens</em> — greedy decoding is not MAP decoding.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the likelihood of "BAA" under the worked example's model.<details class="sol"><summary>Solution</summary><div>$0.4\cdot0.3\cdot0.8=0.096$.</div></details></li>
+  <li><span class="lvl m">MED</span> Construct a 2-step example where greedy decoding misses the most likely sequence.<details class="sol"><summary>Solution</summary><div>$p(A)=0.6$, $p(B)=0.4$; after $A$ two continuations at $0.5$ each; after $B$ one continuation at $1.0$. Greedy takes $A$ then $0.5$: total $0.3$. But $B$'s sequence has $0.4\cdot1.0=0.4>0.3$. Greedy's myopic first step forfeits the better total.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show any distribution over $\{0,1\}^T$ is representable by an autoregressive model with unrestricted conditionals, and locate where practical models lose exactness.<details class="sol"><summary>Solution</summary><div>Define $p(x_t\mid x_{<t})$ as the true conditionals; the chain rule reconstructs the joint exactly (conditionals on probability-zero prefixes are arbitrary). Practical losses come from parameterization (finite networks can't represent every conditional), finite data, and imperfect optimization — not from the factorization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="language-modeling">
+ <h2>Language modeling</h2>
+ <p>A language model is an autoregressive model whose elements are text tokens: it assigns probability to any string and predicts each next token from the ones before. The training signal is just "guess the next word", but doing that well across the internet forces the model to absorb grammar, facts, style and a surprising amount of reasoning — prediction as compression of everything regular in text (Ch 16).</p>
+ <div class="box def"><span class="label">Definition</span> A language model defines $p_\theta(x_{1:T})=\prod_tp_\theta(x_t\mid x_{<t})$ over token sequences. Quality: held-out cross-entropy $H=-\frac1T\sum_t\log_2p_\theta(x_t\mid x_{<t})$ bits/token, or perplexity $\mathrm{PPL}=2^H$ ($=e^{\text{nats/token}}$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A model assigns four held-out tokens probabilities $0.25,0.5,0.125,0.5$. Bits: $2+1+3+1=7$ total, $1.75$ bits/token; perplexity $2^{1.75}\approx3.36$. An arithmetic coder driven by this model (Ch 16) would spend exactly 7 bits on the sentence.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 23 begins here: the pretraining objective is exactly this, at internet scale.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Model A: perplexity 20; model B: 16 (same tokenizer, same test set). Which assigns higher probability, by how many bits/token?<details class="sol"><summary>Solution</summary><div>B. $\log_220\approx4.32$ vs $\log_216=4$: B saves ~0.32 bits/token, i.e. $2^{0.32}\approx1.25\times$ higher per-token probability on geometric average.</div></details></li>
+  <li><span class="lvl m">MED</span> Why are perplexities under different tokenizers incomparable, and what is the fair alternative?<details class="sol"><summary>Solution</summary><div>Perplexity is per token, and tokenizers split text into different token counts: more tokens per sentence → easier per-token predictions. Fair: normalize per byte — bits-per-byte $=\frac{\text{total bits}}{\text{total bytes}}$ — tokenizer-independent.</div></details></li>
+  <li><span class="lvl h">HARD</span> What are the cross-entropy and perplexity of a uniform model over 50,000 tokens? And what per-word perplexity does 1.0 bits/byte imply at ~5 bytes/word?<details class="sol"><summary>Solution</summary><div>Uniform: $\log_250000\approx15.6$ bits/token; perplexity 50,000. At 1.0 bits/byte: ~5 bits/word → per-word perplexity $\approx2^5=32$. (Shannon estimated humans at ~0.6–1.3 bits/character on English, so strong LMs are in the human range by this crude measure.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tokenization">
+ <h2>Tokenization</h2>
+ <p>Networks eat integers, not strings. A tokenizer chops text into pieces from a fixed vocabulary — common words become single tokens, rare words split into subword chunks, and anything at all can be spelled in bytes. The standard construction, byte-pair encoding, grows the vocabulary by repeatedly merging the most frequent adjacent pair.</p>
+ <div class="box def"><span class="label">Definition</span> Byte-pair encoding (BPE): start with a base alphabet (e.g. 256 bytes); repeat $V-256$ times: count adjacent symbol pairs in the corpus, merge the most frequent pair into a new symbol, add it to the vocabulary. Encoding applies the learned merges in order; every string is representable (worst case: raw bytes).</div>
+ <div class="box ex"><span class="label">Worked example</span> Corpus words: "abab", "abab", "ab" (characters as base symbols). Pair counts: (a,b) $=2+2+1=5$; (b,a) $=1+1+0=2$. Merge (a,b)→"ab": words become "ab·ab", "ab·ab", "ab". Now (ab,ab) has count 2 — merge into "abab". Vocabulary: $\{a,b,ab,abab\}$; the common word "abab" is now a single token.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Token boundaries are invisible but consequential: "hello" and " hello" (leading space) are different tokens; digits often split oddly, making arithmetic hard to read off; counting letters in a word is genuinely difficult for a model that never sees letters. Many "LLM failures" are tokenizer artifacts.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why include all 256 bytes in the base vocabulary?<details class="sol"><summary>Solution</summary><div>Guaranteed coverage: any string in any language or encoding tokenizes without out-of-vocabulary failure; rare text just costs more tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> Corpus "low low lower lowest" (per-word, character symbols). What is the first BPE merge?<details class="sol"><summary>Solution</summary><div>Counts: (l,o)=4, (o,w)=4, (w,e)=2, (e,r)=1, (e,s)=1, (s,t)=1. Tie between (l,o) and (o,w); with first-seen tie-breaking, merge (l,o)→"lo".</div></details></li>
+  <li><span class="lvl h">HARD</span> A 50k vocabulary averages 4 chars/token on English but 1.3 on Burmese script. Quantify the disparity for a 400-character text and name design responses.<details class="sol"><summary>Solution</summary><div>English: 100 tokens; Burmese: $400/1.3\approx308$ tokens — ~3× the compute/cost/context for the same text. Responses: train the tokenizer on balanced multilingual data, enlarge the vocabulary, or go byte-level (trading sequence length for fairness).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="embeddings">
+ <h2>Embeddings</h2>
+ <p>An embedding maps each discrete token to a learned dense vector — the model's first and most important lookup table. Training pushes tokens used in similar contexts toward similar vectors, so geometry starts to mirror meaning: distances encode relatedness, directions encode relations.</p>
+ <div class="box def"><span class="label">Definition</span> An embedding layer is a matrix $E\in\mathbb R^{V\times d}$; token $i$ maps to row $e_i$. In a transformer LM, input embeddings feed the first block, and the output distribution is $\mathrm{softmax}(W_{\text{out}}h)$, where often $W_{\text{out}}=E$ (weight tying).</div>
+ <div class="box ex"><span class="label">Worked example</span> Cosine similarity (Ch 8): $e_{\text{cat}}=(0.9,0.1,0.4)$, $e_{\text{dog}}=(0.8,0.2,0.5)$, $e_{\text{car}}=(0.1,0.9,0.2)$. $\cos(\text{cat},\text{dog})=\frac{0.72+0.02+0.20}{\sqrt{0.98}\sqrt{0.93}}=\frac{0.94}{0.955}\approx0.985$; $\cos(\text{cat},\text{car})=\frac{0.09+0.09+0.08}{\sqrt{0.98}\sqrt{0.86}}=\frac{0.26}{0.918}\approx0.283$. The animal pair is far more aligned.</div>
+ <div class="box link"><span class="label">Where this goes</span> Dense retrieval and vector databases (Ch 31) are embeddings plus nearest-neighbor search; contrastive learning (below) is the modern recipe for training them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many parameters is an embedding table with $V=32{,}000$, $d=4096$, and what fraction of a 7B model?<details class="sol"><summary>Solution</summary><div>$32000\cdot4096\approx1.31\times10^8$ — about 1.9% of 7B (×2 if input/output tables are untied).</div></details></li>
+  <li><span class="lvl m">MED</span> Give one statistical and one practical argument for weight tying $W_{\text{out}}=E$.<details class="sol"><summary>Solution</summary><div>Statistical: both roles need "which tokens are similar"; sharing regularizes rare tokens (their output vectors get input-side gradient too). Practical: saves $Vd$ parameters — significant memory at large $V$ — with typically neutral-or-better perplexity.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can analogies like $e_{\text{king}}-e_{\text{man}}+e_{\text{woman}}\approx e_{\text{queen}}$ emerge from log-bilinear training?<details class="sol"><summary>Solution</summary><div>Such training drives $e_w^\top c\approx\log p(w\mid c)+\text{const}$ over context vectors $c$. If the male→female relation multiplies context probabilities by a roughly word-independent ratio — $\log\frac{p(\text{queen}\mid c)}{p(\text{king}\mid c)}\approx\log\frac{p(\text{woman}\mid c)}{p(\text{man}\mid c)}$ for most $c$ — then $(e_{\text{queen}}-e_{\text{king}}-e_{\text{woman}}+e_{\text{man}})^\top c\approx0$ for a spanning set of $c$, forcing the vector identity. Relations that act as consistent probability ratios become directions.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="representation-learning">
+ <h2>Representation learning</h2>
+ <p>Deep learning's real product is not predictions but representations: intermediate vectors in which the structure of the data becomes linear-ish and reusable. A good representation makes many downstream tasks easy (train a linear probe and you're done), transfers across domains, and can be learned without labels from the data's own structure — the self-supervised idea powering modern pretraining.</p>
+ <div class="box def"><span class="label">Definition</span> Representation learning seeks an encoder $f_\theta:\mathcal X\to\mathbb R^d$ such that simple functions of $f_\theta(x)$ solve downstream tasks. Standard evaluation: linear probing — freeze $f_\theta$, fit only a linear head on task labels. Self-supervised objectives (masked prediction, next-token, contrastive) supply signal from unlabeled data.</div>
+ <div class="box ex"><span class="label">Worked example</span> Raw MNIST pixels: a linear classifier reaches ~92%. The same linear classifier on the 128-d penultimate layer of a small CNN trained on a <em>different</em>, label-free objective (predicting which rotation was applied to unlabeled digits) reaches ~97–98%. The encoder converted a nonlinear problem into a nearly linear one; labels were only ever used by the probe.</div>
+ <div class="box think"><span class="label">Think first</span> Why would predicting a held-back part of the input force semantically useful features rather than superficial ones? <details class="sol"><summary>Reveal</summary><div>Superficial statistics predict a little; squeezing the loss further requires the latent variables that actually generated the data — objects, syntax, meaning — because those carry the mutual information with the missing part. Prediction pressure recovers generative structure (the compression-as-understanding thread of Ch 16).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does it mean operationally for a representation to be "linearly separable" for a task?<details class="sol"><summary>Solution</summary><div>A linear classifier on the representation achieves high accuracy — the encoder already did the nonlinear work.</div></details></li>
+  <li><span class="lvl m">MED</span> Contrast linear probing and fine-tuning as evaluations. What can fine-tuning hide?<details class="sol"><summary>Solution</summary><div>Probing measures what is already linearly accessible; fine-tuning updates all weights, so a mediocre representation with an adaptable architecture can still score well — hiding representation quality behind adaptability. Both numbers together are more informative than either.</div></details></li>
+  <li><span class="lvl h">HARD</span> Invariance vs completeness: when is building invariance to a "nuisance" transform a mistake? Concrete example.<details class="sol"><summary>Solution</summary><div>When the nuisance for one task is signal for another. Color-jitter-invariant contrastive features excel at object classification but degrade on flower- or bird-species identification where hue <em>is</em> discriminative. Invariances hard-code downstream assumptions; general-purpose encoders must balance invariance against keeping a lossless part of the code.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="contrastive-learning">
+ <h2>Contrastive learning</h2>
+ <p>Contrastive learning teaches an encoder by comparison: pull together representations of two views of the same thing (an image and its crop, a caption and its photo) and push apart representations of different things. No labels — the pairing itself is the supervision. It is how CLIP aligns images with text and how sentence embedders are trained.</p>
+ <div class="box def"><span class="label">Definition</span> Given anchor $x$ with positive $x^+$ and negatives $\{x_j^-\}$, learn $f$ so that similarity $s(f(x),f(x^+))$ exceeds every $s(f(x),f(x_j^-))$, with $s$ typically cosine similarity divided by a temperature $\tau$. Views come from augmentation (crops, jitter) or natural pairing (image–caption).</div>
+ <div class="box ex"><span class="label">Worked example</span> Anchor $a=(1,0)$; positive $p=(0.8,0.6)$; negatives $n_1=(0,1)$, $n_2=(-1,0)$ (unit norm). Similarities: $0.8,\ 0,\ -1$. With $\tau=0.5$: logits $(1.6,0,-2)$; softmax $=(e^{1.6},1,e^{-2})/6.088=(0.814,0.164,0.022)$. InfoNCE loss $=-\ln0.814\approx0.206$ — small because the positive already dominates.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Collapse: an objective that only pulls positives together is solved perfectly by $f\equiv\text{const}$. Negatives, stop-gradients (BYOL/SimSiam) or variance terms (VICReg) exist precisely to block collapse.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In CLIP-style training on a batch of (image, caption) pairs, what are the positives and negatives?<details class="sol"><summary>Solution</summary><div>Positive: each image with its own caption. Negatives: that image with the other $B-1$ captions (and symmetrically captions vs images).</div></details></li>
+  <li><span class="lvl m">MED</span> Why do larger batches typically help contrastive learning, and at what cost?<details class="sol"><summary>Solution</summary><div>More in-batch negatives → harder discrimination → tighter MI bound and better-shaped embedding space (negatives approximate the full marginal). Cost: memory/compute; the similarity matrix is $B\times B$; very large batches need retuned learning rate and temperature.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that as $\tau\to0$ the loss focuses on the hardest negative, and as $\tau\to\infty$ gradients vanish.<details class="sol"><summary>Solution</summary><div>Loss $=\log\big(1+\sum_je^{(s_j^--s^+)/\tau}\big)$. As $\tau\to0$: dominated by $\max_js_j^-$, approaching a hinge on $(s^{\max-}-s^+)/\tau$ — extreme hard-negative mining, unstable. As $\tau\to\infty$: each exponential $\to1$, loss $\to\log(1+J)$ constant, so gradients $\to0$. Moderate $\tau$ (0.05–0.5) balances the two.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="infonce">
+ <h2>InfoNCE</h2>
+ <p>InfoNCE is the standard contrastive loss: classify which one among $N$ candidates is the true positive, using similarities as logits. It is a cross-entropy in disguise, and minimizing it provably lower-bounds the mutual information between the two views — contrastive learning as information capture.</p>
+ <div class="box def"><span class="label">Definition</span> For anchor $u$, positive $v^+$ and negatives $v_1,\dots,v_{N-1}$: $$\mathcal L_{\text{InfoNCE}}=-\log\frac{\exp(s(u,v^+)/\tau)}{\sum_{j=1}^{N}\exp(s(u,v_j)/\tau)}$$ (sum includes the positive). Bound: $I(U;V)\ge\log N-\mathcal L_{\text{InfoNCE}}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $N=4$, $\tau=1$, similarities (positive, 3 negatives) $=(2.0,0.5,0.0,-0.5)$. Exponentials $(7.389,1.649,1.000,0.607)$, sum $10.645$. Loss $=-\ln(7.389/10.645)=-\ln0.694=0.365$ nats. MI bound: $\ln4-0.365=1.021$ nats — the views share at least ~1 nat under this estimator.</div>
+ <div class="box link"><span class="label">Where this goes</span> Mutual information is Ch 16's; InfoNCE-trained embeddings power the retrieval stacks of Ch 31.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the InfoNCE loss when all $N$ similarities are equal?<details class="sol"><summary>Solution</summary><div>Uniform softmax: loss $=\log N$ — chance level; the MI bound gives $\ge0$, vacuous, as it should when the encoder knows nothing.</div></details></li>
+  <li><span class="lvl m">MED</span> Show InfoNCE is exactly $N$-way cross-entropy and give the gradient on each logit.<details class="sol"><summary>Solution</summary><div>With logits $z_j=s(u,v_j)/\tau$ and label = positive's index, InfoNCE $=-\log\mathrm{softmax}(z)_+$. Gradient: $p_j-\delta_{j,+}$ — the positive's logit pushed up by $1-p_+$, each negative's down by $p_j$ (softmax drill).</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can InfoNCE never certify more than $\log N$ nats of MI, and what follows for high-MI pairs?<details class="sol"><summary>Solution</summary><div>The softmax probability of the positive is $\le1$, so $\mathcal L\ge0$ and the bound $I\ge\log N-\mathcal L$ caps at $\log N$. If true MI $\gg\log N$ (rich image views share far more than $\ln4096\approx8.3$ nats), the loss saturates near 0 and gradients die with information uncaptured. Remedies: more/harder negatives or multi-crop objectives — a fundamental limit of contrastive MI estimation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="metric-learning">
+ <h2>Metric learning</h2>
+ <p>Metric learning shapes the embedding space directly around a distance: same-identity pairs should be closer than different-identity pairs, by a margin. Where contrastive learning classifies among candidates, metric losses like the triplet loss enforce explicit geometric orderings — the classic engine of face recognition and product search.</p>
+ <div class="box def"><span class="label">Definition</span> Triplet loss for anchor $a$, positive $p$, negative $n$, margin $m>0$: $$\mathcal L=\max\big(0,\ \|f(a)-f(p)\|^2-\|f(a)-f(n)\|^2+m\big).$$ Zero iff the negative is at least $m$ farther (in squared distance) than the positive.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(a)=(0,0)$, $f(p)=(1,0)$, $f(n)=(1,1)$, $m=0.5$: distances² are 1 and 2; loss $=\max(0,1-2+0.5)=0$ — satisfied ($2-1=1\ge0.5$). Move the negative to $(1,0.5)$: distance² $=1.25$; loss $=\max(0,1-1.25+0.5)=0.25>0$: a "semi-hard" triplet that produces gradient.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $m=1$, $\|a-p\|^2=2$, $\|a-n\|^2=2.5$: loss?<details class="sol"><summary>Solution</summary><div>$\max(0,2-2.5+1)=0.5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does training on random triplets stall, and what is semi-hard mining?<details class="sol"><summary>Solution</summary><div>Most random negatives are soon margin-satisfied (zero loss, zero gradient) — informative triplets become rare. Semi-hard mining selects negatives with $\|a-p\|^2<\|a-n\|^2<\|a-p\|^2+m$: violating the margin but not closer than the positive — hard enough to teach, not so hard (mislabeled/extreme) as to destabilize.</div></details></li>
+  <li><span class="lvl h">HARD</span> On unit-norm embeddings, show squared Euclidean distance and cosine similarity are affinely related, so both orderings coincide.<details class="sol"><summary>Solution</summary><div>$\|u-v\|^2=2-2\,u^\top v$ for $\|u\|=\|v\|=1$: a monotone decreasing affine map. "Closer than" ⇔ "more similar than", and margins translate by a factor 2 ($m_{\text{dist}}=2m_{\cos}$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="knowledge-distillation">
+ <h2>Knowledge distillation</h2>
+ <p>Distillation trains a small "student" to imitate a large "teacher" — not just the teacher's answers, but its full output distribution. The soft probabilities carry dark knowledge (this "7" looks a bit like a "1"), a richer signal per example than a one-hot label, so the student learns more than labels alone could teach.</p>
+ <div class="box def"><span class="label">Definition</span> With teacher/student logits $z^t,z^s$ and temperature $T$: $p^t=\mathrm{softmax}(z^t/T)$, $p^s=\mathrm{softmax}(z^s/T)$; loss $$\mathcal L=\alpha\,T^2\,\mathrm{KL}(p^t\|p^s)+(1-\alpha)\,\mathrm{CE}(y,\mathrm{softmax}(z^s)).$$ The $T^2$ compensates the $1/T^2$ shrinkage of soft-target gradients.</div>
+ <div class="box ex"><span class="label">Worked example</span> 3 classes, teacher logits $(4,1,0)$, true class 1. At $T=1$: $p^t\approx(0.936,0.047,0.017)$. At $T=4$: logits/T $=(1,0.25,0)$, exps $(2.718,1.284,1)$, sum $5.002$: $p^t\approx(0.543,0.257,0.200)$ — the near-miss structure (class 2 twice as likely as class 3) becomes visible to the student, where the hard label said nothing.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does temperature $T>1$ do to the teacher's distribution, and why is that useful?<details class="sol"><summary>Solution</summary><div>Flattens it, boosting non-argmax classes; the inter-class similarity structure becomes numerically significant enough to shape the student's gradients.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that for large $T$ (zero-mean logits) soft-target matching approaches logit matching under squared error.<details class="sol"><summary>Solution</summary><div>$\mathrm{softmax}(z/T)_i\approx\frac1K(1+\frac{z_i-\bar z}{T})$ to first order. The KL between two such near-uniform distributions is $\approx\frac{1}{2KT^2}\sum_i\big((z_i^t-\bar z^t)-(z_i^s-\bar z^s)\big)^2$ — squared logit differences; the loss's $T^2$ prefactor cancels the $1/T^2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sequence-level LM distillation trains the student on teacher-<em>generated</em> text instead of per-token KL on real text. One advantage and one failure mode of each?<details class="sol"><summary>Solution</summary><div>Per-token KL — advantage: dense full-vocabulary signal at every position of real data; failure: supervises on data-distribution prefixes, not the student's own trajectories (exposure bias persists). Sequence-level — advantage: the student learns on coherent teacher outputs, capturing the teacher's decoding-time policy, often better generation; failure: teacher samples are a narrow slice (collapse to typical outputs), teacher errors become ground truth, and it costs a generation pass per example.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="synthetic-data">
+ <h2>Synthetic data</h2>
+ <p>When real data is scarce, private or expensive to label, models are trained on data made by other models or simulators: distilled explanations, self-generated puzzles with verified solutions, rendered scenes, augmented copies. Done well, it converts compute into training signal; done carelessly, it recycles a model's own biases until diversity collapses.</p>
+ <div class="box def"><span class="label">Definition</span> Synthetic data is training data produced by a generative process other than natural collection: a stronger teacher model, a simulator, programmatic templates, or the trained model itself (self-training) — optionally filtered by a verifier (unit tests, proof checkers, reward models) that certifies quality independently of the generator.</div>
+ <div class="box ex"><span class="label">Worked example</span> Math-instruction bootstrapping: sample 100k problems-with-solutions from a strong model; keep only solutions whose final answer passes a symbolic checker (say 40% survive); fine-tune on the surviving 40k. The <em>verifier</em> injects real information — without it the student can at best match the generator; with it, wrong reasoning modes are filtered out and effective data quality can exceed the generator's average.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Model collapse: recursively training generation $n{+}1$ on unfiltered outputs of generation $n$ contracts the distribution — tails vanish first (rare facts, minority styles), variance shrinks, errors compound. Mitigations: keep real data in the mix, filter with independent verifiers, track diversity metrics rather than only loss.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name two settings where synthetic data is clearly justified and one where it is dangerous.<details class="sol"><summary>Solution</summary><div>Justified: verifiable domains (code with tests, math with checkers); privacy-constrained domains (simulated records for pipeline testing). Dangerous: replacing the natural-text distribution with model text in the next pretraining run (collapse risk, factual drift).</div></details></li>
+  <li><span class="lvl m">MED</span> In information terms, why can "generator + verifier" produce data better than the generator alone?<details class="sol"><summary>Solution</summary><div>The generator proposes from $q$; the verifier applies an independent constraint $A$. The kept distribution is $q(\cdot\mid A)$, injecting up to $-\log q(A)$ bits per kept sample from outside the generator. Rejection sampling against a correctness oracle concentrates mass on the correct set in a way self-imitation cannot.</div></details></li>
+  <li><span class="lvl h">HARD</span> Generator correct with $p=0.4$; verifier accepts correct at 0.9, incorrect at 0.1. What fraction of accepted samples is correct?<details class="sol"><summary>Solution</summary><div>Bayes (Ch 11): $\frac{0.4\cdot0.9}{0.4\cdot0.9+0.6\cdot0.1}=\frac{0.36}{0.42}\approx0.857$ — 85.7% correct vs 40% raw, a 2.1× purity gain, keeping 42% of samples. The residual 14.3% wrong-but-accepted sets the ceiling and motivates stacking verifiers.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="scaling-laws">
+ <h2>Scaling laws</h2>
+ <p>Across many orders of magnitude, language-model loss falls as a smooth power law in model size, data and compute: straight lines on log-log plots. This regularity lets labs predict a big run's loss from small runs, and dictates how to split a compute budget between parameters and tokens (Ch 23's compute-optimal scaling).</p>
+ <div class="box def"><span class="label">Definition</span> Chinchilla parametric form: $$L(N,D)=E+\frac{A}{N^{\alpha}}+\frac{B}{D^{\beta}},$$ with $N$ parameters, $D$ training tokens, irreducible loss $E$, and fitted constants ($\alpha\approx0.34$, $\beta\approx0.28$ in the original fit). Training compute $C\approx6ND$ flops.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the compute budget and see the loss over model sizes at fixed compute (Chinchilla form); the marker shows the optimal $N^*$ — note it moves up roughly as $\sqrt C$.</p>
+  <canvas id="cv-scale"></canvas>
+  <div class="ctl"><label>log&#8321;&#8320; compute (flops) <input type="range" id="sc-c" min="19" max="25" step="0.1" value="22"></label></div>
+  <div class="out" id="sc-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Take $L(N)=2.0+c/N^{0.34}$ fitted so a 1B model has loss 2.60, i.e. $c/10^{9\cdot0.34}=0.6$. At 10B: the deficit shrinks by $10^{-0.34}\approx0.457$: loss $=2.0+0.6\cdot0.457\approx2.274$. At 100B: $2.0+0.6\cdot0.457^2\approx2.125$. Each 10× buys a constant <em>fraction</em> of the remaining gap — diminishing absolute returns as $E$ approaches.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 23's compute-optimal scaling derives $N^*(C),D^*(C)$ and their consequences for LLM training budgets.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> On a log-log plot, what does $L=AN^{-\alpha}$ look like and what is its slope?<details class="sol"><summary>Solution</summary><div>A straight line: $\log L=\log A-\alpha\log N$, slope $-\alpha$.</div></details></li>
+  <li><span class="lvl m">MED</span> With $L=E+AN^{-\alpha}+BD^{-\beta}$ and $C=6ND$, derive the scaling of the optimal split.<details class="sol"><summary>Solution</summary><div>Substitute $D=C/(6N)$: $L(N)=E+AN^{-\alpha}+B(6N/C)^{\beta}$. Set $L'=0$: $\alpha AN^{-\alpha-1}=\beta B6^\beta C^{-\beta}N^{\beta-1}$, so $N^{*\,\alpha+\beta}\propto C^{\beta}$: $N^*\propto C^{\beta/(\alpha+\beta)}$, $D^*\propto C^{\alpha/(\alpha+\beta)}$. With $\alpha\approx\beta$: both $\propto C^{1/2}$ — scale model and data together.</div></details></li>
+  <li><span class="lvl h">HARD</span> Given $L=1.69+406.4N^{-0.34}$, what $N$ brings the model within 0.05 nats of the irreducible loss, and what caveat applies?<details class="sol"><summary>Solution</summary><div>$406.4N^{-0.34}=0.05\Rightarrow N=(8128)^{1/0.34}=(8128)^{2.941}$: $\log_{10}N=2.941\cdot3.910\approx11.5$, so $N\approx3\times10^{11}$ — ~300B parameters (with correspondingly scaled data). Caveat: this extrapolates the fit far beyond its data; laws can bend (data exhaustion, architecture limits), and small errors in $E$ swing the answer wildly this close to the asymptote.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="neural-collapse">
+ <h2>Neural collapse</h2>
+ <p>Train a classifier well past zero training error and a crystal forms: within each class, last-layer features collapse to a single point; the class means spread into a maximally symmetric frame (a simplex ETF); and the classifier weights align with those means. The messy learned geometry ends in a rigid, predictable structure.</p>
+ <div class="box def"><span class="label">Definition</span> Neural collapse (NC1–NC4) in the terminal phase of training: (NC1) within-class feature covariance $\to0$; (NC2) recentred class means converge to a simplex equiangular tight frame — equal norms, pairwise cosines $-\frac{1}{K-1}$; (NC3) classifier rows align with class means; (NC4) prediction reduces to nearest-class-mean.</div>
+ <div class="box ex"><span class="label">Worked example</span> $K=3$: three unit vectors at pairwise cosine $-\tfrac12$, e.g. planar vectors at $120°$: $(1,0)$, $(-\tfrac12,\tfrac{\sqrt3}2)$, $(-\tfrac12,-\tfrac{\sqrt3}2)$. Check: $(1,0)\cdot(-\tfrac12,\tfrac{\sqrt3}2)=-\tfrac12$ ✓. For $K=4$: cosine $-\tfrac13$ — a regular tetrahedron's vertex directions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What angle do collapsed class means make for $K=2$?<details class="sol"><summary>Solution</summary><div>$\cos\theta=-1$: $180°$, exactly opposite.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify that $K$ unit vectors with pairwise inner product $-\frac{1}{K-1}$ sum to zero.<details class="sol"><summary>Solution</summary><div>$\|\sum_kv_k\|^2=K+K(K-1)(-\tfrac{1}{K-1})=K-K=0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does training accuracy carry no information after the terminal phase begins, and what last-layer readout remains informative?<details class="sol"><summary>Solution</summary><div>Once NC1–NC4 hold, every training point sits at its class mean, classified by nearest-mean with maximal margins: training accuracy is pinned at 100% and within-class variation that could differentiate models is gone. Informative instead: the same geometry measured on <em>held-out</em> features — how far test features sit from their class means (test-set NC1) tracks generalization; calibration and OOD behavior must likewise be read off non-training data.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sharpness">
+ <h2>Sharpness</h2>
+ <p>Sharpness measures how fast the loss rises when you perturb the weights: the curvature of the basin the optimizer sits in. Sharp minima are cliffs — tiny weight noise (or the train/test surface gap) changes the loss a lot; flat minima are plateaus. Sharpness connects optimizer dynamics, batch-size effects and generalization.</p>
+ <div class="box def"><span class="label">Definition</span> Common measures at $\theta$: the top Hessian eigenvalue $\lambda_{\max}(\nabla^2L)$, the Hessian trace, or worst-case-in-a-ball sharpness $$S_\rho(\theta)=\max_{\|\epsilon\|\le\rho}L(\theta+\epsilon)-L(\theta)\ \approx\ \rho\|\nabla L\|+\tfrac{\rho^2}2\lambda_{\max}$$ (at a minimum the curvature term dominates).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two 1D minima of equal loss 0: $L_1=50\theta^2$ (sharp), $L_2=0.5\theta^2$ (flat). Perturb by $0.1$: $L_1=0.5$ vs $L_2=0.005$ — 100×. GD on a quadratic is stable only if $\eta\le2/\lambda$ (here $\lambda_1=100$, $\lambda_2=1$): the sharp basin requires $\eta\le0.02$ while the flat one tolerates $\eta\le2$ — large learning rates are <em>repelled</em> from sharp minima.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 15's Sharpness-Aware Minimization optimizes $S_\rho$ directly; flat minima (next) carries the generalization story.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> At a strict local minimum, why does $\lambda_{\max}$ capture worst-case local loss increase?<details class="sol"><summary>Solution</summary><div>With $\nabla L=0$: $L(\theta+\epsilon)-L(\theta)\approx\tfrac12\epsilon^\top H\epsilon\le\tfrac12\lambda_{\max}\|\epsilon\|^2$, equality along the top eigenvector.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the GD stability threshold $\eta\le2/\lambda$ and connect it to "edge of stability".<details class="sol"><summary>Solution</summary><div>On $L=\tfrac\lambda2\theta^2$: $\theta\leftarrow(1-\eta\lambda)\theta$; divergence iff $|1-\eta\lambda|>1$ iff $\eta\lambda>2$. Empirically, full-batch GD drives $\lambda_{\max}$ up until $\lambda_{\max}\approx2/\eta$ and hovers there: the learning rate effectively selects the sharpness of the basin the optimizer can inhabit.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\lambda_{\max}$ is not invariant under ReLU rescaling symmetries, and why this complicates "flatness predicts generalization".<details class="sol"><summary>Solution</summary><div>$(cW_1,W_2/c)$ computes the same function, but reparameterization transforms the Hessian $H\to T^{-\top}HT^{-1}$; with $T$ diagonal scaling, curvature along $W_1$ directions scales by $1/c^2$ and along $W_2$ by $c^2$, so $\lambda_{\max}$ can be made arbitrarily large or small along a function-preserving orbit while generalization is unchanged. Honest flatness measures must be scale-invariant (normalized/relative) or fix the parameterization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="flat-minima">
+ <h2>Flat minima</h2>
+ <p>The flat-minima hypothesis: among the many zero-training-loss solutions of an overparameterized net, the flat ones generalize better — a wide basin means the solution is robust to the difference between the training loss surface and the true loss surface. SGD's noise biases it toward such basins; small batches and large learning rates strengthen the bias.</p>
+ <div class="box def"><span class="label">Definition</span> $\theta^*$ is $\rho$-flat if $\sup_{\|\epsilon\|\le\rho}L(\theta^*+\epsilon)-L(\theta^*)$ is small. PAC-Bayes link (Ch 20): a posterior $\mathcal N(\theta^*,\sigma^2I)$ has small expected empirical loss precisely when the basin is flat, yielding generalization bounds that improve with flatness.</div>
+ <div class="box ex"><span class="label">Worked example</span> Perturbation test: add Gaussian noise $\sigma=0.01$ to all weights of two trained nets, average over 20 draws. Model A: loss rises $0.02\pm0.01$; model B: rises $1.5\pm0.4$. Same training loss, but A's basin is ~75× flatter at this scale — and PAC-Bayes says A's "location within tolerance" is far cheaper to describe, predicting (and in practice usually delivering) better generalization.</div>
+ <div class="box think"><span class="label">Think first</span> SGD's gradient noise has covariance $\propto\frac1B\Sigma(\theta)$. Why would this noise evict iterates from sharp minima? <details class="sol"><summary>Reveal</summary><div>In a basin of curvature $\lambda$, weight noise of a given size produces loss excursions $\propto\lambda$; escape rates from a basin grow with curvature at fixed noise. Sharp basins convert the same noise into much larger loss excursions, making them statistically unstable homes — the process spends more time where curvature is low. Small $B$ / large $\eta$ raise the noise floor and strengthen the flatness selection.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give the intuition for why a flat minimum tolerates train/test surface mismatch.<details class="sol"><summary>Solution</summary><div>The test surface is a slightly shifted copy of the train surface. On a plateau, the shift barely changes the value at $\theta^*$; on a cliff edge, the same shift can put $\theta^*$ far up the wall.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does averaging weights along the late SGD trajectory (SWA) land flatter than the final iterate?<details class="sol"><summary>Solution</summary><div>Late SGD bounces around the basin, and iterates ring the minimum, biased along wide directions. Their average sits near the basin's center of mass — away from walls — while any single iterate may sit on a sharp shoulder. Empirically SWA lowers $\lambda_{\max}$ and improves test accuracy at no extra training cost.</div></details></li>
+  <li><span class="lvl h">HARD</span> In the PAC-Bayes bound with posterior $\mathcal N(\theta^*,\sigma^2I)$, where does flatness enter, given the KL term seems to depend only on norms?<details class="sol"><summary>Solution</summary><div>The bound controls the <em>expected</em> loss under the posterior. Transferring to $\theta^*$ needs $\mathbb E_\epsilon L(\theta^*+\epsilon)\approx L(\theta^*)$ — exactly flatness at scale $\sigma$. Flat minima permit a <em>large</em> $\sigma$ with small loss inflation, and larger $\sigma$ shrinks the KL to the prior. Flatness is the exchange rate between perturbation tolerance and effective description length; sharp minima force tiny $\sigma$, hence huge KL, hence vacuous bounds.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="neural-tangent-kernel">
+ <h2>Neural tangent kernel</h2>
+ <p>Near initialization, a very wide network barely changes its features while training: its function moves only through a first-order expansion in the weights. Training then becomes kernel regression with a fixed kernel — the neural tangent kernel — determined by the architecture at initialization. The NTK regime explains why wide nets train predictably; its <em>breakdown</em> (feature learning) is where deep learning outperforms kernels.</p>
+ <div class="box def"><span class="label">Definition</span> The NTK of $f(x;\theta)$: $$K(x,x')=\nabla_\theta f(x;\theta)^\top\nabla_\theta f(x';\theta).$$ In the infinite-width limit (NTK parameterization), $K$ converges to a deterministic kernel that stays constant during training, and the function follows kernel gradient flow: $\dot f_t=-K(f_t-y)$ on the training set.</div>
+ <div class="box ex"><span class="label">Worked example</span> Linear "network" $f(x;w)=w^\top x$: $\nabla_wf=x$, so $K(x,x')=x^\top x'$ — the linear kernel, exactly constant. Under gradient flow on squared loss, residuals evolve as $r_t=e^{-Kt}r_0$: components along eigenvectors of the Gram matrix with eigenvalue $\lambda_i$ decay as $e^{-\lambda_it}$ — dominant smooth patterns are learned first, fine detail last. Wide networks inherit this spectral-bias picture with their architecture-specific $K$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Kernels and RKHS are Ch 19's; spectral bias echoes Ch 20's generalization story. Feature learning beyond NTK is what scaling laws implicitly rely on.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $f(x;a,b)=a\,\sigma(bx)$ at $a=1,b=2$, write $K(x,x')$.<details class="sol"><summary>Solution</summary><div>$\nabla f=(\sigma(2x),\,x\sigma'(2x))$: $K(x,x')=\sigma(2x)\sigma(2x')+xx'\sigma'(2x)\sigma'(2x')$.</div></details></li>
+  <li><span class="lvl m">MED</span> In the NTK regime, why does training loss reach zero whenever the Gram matrix is positive definite?<details class="sol"><summary>Solution</summary><div>$r_t=e^{-Kt}r_0$ with $K\succ0$: $\|r_t\|\le e^{-\lambda_{\min}t}\|r_0\|\to0$ — global convergence of a nonconvex problem, because in this regime it is secretly linear least squares in function space.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give two concrete predictions where NTK theory and real finite-width networks disagree.<details class="sol"><summary>Solution</summary><div>(1) Transfer: NTK features (gradients at init) are fixed, so pretraining on task A cannot improve the kernel for task B; real networks learn transferable features (all of Ch 23 is evidence). (2) Sample complexity on structured targets: kernels need $d^{\Omega(k)}$ samples for degree-$k$ sparse/single-index functions where feature-learning networks need polynomially fewer — real nets increasingly beat their own NTK with scale. (Bonus: NTK predicts weights barely move; measured relative movement in practical training is large, especially in early layers.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Build and backprop a two-layer net by hand.</b> Network: $h=\mathrm{ReLU}(W_1x)$, $\hat y=w_2^\top h$, loss $L=\tfrac12(\hat y-y)^2$. Data: $x=(1,2)^\top$, $y=1$. $W_1=\begin{pmatrix}1&-1\\0&1\end{pmatrix}$, $w_2=(1,1)^\top$. Compute the forward pass, all gradients, and one gradient step with $\eta=0.1$.<details class="sol"><summary>Solution</summary><div>Forward: $W_1x=(1-2,\,0+2)^\top=(-1,2)^\top$; $h=(0,2)^\top$; $\hat y=2$; $L=\tfrac12(2-1)^2=0.5$. Backward: $\delta=\hat y-y=1$. $\nabla_{w_2}=\delta h=(0,2)^\top$. $\nabla_h=\delta w_2=(1,1)^\top$; ReLU mask $(0,1)$: $\nabla_a=(0,1)^\top$. $\nabla_{W_1}=\nabla_ax^\top=\begin{pmatrix}0&0\\1&2\end{pmatrix}$. Step: $w_2\to(1,0.8)$; $W_1\to\begin{pmatrix}1&-1\\-0.1&0.8\end{pmatrix}$. Check: new forward $a=(-1,\,-0.1+1.6)=(-1,1.5)$, $h=(0,1.5)$, $\hat y=1.5\cdot0.8=1.2$, $L=0.02$ — loss fell from 0.5 to 0.02. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>An attention head as an induction mechanism.</b> In the sequence $\dots A\,B\,\dots\,A$ a causal head at the final position has a query meaning "current token is A"; a previous layer has arranged each position's key to encode its <em>preceding</em> token. (a) Where does the final token attend? (b) If values encode each position's own token, what does the head output predict? (c) With logit 5 on the matched position and 0 on 7 others, compute the attention weight on the match.<details class="sol"><summary>Solution</summary><div>(a) The only key encoding "preceded by A" is the position right after the earlier A, so attention peaks there. (b) That position's value carries its token, $B$: the head writes "B" at the final position — predicting A is again followed by B, copying the earlier continuation (the induction-head mechanism). (c) $\frac{e^5}{e^5+7}=\frac{148.41}{155.41}\approx0.955$. This previous-token-head + induction-head circuit is a cornerstone of in-context learning (Ch 23, Ch 35).</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Quantify the rescue: init, gains, residuals.</b> A 64-layer net is trained (a) plain with per-layer backward gain $g=0.9$, (b) plain with $g=1.35$, (c) with residual blocks $h\mapsto h+\tfrac{1}{\sqrt{64}}F(h)$ where $\|\partial F/\partial h\|=1$, so the per-layer factor is $\le1+\tfrac{1}{8}\cdot\tfrac{1}{\phantom{8}}$… precisely $1+1/\sqrt{64}\cdot1\cdot\tfrac{1}{\sqrt{64}}$ interpreted as factor $\sqrt{1+1/64}$ per layer. Estimate the layer-1/layer-64 gradient ratio in each case and rank trainability.<details class="sol"><summary>Solution</summary><div>(a) $0.9^{64}=e^{64\ln0.9}=e^{-6.74}\approx1.2\times10^{-3}$: thousandfold attenuation — slow, marginal. (b) $1.35^{64}=e^{64\cdot0.300}=e^{19.2}\approx2.2\times10^{8}$: explosion; diverges without clipping. (c) $(1+\tfrac1{64})^{32}=e^{32\ln(1.015625)}\approx e^{0.496}\approx1.64$: gradients change only 1.6× across the whole stack. Ranking: (c) ≫ (a) ≫ (b). The $1/\sqrt L$ residual-branch scaling is exactly the trick used in large-transformer initializations.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds, from scratch, NumPy first. Each runs in seconds on a laptop.</p>
+ <div class="box ex"><span class="label">Task 1 — MLP + backprop from scratch</span> Implement a 2-layer ReLU MLP with manual backprop and train it on XOR until loss &lt; 0.01. Verify one gradient with finite differences.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+X = np.array([[0,0],[0,1],[1,0],[1,1]], float)
+y = np.array([[0],[1],[1],[0]], float)
+W1 = rng.normal(0, 1.0, (2,8)); b1 = np.zeros(8)
+W2 = rng.normal(0, 0.35, (8,1)); b2 = np.zeros(1)
+lr = 0.5
+
+def forward(X):
+    a1 = X @ W1 + b1
+    h1 = np.maximum(a1, 0)
+    z  = h1 @ W2 + b2
+    p  = 1/(1+np.exp(-z))
+    return a1, h1, z, p
+
+def loss_of(p):
+    return -np.mean(y*np.log(p+1e-12) + (1-y)*np.log(1-p+1e-12))
+
+for step in range(20000):
+    a1, h1, z, p = forward(X)
+    L = loss_of(p)
+    if L &lt; 0.01: break
+    dz  = (p - y) / len(X)          # sigmoid + CE shortcut
+    dW2 = h1.T @ dz; db2 = dz.sum(0)
+    da1 = (dz @ W2.T) * (a1 &gt; 0)    # ReLU mask
+    dW1 = X.T @ da1; db1 = da1.sum(0)
+    W1 -= lr*dW1; b1 -= lr*db1; W2 -= lr*dW2; b2 -= lr*db2
+print(step, L, forward(X)[3].ravel().round(3))   # ~[0,1,1,0]
+
+# finite-difference check of dL/dW1[0,0]
+a1, h1, z, p = forward(X)
+dz  = (p - y) / len(X)
+dW1 = X.T @ ((dz @ W2.T) * (a1 &gt; 0))
+eps = 1e-5
+W1[0,0] += eps; Lp = loss_of(forward(X)[3])
+W1[0,0] -= 2*eps; Lm = loss_of(forward(X)[3]); W1[0,0] += eps
+print('analytic', dW1[0,0], 'numeric', (Lp-Lm)/(2*eps))</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Causal self-attention in 30 lines</span> Implement single-head causal self-attention in NumPy; verify that perturbing a future token does not change past outputs.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+T, d, dk = 6, 16, 8
+Wq, Wk, Wv = (rng.normal(0, d**-0.5, (d,dk)) for _ in range(3))
+
+def softmax(z):
+    z = z - z.max(-1, keepdims=True)
+    e = np.exp(z); return e / e.sum(-1, keepdims=True)
+
+def causal_attn(X):
+    Q, K, V = X@Wq, X@Wk, X@Wv
+    S = Q @ K.T / np.sqrt(dk)
+    S[np.triu_indices(T, k=1)] = -1e9   # mask the future
+    return softmax(S) @ V
+
+X  = rng.normal(size=(T,d))
+Y1 = causal_attn(X)
+X2 = X.copy(); X2[4] += 10.0            # perturb token 4
+Y2 = causal_attn(X2)
+print(np.abs(Y1[:4]-Y2[:4]).max())      # ~1e-16: tokens 0-3 unchanged
+print(np.abs(Y1[4:]-Y2[4:]).max())      # large: tokens 4,5 affected</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — A one-block transformer LM in PyTorch</span> Train a tiny transformer on a repeated pattern string and confirm it continues the pattern.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import torch, torch.nn as nn
+torch.manual_seed(0)
+text = "abcabcabcabcabcabcabcabcabcabc"
+chars = sorted(set(text)); stoi = {c:i for i,c in enumerate(chars)}
+data = torch.tensor([stoi[c] for c in text])
+V, d, T = len(chars), 32, 8
+
+class Block(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.ln1, self.ln2 = nn.LayerNorm(d), nn.LayerNorm(d)
+        self.attn = nn.MultiheadAttention(d, 4, batch_first=True)
+        self.mlp = nn.Sequential(nn.Linear(d,4*d), nn.GELU(), nn.Linear(4*d,d))
+    def forward(self, x):
+        Tt = x.size(1)
+        m = torch.triu(torch.ones(Tt,Tt), 1).bool()
+        a,_ = self.attn(self.ln1(x), self.ln1(x), self.ln1(x), attn_mask=m)
+        x = x + a
+        return x + self.mlp(self.ln2(x))
+
+class TinyLM(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.emb = nn.Embedding(V, d); self.pos = nn.Embedding(T, d)
+        self.block = Block(); self.head = nn.Linear(d, V)
+    def forward(self, idx):
+        x = self.emb(idx) + self.pos(torch.arange(idx.size(1)))
+        return self.head(self.block(x))
+
+model = TinyLM()
+opt = torch.optim.AdamW(model.parameters(), lr=3e-3)
+for step in range(300):
+    i  = torch.randint(0, len(data)-T-1, (16,))
+    xb = torch.stack([data[j:j+T] for j in i])
+    yb = torch.stack([data[j+1:j+T+1] for j in i])
+    loss = nn.functional.cross_entropy(model(xb).reshape(-1,V), yb.reshape(-1))
+    opt.zero_grad(); loss.backward(); opt.step()
+print('final loss', loss.item())        # &lt; 0.05
+out = data[:T].unsqueeze(0).clone()
+for _ in range(12):
+    nxt = model(out[:,-T:])[0,-1].argmax()
+    out = torch.cat([out, nxt.view(1,1)], 1)
+print(''.join(chars[i] for i in out[0]))  # abcabcab + continues abc...</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.deeplearningbook.org/">Goodfellow, Bengio, Courville — <i>Deep Learning</i></a> — chapters 6–10: MLPs, backprop, regularization, CNNs, RNNs; the canonical free text for this chapter's first half.</li>
+  <li><a href="https://www.3blue1brown.com/topics/neural-networks">3Blue1Brown — Neural networks series</a> — the best visual intuition for layers, gradients, backprop and attention.</li>
+  <li><a href="https://d2l.ai/">Dive into Deep Learning (d2l.ai)</a> — runnable code for every architecture here, from initialization schemes to transformers.</li>
+  <li><a href="https://arxiv.org/abs/1706.03762">Vaswani et al. — Attention Is All You Need (2017)</a> — the transformer paper; read §3 with this chapter's attention sections in hand.</li>
+  <li><a href="https://karpathy.ai/zero-to-hero.html">Karpathy — Neural Networks: Zero to Hero</a> — build backprop and a GPT from scratch on video; the perfect companion to the coding lab.</li>
+  <li><a href="https://distill.pub/">Distill.pub</a> — interactive articles on momentum, feature visualization and circuits; the style this chapter's explorers imitate.</li>
+  <li><a href="https://arxiv.org/abs/2203.15556">Hoffmann et al. — Training Compute-Optimal Large Language Models (2022)</a> — the Chinchilla scaling-law paper behind the scaling-laws section.</li>
+  <li><a href="https://arxiv.org/abs/1806.07572">Jacot et al. — Neural Tangent Kernel (2018)</a> — the NTK paper; pair with Ch 19's kernel sections.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch20.html">&larr; 20 · Statistical Learning Theory</a>
+ <a class="btn" href="ch22.html">22 · Generative Models &rarr;</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function ready(f){if(document.readyState!=='loading')f();else document.addEventListener('DOMContentLoaded',f);}
+ ready(function(){
+  var mono='13px "JetBrains Mono", monospace';
+
+  // Explorer 1: activation functions
+  (function(){
+   var c=document.getElementById('cv-act'); if(!c) return;
+   var range=document.getElementById('act-range'), showD=document.getElementById('act-deriv'), out=document.getElementById('act-out');
+   function sig(z){return 1/(1+Math.exp(-z));}
+   function erf(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);var y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);return s*y;}
+   function Phi(z){return 0.5*(1+erf(z/Math.SQRT2));}
+   function phi(z){return Math.exp(-z*z/2)/Math.sqrt(2*Math.PI);}
+   var fns=[
+    {n:'sigmoid',f:sig,d:function(z){var s=sig(z);return s*(1-s);},col:'--cobalt'},
+    {n:'tanh',f:Math.tanh,d:function(z){var t=Math.tanh(z);return 1-t*t;},col:'--green'},
+    {n:'ReLU',f:function(z){return Math.max(0,z);},d:function(z){return z>0?1:0;},col:'--orange'},
+    {n:'GELU',f:function(z){return z*Phi(z);},d:function(z){return Phi(z)+z*phi(z);},col:'--red'}
+   ];
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h,R=parseFloat(range.value);
+    g.clearRect(0,0,w,h);
+    var x0=w/2,y0=h/2,sy=(h-40)/(2*Math.max(2,R/1.6));
+    g.strokeStyle=cssVar('--ink-2');g.lineWidth=1;g.globalAlpha=.5;
+    g.beginPath();g.moveTo(10,y0);g.lineTo(w-10,y0);g.moveTo(x0,10);g.lineTo(x0,h-10);g.stroke();g.globalAlpha=1;
+    g.fillStyle=cssVar('--ink-2');g.font=mono;
+    g.fillText('-'+R,12,y0+14);g.fillText('+'+R,w-40,y0+14);g.fillText('z',w-16,y0-6);
+    fns.forEach(function(fn){
+     var col=cssVar(fn.col)||'#888';
+     g.strokeStyle=col;g.lineWidth=2;g.beginPath();
+     for(var px=0;px<=w-20;px++){var z=-R+2*R*px/(w-20);var v=fn.f(z);var X=10+px,Y=y0-v*sy;Y=Math.max(2,Math.min(h-2,Y));if(px===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+     g.stroke();
+     if(showD.checked){g.setLineDash([4,4]);g.lineWidth=1.2;g.beginPath();
+      for(var px2=0;px2<=w-20;px2++){var z2=-R+2*R*px2/(w-20);var v2=fn.d(z2);var X2=10+px2,Y2=y0-v2*sy;Y2=Math.max(2,Math.min(h-2,Y2));if(px2===0)g.moveTo(X2,Y2);else g.lineTo(X2,Y2);}
+      g.stroke();g.setLineDash([]);}
+    });
+    var lx=14;fns.forEach(function(fn){g.fillStyle=cssVar(fn.col)||'#888';g.fillText(fn.n,lx,18);lx+=g.measureText(fn.n).width+16;});
+    if(out) out.textContent='At z=2: sigmoid′='+(sig(2)*(1-sig(2))).toFixed(3)+', tanh′='+(1-Math.pow(Math.tanh(2),2)).toFixed(3)+', ReLU′=1.000, GELU′='+(Phi(2)+2*phi(2)).toFixed(3)+(showD.checked?' (dashed = derivatives)':'');
+   }
+   range.addEventListener('input',draw);showD.addEventListener('change',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 2: softmax temperature
+  (function(){
+   var c=document.getElementById('cv-softmax'); if(!c) return;
+   var tctl=document.getElementById('sm-temp'), out=document.getElementById('sm-out');
+   var logits=[2.0,1.0,0.5,-1.0], labels=['z=2.0','z=1.0','z=0.5','z=-1.0'];
+   function draw(){
+    var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h,T=parseFloat(tctl.value);
+    g.clearRect(0,0,w,h);
+    var m=Math.max.apply(null,logits.map(function(z){return z/T;}));
+    var e=logits.map(function(z){return Math.exp(z/T-m);}),S=e.reduce(function(a,b){return a+b;},0);
+    var p=e.map(function(v){return v/S;});
+    var base=h-34, bw=Math.min(80,(w-70)/4-16);
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(30,base);g.lineTo(w-10,base);g.stroke();g.globalAlpha=1;
+    g.font=mono;
+    for(var i=0;i<4;i++){
+     var x=40+i*((w-70)/4), bh=p[i]*(h-70);
+     g.fillStyle=cssVar('--cobalt');g.globalAlpha=.85;g.fillRect(x,base-bh,bw,bh);g.globalAlpha=1;
+     g.fillStyle=cssVar('--ink');g.fillText(p[i].toFixed(3),x,base-bh-6);
+     g.fillStyle=cssVar('--ink-2');g.fillText(labels[i],x,base+16);
+    }
+    var H=-p.reduce(function(a,pi){return a+(pi>0?pi*Math.log(pi):0);},0);
+    if(out) out.textContent='T='+T.toFixed(2)+' → p=['+p.map(function(v){return v.toFixed(3);}).join(', ')+'], entropy='+H.toFixed(3)+' nats (max '+Math.log(4).toFixed(3)+')';
+   }
+   tctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 3: gradient flow vs depth
+  (function(){
+   var c=document.getElementById('cv-flow'); if(!c) return;
+   var dctl=document.getElementById('gf-depth'),gctl=document.getElementById('gf-gain'),res=document.getElementById('gf-res'),out=document.getElementById('gf-out');
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var L=parseInt(dctl.value,10),gain=parseFloat(gctl.value),useRes=res.checked;
+    g.clearRect(0,0,w,h);
+    var norms=[0];
+    for(var l=1;l<=L;l++){
+     var f=useRes?(1+(gain-1)/L):gain;   // residual: deviation spread across depth
+     norms.push(norms[l-1]+Math.log10(Math.max(f,1e-6)));
+    }
+    var lo=Math.min.apply(null,norms),hi=Math.max.apply(null,norms);
+    lo=Math.min(lo,-0.5);hi=Math.max(hi,0.5);
+    function px(l){return 46+(w-66)*l/L;}
+    function py(v){return 20+(h-60)*(hi-v)/(hi-lo);}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.lineWidth=1;
+    g.beginPath();g.moveTo(46,py(0));g.lineTo(w-20,py(0));g.stroke();g.globalAlpha=1;
+    g.fillStyle=cssVar('--ink-2');g.font=mono;
+    g.fillText('log10 |grad|',50,16);g.fillText('0',28,py(0)+4);g.fillText('layers from output →',w-190,h-8);
+    g.strokeStyle=cssVar(useRes?'--green':'--cobalt');g.lineWidth=2;g.beginPath();
+    for(var l2=0;l2<=L;l2++){var X=px(l2),Y=py(norms[l2]);if(l2===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+    g.stroke();
+    if(out) out.textContent=(useRes?'residual':'plain')+' net, depth '+L+', gain '+gain.toFixed(2)+': layer-1 gradient = 10^'+norms[L].toFixed(2)+' = '+Math.pow(10,norms[L]).toExponential(2)+' × output gradient';
+   }
+   dctl.addEventListener('input',draw);gctl.addEventListener('input',draw);res.addEventListener('change',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 4: attention geometry
+  (function(){
+   var c=document.getElementById('cv-attn'); if(!c) return;
+   var actl=document.getElementById('at-angle'),sctl=document.getElementById('at-sharp'),out=document.getElementById('at-out');
+   var keys=[0, Math.PI/2, Math.PI, 4.2];
+   var vals=[[1,0.2],[0.2,1],[-1,0.3],[-0.3,-1]];
+   function draw(){
+    var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+    var th=parseFloat(actl.value)*Math.PI/180, sc=parseFloat(sctl.value);
+    g.clearRect(0,0,w,h);
+    var cx=w/2, cy=h/2, R=Math.min(w,h)/2-30;
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.4;g.beginPath();g.arc(cx,cy,R,0,2*Math.PI);g.stroke();g.globalAlpha=1;
+    var q=[Math.cos(th),Math.sin(th)];
+    var scores=keys.map(function(k){return sc*(q[0]*Math.cos(k)+q[1]*Math.sin(k));});
+    var m=Math.max.apply(null,scores), e=scores.map(function(z){return Math.exp(z-m);}), S=e.reduce(function(a,b){return a+b;},0);
+    var alpha=e.map(function(v){return v/S;});
+    g.font=mono;
+    keys.forEach(function(k,i){
+     var x=cx+R*Math.cos(k), y=cy-R*Math.sin(k);
+     g.strokeStyle=cssVar('--green');g.lineWidth=1+6*alpha[i];g.globalAlpha=.35+.65*alpha[i];
+     g.beginPath();g.moveTo(cx,cy);g.lineTo(x,y);g.stroke();g.globalAlpha=1;
+     g.fillStyle=cssVar('--ink');g.fillText('k'+(i+1)+' '+alpha[i].toFixed(2),x-20,y-8);
+    });
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=3;
+    g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+R*q[0],cy-R*q[1]);g.stroke();
+    g.fillStyle=cssVar('--cobalt');g.fillText('query',cx+R*q[0]-20,cy-R*q[1]+16);
+    var o=[0,0];vals.forEach(function(v,i){o[0]+=alpha[i]*v[0];o[1]+=alpha[i]*v[1];});
+    g.strokeStyle=cssVar('--orange');g.lineWidth=3;
+    g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+R*0.8*o[0],cy-R*0.8*o[1]);g.stroke();
+    g.fillStyle=cssVar('--orange');g.fillText('output',cx+R*0.8*o[0]+6,cy-R*0.8*o[1]);
+    if(out) out.textContent='attention weights α = ['+alpha.map(function(a){return a.toFixed(3);}).join(', ')+'] — higher sharpness ≈ lower temperature';
+   }
+   actl.addEventListener('input',draw);sctl.addEventListener('input',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 5: scaling laws
+  (function(){
+   var c=document.getElementById('cv-scale'); if(!c) return;
+   var cctl=document.getElementById('sc-c'),out=document.getElementById('sc-out');
+   var E=1.69,A=406.4,B=410.7,al=0.34,be=0.28;
+   function loss(N,D){return E+A/Math.pow(N,al)+B/Math.pow(D,be);}
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var logC=parseFloat(cctl.value), C=Math.pow(10,logC);
+    g.clearRect(0,0,w,h);
+    var pts=[],best={L:1e9};
+    for(var i=0;i<=200;i++){
+     var lN=6+7*i/200, N=Math.pow(10,lN), D=C/(6*N);
+     if(D<1e5) continue;
+     var L=loss(N,D);pts.push([lN,L]);
+     if(L<best.L)best={L:L,lN:lN,N:N,D:D};
+    }
+    if(pts.length<2) return;
+    var lLo=Math.min.apply(null,pts.map(function(p){return p[1];}));
+    var lHi=Math.max.apply(null,pts.map(function(p){return p[1];}));
+    var xLo=pts[0][0],xHi=pts[pts.length-1][0];
+    function px(x){return 50+(w-70)*(x-xLo)/(xHi-xLo);}
+    function py(y){return 16+(h-56)*(lHi-y)/(lHi-lLo+1e-9);}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(50,h-40);g.lineTo(w-20,h-40);g.moveTo(50,16);g.lineTo(50,h-40);g.stroke();g.globalAlpha=1;
+    g.fillStyle=cssVar('--ink-2');g.font=mono;
+    g.fillText('log10 N →',w-110,h-24);g.fillText('loss',8,26);
+    g.fillText(lLo.toFixed(2),6,py(lLo)+4);g.fillText(lHi.toFixed(2),6,py(lHi)+4);
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+    pts.forEach(function(p,i2){var X=px(p[0]),Y=py(p[1]);if(i2===0)g.moveTo(X,Y);else g.lineTo(X,Y);});
+    g.stroke();
+    g.fillStyle=cssVar('--orange');g.beginPath();g.arc(px(best.lN),py(best.L),5,0,2*Math.PI);g.fill();
+    if(out) out.textContent='C=10^'+logC.toFixed(1)+' flops → optimal N≈'+best.N.toExponential(1)+' params, D≈'+best.D.toExponential(1)+' tokens ('+(best.D/best.N).toFixed(0)+' tok/param), loss≈'+best.L.toFixed(3);
+   }
+   cctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+ });
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,790 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 34 Formal Methods</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','34')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">34</div><h1>Formal Methods</h1><p class="lede">Proving that systems do what they must.</p>
+   <div class="meta"><span class="chip">22 topics</span><span class="chip">needs: chapters 3, 17, 32</span><span class="chip">feeds: chapters 35, 36</span></div>
+  </div>
+
+<section class="topic" id="formal-specifications">
+ <h2>Formal specifications</h2>
+ <p>Testing samples a system's behavior; a specification describes <em>all</em> of it. A formal specification is a mathematical statement of what a system must do, written in a language precise enough that "does the system satisfy it?" is a mathematical question rather than an opinion. The picture: the spec draws a fence in the space of all possible behaviors, and verification proves the system never leaves the fence.</p>
+ <div class="box def"><span class="label">Definition</span> A specification is a predicate $\varphi$ over system behaviors. For a program computing $f$, a functional spec is a relation between inputs and outputs: $\forall x.\ P(x) \Rightarrow Q(x, f(x))$. For a reactive system, $\varphi$ is a property of infinite execution traces. A system $S$ <em>satisfies</em> $\varphi$, written $S \models \varphi$, iff every behavior of $S$ makes $\varphi$ true.</div>
+ <div class="box ex"><span class="label">Worked example</span> Spec for integer square root: given input $n \ge 0$, the output $r$ must satisfy $r \ge 0 \wedge r^2 \le n \wedge (r+1)^2 > n$. Check candidates for $n = 10$: $r = 3$ gives $9 \le 10$ and $16 > 10$ ✓; $r = 4$ gives $16 \le 10$ ✗. Note what the spec does <em>not</em> say: which algorithm to use, how fast it runs. It pins down exactly the what, leaving the how free — and it is strong enough that the output is unique (if $r_1 < r_2$ both satisfied it, then $(r_1+1)^2 > n \ge r_2^2 \ge (r_1+1)^2$, contradiction).</div>
+ <div class="box pit"><span class="label">Pitfall</span> A spec that restates the implementation ("returns the result of Newton's iteration") verifies nothing: it is satisfied by construction, bugs included. Good specs are extensional (about observable input/output or trace behavior) and simpler than the code — otherwise you've just written the same program twice and could have the same bug twice.</div>
+ <div class="box link"><span class="label">Where this goes</span> Specification gaming (Ch 35) is what happens when a spec is formal but wrong: the optimizer satisfies the letter, not the intent. Formal methods verify code against specs; alignment asks whether the spec captures what we meant.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write a formal spec for "sort a list of integers." A common first attempt says only "the output is sorted." What's missing? <details class="sol"><summary>Solution</summary><div>Also require the output to be a permutation of the input. Spec: output $y$ satisfies $\forall i < j.\ y_i \le y_j$ (sorted) and $\text{multiset}(y) = \text{multiset}(x)$ (permutation). Without the second clause, <code>return []</code> or <code>return [1,2,3]</code> "sorts" everything.</div></details></li>
+  <li><span class="lvl m">MED</span> Spec: "$\forall n \ge 0$: output $r$ satisfies $r^2 \le n$." Give three wildly different programs that satisfy it, and strengthen the spec until only correct integer square roots pass. <details class="sol"><summary>Solution</summary><div>Satisfying programs: always return 0 ($0 \le n$); return 1 if $n \ge 1$ else 0; return the true floor sqrt. Underspecification lets degenerate programs through. Strengthen with maximality: add $(r+1)^2 > n$ and $r \ge 0$. Now $r = \lfloor\sqrt n\rfloor$ is forced (uniqueness argument as in the worked example).</div></details></li>
+  <li><span class="lvl h">HARD</span> For an LLM agent that "may only send emails the user approved," formalize the property as a trace predicate, and identify the observation problem that makes it harder than the sqrt spec. <details class="sol"><summary>Solution</summary><div>Trace alphabet: events $\text{approve}(m)$, $\text{send}(m)$, plus others. Property: $\forall m.\ \square(\text{send}(m) \Rightarrow \blacklozenge\, \text{approve}(m))$ — every send of message $m$ is preceded (past-time "once", $\blacklozenge$) by an approval of that same $m$. Hardness: (1) identity of $m$ — if the agent edits the message after approval, is it "the same" message? The spec needs a canonical form or must bind approval to an exact hash, trading usability for rigor. (2) The events must be defined at a trusted observation boundary (the runtime's tool layer, Ch 32), not the agent's self-report — a spec over unobservable or agent-reported events is unenforceable. Formalizing forces these decisions into the open; that is much of its value.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="preconditions">
+ <h2>Preconditions</h2>
+ <p>A precondition is the caller's half of a contract: what must be true <em>before</em> the operation runs. Inside the precondition, the implementation may assume the world is sane; outside it, all bets — and all guarantees — are off. Preconditions turn "defensive programming everywhere" into a division of labor: the caller establishes, the callee assumes.</p>
+ <div class="box def"><span class="label">Definition</span> For an operation $\mathit{op}$, a precondition $P$ is a predicate on the state (and arguments) such that the contract only promises the postcondition when $P$ held at entry: if $P$ fails, behavior is unconstrained by the contract (or, in a checked design, $\mathit{op}$ must refuse to run). Weaker $P$ = stronger obligation on the implementer; stronger $P$ = stronger obligation on the caller.</div>
+ <div class="box ex"><span class="label">Worked example</span> Binary search over array $a$ for key $k$. Precondition: $a$ is sorted ascending. With $a = [3, 9, 4, 7]$ (unsorted) and $k = 4$: probe middle $a[1] = 9 > 4$, recurse left into $[3]$, report "not found" — wrong, and no code bug anywhere. The algorithm is correct <em>relative to its precondition</em>; the caller broke the contract. This is why verified components come with verified preconditions: correctness composes only along satisfied contracts.</div>
+ <div class="box think"><span class="label">Think first</span> An agent's tool has precondition "file exists and is under 10 MB." Should the tool check this itself (and fail cleanly), or trust the agent? What changes versus human callers? <details class="sol"><summary>Reveal</summary><div>Check it. With human programmers, unchecked preconditions are a (debatable) performance choice among trusted parties. An LLM agent is an unreliable, possibly prompt-injected caller: every tool boundary is a trust boundary, so preconditions must be <em>validated</em>, not assumed — this is exactly precondition checking from Ch 32. The contract stays the same; who bears the burden of enforcement moves to the boundary.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> State a sensible precondition for <code>pop()</code> on a stack, and what the contract says if it's violated. <details class="sol"><summary>Solution</summary><div>Precondition: the stack is nonempty. If violated, the unchecked contract promises nothing (undefined behavior); a checked design instead specifies "raises EmptyStackError, state unchanged" — which is really a different, total contract with precondition <em>true</em> and a case-split postcondition.</div></details></li>
+  <li><span class="lvl m">MED</span> Which is the weakest precondition under which <code>x = 10 / (a - b)</code> executes without error and yields $x > 1$ (integer-free, real division)? <details class="sol"><summary>Solution</summary><div>Need $a - b \ne 0$ and $10/(a-b) > 1$. The latter: if $a - b > 0$, $10 > a - b$, so $0 < a - b < 10$. If $a - b < 0$, $10/(a-b)$ is negative, never $> 1$. Weakest precondition: $0 < a - b < 10$. (This is Dijkstra's $\mathit{wp}$ computed by hand — the weakest condition guaranteeing the postcondition.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Component A promises postcondition $Q_A: y \in [0, 100]$. Component B requires precondition $P_B: y \in [0, 50]$. The pipeline runs A then B. Is it verified? Give the general composition rule and two fixes. <details class="sol"><summary>Solution</summary><div>Not verified: composition requires $Q_A \Rightarrow P_B$, but $y \in [0,100] \not\Rightarrow y \in [0,50]$ — A may legally output 80 and B's behavior is then unconstrained. General rule: a chain $A;B$ is verified iff $P = P_A$ holds initially and each postcondition implies the next precondition. Fixes: (1) strengthen A's spec (prove it actually yields $[0,50]$, if true); (2) insert a verified adapter/guard: <code>if y &gt; 50: handle</code>, whose postcondition is $y \in [0,50]$ on the pass-through path. A third option — weaken B's precondition by reproving B on $[0,100]$ — is often costliest. The implication check between contracts is what "modular verification" means.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="postconditions">
+ <h2>Postconditions</h2>
+ <p>The postcondition is the callee's promise: what is true when the operation returns, assuming the precondition held. Together, precondition and postcondition form the contract $\{P\}\ \mathit{op}\ \{Q\}$ — everything a caller may rely on, and nothing more. A caller that depends on unpromised behavior is a bug waiting for a refactor.</p>
+ <div class="box def"><span class="label">Definition</span> A postcondition $Q$ is a predicate over the final state, the return value, and (via logical "old" values, written $x_{\text{old}}$) the entry state. Total correctness contract: if $P$ holds at entry, $\mathit{op}$ terminates and $Q$ holds at exit. Partial correctness drops the termination promise: <em>if</em> it terminates, $Q$ holds.</div>
+ <div class="box ex"><span class="label">Worked example</span> <code>withdraw(acct, amt)</code>. Precondition: $\mathit{amt} > 0 \wedge \mathit{balance} \ge \mathit{amt}$. Postcondition: $\mathit{balance} = \mathit{balance}_{\text{old}} - \mathit{amt}$ and the returned receipt references the transaction. Check an implementation that also charges a hidden fee: final balance $= \mathit{balance}_{\text{old}} - \mathit{amt} - 1 \ne \mathit{balance}_{\text{old}} - \mathit{amt}$ — postcondition violated, caught by any runtime contract checker without knowing anything about fees. The "old" value is what makes the promise checkable: postconditions relate <em>after</em> to <em>before</em>.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Postconditions that only constrain the return value and forget the <em>frame</em>: what did NOT change. "Returns the sorted list" is satisfied by an implementation that also deletes a random file. Frame conditions ("nothing outside $X$ is modified") are half the contract, and precisely the half that matters for agent tools with side effects (Ch 32's blast radius).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write pre- and postconditions for <code>max(a, b)</code> returning $m$. <details class="sol"><summary>Solution</summary><div>Precondition: true (total function). Postcondition: $(m = a \vee m = b) \wedge m \ge a \wedge m \ge b$. Both clauses are needed: the first alone allows returning the min... no — the first alone allows returning either argument even the smaller; the inequalities alone allow returning $a+b$ for positive inputs.</div></details></li>
+  <li><span class="lvl m">MED</span> Contract: $\{x \ge 0\}\ y := \sqrt{x}\ \{y^2 = x \wedge y \ge 0\}$. A colleague claims the stronger postcondition $\{y^2 = x\}$ (dropping $y \ge 0$) is "the same, but simpler." Who's right, and what does a caller lose? <details class="sol"><summary>Solution</summary><div>Dropping $y \ge 0$ <em>weakens</em> the postcondition (fewer guarantees, more implementations allowed — e.g. returning $-2$ for $x = 4$). A caller who then computes $\log y$ or compares $y \le y'$ can break. Direction matters: strengthening a postcondition or weakening a precondition makes a contract stronger (safer to rely on); the colleague did the opposite.</div></details></li>
+  <li><span class="lvl h">HARD</span> An agent tool <code>apply_patch(repo, diff)</code> should have what postcondition and frame condition to support verified rollbacks (Ch 32)? <details class="sol"><summary>Solution</summary><div>Postcondition: the working tree equals $\text{apply}(\mathit{tree}_{\text{old}}, \mathit{diff})$; the return value contains an undo token $u$ with the property $\text{apply}(\text{apply}(\mathit{tree}_{\text{old}}, \mathit{diff}), \text{undo}(u)) = \mathit{tree}_{\text{old}}$ (a two-sided inverse on the touched paths). Frame: only paths mentioned in $\mathit{diff}$ are modified; the index, untracked files, and everything outside the repo are unchanged. The frame is what makes rollback <em>sufficient</em>: undoing the diff restores the world only if nothing else changed. Without a frame condition, "rollback" restores the files but not the deleted database — the tool's contract must say the database was never touchable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="invariants">
+ <h2>Invariants</h2>
+ <p>An invariant is a property that is always true — before and after every operation, at every observable moment. Where pre/postconditions guard single operations, invariants guard the system's whole life. The proof pattern is induction (Ch 3): true initially, preserved by every step, therefore true forever. Almost every safety argument in this chapter reduces to finding the right invariant.</p>
+ <div class="box def"><span class="label">Definition</span> For a transition system with states $S$, initial states $I \subseteq S$, and transition relation $\to$, a set $\mathit{Inv} \subseteq S$ is an <em>inductive invariant</em> iff (1) $I \subseteq \mathit{Inv}$ and (2) $s \in \mathit{Inv} \wedge s \to s' \Rightarrow s' \in \mathit{Inv}$. Then every reachable state lies in $\mathit{Inv}$. A property can be invariant (true in all reachable states) without being inductive; proofs need an inductive strengthening.</div>
+ <div class="box ex"><span class="label">Worked example</span> Loop computing $s = 0; i = 0;$ then while $i < n$: $s \mathrel{+}= 2i + 1;\ i \mathrel{+}= 1$. Claim: invariant $s = i^2$. Base: $0 = 0^2$ ✓. Step: assume $s = i^2$ before an iteration; after, $s' = i^2 + 2i + 1 = (i+1)^2 = (i')^2$ ✓. At exit $i = n$, so $s = n^2$: the loop provably computes squares. Every loop-correctness argument you'll ever write has this three-beat shape — establish, preserve, conclude at exit.</div>
+ <div class="box ex"><span class="label">Worked example (non-inductive)</span> System: $x$ starts at 0; each step does $x := x + 2$. Property "$x \ne 5$" is invariant (reachable states are even) but not inductive: $x = 3$ satisfies $x \ne 5$ yet steps to 5. The inductive strengthening "$x$ is even" implies $x \ne 5$ and is preserved. Finding such strengthenings is the creative core of verification — and the part modern tools ask humans (or LLMs) to supply.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Step the loop and watch the invariant $s = i^2$ hold at every checkpoint; break the update rule with the slider and see the first state where it fails.</p>
+  <canvas id="cv-inv"></canvas>
+  <div class="ctl">
+   <label>n <input type="range" id="iv-n" min="3" max="14" step="1" value="8"></label>
+   <label>update adds 2i + <input type="range" id="iv-k" min="0" max="3" step="1" value="1"></label>
+   <button class="btn" id="iv-step">Step</button>
+   <button class="btn" id="iv-reset">Reset</button>
+  </div>
+  <div class="out" id="iv-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Loop: $a = 1$; repeat $a := 3a$. Which of these are invariants: (i) $a$ odd; (ii) $a \le 100$; (iii) $a$ is a power of 3? <details class="sol"><summary>Solution</summary><div>(i) yes — odd × 3 stays odd, base 1 is odd. (ii) no — fails after 5 steps ($243$). (iii) yes — base $3^0$, step multiplies by 3. Both (i) and (iii) are also inductive as stated.</div></details></li>
+  <li><span class="lvl m">MED</span> Euclid's algorithm: while $b \ne 0$: $(a, b) := (b, a \bmod b)$. State the invariant that proves it returns $\gcd(a_0, b_0)$, and verify the preservation step. <details class="sol"><summary>Solution</summary><div>Invariant: $\gcd(a, b) = \gcd(a_0, b_0)$. Preservation: $\gcd(b, a \bmod b) = \gcd(a, b)$ because any common divisor of $a, b$ divides $a - qb = a \bmod b$, and conversely any common divisor of $b, a\bmod b$ divides $qb + (a \bmod b) = a$ — same divisor sets, same gcd. At exit $b = 0$: $\gcd(a, 0) = a$, so the returned $a$ equals $\gcd(a_0, b_0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> An agent system maintains "every in-flight task has exactly one owner." Which operations must be checked to prove it inductively? <details class="sol"><summary>Solution</summary><div>Every transition that touches ownership or task lifecycle: create-task (must assign exactly one owner atomically), delegate (must transfer, not copy — remove old owner and add new in one step), agent-crash/reap (must reassign orphaned tasks — this is where the invariant usually breaks), complete-task (removes it from in-flight). Inductive proof = a case per transition; the value of the exercise is that it forces you to enumerate the transitions, at which point the crash case reveals itself.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: in the system $x := x + y;\ y := y + 2$ starting from $x = 0, y = 1$, the property $x$ is a perfect square always holds. Find the inductive invariant. <details class="sol"><summary>Solution</summary><div>Trace: $(x,y) = (0,1) \to (1,3) \to (4,5) \to (9,7) \to (16, 9)$: $x = k^2$, $y = 2k+1$ at step $k$. Inductive invariant: $\exists k \ge 0:\ x = k^2 \wedge y = 2k + 1$ — equivalently $4x = (y-1)^2 \wedge y$ odd $\wedge\, y \ge 1$. Base: $4\cdot0 = 0 = (1-1)^2$ ✓. Step: new $x' = x + y = k^2 + 2k + 1 = (k+1)^2$, new $y' = y + 2 = 2(k+1) + 1$ ✓. The bare property "$x$ is a square" is not inductive (state $x = 4, y = 4$ satisfies it but steps to $x = 8$); coupling $x$ to $y$ is the strengthening.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hoare-logic">
+ <h2>Hoare logic</h2>
+ <p>Hoare logic turns "this program is correct" into a derivation you can check line by line. Its sentences are triples $\{P\}\ C\ \{Q\}$: if $P$ holds and you run $C$, then $Q$ holds after. Each program construct gets one inference rule, so a correctness proof decomposes along the program's syntax — the chain rule of verification.</p>
+ <div class="box def"><span class="label">Definition</span> Core rules (partial correctness):
+ $$\text{Assign:}\quad \{Q[e/x]\}\ x := e\ \{Q\}$$
+ $$\text{Seq:}\quad \frac{\{P\}C_1\{R\}\quad \{R\}C_2\{Q\}}{\{P\}\ C_1; C_2\ \{Q\}} \qquad \text{If:}\quad \frac{\{P \wedge b\}C_1\{Q\}\quad \{P \wedge \neg b\}C_2\{Q\}}{\{P\}\ \texttt{if } b \texttt{ then } C_1 \texttt{ else } C_2\ \{Q\}}$$
+ $$\text{While:}\quad \frac{\{I \wedge b\}\ C\ \{I\}}{\{I\}\ \texttt{while } b \texttt{ do } C\ \{I \wedge \neg b\}} \qquad \text{Consequence:}\quad \frac{P \Rightarrow P' \quad \{P'\}C\{Q'\} \quad Q' \Rightarrow Q}{\{P\}C\{Q\}}$$
+ The while-rule's $I$ is the loop invariant; total correctness adds a variant (a well-founded measure that strictly decreases each iteration) to prove termination.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prove $\{n \ge 0\}\ s:=0; i:=0; \texttt{while } i < n\ \{s := s + i;\ i := i + 1\}\ \{s = n(n-1)/2\}$. Invariant $I: s = i(i-1)/2 \wedge 0 \le i \le n$. Establish: after the two assignments, $s = 0 = 0\cdot(-1)/2$, $i = 0$ ✓. Preserve: assume $I \wedge i < n$. After $s := s + i$: $s = i(i-1)/2 + i = i(i+1)/2$. After $i := i+1$: with $i' = i + 1$, $s = (i'-1)i'/2 = i'(i'-1)/2$ and $i' \le n$ ✓. Exit: $I \wedge \neg(i<n)$ gives $i = n$, hence $s = n(n-1)/2$ ✓. Termination: variant $n - i$, a natural number strictly decreasing each iteration. Every step above is mechanical except choosing $I$ — which is why loop invariants are the annotations verifiers ask for.</div>
+ <div class="box think"><span class="label">Think first</span> Using the assignment rule backwards, what is the weakest precondition of $x := x + 3$ for postcondition $x^2 > 25$? <details class="sol"><summary>Reveal</summary><div>Substitute: $(x+3)^2 > 25$, i.e. $x + 3 > 5$ or $x + 3 < -5$, i.e. $x > 2 \vee x < -8$. Weakest-precondition calculation is just substitution for assignments — the mechanical heart of every deductive verifier.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\{x = 3\}\ x := 2x\ \{x = 6\}$ derivable? Show it with the assignment rule. <details class="sol"><summary>Solution</summary><div>Assignment rule with $Q: x = 6$ gives precondition $Q[2x/x]: 2x = 6$, i.e. $x = 3$. Exactly the stated precondition, so yes.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the weakest precondition of the sequence $y := x + 1;\ z := 2y$ for postcondition $z > 10$. <details class="sol"><summary>Solution</summary><div>Backwards: $\mathit{wp}(z := 2y,\ z > 10) = 2y > 10 = y > 5$. Then $\mathit{wp}(y := x+1,\ y > 5) = x + 1 > 5 = x > 4$. So $\{x > 4\}$ is weakest; any stronger condition (e.g. $x \ge 100$) also works via the consequence rule.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove partial correctness: $\{x = a \wedge y = b\}\ \texttt{while } y \ne 0\ \{x := x + 1;\ y := y - 1\}\ \{x = a + b\}$, assuming $b \ge 0$. Give invariant, preservation, exit, and the variant for total correctness. <details class="sol"><summary>Solution</summary><div>Invariant $I: x + y = a + b \wedge y \ge 0$. Establish: $x + y = a + b$ ✓, $y = b \ge 0$ ✓. Preserve: assume $I \wedge y \ne 0$ (so $y \ge 1$). After the body: $x' + y' = (x+1) + (y-1) = x + y = a + b$ ✓ and $y' = y - 1 \ge 0$ ✓. Exit: $I \wedge y = 0$ gives $x = a + b$ ✓. Variant: $y \in \mathbb{N}$, strictly decreases; hence termination, so total correctness. (Note how the invariant is a conservation law — the quantity $x + y$ is conserved by the dynamics. Good invariants very often are.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="program-verification">
+ <h2>Program verification</h2>
+ <p>Program verification assembles the pieces: annotate the code with contracts and invariants, generate the logical obligations each rule demands, and discharge those obligations with a theorem prover. The pipeline — annotate, generate verification conditions, solve — is what tools like Dafny, Why3, and Frama-C automate, with SMT solvers (later this chapter) as the engine.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>verification condition</em> (VC) is a pure logical formula whose validity implies a Hoare triple. VC generation walks the program backwards computing weakest preconditions; each loop contributes three VCs: $P \Rightarrow I$ (entry), $\{I \wedge b\}\,\text{body}\,\{I\}$ unrolled to a formula (preservation), and $I \wedge \neg b \Rightarrow Q$ (exit). The program is verified iff all VCs are valid.</div>
+ <div class="box ex"><span class="label">Worked example</span> Verify <code>abs</code>: $\{ \text{true} \}$ if $x < 0$ then $y := -x$ else $y := x$ $\{ y = |x| \wedge y \ge 0 \}$. Two VCs from the if-rule + assignment: branch 1: $x < 0 \Rightarrow (-x = |x| \wedge -x \ge 0)$ — valid since $x<0$ gives $|x| = -x > 0$. Branch 2: $\neg(x<0) \Rightarrow (x = |x| \wedge x \ge 0)$ — valid since $x \ge 0$. Both VCs are quantifier-free arithmetic an SMT solver settles in microseconds. Scale that recipe up and you have verified compilers (CompCert) and verified OS kernels (seL4) — the same three-step pipeline, with far harder invariants.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Verified" always means "verified <em>against this spec, under these assumptions</em>" — the compiler is trusted or verified separately, the hardware model is assumed, the spec may be incomplete. seL4's proofs famously exclude, e.g., timing channels. A verification claim without its assumption list is marketing.</div>
+ <div class="box link"><span class="label">Where this goes</span> LLMs now draft the annotations (invariants, contracts) and provers check them — the generator–verifier pattern of Ch 33 with a <em>sound</em> verifier, and the model for tool-verified reasoning in Ch 30.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is it fine for an unreliable LLM to propose loop invariants in this pipeline? <details class="sol"><summary>Solution</summary><div>Because invariants are <em>checked</em>, not trusted: a wrong invariant fails the generated VCs and is rejected; a right one is machine-confirmed. Soundness lives in the checker, so the proposer only affects completeness/cost — the ideal division of labor between creative-but-fallible and mechanical-but-sound.</div></details></li>
+  <li><span class="lvl m">MED</span> Generate the three loop VCs for the summation program of the Hoare section (invariant $I: s = i(i-1)/2 \wedge 0 \le i \le n$, guard $i < n$, post $s = n(n-1)/2$, pre $n \ge 0$). <details class="sol"><summary>Solution</summary><div>Entry: $n \ge 0 \Rightarrow (0 = 0 \wedge 0 \le 0 \le n)$ — valid. Preservation (body $s := s+i; i := i+1$, wp backwards): $s = i(i-1)/2 \wedge 0 \le i \le n \wedge i < n \;\Rightarrow\; s + i = (i+1)i/2 \wedge 0 \le i + 1 \le n$ — valid ($s + i = i(i-1)/2 + i = i(i+1)/2$; $i + 1 \le n$ from $i < n$). Exit: $s = i(i-1)/2 \wedge 0 \le i \le n \wedge i \ge n \Rightarrow s = n(n-1)/2$ — valid since $i = n$. All three are formulas over integers with no program text left: that's the point of VC generation.</div></details></li>
+  <li><span class="lvl h">HARD</span> Your verifier proves the VCs, yet the deployed program misbehaves. List four distinct places the gap can live. <details class="sol"><summary>Solution</summary><div>(1) Spec gap: the postcondition doesn't capture the real requirement (verified sort, but the requirement was stable sort). (2) Model gap: the semantics used for VC generation differ from reality — unmodeled integer overflow, floating point, concurrency, exceptions. (3) Toolchain gap: compiler, runtime, or hardware deviates from the assumed semantics (miscompilation, bit flips). (4) Environment/assumption gap: preconditions assumed at the boundary aren't actually established by callers, or the OS/library contracts the proof leaned on don't hold. Verification moves bugs from "anywhere in the code" to "somewhere in this short assumption list" — a huge, but not total, victory.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="type-systems">
+ <h2>Type systems</h2>
+ <p>A type system is the lightweight, always-on formal method you already use: a compositional proof, computed by the compiler, that certain errors cannot happen at runtime. Each expression gets a type; rules say how types combine; and the slogan — <em>well-typed programs don't go wrong</em> — is a real theorem about a real class of errors.</p>
+ <div class="box def"><span class="label">Definition</span> A type system assigns judgments $\Gamma \vdash e : \tau$ ("in context $\Gamma$, expression $e$ has type $\tau$") via inference rules, e.g. $\frac{\Gamma \vdash f : \sigma \to \tau \quad \Gamma \vdash x : \sigma}{\Gamma \vdash f\,x : \tau}$. <em>Soundness</em> is the pair: <em>progress</em> (a well-typed program is either a value or can step) and <em>preservation</em> (types are invariants of evaluation: if $e : \tau$ and $e \to e'$ then $e' : \tau$). Types are exactly an inductive invariant over the small-step transition system of execution.</div>
+ <div class="box ex"><span class="label">Worked example</span> Typecheck $f(g(3))$ where $g : \text{int} \to \text{str}$ and $f : \text{str} \to \text{bool}$. Judgment: $3 : \text{int}$; application rule gives $g(3) : \text{str}$; application again gives $f(g(3)) : \text{bool}$ ✓. Now swap: $g(f(\dots))$ — $f$ needs a $\text{str}$, but suppose we pass $3$: the rule's premise $3 : \text{str}$ fails, no derivation exists, program rejected <em>before running</em>. The proof of "no int-where-str-expected error at runtime" was assembled compositionally from one-line rules — no execution, no search, linear time. That trade (limited properties, zero effort) is why types are the most deployed formal method on earth.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Type soundness only excludes the errors the type language can express. Classic Java: no type errors, yet NullPointerException — because <code>null</code> inhabited every reference type. Richer type languages (option types, refinement types like $\{x : \text{int} \mid x > 0\}$, dependent types) push more properties into the checked zone, at rising annotation cost, until at the far end the type checker <em>is</em> a proof assistant.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $h : \text{int} \to \text{int} \to \text{bool}$ (curried), what is the type of $h\,5$? Of $h\,5\,7$? <details class="sol"><summary>Solution</summary><div>$h\,5 : \text{int} \to \text{bool}$ (partial application); $h\,5\,7 : \text{bool}$. Currying means the arrow associates right: $\text{int} \to (\text{int} \to \text{bool})$.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain "preservation is an inductive invariant" by matching the pieces to the invariant definition earlier in this chapter. <details class="sol"><summary>Solution</summary><div>States = programs (expressions); transitions = evaluation steps $e \to e'$; initial states = the typechecked source program; invariant set = $\{e : e \text{ has type } \tau\}$. Preservation is exactly the preservation clause of inductive invariance; typechecking the source is the base case; progress converts the invariant into the safety property "never stuck at a type error." The compiler is a proof-by-induction generator.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a refinement-typed interface for an agent tool <code>transfer(from, to, amount)</code> so that entire classes of misuse are unrepresentable, and note what remains unverified. <details class="sol"><summary>Solution</summary><div>Types: <code>amount : {x : int | 0 &lt; x ≤ limit(from)}</code> (positive, within the caller's authorized limit); <code>from : OwnedAccount(caller)</code> (an account type parameterized by an ownership proof — capability-style, Ch 32); <code>to : ValidatedAccount</code> (only constructible via the validation routine). Now negative transfers, unauthorized sources, and unvalidated destinations are type errors: unrepresentable, not merely checked at runtime. Remains unverified: whether <code>limit</code> reflects current policy, races between the limit check and execution (needs transactional semantics), and whether the transfer <em>should</em> happen (intent — no type captures that). Types shrink the trusted surface; they don't eliminate judgment.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">Type soundness ("well-typed programs don't go wrong") is proved via which pair of lemmas?</div><button class="opt">Completeness and decidability</button><button class="opt">Progress and preservation</button><button class="opt">Confluence and normalization</button><div class="why" hidden>Progress: a well-typed term is a value or can step. Preservation: stepping keeps the type. Together they imply execution never reaches a stuck (type-error) state — an induction along the execution trace.</div></div>
+</section>
+
+<section class="topic" id="proof-assistants">
+ <h2>Proof assistants</h2>
+ <p>A proof assistant (Lean, Coq/Rocq, Isabelle, Agda) is an environment where proofs are data: you build a formal proof object interactively, and a small trusted kernel checks every step against the rules of logic. Nothing is accepted on authority — not the user's, not an LLM's, not a famous mathematician's. The kernel is the whole ballgame: trust it, and you may trust everything it accepts.</p>
+ <div class="box def"><span class="label">Definition</span> Most assistants rest on the <em>Curry–Howard correspondence</em>: propositions are types, proofs are programs. A proof of $A \to B$ is a function turning proofs of $A$ into proofs of $B$; a proof of $A \wedge B$ is a pair. Checking a proof = typechecking a term, so the trusted base is a typechecker of a few thousand lines — the <em>de Bruijn criterion</em>: huge proof searches are fine because the found proof is re-checked by the tiny kernel.</div>
+ <div class="box ex"><span class="label">Worked example</span> Proposition: $A \wedge B \to B \wedge A$. Proof-as-program: $\lambda p.\ (\mathrm{snd}\ p,\ \mathrm{fst}\ p)$ — take the pair, swap it. Typecheck: $p : A \times B$, so $\mathrm{snd}\,p : B$ and $\mathrm{fst}\,p : A$, so the result is $B \times A$ ✓. In Lean syntax: <code>fun p =&gt; ⟨p.2, p.1⟩</code>. The "proof" of commutativity of ∧ literally <em>is</em> the swap function; the kernel verifying it is doing the two-line type derivation above.</div>
+ <div class="box link"><span class="label">Where this goes</span> Proof assistants give reasoning systems (Ch 30) a perfect outcome verifier: an LLM can flail through 1000 wrong proof attempts, and the one the kernel accepts is simply correct — the purest instance of the generator–verifier gap, and why formal math (AlphaProof, Lean-based pipelines) is a frontier for test-time search.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Under Curry–Howard, what does a proof of $A \to (B \to A)$ look like as a program? <details class="sol"><summary>Solution</summary><div>$\lambda a.\ \lambda b.\ a$ — take a proof of $A$, take a proof of $B$, discard it, return the proof of $A$. (The K combinator.) The type is inhabited for any $A, B$, matching the tautology.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the de Bruijn criterion make LLM-generated proofs trustworthy even though LLMs hallucinate? <details class="sol"><summary>Solution</summary><div>The LLM's output is a candidate proof term; the kernel typechecks it against the theorem statement. A hallucinated step is a type error and the proof is rejected — the LLM contributes search, never trust. The residual risks are only: kernel bugs (small, heavily audited surface) and <em>misstatement</em> — proving a theorem that doesn't say what you think it says. The second is the live danger: reading formal statements carefully cannot be delegated to the kernel.</div></details></li>
+  <li><span class="lvl h">HARD</span> Under Curry–Howard with constructive logic, there is no term of type $A \vee \neg A$ for arbitrary $A$ (no proof of excluded middle). Explain why in computational terms, and how classical assistants cope. <details class="sol"><summary>Solution</summary><div>A constructive proof of $A \vee \neg A$ must be a program that, for any proposition $A$, <em>decides</em> which side holds and produces the evidence — a universal decision procedure for all propositions, which cannot exist (it would decide the halting problem, Ch 17: take $A$ = "this Turing machine halts"). So the type is uninhabited in pure constructive systems. Classical assistants (Isabelle/HOL; Lean with <code>Classical.em</code>) add excluded middle as an axiom: proofs may use it, but such proofs no longer carry executable content — you lose the program, keep the truth. The choice is per-development: constructive when you want certified algorithms extracted from proofs, classical when you just want theorems.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="model-checking">
+ <h2>Model checking</h2>
+ <p>Deductive proof asks you to be clever; model checking asks a machine to be exhaustive. Express the system as a finite transition system, the property in temporal logic, and the checker explores <em>every</em> reachable state. Its two superpowers: it is fully automatic, and when the property fails it hands you a concrete counterexample trace — the exact sequence of steps to the bug.</p>
+ <div class="box def"><span class="label">Definition</span> Given a transition system $M$ and a temporal property $\varphi$, model checking decides $M \models \varphi$ by state-space exploration. For safety properties this is reachability: compute $R$ = all states reachable from $I$; check $R \cap \mathit{Bad} = \emptyset$. Complexity is linear in $|R|$ — the catch being that $|R|$ explodes exponentially in the number of components ($n$ boolean variables → up to $2^n$ states). Symbolic methods (BDDs, SAT-based bounded model checking) fight the explosion by manipulating <em>sets</em> of states as formulas.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two agents, each either <code>Idle</code> or <code>Using</code> a shared resource, with a naive protocol: an agent may start using whenever it is idle. States: (I,I), (I,U), (U,I), (U,U). Initial: (I,I). Transitions: each agent independently I→U and U→I. Reachability: (I,I) → (U,I), (I,U) → (U,U) reachable in 2 steps. Bad set = {(U,U)} (mutual exclusion violated). Checker output: counterexample trace (I,I) → (U,I) → (U,U). Fix: add a lock variable — states (I,I,free), (U,I,taken), (I,U,taken); the transition I→U is only enabled when the lock is free and atomically takes it. New reachable set has no (U,U,·): property verified by exhaustion, no invariant-guessing needed.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A token machine: counter starts at 0; each step adds a (green) or subtracts b (red) nondeterministically; bad states are counter ≥ danger. Explore reachability: which (a, b, danger) make the bad region unreachable? Watch BFS flood the state graph.</p>
+  <canvas id="cv-mc"></canvas>
+  <div class="ctl">
+   <label>add a <input type="range" id="mc-a" min="1" max="5" step="1" value="3"></label>
+   <label>subtract b <input type="range" id="mc-b" min="1" max="5" step="1" value="2"></label>
+   <label>danger ≥ <input type="range" id="mc-d" min="4" max="18" step="1" value="12"></label>
+   <label>cap (0 clamps) <input type="range" id="mc-cap" min="6" max="20" step="1" value="15"></label>
+  </div>
+  <div class="out" id="mc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Model checking verifies the <em>model</em>, not the system. If the model abstracts away the behavior containing the bug (message reordering, timing, integer widths), the checker's "verified" is vacuous. Abstraction must be conservative: the model over-approximates real behaviors, so model-safe ⟹ system-safe — the direction of the approximation is everything.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A system has 12 boolean state variables. Upper bound on states? Why is this an upper bound on <em>reachable</em> states? <details class="sol"><summary>Solution</summary><div>$2^{12} = 4096$ total valuations. Reachable states are a subset of all valuations (often a tiny one — that's what invariants describe), so 4096 bounds them from above.</div></details></li>
+  <li><span class="lvl m">MED</span> In the counter system (start 0; steps +3 or −2; values clamped to $[0, 15]$), is 11 reachable? Give a path or prove unreachability of some value instead. <details class="sol"><summary>Solution</summary><div>Yes: 0 → 3 → 6 → 9 → 12 → 10 → 8 → 11. (Or shorter: 0→3→6→4→2→0... the direct one: +3,+3,+3,+3 hits 12, then −2 twice gives 8, +3 gives 11 — that's the path above, 7 steps.) In fact without clamping, reachable values from 0 using +3/−2 are all integers expressible as $3m - 2k \ge 0$ along a valid path; since $\gcd(3,2) = 1$, every value ≥ 0 becomes reachable within bounds — the interesting questions appear when clamping cuts paths off.</div></details></li>
+  <li><span class="lvl h">HARD</span> Bounded model checking (BMC) checks only traces of length ≤ $k$ by unrolling transitions into a SAT formula. What can BMC conclude when it finds no violation, and how do you make its answer complete? <details class="sol"><summary>Solution</summary><div>No violation within $k$ steps ⟹ only "no counterexample of length ≤ k" — bugs at depth $k+1$ remain possible. Completeness routes: (1) reach the <em>completeness threshold</em> — e.g. the reachability diameter $d$ of the system (every reachable state reachable in ≤ $d$ steps); if $k \ge d$, absence of violations is a proof; computing $d$ is itself hard, but bounds exist. (2) $k$-induction: prove the property holds for the first $k$ states (base) and that $k$ consecutive property-satisfying states force a $(k{+}1)$-th (step); together they prove it for all depths. (3) IC3/PDR: incrementally build an inductive invariant from generalized blocked states. In practice BMC is run as a bug-finder (small $k$, fast), with inductive methods layered on for proofs.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="transition-systems">
+ <h2>Transition systems</h2>
+ <p>The transition system is the common semantic currency of this chapter: programs, protocols, agents, circuits — all become states and arrows before verification begins. Get comfortable converting things to this form; every property you'll verify is a statement about the paths of such a graph.</p>
+ <div class="box def"><span class="label">Definition</span> A transition system is $M = (S, S_0, \to, L)$: states $S$, initial states $S_0 \subseteq S$, transition relation $\to \subseteq S \times S$, and a labeling $L : S \to 2^{AP}$ marking which atomic propositions hold in each state. A <em>trace</em> is a maximal sequence $s_0 \to s_1 \to \cdots$ with $s_0 \in S_0$; the system's behavior is its set of traces. Nondeterminism (a state with several successors) models scheduling, environment choice, and abstraction.</div>
+ <div class="box ex"><span class="label">Worked example</span> A retry-loop agent as a transition system. States: $\{\text{Try}, \text{Wait}, \text{Done}, \text{Failed}(1), \text{Failed}(2)\}$... concretely: $S = \{T_0, T_1, T_2, W, D\}$ where $T_i$ = attempting with $i$ prior failures. $S_0 = \{T_0\}$. Transitions: $T_i \to D$ (success), $T_0 \to T_1$, $T_1 \to T_2$ (failure and retry), $T_2 \to W$ (give up, await human), $W \to T_0$ (human resets). Labels: $L(D) = \{\text{done}\}$, $L(W) = \{\text{escalated}\}$. Now precise questions: "is it possible to retry forever?" — no trace visits $T_i$ infinitely without passing $W$ (check: any cycle goes through $W$, i.e. through escalation) ✓. The vague design intuition became a checkable graph property.</div>
+ <div class="box think"><span class="label">Think first</span> How would you model "the network may drop any message" in a transition system of two communicating agents? <details class="sol"><summary>Reveal</summary><div>As nondeterminism in the transition relation: from any state where a message is in flight, add two transitions — one delivering it, one dropping it (removing it from the channel without effect). Verifying a property over <em>all</em> traces then automatically covers every drop pattern; the adversarial network costs one extra arrow per message, not a probability model. When you need "drops are rare" quantitatively, you move to Markov chains (Ch 12) and probabilistic model checking.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Model a traffic light cycling green → yellow → red → green as a transition system. Is it deterministic? <details class="sol"><summary>Solution</summary><div>$S = \{G, Y, R\}$, $S_0 = \{G\}$, arrows $G \to Y \to R \to G$, labels e.g. $L(G) = \{\text{go}\}$. Deterministic: every state has exactly one successor, so exactly one trace: $(G Y R)^\omega$.</div></details></li>
+  <li><span class="lvl m">MED</span> Two of the traffic lights above at an intersection, stepping asynchronously (either may advance at each step). How many states does the product system have, and which are "bad"? <details class="sol"><summary>Solution</summary><div>Product: $3 \times 3 = 9$ states $(l_1, l_2)$. Bad: both green — $(G, G)$; typically also green–yellow pairs depending on the safety requirement. Note the asynchronous product's transitions: from $(G, R)$ you can go to $(Y, R)$ or $(G, G)$ — and if $(G,G)$ is reachable from the initial state, the naive design is unsafe; the fix is a shared controller variable coupling the components (exactly the lock from the model-checking example). State explosion in miniature: $n$ lights → $3^n$ states.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give a transition system where every state satisfies "$p$ can eventually be reached" yet some trace never reaches $p$. What does this teach about branching- vs linear-time properties? <details class="sol"><summary>Solution</summary><div>States $\{a, b\}$, $S_0 = \{a\}$, arrows $a \to a$, $a \to b$, $b \to b$, with $p$ holding only at $b$. From every state there <em>exists</em> a path to $p$ (from $a$: take $a \to b$), but the trace $a \to a \to a \to \cdots$ never reaches $p$. "Exists a path" (CTL's $\mathsf{EF}\,p$) is a branching-time property of the tree of possibilities; "all paths eventually" (LTL's $\mathsf F\,p$) is linear-time and fails here. Fairness assumptions (e.g. "the choice $a \to b$ cannot be ignored forever") are how checkers exclude such starvation traces when they're unrealistic.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="safety-properties">
+ <h2>Safety properties</h2>
+ <p>"Nothing bad ever happens." A safety property forbids certain finite behaviors: violating one is an event you can point to — <em>there</em>, at step 17, the invariant broke. This finite-witness structure is why safety is the workhorse of verification: it's what invariants prove, what monitors can watch for, and what reachability checks decide.</p>
+ <div class="box def"><span class="label">Definition</span> A property $\varphi$ (a set of allowed infinite traces) is a <em>safety property</em> iff every trace violating $\varphi$ has a finite <em>bad prefix</em>: a finite prefix none of whose infinite extensions satisfy $\varphi$. Equivalently: $\varphi$ is closed in the topology of traces. Canonical form: $\square\, \neg \mathit{bad}$ ("always not-bad"). Safety is verified by proving an inductive invariant that excludes $\mathit{bad}$, or refuted by exhibiting a finite reachable path into it.</div>
+ <div class="box ex"><span class="label">Worked example</span> Classify: (1) "the agent never spends more than \$100" — safety: a violating run has a prefix where cumulative spend first exceeds 100; nothing later can unspend it. (2) "every request is eventually answered" — <em>not</em> safety: any finite prefix with an unanswered request could still be extended by an answer; no finite witness of violation exists (it's liveness, next section). (3) "spend never exceeds \$100 <em>and</em> every purchase is eventually logged" — a conjunction of safety and liveness; the decomposition theorem says every linear-time property factors this way.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Teams "monitor for liveness violations" — but a monitor sees only finite prefixes, so it can never witness a pure liveness violation. What monitoring actually enforces is a safety <em>approximation</em>: "answered within 30 s." Choosing the bound is a design act; make it explicit rather than pretending the timeout is the property.</div>
+ <div class="box link"><span class="label">Where this goes</span> Runtime monitoring and safety shields (later this chapter) enforce exactly the safety fragment; Ch 35's control-and-monitoring agenda for powerful models is the same idea with fuzzier bad-sets.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Safety or not: "the database is never corrupted"; "the two agents never both hold the lock"; "the system restarts infinitely often." <details class="sol"><summary>Solution</summary><div>Safety; safety (a violating prefix shows both holding it); not safety — "infinitely often" can't be violated by any finite prefix (liveness).</div></details></li>
+  <li><span class="lvl m">MED</span> Show that an arbitrary intersection of safety properties is a safety property. <details class="sol"><summary>Solution</summary><div>Let $\varphi = \bigcap_j \varphi_j$, each $\varphi_j$ safety. If a trace $\pi \notin \varphi$, then $\pi \notin \varphi_j$ for some $j$; since $\varphi_j$ is safety, $\pi$ has a finite prefix $u$ none of whose extensions satisfy $\varphi_j$ — hence none satisfy $\varphi \subseteq \varphi_j$ either. So every violator of $\varphi$ has a bad prefix: $\varphi$ is safety. (Practical reading: you can pile safety requirements onto a monitor freely; the conjunction stays monitorable.)</div></details></li>
+  <li><span class="lvl h">HARD</span> "The agent never exfiltrates the secret $s$" — why is this harder to cast as a checkable safety property than "never calls tool X," and what over-approximation makes it enforceable? <details class="sol"><summary>Solution</summary><div>"Never calls tool X" is a predicate on single events — trivially monitorable. Exfiltration is an <em>information-flow</em> property: whether outputs depend on $s$, which is a relation between <em>pairs</em> of traces (would the output differ had $s$ differed?) — a "hyperproperty," not a set of traces, so no single-trace monitor can decide it exactly (and encodings can hide $s$ in innocuous-looking outputs). Enforceable over-approximations: taint tracking (label data derived from $s$; block any labeled data crossing the output boundary — may false-positive on benign summaries), or structural isolation (the component that saw $s$ has no channel to the output — Ch 32 sandboxing), which enforces noninterference by architecture rather than by watching content. The general lesson: when the true property isn't monitorable, enforce a stronger, cruder property that implies it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="liveness-properties">
+ <h2>Liveness properties</h2>
+ <p>"Something good eventually happens." Liveness forbids infinite procrastination: requests get answered, the loop terminates, the agent eventually escalates. No finite observation can refute liveness — the good thing might still be coming — so proving it needs a different tool than invariants: a quantity that must decrease, or a fairness assumption that choices can't be dodged forever.</p>
+ <div class="box def"><span class="label">Definition</span> $\varphi$ is a <em>liveness property</em> iff every finite prefix can be extended to some trace satisfying $\varphi$ (the property is dense: no finite behavior is yet a violation). Canonical forms: $\lozenge\, \mathit{good}$ (eventually), $\square\lozenge\, \mathit{good}$ (infinitely often), $\square(\mathit{req} \Rightarrow \lozenge\, \mathit{resp})$ (response). Proof method: a <em>ranking function</em> $V$ into a well-founded order that strictly decreases until $\mathit{good}$ — the same mathematics as Lyapunov functions (Ch 28) and loop variants (Hoare logic above).</div>
+ <div class="box ex"><span class="label">Worked example</span> Prove the retry system from the transition-systems section satisfies "every trace eventually reaches $D$ or visits $W$": rank states by $V(T_0) = 3, V(T_1) = 2, V(T_2) = 1$, target set $\{D, W\}$. Every transition from a $T_i$ either enters the target ($T_i \to D$, $T_2 \to W$) or strictly decreases $V$ ($T_0 \to T_1 \to T_2$). $V$ is a natural number, so it cannot decrease forever: within 3 steps the trace hits the target. Note what fails without the give-up arrow: with $T_2 \to T_0$ (retry forever), the trace $T_0 T_1 T_2 T_0 \cdots$ violates liveness, and indeed no ranking function exists on that cycle.</div>
+ <div class="box think"><span class="label">Think first</span> A scheduler alternates between two queues, but under load it always finds queue 1 nonempty and never serves queue 2. Which assumption, added to the model, restores "every queued task is eventually served"? <details class="sol"><summary>Reveal</summary><div>Fairness. Weak fairness: a transition continuously enabled is eventually taken; strong fairness: a transition enabled infinitely often is eventually taken. Here "serve queue 2" is continuously enabled while queue 2 is nonempty, so weak fairness suffices to exclude the starving schedule. Fairness assumptions are promises about the scheduler/environment — liveness claims are always conditional on them, and an implementation must actually honor them (e.g. round-robin), or the proof is about a fiction.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify: "the program terminates"; "the program never divides by zero"; "the agent asks for help infinitely often." <details class="sol"><summary>Solution</summary><div>Liveness (no finite prefix refutes it); safety; liveness ($\square\lozenge$-form).</div></details></li>
+  <li><span class="lvl m">MED</span> Give a ranking function proving termination of: while $x > 0 \wedge y > 0$: if coin(): $x := x - 1;\ y := y + 2$ else: $y := y - 1$. Ordinary naturals won't work — why, and what does? <details class="sol"><summary>Solution</summary><div>$y$ can grow (by 2) when $x$ decreases, so no single natural-number combination like $x + y$ works ($x{+}y$ can increase). Use a lexicographic rank $V = (x, y)$ ordered lexicographically: branch 1 decreases $x$ (dominant coordinate) — lex-decrease regardless of $y$; branch 2 keeps $x$, decreases $y$ — lex-decrease. Lexicographic orders on $\mathbb N^k$ are well-founded, so no infinite run exists. (This is why termination provers synthesize lexicographic and polyranking functions.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can no runtime monitor enforce a liveness property, and what is the standard transformation to make "eventually responds" operationally enforceable? Formalize the transformed property and its cost. <details class="sol"><summary>Solution</summary><div>A monitor decides based on finite prefixes; for liveness, every finite prefix is still extendable to a satisfying trace, so the monitor can never soundly raise a violation (it would be wrong about some extension). Transformation: bound the "eventually" — replace $\square(\mathit{req} \Rightarrow \lozenge\,\mathit{resp})$ with $\square(\mathit{req} \Rightarrow \lozenge_{\le k}\,\mathit{resp})$ ("responds within $k$ ticks"), which is safety: a prefix with a request unanswered for $k$ ticks is a bad prefix. Cost: (1) false alarms — legal-but-slow behaviors now count as violations, so $k$ trades alarm rate against detection latency; (2) the property changed — a system satisfying the original but not the bounded version (unbounded but finite delays) is now "wrong." Every SLA is exactly this transformation applied to a liveness wish.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="temporal-logic">
+ <h2>Temporal logic</h2>
+ <p>Propositional logic talks about one state; temporal logic talks about a state <em>and everything after it</em>. With a handful of operators — always, eventually, until, next — it expresses the safety and liveness patterns above as crisp formulas that model checkers consume directly. It is the type system of time.</p>
+ <div class="box def"><span class="label">Definition</span> Over a trace $\pi = s_0 s_1 s_2 \dots$ (writing $\pi^i$ for the suffix from $s_i$): $\square\varphi$ (<b>G</b>, always): $\forall i.\ \pi^i \models \varphi$. $\lozenge\varphi$ (<b>F</b>, eventually): $\exists i.\ \pi^i \models \varphi$. $\bigcirc\varphi$ (<b>X</b>, next): $\pi^1 \models \varphi$. $\varphi\,\mathsf U\,\psi$ (until): $\exists i.\ \pi^i \models \psi$ and $\forall j < i.\ \pi^j \models \varphi$. Dualities: $\neg\square\varphi \equiv \lozenge\neg\varphi$, $\neg\lozenge\varphi \equiv \square\neg\varphi$. Branching-time logics (CTL) add path quantifiers $\mathsf A$ (all paths), $\mathsf E$ (some path).</div>
+ <div class="box ex"><span class="label">Worked example</span> Evaluate on the finite-then-looping trace $\pi$: $p$ holds at steps 0,1,2; $q$ holds at step 3; from step 4 on, nothing holds (looping on an empty label). (1) $\lozenge q$: true — $q$ at step 3. (2) $\square p$: false — $p$ fails at step 3. (3) $p\,\mathsf U\, q$: true — $q$ at step 3, $p$ at 0,1,2 ✓. (4) $\square(p \Rightarrow \lozenge q)$: check every step: steps 0–2 have $p$ and $q$ later ✓; steps ≥ 3 have no $p$, implication vacuously true ✓ — so true. (5) $\square\lozenge q$: false — after step 3, $q$ never recurs; the suffix from step 4 fails $\lozenge q$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Design a periodic trace with the sliders (when $p$ pulses, when $q$ pulses) and see which of four temporal formulas hold; the timeline marks the first counterexample position.</p>
+  <canvas id="cv-ltl"></canvas>
+  <div class="ctl">
+   <label>p period <input type="range" id="lt-pp" min="2" max="8" step="1" value="3"></label>
+   <label>q delay after p <input type="range" id="lt-qd" min="0" max="6" step="1" value="1"></label>
+   <label>q dropout every <input type="range" id="lt-drop" min="0" max="5" step="1" value="0"></label>
+  </div>
+  <div class="out" id="lt-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write in LTL: "the alarm never sounds"; "if the door opens, the light turns on at the very next step." <details class="sol"><summary>Solution</summary><div>$\square\,\neg\mathit{alarm}$; $\square(\mathit{open} \Rightarrow \bigcirc\,\mathit{light})$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the duality $\neg(\varphi\,\mathsf U\,\psi) \equiv (\neg\psi)\,\mathsf W\,(\neg\varphi \wedge \neg\psi)$ informally, where $\mathsf W$ is "weak until" (until, or forever). Or more simply: show $\neg\lozenge q \equiv \square\neg q$ from the definitions. <details class="sol"><summary>Solution</summary><div>$\lozenge q$ means $\exists i.\ \pi^i \models q$. Its negation: $\neg\exists i.\ \pi^i \models q \equiv \forall i.\ \pi^i \models \neg q$, which is precisely $\square \neg q$. The temporal dualities are just quantifier dualities ($\neg\exists \equiv \forall\neg$) over time indices — LTL is first-order logic over $\mathbb{N}$ in disguise (with $\mathsf{U}$ adding the ordering).</div></details></li>
+  <li><span class="lvl h">HARD</span> Express for an agent system, and classify as safety/liveness: (a) "the agent never acts without a prior human approval, until autonomy mode is granted"; (b) "whenever it enters a retry loop it eventually exits it"; (c) "it checks its budget infinitely often." <details class="sol"><summary>Solution</summary><div>(a) $(\mathit{act} \Rightarrow \blacklozenge\,\mathit{approve})\ \mathsf{W}\ \mathit{autonomy}$ — using past-time "once" ($\blacklozenge$) and weak-until; more standard pure-future phrasing: $\neg\mathit{act}\ \mathsf W\ (\mathit{approve} \vee \mathit{autonomy})$ repeated per action window. Safety: a violating prefix shows an unapproved act before autonomy. (b) $\square(\mathit{retrying} \Rightarrow \lozenge\,\neg\mathit{retrying})$ — liveness. (c) $\square\lozenge\,\mathit{checkBudget}$ — liveness. Note (a) is the enforceable one; (b) and (c) get bounded (safety) approximations in a real monitor, per the liveness section.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-temporal-logic">
+ <h2>Linear temporal logic</h2>
+ <p>LTL is the specific temporal logic of single traces — linear time, no branching — and the lingua franca of model checkers (SPIN, NuSMV), runtime monitors, and the hardware-adjacent standards built on it. Its deepest property: every LTL formula compiles to an automaton, turning logic into graph search.</p>
+ <div class="box def"><span class="label">Definition</span> LTL syntax: $\varphi ::= p \mid \neg\varphi \mid \varphi \wedge \varphi \mid \bigcirc\varphi \mid \varphi\,\mathsf U\,\varphi$ (with $\lozenge\varphi \equiv \top\,\mathsf U\,\varphi$, $\square\varphi \equiv \neg\lozenge\neg\varphi$), interpreted over infinite traces. <em>Automata connection:</em> every LTL formula $\varphi$ has a Büchi automaton $A_\varphi$ (possibly $2^{O(|\varphi|)}$ states) accepting exactly the traces satisfying $\varphi$. Model checking $M \models \varphi$ = emptiness of the product $M \times A_{\neg\varphi}$: does the system have any trace the negation-automaton accepts? LTL model checking is PSPACE-complete in the formula, linear in the system.</div>
+ <div class="box ex"><span class="label">Worked example</span> Compile $\square\lozenge p$ ("$p$ infinitely often") to a Büchi automaton: two states, $q_0$ (waiting for $p$) and $q_1$ (just saw $p$, accepting). Transitions: on $p$, go to $q_1$; on $\neg p$, go to $q_0$; acceptance: visit $q_1$ infinitely often. A trace where $p$ eventually stops forever gets stuck cycling in $q_0$ and is rejected ✓. To check a system satisfies $\square\lozenge p$, build $A_{\neg\varphi} = A_{\lozenge\square\neg p}$ and search the product for an accepting cycle — a lasso: a reachable cycle along which $\neg p$ always holds. Counterexamples to LTL properties are exactly lassos: a finite stem plus a finite loop repeated forever, which is why checkers can print them.</div>
+ <div class="box pit"><span class="label">Pitfall</span> LTL's implicit "for all traces." $M \models \lozenge\,\mathit{done}$ means <em>every</em> trace finishes — often you meant "some strategy exists," which is a branching (CTL: $\mathsf{EF}$) or game-theoretic statement. Writing the right logic matters as much as the right formula; a correct proof of the wrong quantifier is a favorite failure.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Express using only $\bigcirc, \mathsf U, \neg, \wedge, p, q$: "eventually $q$." <details class="sol"><summary>Solution</summary><div>$\top\,\mathsf U\, q$, where $\top$ can be written $\neg(p \wedge \neg p)$. Until with a trivially-true left side is exactly "eventually."</div></details></li>
+  <li><span class="lvl m">MED</span> What is the negation of the response property $\square(r \Rightarrow \lozenge g)$, pushed inward to negation normal form, and what does a counterexample trace look like? <details class="sol"><summary>Solution</summary><div>$\neg\square(r \Rightarrow \lozenge g) \equiv \lozenge\neg(r \Rightarrow \lozenge g) \equiv \lozenge(r \wedge \neg\lozenge g) \equiv \lozenge(r \wedge \square\neg g)$: eventually a request after which $g$ never holds. Counterexample lasso: a stem reaching a state where $r$ fires, then a loop containing no $g$ — the visual is "request, then the system spins forever ungranted."</div></details></li>
+  <li><span class="lvl h">HARD</span> Two formulas: $\square\lozenge p \Rightarrow \square\lozenge q$ ("fair $p$ implies fair $q$") vs $\square(\lozenge p \Rightarrow \lozenge q)$. Are they equivalent? Prove or give a separating trace. <details class="sol"><summary>Solution</summary><div>Not equivalent. Note $\square(\lozenge p \Rightarrow \lozenge q)$: at every suffix, if $p$ occurs in that suffix then $q$ occurs in that suffix. Separating trace: $p$ at step 0 only, $q$ at step 0 only, nothing after (say both hold at 0, never again). Check formula 2 at suffix 0: $\lozenge p$ true, $\lozenge q$ true ✓; at suffixes ≥ 1: $\lozenge p$ false, vacuous ✓ — formula 2 holds. Formula 1: $\square\lozenge p$ is false (p not infinitely often), so the implication is vacuously true too. Try again: trace with $p$ at every even step, $q$ at step 0 only. Formula 1: $\square\lozenge p$ true, $\square\lozenge q$ false → formula 1 <b>false</b>. Formula 2: suffix from step 1: $\lozenge p$ true (step 2), $\lozenge q$ false → the implication fails at that suffix → formula 2 <b>false</b>. Third try — separate the other way: trace with $p$ at step 0 only, $q$ never. Formula 1: $\square\lozenge p$ false → vacuously <b>true</b>. Formula 2: at suffix 0, $\lozenge p$ true, $\lozenge q$ false → <b>false</b>. So formula 2 is strictly stronger: it also polices finitely-many-$p$ traces, where formula 1 says nothing. Moral: "infinitely often" premises silently excuse all finite behavior — a recurring source of vacuously-true fairness specs.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="smt-solving">
+ <h2>SMT solving</h2>
+ <p>An SMT (Satisfiability Modulo Theories) solver answers: does this formula — over integers, reals, arrays, bitvectors, uninterpreted functions — have a satisfying assignment? It is the engine room of modern verification: VC discharge, symbolic execution, bounded model checking, and program synthesis all bottom out in SMT queries. Think "SAT solver with a mathematician bolted on."</p>
+ <div class="box def"><span class="label">Definition</span> SMT input: a first-order formula $\varphi$ over a combination of theories $T$ (e.g. linear integer arithmetic, arrays, bitvectors). Output: <code>sat</code> with a model (assignment), <code>unsat</code> (often with a proof/core), or <code>unknown</code>. Architecture (DPLL(T)/CDCL(T)): a SAT solver enumerates boolean skeletons; theory solvers check whether each skeleton's literals are jointly consistent in $T$, returning conflict clauses that prune the search. Verification uses the duality: to prove $\psi$ valid, ask for a model of $\neg\psi$; <code>unsat</code> = proved.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prove: for integers, $x > 2 \wedge y > 2 \Rightarrow x + y > x \cdot y$ is <em>false</em> — i.e., its negation is sat. Query: $x > 2 \wedge y > 2 \wedge x + y > xy$? Try $x = 3, y = 3$: $6 > 9$ false; the solver instead reports... let's do the real check: for $x, y \ge 3$, $xy \ge 3\max(x,y)\ge x + y$ ... precisely $xy - x - y = (x-1)(y-1) - 1 \ge 2\cdot2 - 1 = 3 > 0$, so $x + y > xy$ is impossible: the query is <b>unsat</b>, hence the original implication "$x>2 \wedge y>2 \Rightarrow x + y \le xy$" is valid (and our first reading — that it's false — is itself refuted: this is exactly the kind of sign-flip a solver saves you from). The solver's unsat answer <em>is</em> the proof of validity, obtained without any human algebra.</div>
+ <div class="box link"><span class="label">Where this goes</span> Tool-verified reasoning (Ch 30): an LLM translates a word problem into SMT and lets Z3 do the logic. Neural-network verification (end of this chapter) encodes ReLU networks as SMT/MILP constraints.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> To prove "$\forall x.\ x^2 \ge 0$" over the reals with an SMT solver, what query do you issue, and what answer do you want? <details class="sol"><summary>Solution</summary><div>Assert the negation: $\exists x.\ x^2 < 0$, i.e. assert $x \cdot x < 0$ and check. Desired answer: <code>unsat</code> — no counterexample exists, so the universal statement is valid.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $x \equiv 1 \pmod 4 \wedge x \equiv 2 \pmod 6$ satisfiable over the integers? Answer as a theory solver would. <details class="sol"><summary>Solution</summary><div>Unsat. $x \equiv 1 \pmod 4$ makes $x$ odd; $x \equiv 2 \pmod 6$ makes $x$ even. Parity conflict — the "theory reasoning" is exactly deriving the shared consequence (parity) of the two congruences; a solver would produce these two constraints as the unsat core.</div></details></li>
+  <li><span class="lvl h">HARD</span> Encode as SMT the verification that <code>swap</code> via XOR (<code>a^=b; b^=a; a^=b</code>) really swaps two 8-bit values, and state what theory it needs. Then: why does the same idea fail if <code>a</code> and <code>b</code> alias the same memory cell, and how would the encoding reveal it? <details class="sol"><summary>Solution</summary><div>Theory: bitvectors (width 8). Encode SSA-style: $a_1 = a_0 \oplus b_0$; $b_1 = b_0 \oplus a_1$; $a_2 = a_1 \oplus b_1$. Prove validity of $a_2 = b_0 \wedge b_1 = a_0$ by asserting its negation and expecting unsat (it is: $b_1 = b_0 \oplus a_0 \oplus b_0 = a_0$; $a_2 = a_1 \oplus b_1 = (a_0 \oplus b_0) \oplus a_0 = b_0$). Aliasing: if <code>a</code>,<code>b</code> are the same cell, the program is really $c_1 = c_0 \oplus c_0 = 0$; then $c_2 = c_3 = 0$: the value is destroyed. Encode with the theory of arrays: memory $M$, addresses $p, q$; each statement is a read-modify-write on $M$; the correctness claim is proved only under the side condition $p \ne q$ — dropping it, the solver returns <code>sat</code> with the model $p = q$, exhibiting the aliasing bug. The encoding forces the hidden assumption into the open, which is the recurring gift of formalization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sat-solving">
+ <h2>SAT solving</h2>
+ <p>Boolean satisfiability is the primal decision problem (Ch 17: the first NP-complete problem) — and, paradoxically, one of computing's great practical success stories: modern CDCL solvers routinely crack industrial instances with millions of variables. Verification's dirty secret is that half the field is clever reductions <em>to</em> SAT.</p>
+ <div class="box def"><span class="label">Definition</span> SAT: given a CNF formula (a conjunction of clauses, each a disjunction of literals), decide if some assignment satisfies all clauses. CDCL (conflict-driven clause learning): iteratively decide a variable, propagate forced values (<em>unit propagation</em>: a clause with all-but-one literal false forces the last), and on conflict, analyze the implication graph, <em>learn</em> a new clause that blocks that failure pattern everywhere, and backjump. Learned clauses are the memoization that lifts CDCL far beyond brute force on structured instances.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $(x \vee y) \wedge (\neg x \vee z) \wedge (\neg y \vee \neg z) \wedge (\neg x \vee \neg z \vee y)$... take the cleaner classic: $(x \vee y) \wedge (\neg x \vee y) \wedge (x \vee \neg y) \wedge (\neg x \vee \neg y)$. Decide $x = \top$: clause 2 unit-propagates $y = \top$; clause 4 becomes $(\bot \vee \bot)$ — conflict. Conflict analysis: the conflict depended on decision $x = \top$ (which forced $y$); learn clause $(\neg x)$. Backjump, propagate $x = \bot$: clause 1 forces $y = \top$; clause 3 becomes $(\bot \vee \bot)$ — conflict with no decisions left: <b>unsat</b>, proved after exploring 2 branches instead of 4 assignments. The learned clause turned a search tree into a resolution proof — every CDCL unsat run is implicitly a checkable proof.</div>
+ <div class="box think"><span class="label">Think first</span> Unit propagation alone (no decisions) runs in linear time. What class of encodings tries to ensure the solver can deduce everything by propagation, and why does it matter for verification tooling? <details class="sol"><summary>Reveal</summary><div>"Propagation-complete" or arc-consistent encodings: constraints translated so unit propagation discovers every forced literal without search. It matters because reductions are engineering: two logically equivalent CNF encodings of the same circuit or CSP can differ by orders of magnitude in solve time depending on how much the propagator can see. Encoding quality — auxiliary variables, symmetry breaking, Tseitin transformation structure — is as important as the solver.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Apply unit propagation: $(\neg a) \wedge (a \vee b) \wedge (\neg b \vee c)$. <details class="sol"><summary>Solution</summary><div>Clause 1 forces $a = \bot$; clause 2 becomes unit, forces $b = \top$; clause 3 forces $c = \top$. Satisfying assignment found with zero search: $a{=}\bot, b{=}\top, c{=}\top$.</div></details></li>
+  <li><span class="lvl m">MED</span> Encode "exactly one of $x_1, x_2, x_3$ is true" in CNF. <details class="sol"><summary>Solution</summary><div>At-least-one: $(x_1 \vee x_2 \vee x_3)$. At-most-one, pairwise: $(\neg x_1 \vee \neg x_2) \wedge (\neg x_1 \vee \neg x_3) \wedge (\neg x_2 \vee \neg x_3)$. Four clauses total. (For $n$ variables the pairwise encoding costs $\binom n2$ clauses; ladder/commander encodings get $O(n)$ with auxiliaries — the encoding-engineering point again.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Reduce this 3-coloring instance to SAT and decide it: triangle $\{A, B, C\}$ plus vertex $D$ adjacent to $A$ and $B$. <details class="sol"><summary>Solution</summary><div>Variables $v_c$ for each vertex $v$ and color $c \in \{1,2,3\}$. Clauses: each vertex gets ≥1 color ($v_1 \vee v_2 \vee v_3$, 4 clauses); ≤1 color (pairwise, $3\times4 = 12$ clauses); adjacent vertices differ: for each edge $(u,v)$ and color $c$: $(\neg u_c \vee \neg v_c)$ — edges AB, BC, CA, DA, DB: $5 \times 3 = 15$ clauses. Decision: the triangle forces all three colors, say $A{=}1, B{=}2, C{=}3$ (up to symmetry); $D$ adjacent to $A, B$ must avoid colors 1, 2 → $D = 3$. Satisfiable, e.g. $(A,B,C,D) = (1,2,3,3)$ — and $C, D$ nonadjacent so that's legal. A solver finds this instantly; had we added edge $CD$... $D$ would need to avoid 1,2,3: the three at-most/at-least clauses for $D$ plus edge clauses become jointly unsat, and CDCL would learn its way to a refutation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="constraint-encoding">
+ <h2>Constraint encoding</h2>
+ <p>Solvers don't speak your problem's language; encoding is the translation. The craft: choose variables that make constraints local, express constraints so propagation is strong, and keep the blowup polynomial. A good encoding is to a solver what a good representation is to a learner (Ch 21) — most of the battle.</p>
+ <div class="box def"><span class="label">Definition</span> An encoding of problem $P$ into solver language $L$ is a map $e$ with: (soundness/completeness) $P$ has a solution iff $e(P)$ is satisfiable, and a poly-time decoding of models back to solutions. Standard toolkit: one-hot encodings for finite domains, Tseitin transformation (introduce a fresh variable per subformula to get linear-size CNF from arbitrary circuits), sorting networks and totalizers for cardinality constraints ($\le k$ of these), and big-M / indicator constraints on the MILP side.</div>
+ <div class="box ex"><span class="label">Worked example</span> Encode a 4-task/4-slot scheduling constraint "tasks 1 and 2 cannot run in adjacent slots" with one-hot variables $x_{t,s}$ (task $t$ in slot $s$). Adjacency pairs: $(1,2), (2,3), (3,4)$ — and both orders of the two tasks: clauses $(\neg x_{1,s} \vee \neg x_{2,s'})$ for every adjacent $\{s, s'\}$: $(\neg x_{1,1}\vee\neg x_{2,2})$, $(\neg x_{1,2}\vee\neg x_{2,1})$, $(\neg x_{1,2}\vee\neg x_{2,3})$, $(\neg x_{1,3}\vee\neg x_{2,2})$, $(\neg x_{1,3}\vee\neg x_{2,4})$, $(\neg x_{1,4}\vee\neg x_{2,3})$ — 6 clauses, plus the standard exactly-one-slot-per-task and at-most-one-task-per-slot frames. Every English constraint became a handful of two-literal clauses; the solver never needs to know what a "task" is.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Encoding validity into the wrong direction. To <em>verify</em> "property holds for all inputs," you must encode the search for a <em>violation</em> and hope for unsat. Encoding "there exists an input where the property holds" and celebrating <code>sat</code> is a cheerful, common, and completely wrong ritual. Always ask: what does a model of my formula physically mean?</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Tseitin-encode $y \leftrightarrow (a \wedge b)$ into clauses. <details class="sol"><summary>Solution</summary><div>$(\neg y \vee a) \wedge (\neg y \vee b) \wedge (\neg a \vee \neg b \vee y)$. The first two say $y \Rightarrow a \wedge b$; the last says $a \wedge b \Rightarrow y$.</div></details></li>
+  <li><span class="lvl m">MED</span> You need "at most 2 of $x_1..x_5$ are true." How many clauses does the naive encoding take, and what is it? <details class="sol"><summary>Solution</summary><div>Forbid every triple: for each of $\binom{5}{3} = 10$ triples $\{i,j,k\}$, clause $(\neg x_i \vee \neg x_j \vee \neg x_k)$ — 10 clauses. General $\le k$ of $n$: $\binom{n}{k+1}$ clauses, exponential in $k$; totalizer/sequential-counter encodings use $O(nk)$ clauses with auxiliary variables instead.</div></details></li>
+  <li><span class="lvl h">HARD</span> Encode the verification query "this 2-layer ReLU net $f(x) = W_2\,\mathrm{relu}(W_1 x + b_1) + b_2$ maps every $x \in [l, u]$ to $f(x) > 0$" for an SMT/MILP solver. Give the ReLU trick. <details class="sol"><summary>Solution</summary><div>Variables: $x$ (with bounds $l \le x \le u$), pre-activations $z = W_1 x + b_1$ (linear equalities), post-activations $h$, output $y = W_2 h + b_2$. ReLU per unit $i$, MILP-style with binary $\delta_i$ and precomputed bounds $L_i \le z_i \le U_i$ (from interval arithmetic): $h_i \ge 0$, $h_i \ge z_i$, $h_i \le z_i - L_i(1 - \delta_i)$, $h_i \le U_i \delta_i$ — $\delta_i = 1$ ⟹ $h_i = z_i$ (active), $\delta_i = 0$ ⟹ $h_i = 0$ (inactive). Query: assert the <em>negation</em> $y \le 0$; <code>unsat</code> proves the property, <code>sat</code> yields a concrete adversarial $x$. The binaries make it NP-hard in the number of unstable ReLUs — exactly why bound tightening ($L_i, U_i$) and relaxations dominate the neural-verification literature (last section).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="policy-verification">
+ <h2>Policy verification</h2>
+ <p>Agent systems run under policies: "may read repo X, may not email externally, must get approval above \$50." Policies are code — usually declarative rules — and like code they have bugs: shadowed rules, unintended allow-paths, conflicts. Policy verification applies this chapter's machinery to the rules themselves, <em>before</em> an agent finds the hole at runtime.</p>
+ <div class="box def"><span class="label">Definition</span> A policy is a function $\mathit{pol}: \text{Request} \to \{\text{allow}, \text{deny}\}$, typically composed from ordered or combined rules. Core verification queries, each an SMT/SAT problem over the request space: <em>reachability</em> ("is any request matching predicate $B$ allowed?" — assert $B \wedge \mathit{pol} = \text{allow}$, want unsat), <em>equivalence</em> ("did the refactor change behavior?" — assert $\mathit{pol}_1 \ne \mathit{pol}_2$, want unsat), <em>shadowing</em> ("does rule $r$ ever fire?" — sat check on "reaches $r$"), and <em>separation</em> ("no single principal is allowed both A and B").</div>
+ <div class="box ex"><span class="label">Worked example</span> Rules, first-match order: (1) deny if destination is external email; (2) allow if sender role = "reporting-agent"; (3) allow if amount &lt; 50; (4) deny otherwise. Query: can a reporting-agent cause an external email? Encode: $\mathit{ext} \wedge \mathit{pol} = \text{allow}$. Rule 1 matches all $\mathit{ext}$ requests first → deny → unsat: verified ✓. Now a teammate "harmlessly" reorders (2) before (1): the same query is now sat with model {role = reporting-agent, ext = true} — the reorder opened an exfiltration path that no test caught because no test happened to combine that role with an external destination. Equivalence checking across the diff would have flagged it mechanically: the two policies differ exactly on that slice of request space.</div>
+ <div class="box link"><span class="label">Where this goes</span> This is Ch 32's capability/RBAC machinery made analyzable, and the concrete substrate for Ch 35's "control" agenda: you can't reason about containing an agent whose permission surface you can't even compute.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is "we tested 50 requests against the policy" weak assurance compared to a reachability query? <details class="sol"><summary>Solution</summary><div>The request space is combinatorial (roles × actions × resources × amounts × contexts); 50 points sample a sliver. The reachability query quantifies over the whole space at once — it's the difference between testing and proof, applied to configuration.</div></details></li>
+  <li><span class="lvl m">MED</span> First-match rules: (1) allow read if path starts with <code>/public</code>; (2) deny read if path contains <code>..</code>; (3) deny all. Find the bug with a witness request. <details class="sol"><summary>Solution</summary><div>Witness: read <code>/public/../secrets/key</code>. Rule 1 matches (prefix <code>/public</code>) → allow, and rule 2 never fires because it's after rule 1: path traversal escapes the public directory. Fixes: put the <code>..</code> deny first, or better, canonicalize paths before matching (verify the property on the canonical form — the policy should quantify over semantic objects, not strings).</div></details></li>
+  <li><span class="lvl h">HARD</span> Define and check "separation of duty": no single agent may both create a payment and approve it. The policy grants by role; agents can hold multiple roles; role "admin" implies all permissions. Formalize the query and identify the finding. <details class="sol"><summary>Solution</summary><div>Variables: agent $a$, role set $R(a)$; permission function $\mathit{perm}(\rho)$ per role; agent's permissions $= \bigcup_{\rho \in R(a)} \mathit{perm}(\rho)$, with $\text{admin} \Rightarrow$ everything. Query: $\exists a:\ \text{create\_payment} \in \mathit{perms}(a) \wedge \text{approve\_payment} \in \mathit{perms}(a)$. Finding: sat, trivially, via $R(a) = \{\text{admin}\}$ — the admin role violates separation of duty by construction. Resolutions: exclude break-glass admin from the invariant but compensate with mandatory audit + two-person control on its use; or split admin into admin-ops and admin-finance and re-run the query to unsat. The formal exercise's real output is the forced decision about admin, which informal policy review perennially defers.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="permission-verification">
+ <h2>Permission verification</h2>
+ <p>Policy verification asks whether the <em>rules</em> are right; permission verification asks whether the <em>system</em> enforces them — that every action an agent can actually take traces back to an explicit grant, through every delegation hop and tool layer. The gold standard is a small, auditable reference monitor: one chokepoint all actions pass through, so the proof obligation is local.</p>
+ <div class="box def"><span class="label">Definition</span> Let $\mathit{granted}(a, \mathit{act})$ be the policy's answer and $\mathit{can}(a, \mathit{act})$ be operational ability (there exists a sequence of system calls by which $a$ effects $\mathit{act}$). <em>Complete mediation</em>: $\mathit{can}(a, \mathit{act}) \Rightarrow \mathit{granted}(a, \mathit{act})$. Verifying it decomposes into: (1) every effectful pathway passes the reference monitor (an architectural/flow property), (2) the monitor correctly decides $\mathit{granted}$ (policy verification), (3) permissions attenuate under delegation: $\mathit{perms}(\text{delegate}) \subseteq \mathit{perms}(\text{delegator})$, inductively along the delegation tree (Ch 33).</div>
+ <div class="box ex"><span class="label">Worked example</span> Attenuation check as an invariant proof. Grant chain: user grants agent $A$ {read repo, write repo, run tests}; $A$ delegates to executor $E$ with {write repo, run tests}; $E$ spawns sandbox helper $H$ with {run tests}. Invariant: each node's set ⊆ parent's set. $\{w, t\} \subseteq \{r, w, t\}$ ✓; $\{t\} \subseteq \{w, t\}$ ✓. Now $E$ requests to grant $H$ {read repo} for debugging: $\{r, t\} \not\subseteq \{w, t\}$ — the monitor rejects the grant <em>even though the root user has read</em>: authority must flow through the chain, not around it. If it didn't, any deep sub-agent could ratchet back up to root authority by asking nicely — the confused-deputy failure this invariant exists to kill.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Ambient authority: tools that act with the <em>runtime's</em> credentials rather than per-request, delegated credentials. Then $\mathit{can}$ silently exceeds $\mathit{granted}$ for every agent that can reach the tool, and no policy analysis will see it because the leak is in the plumbing. Verification must cover the mechanism, not just the rulebook.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An agent cannot call the email tool, but can write files, and a cron job emails any file in <code>/outbox</code>. Does complete mediation hold? <details class="sol"><summary>Solution</summary><div>No: $\mathit{can}(a, \text{send email})$ is true via the two-step path (write to /outbox → cron sends), while $\mathit{granted}$ is false. Effectful pathways include compositions through the environment; the monitor must sit at the actual effect boundary (outbound mail) or the outbox write must itself require email permission.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: if every delegation step satisfies $\mathit{perms}(\text{child}) \subseteq \mathit{perms}(\text{parent})$, then every descendant's permissions are a subset of the root grant. <details class="sol"><summary>Solution</summary><div>Induction on delegation depth. Base: depth 0, the root, trivially $\subseteq$ itself. Step: a node at depth $k+1$ has $\mathit{perms} \subseteq \mathit{perms}(\text{parent at depth } k) \subseteq \mathit{perms}(\text{root})$ by the delegation condition and the inductive hypothesis; subset is transitive. Hence unbounded delegation depth adds convenience but never authority — the invariant that makes deep agent trees (Ch 33) auditable.</div></details></li>
+  <li><span class="lvl h">HARD</span> Time makes permissions leak: a grant is revoked while an agent's long task is mid-flight. Specify the desired property in temporal logic and describe two enforcement designs with their trade-offs. <details class="sol"><summary>Solution</summary><div>Property: $\square(\mathit{exec}(a, \mathit{act}) \Rightarrow \mathit{granted}(a, \mathit{act}))$ — at the <em>moment</em> of each effect, the grant holds (not merely at task start). Designs: (1) Check-per-effect: the reference monitor re-evaluates the policy on every tool call; revocation takes effect at the next call. Trade-off: per-call latency and a thundering herd on the policy service; residual window = one in-flight call. (2) Leases/capability expiry: grants are short-lived tokens the agent must renew; revocation = refusing renewal. Trade-off: revocation latency up to the lease TTL, but zero policy-service coupling per call and graceful offline behavior. Both beat check-at-start, whose violation window is the whole task duration — the formal property makes the window a designed, stated quantity instead of an accident.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">A sub-agent asks its parent for a permission the parent itself lacks, arguing the root user would surely approve. Under the attenuation invariant, the monitor should:</div><button class="opt">Refuse: authority must be a subset at every delegation edge, regardless of what the root might grant</button><button class="opt">Allow it if the root user's permission set contains it</button><button class="opt">Allow it but log it</button><div class="why" hidden>Attenuation is checked edge-by-edge; permissions flow only through the chain. If the root really should grant it, the request must travel up to the root and come back down as a new explicit grant — otherwise any leaf could self-escalate.</div></div>
+</section>
+
+<section class="topic" id="runtime-monitoring">
+ <h2>Runtime monitoring</h2>
+ <p>When you can't verify the system ahead of time — the agent is a neural network; the environment is open — verify the <em>behavior as it happens</em>. A runtime monitor watches the event trace and checks it against a formal property, flagging or halting on violation. It trades the universality of proof ("all runs are safe") for certainty about the one run that matters: this one.</p>
+ <div class="box def"><span class="label">Definition</span> Given a property $\varphi$ over traces, a monitor is a function from finite prefixes to verdicts $\{\top, \bot, ?\}$: $\bot$ when the prefix is a bad prefix (no extension satisfies $\varphi$), $\top$ when every extension satisfies it, else $?$. For LTL, monitors are built by compiling $\varphi$ (and $\neg\varphi$) to finite automata over finite words; the monitorable properties are those with reachable definite verdicts — safety (refutable), co-safety (confirmable), and their boolean combinations.</div>
+ <div class="box ex"><span class="label">Worked example</span> Monitor for $\square(\mathit{write} \Rightarrow \blacklozenge\,\mathit{backup})$ ("no write before a backup has happened at least once"). Automaton state: has a backup occurred yet? Start: no. Events: <code>read</code> → state unchanged, verdict ?. <code>backup</code> → state yes; from now on writes are fine. <code>write</code> while state = no → verdict $\bot$, halt the action. Implementation is a two-state machine consulted before each effect: constant memory, microsecond decisions, and — crucially — it sits in the enforcement path, so the bad write is <em>prevented</em>, not just recorded. Monitoring for past-time LTL is always this cheap: one automaton state, updated per event.</div>
+ <div class="box think"><span class="label">Think first</span> Your monitor watches the agent's <em>tool calls</em> but the property refers to <em>real-world effects</em> ("never contact a customer twice in a week"). What gap must you close for verdicts to mean anything? <details class="sol"><summary>Reveal</summary><div>The observation map: each abstract event in the property must correspond, soundly, to something the monitor can see. If contacting customers can happen through three tools (email, SMS, a CRM automation), all three must emit the "contact" event with a canonical customer id; a tool that doesn't is a monitoring blind spot, and the verdict "no violation" silently means "no violation <em>through instrumented channels</em>." Trace completeness is to monitoring what the model gap is to model checking.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which verdicts can a monitor ever issue for the pure liveness property $\lozenge p$, and for the safety property $\square \neg b$? <details class="sol"><summary>Solution</summary><div>$\lozenge p$: can confirm $\top$ (the moment $p$ occurs) but never refute — no $\bot$ verdict from a finite prefix (it's co-safety: confirmable). $\square\neg b$: can refute $\bot$ (the moment $b$ occurs) but never confirm on a finite prefix of an ongoing run. Mirror images.</div></details></li>
+  <li><span class="lvl m">MED</span> Build the monitor automaton for "$\mathit{approve}$ must precede $\mathit{deploy}$, and $\mathit{deploy}$ happens at most once" and list its states. <details class="sol"><summary>Solution</summary><div>States: $S_0$ (no approval, no deploy), $S_1$ (approved, no deploy), $S_2$ (deployed — terminal OK), $\bot$ (violation). Transitions: $S_0$: approve → $S_1$; deploy → $\bot$; other → $S_0$. $S_1$: deploy → $S_2$; approve → $S_1$; other → $S_1$. $S_2$: deploy → $\bot$; other → $S_2$. Four states, constant-time updates, and the two failure modes (unapproved deploy, double deploy) map to the two arrows into $\bot$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Monitoring overhead: the monitor must decide <em>before</em> each effect (synchronous) or can lag (asynchronous). Analyze the trade-off for an LLM agent whose property is "no PII in any outbound message," where the PII check is itself an ML classifier with 50 ms latency and 2% FNR. <details class="sol"><summary>Solution</summary><div>Synchronous: every outbound message pays +50 ms; violations are <em>prevented</em> (modulo the 2% FNR — misses go through; there is no free soundness with a statistical monitor). Asynchronous: zero added latency; the monitor detects ~50 ms later, after the message left — detection becomes damage control (recall the message if the channel allows, alert, quarantine the agent). Decision rule: synchronous for irreversible, high-severity channels (external email, payments); asynchronous plus a fast cheap pre-filter (regex for obvious PII, ~0 ms) for low-risk internal channels. And because the classifier is unsound, the formal layer should carry the sound part: hard rules (structured fields never leave; only allow-listed recipients) enforced synchronously by exact automata, with the ML monitor as a second, statistical net — layering exact safety and learned detection is the standard architecture (and Ch 35's control agenda in miniature).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="safety-shields">
+ <h2>Safety shields</h2>
+ <p>A monitor that can also <em>overrule</em> is a shield: it sits between the agent's chosen action and the world, and blocks or replaces any action that would leave the verified-safe region. The agent — an RL policy, an LLM — stays a black box and stays free to optimize; the shield guarantees that whatever it tries, the executed behavior satisfies the safety spec. Freedom inside a proven fence.</p>
+ <div class="box def"><span class="label">Definition</span> Given a transition model and safety property $\square\neg\mathit{Bad}$, compute the <em>maximal safe (winning) region</em> $W$: the largest set of states from which safety can be maintained forever against worst-case environment moves, with the allowed-action map $\mathit{safe}(s) = \{a : \forall\text{ env responses}, \ \delta(s, a) \in W\}$ — computed as a greatest fixed point (backward induction shrinking $W$ until stable). The shield executes $a_t$ if $a_t \in \mathit{safe}(s_t)$, else a fallback from $\mathit{safe}(s_t)$. Guarantee: if $s_0 \in W$, the composed system satisfies $\square\neg\mathit{Bad}$ — for any agent whatsoever.</div>
+ <div class="box ex"><span class="label">Worked example</span> Gridworld corridor with cells $1..6$; cell 6 is a cliff ($\mathit{Bad}$); actions L/R; ice on cell 4: from 4, action R may slide 1 <em>or</em> 2 cells (adversarial). Compute $W$: cell 6 bad. Cell 5: action R → 6 unsafe; action L → 4 safe: $\mathit{safe}(5) = \{L\}$, 5 ∈ W. Cell 4: R may land on 5 or 6 — 6 ∈ Bad, so R ∉ safe(4); L → 3 ✓: $\mathit{safe}(4) = \{L\}$. Cells 1–3: both actions stay in $\{1..4\}$... check 3: R → 4 ∈ W ✓, so $\mathit{safe}(3) = \{L, R\}$. Result: $W = \{1,\dots,5\}$, and the shield's only interventions ever are: replace R at 4 and at 5. An RL agent trained inside this shield explores everything else freely and can never take the sliding step off the cliff — even at random initialization, even under adversarial ice.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The shield's guarantee is conditional on its <em>model</em> of the dynamics (which transitions are possible). If real ice slides 3 cells, $W$ was computed against the wrong game and the fence has a gap. Shields for LLM agents face this squarely: "what can this tool call cause?" needs a sound over-approximation of effects — take the coarse, conservative model and accept more false blocks.</div>
+ <div class="box link"><span class="label">Where this goes</span> Shields are the deployment-grade version of Ch 32's precondition checks, and one concrete mechanism in Ch 35's control stack: the model proposes, a verified layer disposes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is a shield's fallback action required to come from $\mathit{safe}(s)$ rather than being "do nothing"? <details class="sol"><summary>Solution</summary><div>"Do nothing" is an action too, and not always safe (a drone doing nothing falls; a car doing nothing keeps rolling). The fallback must be verified like any action; if $\mathit{safe}(s)$ were empty, $s$ wouldn't be in $W$ in the first place — that's exactly what the fixed-point computation guarantees.</div></details></li>
+  <li><span class="lvl m">MED</span> Recompute the corridor example when the ice is on cell 3 instead (R from 3 slides 1 or 2). What is $W$ and where does the shield intervene? <details class="sol"><summary>Solution</summary><div>Cell 5: R → 6 bad, so $\mathit{safe}(5) = \{L\}$. Cell 4: R → 5 ∈ W ✓ (5 is safe via L), L → 3 ✓: both allowed. Cell 3: R slides to 4 or 5 — both in W ✓, so R allowed; L → 2 ✓. So $W = \{1..5\}$ with interventions only at 5 (block R). The ice stopped mattering because both slide outcomes are recoverable — safety regions care about recoverability, not about noise per se.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design a shield for an LLM coding agent whose $\mathit{Bad}$ = "repository main branch fails CI." Define states, the safe region, the action filter, and what plays the role of the adversarial environment. <details class="sol"><summary>Solution</summary><div>States: (branch, CI status, pending diff). Effect model: actions = tool calls; the ones that can reach $\mathit{Bad}$ are exactly pushes/merges to main (a sound over-approximation: nothing else touches main). Adversary: flaky tests, concurrent human pushes, nondeterministic builds — anything between "CI passed on the candidate" and "CI passes on main after merge." Safe region: states where main's HEAD has a green CI run <em>for the exact merge result</em>. Action filter: allow all edits/commits/branch pushes freely (they can't reach Bad); intercept merge-to-main and require (1) CI green on the true merge commit (merge queue semantics — recheck after any main movement, closing the adversary's race window), (2) else substitute the fallback: keep the change on a branch and open a request for review. Note the shield never evaluates code quality — that stays the agent's and reviewers' job; it enforces only the invariant that is cheap to state and catastrophic to lose. Good shields are narrow and absolute.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="verifying-neural-networks">
+ <h2>Verifying neural networks</h2>
+ <p>Can formal methods reach the network itself? For properties like "no small input perturbation flips this classification" — robustness balls around inputs — the answer is a qualified yes: a trained network is just a fixed piecewise-linear function, and questions about it are constraint problems. The obstacle is scale: exactness costs exponential time in the ReLUs, so the field lives on relaxations that trade completeness for speed.</p>
+ <div class="box def"><span class="label">Definition</span> Local robustness: for network $f$, input $x_0$ with label $c$, radius $\epsilon$: $\forall x.\ \lVert x - x_0\rVert_\infty \le \epsilon \Rightarrow \arg\max_j f_j(x) = c$. <em>Complete</em> methods (SMT/MILP à la Reluplex/branch-and-bound) decide it exactly (NP-complete in general). <em>Incomplete</em> methods propagate over-approximations layer by layer — interval bound propagation (IBP): given $z \in [l, u]$ elementwise, an affine layer $Wz + b$ has output bounds $l' = W^+ l + W^- u + b$, $u' = W^+ u + W^- l + b$ (with $W^{\pm}$ the positive/negative parts), and ReLU maps $[l, u] \mapsto [\max(l,0), \max(u,0)]$. If the certified bounds already separate class $c$ from all others, robustness is <em>proved</em>; if not, unknown.</div>
+ <div class="box ex"><span class="label">Worked example</span> Tiny net: $h = \mathrm{relu}(W_1 x)$, $y = W_2 h$, with $W_1 = \begin{pmatrix}1 & -1\\ 2 & 1\end{pmatrix}$, $W_2 = (1\ \ {-1})$, input box $x_1 \in [0, 1], x_2 \in [0, 1]$. Pre-activation bounds: $z_1 = x_1 - x_2 \in [0-1,\ 1-0] = [-1, 1]$; $z_2 = 2x_1 + x_2 \in [0, 3]$. ReLU: $h_1 \in [0, 1]$, $h_2 \in [0, 3]$. Output $y = h_1 - h_2 \in [0 - 3,\ 1 - 0] = [-3, 1]$. Property "$y < 2$ always": certified ✓ (upper bound 1 &lt; 2). Property "$y < 0.5$": bounds say $[-3, 1]$ — unknown; the true maximum is $\max(x_1 - x_2 \text{ clipped}) - \min(\dots)$… exact analysis: $y = \mathrm{relu}(x_1 - x_2) - \mathrm{relu}(2x_1 + x_2)$; at $(1, 0)$: $1 - 2 = -1$; the true max over the box is at… try $(x_1, x_2)$ with $x_1 - x_2$ big and $2x_1 + x_2$ small — conflicting; check corners: $(0,0) \to 0$, $(1,0) \to -1$, $(0,1) \to 0 - 1 = -1$, $(1,1) \to 0 - 3 = -3$; interior can't beat 0 (both terms continuous, $y \le \mathrm{relu}(x_1 - x_2) \le x_1 \le 2x_1 + x_2$ when $x_2 \le x_1$... at any point $y \le 0$): true max is 0, so "$y < 0.5$" actually holds — IBP just couldn't see it. That gap between the certified bound (1) and the truth (0) is the <em>relaxation looseness</em> that branch-and-bound (splitting the unstable ReLU $z_1 \gtrless 0$) closes: on each half, $h_1$ is exactly linear and the bounds collapse to the truth.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Interval bound propagation through the 2-2-1 ReLU net above: widen the input box around a point and watch certified output bounds (band) grow versus the true range (dark) — certify while the band stays below the red line.</p>
+  <canvas id="cv-ibp"></canvas>
+  <div class="ctl">
+   <label>center x₁ <input type="range" id="ib-x" min="0" max="1" step="0.05" value="0.5"></label>
+   <label>center x₂ <input type="range" id="ib-y" min="0" max="1" step="0.05" value="0.5"></label>
+   <label>radius ε <input type="range" id="ib-e" min="0" max="0.5" step="0.01" value="0.15"></label>
+   <label>threshold <input type="range" id="ib-t" min="-1" max="2" step="0.1" value="0.5"></label>
+  </div>
+  <div class="out" id="ib-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Certified robustness in an $\epsilon$-ball is not "the model is safe": it says nothing about inputs outside the ball, semantic perturbations (rotation, paraphrase) that leave every pixel/token ball, or distribution shift. It is one rigorous brick, not the wall — treat vendor claims accordingly.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Through one ReLU layer, propagate the interval $z \in [-2, 3]$. And $z \in [1, 4]$? And $[-3, -1]$? <details class="sol"><summary>Solution</summary><div>$[\max(-2,0), \max(3,0)] = [0, 3]$; $[1, 4]$ (stable active — exact); $[0, 0]$ (stable inactive — exact). Only the straddling case introduces looseness; the count of straddling ("unstable") ReLUs is the difficulty knob.</div></details></li>
+  <li><span class="lvl m">MED</span> Affine layer $y = 2x_1 - 3x_2 + 1$ with $x_1 \in [0, 1], x_2 \in [0, 2]$. Compute the exact output interval via the $W^\pm$ rule. <details class="sol"><summary>Solution</summary><div>Lower: positive coeff (2) takes $x_1$'s min 0; negative coeff (−3) takes $x_2$'s max 2: $0 - 6 + 1 = -5$. Upper: $2(1) - 3(0) + 1 = 3$. $y \in [-5, 3]$ — exact for a single affine map (the looseness only appears when composing through layers, because dependencies between units are forgotten).</div></details></li>
+  <li><span class="lvl h">HARD</span> Why do interval bounds blow up with depth even for well-behaved networks, and name two ideas that fight it. <details class="sol"><summary>Solution</summary><div>Two compounding causes. (1) Dependency loss: intervals treat each unit's range as independent, so correlations that would cancel (e.g. $h_1 - h_1$) are bounded as if adversarially misaligned — worst-case width multiplies by roughly the layer's operator-norm-like factor per layer, giving exponential growth in depth (the wrapping effect). (2) Unstable ReLUs each add a relaxation gap that later layers amplify. Fixes: linear relaxation methods (CROWN, DeepPoly) carry symbolic linear bounds in terms of the <em>input</em> variables, preserving first-order correlations; zonotopes/polyhedra keep richer dependency structure; branch-and-bound splits unstable neurons to restore exactness locally; and certified training (train <em>with</em> IBP bounds in the loss) reshapes the network so its bounds are tight in the first place — changing the artifact to fit the verifier, the deepest trick in the book.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="box ex"><span class="label">Problem 1 (MED) — Verified budget guard</span> An agent loop spends from budget $b_0 = 100$; each iteration chooses a tool call costing $c \in \{5, 20\}$ nondeterministically, then, if $b < 20$, must call <code>escalate</code> and stop. Requirements: (a) safety $\square(b \ge 0)$, (b) the loop always terminates. Model as a transition system, give the inductive invariant for (a), the ranking function for (b), and identify the off-by-one bug if the guard is instead written "if $b \le 20$... stop" vs "if $b < 20$" when a cost-20 call is chosen at $b = 20$.
+ <details class="sol"><summary>Solution</summary><div>States: $b \in \mathbb Z$ plus a mode {run, stopped}. Transitions (mode run): if $b \ge 20$: $b := b - c$ for $c \in \{5, 20\}$; if $b < 20$: → stopped. Invariant for (a): $I: b \ge 0 \wedge (\text{mode = run} \Rightarrow \text{last check passed})$ — cleanly: prove $b \ge 0$ inductive given the guard "spend only when $b \ge 20$": base $100 \ge 0$ ✓; step: spending requires $b \ge 20$, so $b' = b - c \ge 20 - 20 = 0$ ✓; stopping doesn't change $b$ ✓. So $\square(b \ge 0)$ holds. (b) Ranking: $V = b$ in mode run (a natural number after the invariant), each spend strictly decreases it by ≥ 5; since $V$ can't decrease below 0 forever, the guard $b < 20$ eventually trips (once $b \le 15$... precisely once $b < 20$) and the system stops within $\lceil 100/5 \rceil = 20$ iterations. Guard variant analysis: with guard "spend when $b \ge 20$" (i.e. stop when $b < 20$), at $b = 20$ a cost-20 call yields $b = 0$ ✓ safe. If instead the code spends when $b > 20$ fails only at exactly 20 — still safe but stops earlier (conservative). The dangerous variant is spending when $b \ge 5$ (checking against the <em>cheapest</em> cost): at $b = 10$, a cost-20 call gives $b = -10$, violating safety — the guard must be checked against the <em>maximum</em> next-step cost, the worst-case adversarial choice, which is exactly what the inductive step forces you to notice.</div></details></div>
+ <div class="box ex"><span class="label">Problem 2 (HARD) — Model-check a two-agent handoff</span> Agents P (producer) and C (consumer) share a one-slot buffer with a flag. P: when flag = 0, may write item and set flag := 1. C: when flag = 1, may read and set flag := 0. A buggy variant lets P also rewrite when flag = 1 ("overwrite mode"). States: (flag, items-written $w$, items-read $r$), abstracted to $d = w - r \in \{0, 1, 2^+\}$ and flag. (a) Build both transition systems. (b) Property: $\square(d \le 1)$ — no lost items. Check both. (c) For the buggy one, give the counterexample trace and the shortest fix. (d) State the property "every written item is eventually read" and say what assumption it needs.
+ <details class="sol"><summary>Solution</summary><div>(a) Correct system states: (flag 0, $d$ 0) initial; transitions: P-write: (0, 0) → (1, 1); C-read: (1, 1) → (0, 0). Reachable: {(0,0), (1,1)} only. Buggy adds P-overwrite: (1, 1) → (1, 2⁺) — writing while flag = 1 (the previous item is clobbered: $w$ increments with no read). (b) Correct: reachable set never has $d \ge 2$: $\square(d \le 1)$ ✓ by exhaustion of the two states. Buggy: (0,0) →P (1,1) →P (1, 2⁺): violated. (c) Counterexample trace: write, write — length 2; the second write destroys an unread item. Shortest fix: remove the overwrite transition, i.e. guard P's write with flag = 0 (the original protocol); at the code level, one guard condition. (d) Liveness: $\square(\mathit{written} \Rightarrow \lozenge\,\mathit{read})$, equivalently in this abstraction $\square(d = 1 \Rightarrow \lozenge\, d = 0)$. It fails without a fairness assumption: the trace (0,0) →P (1,1) followed by C never scheduled (infinite stutter) is a legal run of the unconstrained system. Needs weak fairness for C: if C's read is continuously enabled (flag stays 1), C eventually fires. With that, from (1,1) the only fair continuations fire C: property holds. The capstone moral: safety came from a guard; liveness came from the <em>scheduler's</em> promise — different obligations, different owners.</div></details></div>
+ <div class="box ex"><span class="label">Problem 3 (HARD) — End-to-end: shielded, monitored, certified</span> An LLM agent drives a thermostat for a server room: it reads temperature $T$ and sets heater power $u \in \{0, 1, 2\}$. Dynamics (worst case): $T' = T + u - L$ where load cooling $L \in \{0, 1, 2, 3\}$ is adversarial each step. $\mathit{Bad}$: $T \le 15$ or $T \ge 30$ (integers throughout). (a) Compute the maximal safe region $W \subseteq \{16, \dots, 29\}$ and the allowed-action map. (b) The agent also emits a "status report" scored by an ML anomaly detector with FNR 10%; reports gate nothing. A colleague proposes replacing the shield with the detector. Give the formal argument against. (c) The heater's spec sheet guarantees $u = 2$ delivers heat in $[1.6, 2.4]$ (analog reality); redo the safety analysis for the boundary state and say what changes.
+ <details class="sol"><summary>Solution</summary><div>(a) From state $T$, action $u$ leads to $T + u - L$ for adversarial $L \in \{0..3\}$: the reachable set is $[T + u - 3,\ T + u]$. Action $u$ is safe at $T$ iff the whole set stays in $[16, 29]$: need $T + u - 3 \ge 16$ and $T + u \le 29$, i.e. $u \ge 19 - T$ and $u \le 29 - T$. Then check $W$-membership: candidate $W = \{19, \dots, 27\}$? Compute: at $T = 19$: need $u \ge 0$ and $u \le 10$ → all $u$, but reach must land in $W$, not just outside Bad — recompute the greatest fixed point with target $W$ itself. Try $W = \{19..27\}$: safe action at $T$ requires $T + u - 3 \ge 19$ and $T + u \le 27$: $u \ge 22 - T$, $u \le 27 - T$. At $T = 19$: $u \ge 3$ — impossible ($u \le 2$): 19 ∉ W. Iterate: try $W = \{20..27\}$: need $u \ge 23 - T$, $u \le 27 - T$. $T = 20$: $u \ge 3$ impossible. Keep shrinking: $W = \{k..27\}$ needs at $T = k$: $u \ge k + 3 - ... $ general: staying ≥ the floor $f$ needs $u \ge f + 3 - T$; at $T = f$: $u \ge 3$ — never satisfiable. Conclusion: <b>no nonempty safe region exists</b> — with max heat 2 and max cooling 3, the adversary wins from everywhere by always playing $L = 3$: $T$ drifts down by ≥ 1 per step no matter what. The verification's real finding is a <em>capability gap</em>: the plant is uncontrollable against worst-case load (Ch 28: the disturbance exceeds control authority). Fix the physics or the assumption: if $L \in \{0, 1, 2\}$, safe actions need $u \ge L_{max} + (f - T)$... at floor $f$: $u = 2 \ge 2$ ✓ (play $u = 2$, worst case $T' = T$), and ceiling: at $T = 27$, $u \le 29 - 27 = 2$ ✓; but staying in $W = \{f..27\}$: at $T = 27$, need $T + u \le 27$ → $u = 0$, worst case $T' = 24 \ge f$ ✓ for $f \le 24$. Greatest fixed point with $L \le 2$: $W = \{19, \dots, 27\}$ checks out: at $T = 19$: $u = 2$ → $T' \in [19, 21] \subseteq W$ ✓; at $T = 27$: $u = 0$ → $T' \in [25, 27]$ ✓; interior states have wider choice. Allowed map: $\mathit{safe}(T) = \{u : 19 \le T + u - 2 \text{ and } T + u \le 27\} = \{u : u \ge 21 - T,\ u \le 27 - T\}$. (b) The detector is statistical (10% FNR) and non-blocking: formally it changes no transition, so the system's trace set — including the Bad-reaching traces — is unchanged; $\square\neg\mathit{Bad}$ remains violated with certainty under the adversary, merely <em>observed</em> 90% of the time. A shield changes the transition relation itself (removes unsafe arrows), giving a guarantee quantified over all behaviors. Detection ≠ enforcement; probabilistic observation ≠ worst-case exclusion. (c) With analog heat $u{=}2 \mapsto [1.6, 2.4]$ and integer analysis abandoned: at the floor state $T = 19$ (with $L \le 2$), worst case is minimum heat 1.6 and max cooling 2: $T' = 19 - 0.4 = 18.6 < 19$ — the old floor is no longer maintainable; the safe region's floor must rise to where the deficit can be absorbed, and the analysis moves to real-valued intervals: maintainability needs $\min u_{\text{eff}} \ge \max L$, i.e. $1.6 \ge 2$ — false, so pure "hold forever at the floor" fails; instead the region shrinks until the slack above the floor absorbs the worst-case per-step deficit only transiently — with unbounded adversarial duration, again <em>no</em> infinite-horizon safe floor exists unless duty-cycling assumptions bound $L$'s average. Spec-sheet tolerances are model changes, and model changes reopen the proof: exactly the discipline this chapter exists to instill.</div></details></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p><b>Task 1 — A tiny model checker.</b> Implement BFS reachability checking for finite transition systems given as Python dicts, returning either "SAFE" or a counterexample path to a bad state. Use it to check the producer–consumer example (correct and buggy variants) from the capstone.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>from collections import deque
+
+def model_check(initial, transitions, is_bad):
+    """transitions: state -&gt; iterable of successor states."""
+    parent = {s: None for s in initial}
+    q = deque(initial)
+    while q:
+        s = q.popleft()
+        if is_bad(s):
+            path = []
+            while s is not None:
+                path.append(s); s = parent[s]
+            return "UNSAFE", path[::-1]
+        for t in transitions(s):
+            if t not in parent:
+                parent[t] = s
+                q.append(t)
+    return "SAFE", None
+
+# producer-consumer: state = (flag, d) with d = items written minus read (cap at 2)
+def trans_correct(s):
+    flag, d = s
+    out = []
+    if flag == 0: out.append((1, min(d + 1, 2)))   # P writes
+    if flag == 1: out.append((0, max(d - 1, 0)))   # C reads
+    return out
+
+def trans_buggy(s):
+    flag, d = s
+    out = trans_correct(s)
+    if flag == 1: out.append((1, min(d + 1, 2)))   # P overwrites!
+    return out
+
+bad = lambda s: s[1] &gt;= 2
+print(model_check([(0, 0)], trans_correct, bad))  # ('SAFE', None)
+print(model_check([(0, 0)], trans_buggy, bad))    # ('UNSAFE', [(0,0),(1,1),(1,2)])
+</code></pre></div></details>
+ <p><b>Task 2 — DPLL SAT solver with unit propagation.</b> Write a small DPLL solver (unit propagation + splitting) over CNF as lists of integer literals. Verify it on: the 4-clause unsat example from the SAT section, and the 3-coloring encoding of the triangle-plus-pendant graph from the drills (should be sat).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>def unit_propagate(clauses, assign):
+    changed = True
+    while changed:
+        changed = False
+        for cl in clauses:
+            unassigned, satisfied = [], False
+            for lit in cl:
+                v = assign.get(abs(lit))
+                if v is None: unassigned.append(lit)
+                elif (lit &gt; 0) == v: satisfied = True; break
+            if satisfied: continue
+            if not unassigned: return None          # conflict
+            if len(unassigned) == 1:
+                lit = unassigned[0]
+                assign[abs(lit)] = lit &gt; 0
+                changed = True
+    return assign
+
+def dpll(clauses, assign=None):
+    assign = dict(assign or {})
+    if unit_propagate(clauses, assign) is None: return None
+    vars_all = {abs(l) for cl in clauses for l in cl}
+    free = vars_all - assign.keys()
+    if not free: return assign
+    v = min(free)
+    for val in (True, False):
+        r = dpll(clauses, {**assign, v: val})
+        if r is not None: return r
+    return None
+
+# unsat example: (x|y)(~x|y)(x|~y)(~x|~y) with x=1, y=2
+print(dpll([[1,2],[-1,2],[1,-2],[-1,-2]]))   # None (unsat)
+
+# 3-coloring: var(v,c) for v in A,B,C,D (0..3), c in 1..3 -&gt; id 3*v+c
+V = lambda v, c: 3 * v + c
+verts, colors = range(4), (1, 2, 3)
+edges = [(0,1),(1,2),(2,0),(3,0),(3,1)]      # triangle ABC + D-A, D-B
+cnf  = [[V(v,c) for c in colors] for v in verts]                       # &gt;=1 color
+cnf += [[-V(v,a), -V(v,b)] for v in verts for a in colors for b in colors if a &lt; b]
+cnf += [[-V(u,c), -V(w,c)] for (u,w) in edges for c in colors]
+model = dpll(cnf)
+sol = {v: c for v in verts for c in colors if model.get(V(v,c))}
+print(sol)   # e.g. {0:1, 1:2, 2:3, 3:3} — check: no edge shares a color
+</code></pre></div></details>
+ <p><b>Task 3 — Interval bound propagation, certified vs true.</b> Implement IBP for an MLP (NumPy), certify an output threshold over an input box, and compare against the empirical range from a million random samples for the 2-2-1 network of the neural-verification section. Observe that IBP's bound contains, and generally exceeds, the sampled range.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def ibp_affine(l, u, W, b):
+    Wp, Wn = np.maximum(W, 0), np.minimum(W, 0)
+    return Wp @ l + Wn @ u + b, Wp @ u + Wn @ l + b
+
+def ibp_forward(l, u, layers):
+    for i, (W, b) in enumerate(layers):
+        l, u = ibp_affine(l, u, W, b)
+        if i &lt; len(layers) - 1:            # ReLU on hidden layers
+            l, u = np.maximum(l, 0), np.maximum(u, 0)
+    return l, u
+
+W1 = np.array([[1., -1.], [2., 1.]]); b1 = np.zeros(2)
+W2 = np.array([[1., -1.]]);           b2 = np.zeros(1)
+layers = [(W1, b1), (W2, b2)]
+
+l0, u0 = np.array([0., 0.]), np.array([1., 1.])
+lo, hi = ibp_forward(l0, u0, layers)
+print("IBP bounds:", lo, hi)               # [-3.] [1.]
+
+def f(x):
+    h = np.maximum(x @ W1.T + b1, 0)
+    return h @ W2.T + b2
+
+xs = np.random.default_rng(0).uniform(l0, u0, size=(1_000_000, 2))
+ys = f(xs)
+print("empirical range:", ys.min(), ys.max())   # ~[-3, 0]: true max is 0
+thr = 0.5
+print("certified y &lt; 0.5:", hi[0] &lt; thr)        # False: IBP too loose here
+print("empirically y &lt; 0.5:", ys.max() &lt; thr)   # True: property holds, uncertified
+</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://softwarefoundations.cis.upenn.edu/">Pierce et al., <em>Software Foundations</em></a> — free interactive Coq course: Hoare logic, type systems, and proofs you machine-check yourself.</li>
+  <li><a href="https://mitpress.mit.edu/9780262026499/principles-of-model-checking/">Baier &amp; Katoen, <em>Principles of Model Checking</em></a> — the reference for transition systems, LTL/CTL, safety/liveness, and the algorithms behind checkers.</li>
+  <li><a href="https://lamport.azurewebsites.net/tla/tla.html">Lamport, the TLA+ home page</a> — specs and model checking for real distributed systems, with the free <em>Specifying Systems</em> book.</li>
+  <li><a href="https://sat-smt.codes/">Kroening-adjacent: <em>SAT/SMT by Example</em> (free PDF)</a> — hundreds of concrete encodings into Z3; the fastest way to build solver intuition.</li>
+  <li><a href="https://microsoft.github.io/z3guide/">Microsoft Research, the Z3 online guide</a> — hands-on SMT: theories, tactics, and programmatic use, runnable in the browser.</li>
+  <li><a href="https://leanprover-community.github.io/">Lean community / mathlib</a> — a modern proof assistant with the Natural Number Game and tutorials; where LLM+formal-math work happens.</li>
+  <li><a href="https://arxiv.org/abs/1702.01135">Katz et al., "Reluplex: An Efficient SMT Solver for Verifying Deep Neural Networks" (arXiv 2017)</a> — the paper that opened practical neural-network verification.</li>
+  <li><a href="https://arxiv.org/abs/1811.12715">Gowal et al., "On the Effectiveness of Interval Bound Propagation" (arXiv 2018)</a> — IBP and certified training, exactly the method in this chapter's explorer and lab.</li>
+ </ul>
+</section>
+
+ <div class="pager">
+  <a class="btn" href="ch33.html">← 33 · Multi-Agent Systems</a>
+  <a class="btn" href="ch35.html">35 · Interpretability, Alignment and Safety →</a>
+ </div>
+ </main>
+</div>
+
+<script>
+(function(){
+ function ready(fn){ if(document.readyState !== 'loading') fn(); else document.addEventListener('DOMContentLoaded', fn); }
+ ready(function(){
+
+ function axes(g, w, h, pad){
+   g.strokeStyle = cssVar('--ink-2'); g.lineWidth = 1;
+   g.beginPath(); g.moveTo(pad, 10); g.lineTo(pad, h - pad); g.lineTo(w - 10, h - pad); g.stroke();
+ }
+ function txt(g, s, x, y){ g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono'; g.fillText(s, x, y); }
+
+ /* ---------- Explorer 1: loop invariant s = i^2 ---------- */
+ (function(){
+  var c = document.getElementById('cv-inv'); if(!c) return;
+  var nEl = document.getElementById('iv-n'), kEl = document.getElementById('iv-k');
+  var out = document.getElementById('iv-out');
+  var i = 0, s = 0;
+  function reset(){ i = 0; s = 0; draw(); }
+  function step(){
+    var n = +nEl.value, k = +kEl.value;
+    if(i < n){ s += 2 * i + k; i += 1; }
+    draw();
+  }
+  function draw(){
+    var st = setupCanvas(c, 280), g = st.g, W = st.w, H = st.h, pad = 44;
+    g.clearRect(0, 0, W, H); axes(g, W, H, pad);
+    var n = +nEl.value, k = +kEl.value;
+    var ymax = n * n + 10, y0 = H - pad, plotH = H - pad - 14, plotW = W - pad - 14;
+    function X(ii){ return pad + (ii / n) * plotW; }
+    function Y(v){ return y0 - (v / ymax) * plotH; }
+    /* the invariant curve i^2 */
+    g.strokeStyle = cssVar('--ink-2'); g.setLineDash([4, 4]); g.beginPath();
+    for(var t = 0; t <= 100; t++){
+      var ii = (t / 100) * n, v = ii * ii;
+      t ? g.lineTo(X(ii), Y(v)) : g.moveTo(X(ii), Y(v));
+    }
+    g.stroke(); g.setLineDash([]);
+    /* trajectory of (i, s) checkpoints: recompute history for drawing */
+    var hs = 0, ok = true, firstFail = -1;
+    for(var j = 0; j <= i; j++){
+      var hold = (hs === j * j);
+      if(!hold && firstFail < 0){ firstFail = j; }
+      g.fillStyle = hold ? cssVar('--cobalt') : '#d33';
+      g.beginPath(); g.arc(X(j), Y(hs), 5, 0, 2 * Math.PI); g.fill();
+      if(j < i) hs += 2 * j + k;
+    }
+    txt(g, 'dashed: s = i²   dots: actual (i, s)', pad + 6, 22);
+    txt(g, 'i →', W - 44, y0 + 18);
+    txt(g, '0', pad - 12, y0 + 4);
+    if(out){
+      var inv = (s === i * i);
+      out.textContent = 'i = ' + i + ', s = ' + s + '   invariant s = i² : ' + (inv ? 'HOLDS' : 'BROKEN (s ≠ ' + (i * i) + ')') +
+        (k === 1 ? '   (update adds 2i+1: preserved every step)' : '   (update adds 2i+' + k + ': not the invariant-preserving increment)');
+    }
+  }
+  var stepBtn = document.getElementById('iv-step'), resetBtn = document.getElementById('iv-reset');
+  if(stepBtn) stepBtn.addEventListener('click', step);
+  if(resetBtn) resetBtn.addEventListener('click', reset);
+  nEl.addEventListener('input', reset);
+  kEl.addEventListener('input', reset);
+  window.addEventListener('resize', draw);
+  reset();
+ })();
+
+ /* ---------- Explorer 2: reachability model checking on a counter ---------- */
+ (function(){
+  var c = document.getElementById('cv-mc'); if(!c) return;
+  var aEl = document.getElementById('mc-a'), bEl = document.getElementById('mc-b'),
+      dEl = document.getElementById('mc-d'), capEl = document.getElementById('mc-cap');
+  var out = document.getElementById('mc-out');
+  function draw(){
+    var st = setupCanvas(c, 240), g = st.g, W = st.w, H = st.h;
+    g.clearRect(0, 0, W, H);
+    var a = +aEl.value, b = +bEl.value, danger = +dEl.value, cap = +capEl.value;
+    if(danger > cap) danger = cap;
+    /* BFS from 0: steps +a and -b, clamped to [0, cap] */
+    var dist = {}, q = [0]; dist[0] = 0;
+    while(q.length){
+      var s = q.shift();
+      [Math.min(s + a, cap), Math.max(s - b, 0)].forEach(function(t){
+        if(!(t in dist)){ dist[t] = dist[s] + 1; q.push(t); }
+      });
+    }
+    /* draw the number line of states */
+    var pad = 30, y = H / 2, plotW = W - 2 * pad;
+    function X(v){ return pad + (v / cap) * plotW; }
+    g.strokeStyle = cssVar('--ink-2'); g.beginPath(); g.moveTo(pad, y); g.lineTo(W - pad, y); g.stroke();
+    /* danger zone band */
+    g.fillStyle = 'rgba(220,60,60,0.15)';
+    g.fillRect(X(danger), y - 46, X(cap) - X(danger) + 8, 92);
+    var badReached = null;
+    for(var v = 0; v <= cap; v++){
+      var reach = (v in dist);
+      var isBad = v >= danger;
+      if(reach && isBad && badReached === null) badReached = v;
+      g.beginPath(); g.arc(X(v), y, 9, 0, 2 * Math.PI);
+      if(reach){ g.fillStyle = isBad ? '#d33' : cssVar('--cobalt'); g.fill(); }
+      else { g.strokeStyle = cssVar('--ink-2'); g.stroke(); }
+      txt(g, String(v), X(v) - (v > 9 ? 8 : 4), y + 30);
+      if(reach) txt(g, String(dist[v]), X(v) - 4, y - 16);
+    }
+    txt(g, 'filled = reachable (label: BFS depth) · band = bad region', pad, 24);
+    if(out){
+      if(badReached !== null){
+        /* reconstruct one shortest path */
+        var path = [badReached], cur = badReached;
+        while(cur !== 0){
+          var found = null;
+          for(var p = 0; p <= cap; p++){
+            if((p in dist) && dist[p] === dist[cur] - 1 &&
+               (Math.min(p + a, cap) === cur || Math.max(p - b, 0) === cur)){ found = p; break; }
+          }
+          if(found === null) break;
+          path.push(found); cur = found;
+        }
+        out.textContent = 'UNSAFE — counterexample: ' + path.reverse().join(' → ');
+      } else {
+        out.textContent = 'SAFE — the bad region is unreachable: every reachable value stays below ' + danger + '.';
+      }
+    }
+  }
+  [aEl, bEl, dEl, capEl].forEach(function(el){ el.addEventListener('input', draw); });
+  window.addEventListener('resize', draw);
+  draw();
+ })();
+
+ /* ---------- Explorer 3: LTL on a periodic trace ---------- */
+ (function(){
+  var c = document.getElementById('cv-ltl'); if(!c) return;
+  var ppEl = document.getElementById('lt-pp'), qdEl = document.getElementById('lt-qd'), dropEl = document.getElementById('lt-drop');
+  var out = document.getElementById('lt-out');
+  var N = 24; /* steps shown; trace conceptually repeats */
+  function build(){
+    var pp = +ppEl.value, qd = +qdEl.value, drop = +dropEl.value;
+    var p = [], q = [], pulse = 0;
+    for(var t = 0; t < N; t++){ p.push(t % pp === 0); q.push(false); }
+    for(t = 0; t < N; t++){
+      if(p[t]){
+        pulse++;
+        var tq = t + qd;
+        var dropped = (drop > 0) && (pulse % drop === 0);
+        if(tq < N && !dropped) q[tq] = true;
+      }
+    }
+    return { p: p, q: q };
+  }
+  /* evaluate on the finite window, treating it as the whole (periodic) behavior */
+  function evalFormulas(tr){
+    var p = tr.p, q = tr.q;
+    function Fq_from(i){ for(var j = i; j < N; j++) if(q[j]) return true; return false; }
+    var res = {};
+    /* G p */
+    res['G p'] = { ok: true, at: -1 };
+    for(var i = 0; i < N; i++) if(!p[i]){ res['G p'] = { ok: false, at: i }; break; }
+    /* F q */
+    res['F q'] = { ok: Fq_from(0), at: Fq_from(0) ? -1 : 0 };
+    /* G (p -> F q) */
+    res['G (p → F q)'] = { ok: true, at: -1 };
+    for(i = 0; i < N; i++) if(p[i] && !Fq_from(i)){ res['G (p → F q)'] = { ok: false, at: i }; break; }
+    /* G (p -> X q) */
+    res['G (p → X q)'] = { ok: true, at: -1 };
+    for(i = 0; i < N - 1; i++) if(p[i] && !q[i + 1]){ res['G (p → X q)'] = { ok: false, at: i }; break; }
+    return res;
+  }
+  function draw(){
+    var st = setupCanvas(c, 300), g = st.g, W = st.w, H = st.h, pad = 44;
+    g.clearRect(0, 0, W, H);
+    var tr = build(), res = evalFormulas(tr);
+    var plotW = W - pad - 14;
+    function X(t){ return pad + (t / (N - 1)) * plotW; }
+    /* draw p and q rows */
+    var rows = [{ name: 'p', arr: tr.p, y: 60 }, { name: 'q', arr: tr.q, y: 110 }];
+    rows.forEach(function(r){
+      txt(g, r.name, pad - 24, r.y + 5);
+      g.strokeStyle = cssVar('--ink-2'); g.beginPath(); g.moveTo(pad, r.y); g.lineTo(W - 14, r.y); g.stroke();
+      for(var t = 0; t < N; t++){
+        if(r.arr[t]){
+          g.fillStyle = cssVar('--cobalt');
+          g.fillRect(X(t) - 4, r.y - 16, 8, 16);
+        }
+      }
+    });
+    for(var t = 0; t < N; t += 4) txt(g, String(t), X(t) - 4, 130);
+    /* formula verdicts */
+    var y = 165, lines = [];
+    for(var name in res){
+      var r = res[name];
+      g.fillStyle = r.ok ? cssVar('--cobalt') : '#d33';
+      g.font = '13px JetBrains Mono';
+      var label = (r.ok ? '✓ ' : '✗ ') + name + (r.ok ? '' : '   (fails at t=' + r.at + ')');
+      g.fillText(label, pad, y);
+      if(!r.ok && r.at >= 0){
+        g.strokeStyle = '#d33'; g.setLineDash([2, 3]);
+        g.beginPath(); g.moveTo(X(r.at), 40); g.lineTo(X(r.at), 130); g.stroke(); g.setLineDash([]);
+      }
+      y += 24;
+    }
+    txt(g, 'trace window: 24 steps', W - 200, 24);
+    if(out) out.textContent = 'p pulses every ' + ppEl.value + ' steps; q follows after ' + qdEl.value +
+      (+dropEl.value > 0 ? '; every ' + dropEl.value + 'th q is dropped — watch the response property fail.' : '; no dropouts.');
+  }
+  [ppEl, qdEl, dropEl].forEach(function(el){ el.addEventListener('input', draw); });
+  window.addEventListener('resize', draw);
+  draw();
+ })();
+
+ /* ---------- Explorer 4: interval bound propagation ---------- */
+ (function(){
+  var c = document.getElementById('cv-ibp'); if(!c) return;
+  var xEl = document.getElementById('ib-x'), yEl = document.getElementById('ib-y'),
+      eEl = document.getElementById('ib-e'), tEl = document.getElementById('ib-t');
+  var out = document.getElementById('ib-out');
+  var W1 = [[1, -1], [2, 1]], W2 = [1, -1];
+  function relu(v){ return Math.max(v, 0); }
+  function f(x1, x2){
+    var h1 = relu(W1[0][0] * x1 + W1[0][1] * x2);
+    var h2 = relu(W1[1][0] * x1 + W1[1][1] * x2);
+    return W2[0] * h1 + W2[1] * h2;
+  }
+  function ibp(l1, u1, l2, u2){
+    /* affine row bounds */
+    function rowB(w, l1, u1, l2, u2){
+      var lo = (w[0] >= 0 ? w[0] * l1 : w[0] * u1) + (w[1] >= 0 ? w[1] * l2 : w[1] * u2);
+      var hi = (w[0] >= 0 ? w[0] * u1 : w[0] * l1) + (w[1] >= 0 ? w[1] * u2 : w[1] * l2);
+      return [lo, hi];
+    }
+    var z1 = rowB(W1[0], l1, u1, l2, u2), z2 = rowB(W1[1], l1, u1, l2, u2);
+    var h1 = [relu(z1[0]), relu(z1[1])], h2 = [relu(z2[0]), relu(z2[1])];
+    /* y = h1 - h2 */
+    return [h1[0] - h2[1], h1[1] - h2[0]];
+  }
+  function draw(){
+    var st = setupCanvas(c, 280), g = st.g, W = st.w, H = st.h, pad = 44;
+    g.clearRect(0, 0, W, H); axes(g, W, H, pad);
+    var cx = +xEl.value, cy = +yEl.value, e = +eEl.value, thr = +tEl.value;
+    var l1 = Math.max(0, cx - e), u1 = Math.min(1, cx + e);
+    var l2 = Math.max(0, cy - e), u2 = Math.min(1, cy + e);
+    var bounds = ibp(l1, u1, l2, u2);
+    /* true range by grid sampling the box */
+    var tmin = Infinity, tmax = -Infinity, K = 40;
+    for(var i = 0; i <= K; i++) for(var j = 0; j <= K; j++){
+      var v = f(l1 + (u1 - l1) * i / K, l2 + (u2 - l2) * j / K);
+      if(v < tmin) tmin = v; if(v > tmax) tmax = v;
+    }
+    /* y-axis: output value from -3.2 to 2.2 */
+    var ymin = -3.2, ymax = 2.2, y0 = H - pad, plotH = H - pad - 14;
+    function Y(v){ return y0 - ((v - ymin) / (ymax - ymin)) * plotH; }
+    var bx = pad + 60, bw = 90;
+    /* IBP band */
+    g.fillStyle = 'rgba(70,110,220,0.25)';
+    g.fillRect(bx, Y(bounds[1]), bw, Y(bounds[0]) - Y(bounds[1]));
+    /* true range band */
+    g.fillStyle = cssVar('--cobalt');
+    g.fillRect(bx + bw + 40, Y(tmax), bw, Y(tmin) - Y(tmax));
+    /* threshold line */
+    g.strokeStyle = '#d33'; g.setLineDash([5, 4]);
+    g.beginPath(); g.moveTo(pad, Y(thr)); g.lineTo(W - 14, Y(thr)); g.stroke(); g.setLineDash([]);
+    txt(g, 'threshold ' + thr.toFixed(1), W - 150, Y(thr) - 6);
+    txt(g, 'IBP certified', bx, Y(bounds[0]) + 18);
+    txt(g, 'true range', bx + bw + 40, Y(tmin) + 18);
+    txt(g, '[' + bounds[0].toFixed(2) + ', ' + bounds[1].toFixed(2) + ']', bx, Y(bounds[1]) - 6);
+    txt(g, '[' + tmin.toFixed(2) + ', ' + tmax.toFixed(2) + ']', bx + bw + 40, Y(tmax) - 6);
+    txt(g, '0', pad - 12, Y(0) + 4);
+    g.strokeStyle = cssVar('--ink-2'); g.setLineDash([2, 4]);
+    g.beginPath(); g.moveTo(pad, Y(0)); g.lineTo(W - 14, Y(0)); g.stroke(); g.setLineDash([]);
+    var cert = bounds[1] < thr, truly = tmax < thr;
+    if(out) out.textContent =
+      'property  y < ' + thr.toFixed(1) + ' :  certified by IBP: ' + (cert ? 'YES' : 'NO') +
+      '   ·   actually true on the box: ' + (truly ? 'YES' : 'NO') +
+      (!cert && truly ? '   ← the relaxation gap: true but not provable by intervals alone' : '');
+  }
+  [xEl, yEl, eEl, tEl].forEach(function(el){ el.addEventListener('input', draw); });
+  window.addEventListener('resize', draw);
+  draw();
+ })();
+
+ });
+})();
+</script>
+
+</body></html>

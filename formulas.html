@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · Formulas</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="book.css">
+<script src="book.js"></script>
+<style>
+.onecol{max-width:760px;margin:0 auto;padding:28px 16px 90px}
+.page-head{border-bottom:2px solid var(--ink);padding-bottom:22px;margin-bottom:34px}
+.page-head h1{font-size:clamp(34px,5vw,52px);margin:.2em 0 .25em}
+.page-head .lede{font-size:20px;color:var(--ink-2);margin:0}
+section.topic>h2{font-size:24px}
+section.topic>h2 a{color:var(--ink);text-decoration:none}
+section.topic>h2 a:hover{color:var(--cobalt)}
+section.topic>h2 .cn{font:600 14px var(--mono);color:var(--cobalt);margin-right:8px}
+.frm{border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:12px 16px;margin:14px 0}
+.frm .fx{overflow-x:auto}
+.frm .gloss{font-size:15.5px;color:var(--ink-2);margin:6px 0 0;max-width:none}
+.frm .gloss em{color:var(--amber);font-style:normal;font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-right:6px}
+.frm .gloss a{font:600 13px var(--mono);text-decoration:none;white-space:nowrap}
+</style>
+<header class="topbar"><div class="in">
+ <a class="brand" href="index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="index.html">Contents</a><a class="btn" href="threads.html">Concept threads</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="onecol">
+ <div class="page-head">
+  <h1>The Formula Sheet</h1>
+  <p class="lede">Every load-bearing formula in the book, chapter by chapter, each with a plain-English reading and a link to where it is taught.</p>
+ </div>
+
+<section class="topic" id="f-ch01"><h2><a href="chapters/ch01.html"><span class="cn">01</span>Arithmetic</a></h2>
+ <div class="frm"><div class="fx">$$\gcd(a,b)\cdot \operatorname{lcm}(a,b) = a\,b$$</div><p class="gloss"><em>Read it as</em> the greatest common divisor and least common multiple split the prime factors of $ab$ between them, without loss or overlap. <a href="chapters/ch01.html#greatest-common-divisor">§ GCD</a></p></div>
+ <div class="frm"><div class="fx">$$\frac{a}{b}+\frac{c}{d} = \frac{ad+bc}{bd}$$</div><p class="gloss"><em>Read it as</em> to add fractions, first re-express both on a common denominator, then add numerators. <a href="chapters/ch01.html#fractions">§ Fractions</a></p></div>
+ <div class="frm"><div class="fx">$$x\% \text{ of } y \;=\; \frac{x}{100}\, y$$</div><p class="gloss"><em>Read it as</em> a percentage is just a fraction with denominator fixed at 100; "of" means multiply. <a href="chapters/ch01.html#percentages">§ Percentages</a></p></div>
+ <div class="frm"><div class="fx">$$|a| = \begin{cases} a & a \ge 0\\ -a & a &lt; 0\end{cases}, \qquad |a+b| \le |a|+|b|$$</div><p class="gloss"><em>Read it as</em> absolute value is distance from zero, and a detour (triangle inequality) never beats the direct route. <a href="chapters/ch01.html#absolute-value">§ Absolute value</a></p></div>
+</section>
+
+<section class="topic" id="f-ch02"><h2><a href="chapters/ch02.html"><span class="cn">02</span>Algebra</a></h2>
+ <div class="frm"><div class="fx">$$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$$</div><p class="gloss"><em>Read it as</em> the two points where a parabola crosses zero, found by completing the square once and for all. <a href="chapters/ch02.html#quadratic-formula">§ Quadratic formula</a></p></div>
+ <div class="frm"><div class="fx">$$(x+y)^n = \sum_{k=0}^{n} \binom{n}{k} x^{n-k} y^{k}$$</div><p class="gloss"><em>Read it as</em> expanding a power counts, for each term, how many ways you can pick $y$ from $k$ of the $n$ factors. <a href="chapters/ch02.html#binomial-theorem">§ Binomial theorem</a></p></div>
+ <div class="frm"><div class="fx">$$a^m a^n = a^{m+n}, \qquad (a^m)^n = a^{mn}$$</div><p class="gloss"><em>Read it as</em> multiplying powers stacks the repetitions, so exponents add; powering a power multiplies them. <a href="chapters/ch02.html#laws-of-exponents">§ Laws of exponents</a></p></div>
+ <div class="frm"><div class="fx">$$\log(ab) = \log a + \log b, \qquad \log(a^k) = k \log a$$</div><p class="gloss"><em>Read it as</em> logarithms turn multiplication into addition and powers into products — the reason they tame likelihoods. <a href="chapters/ch02.html#logarithm-laws">§ Logarithm laws</a></p></div>
+ <div class="frm"><div class="fx">$$a^2 - b^2 = (a-b)(a+b)$$</div><p class="gloss"><em>Read it as</em> a difference of squares always factors; the cross terms cancel. <a href="chapters/ch02.html#difference-of-squares">§ Difference of squares</a></p></div>
+</section>
+
+<section class="topic" id="f-ch03"><h2><a href="chapters/ch03.html"><span class="cn">03</span>Sets, Logic and Proof</a></h2>
+ <div class="frm"><div class="fx">$$|A \cup B| = |A| + |B| - |A \cap B|$$</div><p class="gloss"><em>Read it as</em> add the two sets, then subtract the overlap you double-counted. <a href="chapters/ch03.html#inclusion-exclusion">§ Inclusion–exclusion</a></p></div>
+ <div class="frm"><div class="fx">$$\neg(P \land Q) \equiv \neg P \lor \neg Q$$</div><p class="gloss"><em>Read it as</em> De Morgan: to deny "both", it is enough that at least one fails. <a href="chapters/ch03.html#logical-equivalence">§ Logical equivalence</a></p></div>
+ <div class="frm"><div class="fx">$$\binom{n}{k} = \frac{n!}{k!\,(n-k)!}$$</div><p class="gloss"><em>Read it as</em> count ordered selections, then divide out the $k!$ orderings you don't care about. <a href="chapters/ch03.html#combinations">§ Combinations</a></p></div>
+ <div class="frm"><div class="fx">$$\big[P(0) \;\land\; \forall n\, (P(n) \Rightarrow P(n{+}1))\big] \;\Rightarrow\; \forall n\, P(n)$$</div><p class="gloss"><em>Read it as</em> knock over the first domino and show each domino topples the next — then they all fall. <a href="chapters/ch03.html#proof-by-induction">§ Induction</a></p></div>
+</section>
+
+<section class="topic" id="f-ch04"><h2><a href="chapters/ch04.html"><span class="cn">04</span>Functions</a></h2>
+ <div class="frm"><div class="fx">$$m = \frac{y_2 - y_1}{x_2 - x_1}$$</div><p class="gloss"><em>Read it as</em> slope is rise over run — how much output you buy per unit of input. <a href="chapters/ch04.html#slope">§ Slope</a></p></div>
+ <div class="frm"><div class="fx">$$(f \circ g)(x) = f(g(x))$$</div><p class="gloss"><em>Read it as</em> feed the output of the inner machine into the outer one; deep networks are long chains of exactly this. <a href="chapters/ch04.html#function-composition">§ Composition</a></p></div>
+ <div class="frm"><div class="fx">$$f^{-1}(f(x)) = x, \qquad f(f^{-1}(y)) = y$$</div><p class="gloss"><em>Read it as</em> an inverse function exactly undoes what the function did, in either order. <a href="chapters/ch04.html#inverse-functions">§ Inverse functions</a></p></div>
+ <div class="frm"><div class="fx">$$a_n = a_1 r^{\,n-1}, \qquad \sum_{k=0}^{n-1} a r^k = a\,\frac{1-r^n}{1-r}$$</div><p class="gloss"><em>Read it as</em> multiply by the same ratio each step; the sum telescopes into one closed form. <a href="chapters/ch04.html#geometric-sequences">§ Geometric sequences</a></p></div>
+</section>
+
+<section class="topic" id="f-ch05"><h2><a href="chapters/ch05.html"><span class="cn">05</span>Geometry</a></h2>
+ <div class="frm"><div class="fx">$$a^2 + b^2 = c^2$$</div><p class="gloss"><em>Read it as</em> in a right triangle, the squares on the legs tile the square on the hypotenuse. <a href="chapters/ch05.html#pythagorean-theorem">§ Pythagorean theorem</a></p></div>
+ <div class="frm"><div class="fx">$$d = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}$$</div><p class="gloss"><em>Read it as</em> distance is Pythagoras applied to the coordinate differences. <a href="chapters/ch05.html#distance-formula">§ Distance formula</a></p></div>
+ <div class="frm"><div class="fx">$$\mathbf{a}\cdot\mathbf{b} = \sum_i a_i b_i = \|\mathbf{a}\|\,\|\mathbf{b}\|\cos\theta$$</div><p class="gloss"><em>Read it as</em> the dot product measures alignment: positive when vectors agree, zero when perpendicular. <a href="chapters/ch05.html#dot-product">§ Dot product</a></p></div>
+ <div class="frm"><div class="fx">$$\operatorname{proj}_{\mathbf{b}}\mathbf{a} = \frac{\mathbf{a}\cdot\mathbf{b}}{\mathbf{b}\cdot\mathbf{b}}\,\mathbf{b}$$</div><p class="gloss"><em>Read it as</em> the shadow of $\mathbf{a}$ along $\mathbf{b}$: keep only the component that points $\mathbf{b}$'s way. <a href="chapters/ch05.html#vector-projection">§ Projection</a></p></div>
+</section>
+
+<section class="topic" id="f-ch06"><h2><a href="chapters/ch06.html"><span class="cn">06</span>Trigonometry</a></h2>
+ <div class="frm"><div class="fx">$$\sin^2\theta + \cos^2\theta = 1$$</div><p class="gloss"><em>Read it as</em> Pythagoras on the unit circle: every angle's coordinates lie one unit from the origin. <a href="chapters/ch06.html#pythagorean-identities">§ Pythagorean identities</a></p></div>
+ <div class="frm"><div class="fx">$$c^2 = a^2 + b^2 - 2ab\cos C$$</div><p class="gloss"><em>Read it as</em> Pythagoras with a correction term for the angle not being right. <a href="chapters/ch06.html#law-of-cosines">§ Law of cosines</a></p></div>
+ <div class="frm"><div class="fx">$$\sin(\alpha+\beta) = \sin\alpha\cos\beta + \cos\alpha\sin\beta$$</div><p class="gloss"><em>Read it as</em> rotating by two angles in a row mixes their sines and cosines — it's matrix rotation, componentwise. <a href="chapters/ch06.html#angle-addition-formulas">§ Angle addition</a></p></div>
+ <div class="frm"><div class="fx">$$e^{i\theta} = \cos\theta + i\sin\theta$$</div><p class="gloss"><em>Read it as</em> the exponential of an imaginary number is a point on the unit circle; growth becomes rotation. <a href="chapters/ch06.html#eulers-formula">§ Euler's formula</a></p></div>
+</section>
+
+<section class="topic" id="f-ch07"><h2><a href="chapters/ch07.html"><span class="cn">07</span>Calculus</a></h2>
+ <div class="frm"><div class="fx">$$f'(x) = \lim_{h\to 0} \frac{f(x+h)-f(x)}{h}$$</div><p class="gloss"><em>Read it as</em> the slope of the secant line as the two points merge — instantaneous rate of change. <a href="chapters/ch07.html#derivative-definition">§ Derivative</a></p></div>
+ <div class="frm"><div class="fx">$$\frac{d}{dx}f(g(x)) = f'(g(x))\,g'(x)$$</div><p class="gloss"><em>Read it as</em> sensitivities multiply through a pipeline — the seed of backpropagation. <a href="chapters/ch07.html#chain-rule">§ Chain rule</a></p></div>
+ <div class="frm"><div class="fx">$$\int_a^b f(x)\,dx = F(b) - F(a), \quad F' = f$$</div><p class="gloss"><em>Read it as</em> total accumulation equals the change in any antiderivative — integration undoes differentiation. <a href="chapters/ch07.html#fundamental-theorem-of-calculus">§ Fundamental theorem</a></p></div>
+ <div class="frm"><div class="fx">$$\int u\,dv = uv - \int v\,du$$</div><p class="gloss"><em>Read it as</em> the product rule run backwards: trade one integral for a hopefully easier one. <a href="chapters/ch07.html#integration-by-parts">§ Integration by parts</a></p></div>
+ <div class="frm"><div class="fx">$$f(x) = \sum_{n=0}^{\infty} \frac{f^{(n)}(a)}{n!}(x-a)^n$$</div><p class="gloss"><em>Read it as</em> rebuild a smooth function from its derivatives at one point — a polynomial that matches ever more closely. <a href="chapters/ch07.html#taylor-series">§ Taylor series</a></p></div>
+ <div class="frm"><div class="fx">$$\lim_{x\to a}\frac{f(x)}{g(x)} = \lim_{x\to a}\frac{f'(x)}{g'(x)} \quad \text{(for } \tfrac{0}{0}, \tfrac{\infty}{\infty}\text{)}$$</div><p class="gloss"><em>Read it as</em> when both parts vanish or blow up, compare their speeds instead of their values. <a href="chapters/ch07.html#lhopitals-rule">§ L'Hôpital</a></p></div>
+</section>
+
+<section class="topic" id="f-ch08"><h2><a href="chapters/ch08.html"><span class="cn">08</span>Linear Algebra</a></h2>
+ <div class="frm"><div class="fx">$$A\mathbf{v} = \lambda\mathbf{v}$$</div><p class="gloss"><em>Read it as</em> along an eigenvector, the matrix acts as pure stretching by $\lambda$ — no rotation, no mixing. <a href="chapters/ch08.html#eigenvalues">§ Eigenvalues</a></p></div>
+ <div class="frm"><div class="fx">$$A = P D P^{-1}$$</div><p class="gloss"><em>Read it as</em> change into the eigenbasis, where the matrix is just a diagonal list of stretches. <a href="chapters/ch08.html#diagonalization">§ Diagonalization</a></p></div>
+ <div class="frm"><div class="fx">$$A = U \Sigma V^{\!\top}$$</div><p class="gloss"><em>Read it as</em> every matrix is a rotation, then axis-aligned stretching, then another rotation. <a href="chapters/ch08.html#singular-value-decomposition">§ SVD</a></p></div>
+ <div class="frm"><div class="fx">$$\operatorname{rank}(A) + \dim\ker(A) = n$$</div><p class="gloss"><em>Read it as</em> dimensions are conserved: what the map doesn't kill, it keeps. <a href="chapters/ch08.html#rank">§ Rank</a></p></div>
+ <div class="frm"><div class="fx">$$\|\mathbf{x}\|_2 = \sqrt{\textstyle\sum_i x_i^2}, \qquad \|\mathbf{x}\|_1 = \textstyle\sum_i |x_i|$$</div><p class="gloss"><em>Read it as</em> two ways to measure a vector's size: straight-line length versus total coordinate travel. <a href="chapters/ch08.html#norms">§ Norms</a></p></div>
+</section>
+
+<section class="topic" id="f-ch09"><h2><a href="chapters/ch09.html"><span class="cn">09</span>Multivariable and Matrix Calculus</a></h2>
+ <div class="frm"><div class="fx">$$\nabla f = \left(\frac{\partial f}{\partial x_1}, \dots, \frac{\partial f}{\partial x_n}\right)$$</div><p class="gloss"><em>Read it as</em> one slope per input direction, stacked into the vector that points steepest uphill. <a href="chapters/ch09.html#gradient">§ Gradient</a></p></div>
+ <div class="frm"><div class="fx">$$\frac{dz}{dt} = \frac{\partial z}{\partial x}\frac{dx}{dt} + \frac{\partial z}{\partial y}\frac{dy}{dt}$$</div><p class="gloss"><em>Read it as</em> influence flows along every path and the paths add up. <a href="chapters/ch09.html#multivariable-chain-rule">§ Multivariable chain rule</a></p></div>
+ <div class="frm"><div class="fx">$$J_{ij} = \frac{\partial f_i}{\partial x_j}, \qquad H_{ij} = \frac{\partial^2 f}{\partial x_i\,\partial x_j}$$</div><p class="gloss"><em>Read it as</em> the Jacobian is the local linear map; the Hessian is the local curvature of a scalar landscape. <a href="chapters/ch09.html#jacobian-matrix">§ Jacobian</a> · <a href="chapters/ch09.html#hessian-matrix">§ Hessian</a></p></div>
+ <div class="frm"><div class="fx">$$\nabla f(x^*) = \lambda\, \nabla g(x^*)$$</div><p class="gloss"><em>Read it as</em> at a constrained optimum, the objective can only improve by leaving the constraint surface — the gradients must be parallel. <a href="chapters/ch09.html#lagrange-multipliers">§ Lagrange multipliers</a></p></div>
+ <div class="frm"><div class="fx">$$\frac{\partial L}{\partial \mathbf{x}} = \left(\frac{\partial \mathbf{y}}{\partial \mathbf{x}}\right)^{\!\top} \frac{\partial L}{\partial \mathbf{y}}$$</div><p class="gloss"><em>Read it as</em> backpropagation: pull the loss gradient backwards through each layer by multiplying with the transposed Jacobian. <a href="chapters/ch09.html#backpropagation-as-the-chain-rule">§ Backprop as chain rule</a></p></div>
+</section>
+
+<section class="topic" id="f-ch10"><h2><a href="chapters/ch10.html"><span class="cn">10</span>Differential Equations</a></h2>
+ <div class="frm"><div class="fx">$$\frac{dy}{dt} = ky \;\Rightarrow\; y(t) = y_0 e^{kt}$$</div><p class="gloss"><em>Read it as</em> when growth is proportional to size, size is exponential in time. <a href="chapters/ch10.html#exponential-growth-and-decay">§ Exponential growth</a></p></div>
+ <div class="frm"><div class="fx">$$\frac{dy}{dt} = ry\left(1 - \frac{y}{K}\right)$$</div><p class="gloss"><em>Read it as</em> exponential growth with a brake that tightens as $y$ nears the capacity $K$ — the S-curve. <a href="chapters/ch10.html#logistic-equation">§ Logistic equation</a></p></div>
+ <div class="frm"><div class="fx">$$y'' + by' + cy = 0 \;\Rightarrow\; r^2 + br + c = 0$$</div><p class="gloss"><em>Read it as</em> guess $e^{rt}$ and the ODE becomes algebra; the roots' sign and realness decide decay, growth, or oscillation. <a href="chapters/ch10.html#characteristic-equation">§ Characteristic equation</a></p></div>
+ <div class="frm"><div class="fx">$$\dot{\mathbf{x}} = A\mathbf{x} \;\Rightarrow\; \mathbf{x}(t) = e^{At}\mathbf{x}_0$$</div><p class="gloss"><em>Read it as</em> a linear system's whole future is one matrix exponential applied to where it starts. <a href="chapters/ch10.html#matrix-exponential">§ Matrix exponential</a></p></div>
+ <div class="frm"><div class="fx">$$y_{n+1} = y_n + h\, f(t_n, y_n)$$</div><p class="gloss"><em>Read it as</em> Euler's method: follow the current slope for a small step, then re-aim. <a href="chapters/ch10.html#eulers-method">§ Euler's method</a></p></div>
+</section>
+
+<section class="topic" id="f-ch11"><h2><a href="chapters/ch11.html"><span class="cn">11</span>Probability</a></h2>
+ <div class="frm"><div class="fx">$$P(H \mid E) = \frac{P(E \mid H)\,P(H)}{P(E)}$$</div><p class="gloss"><em>Read it as</em> belief after evidence is proportional to how well the hypothesis predicted the evidence, times prior belief. <a href="chapters/ch11.html#bayes-theorem">§ Bayes' theorem</a></p></div>
+ <div class="frm"><div class="fx">$$\mathbb{E}[X] = \sum_x x\,P(x), \qquad \operatorname{Var}(X) = \mathbb{E}\big[(X-\mathbb{E}X)^2\big]$$</div><p class="gloss"><em>Read it as</em> the probability-weighted average, and the average squared distance from it — center and spread. <a href="chapters/ch11.html#expectation">§ Expectation</a> · <a href="chapters/ch11.html#variance">§ Variance</a></p></div>
+ <div class="frm"><div class="fx">$$p(x) = \frac{1}{\sigma\sqrt{2\pi}}\, e^{-\frac{(x-\mu)^2}{2\sigma^2}}$$</div><p class="gloss"><em>Read it as</em> the bell curve: log-density falls off as squared distance from the mean, in units of $\sigma$. <a href="chapters/ch11.html#gaussian-distribution">§ Gaussian</a></p></div>
+ <div class="frm"><div class="fx">$$\operatorname{Cov}(X,Y) = \mathbb{E}[(X-\mu_X)(Y-\mu_Y)]$$</div><p class="gloss"><em>Read it as</em> do the two variables tend to be above (or below) their means together? <a href="chapters/ch11.html#covariance">§ Covariance</a></p></div>
+ <div class="frm"><div class="fx">$$\frac{\bar{X}_n - \mu}{\sigma/\sqrt{n}} \;\xrightarrow{d}\; \mathcal{N}(0,1)$$</div><p class="gloss"><em>Read it as</em> averages of many independent draws become Gaussian, whatever the source distribution, with spread shrinking like $1/\sqrt{n}$. <a href="chapters/ch11.html#central-limit-theorem">§ Central Limit Theorem</a></p></div>
+</section>
+
+<section class="topic" id="f-ch12"><h2><a href="chapters/ch12.html"><span class="cn">12</span>Stochastic Processes</a></h2>
+ <div class="frm"><div class="fx">$$\pi = \pi P$$</div><p class="gloss"><em>Read it as</em> the stationary distribution is unchanged by one more step of the chain — the fixed point the chain flows toward. <a href="chapters/ch12.html#stationary-distributions">§ Stationary distributions</a></p></div>
+ <div class="frm"><div class="fx">$$df(X_t) = f'(X_t)\,dX_t + \tfrac{1}{2} f''(X_t)\,\sigma_t^2\,dt$$</div><p class="gloss"><em>Read it as</em> the chain rule for noisy paths: randomness is so jagged that curvature contributes a first-order term. <a href="chapters/ch12.html#itos-lemma">§ Itô's lemma</a></p></div>
+ <div class="frm"><div class="fx">$$dX_t = \mu(X_t)\,dt + \sigma(X_t)\,dW_t$$</div><p class="gloss"><em>Read it as</em> each instant, move with a deterministic drift plus a Gaussian kick scaled by $\sigma$. <a href="chapters/ch12.html#stochastic-differential-equations">§ SDEs</a></p></div>
+ <div class="frm"><div class="fx">$$dX_t = \nabla \log p(X_t)\,dt + \sqrt{2}\,dW_t$$</div><p class="gloss"><em>Read it as</em> Langevin dynamics: drift uphill on log-probability with noise, and you end up sampling from $p$. <a href="chapters/ch12.html#langevin-dynamics">§ Langevin dynamics</a></p></div>
+</section>
+
+<section class="topic" id="f-ch13"><h2><a href="chapters/ch13.html"><span class="cn">13</span>Statistics</a></h2>
+ <div class="frm"><div class="fx">$$\hat\theta_{\text{MLE}} = \arg\max_\theta \sum_i \log p(x_i \mid \theta)$$</div><p class="gloss"><em>Read it as</em> pick the parameters under which the observed data would have been least surprising. <a href="chapters/ch13.html#maximum-likelihood">§ Maximum likelihood</a></p></div>
+ <div class="frm"><div class="fx">$$p(\theta \mid x) \propto p(x \mid \theta)\, p(\theta)$$</div><p class="gloss"><em>Read it as</em> the posterior blends what the data say (likelihood) with what you believed before (prior). <a href="chapters/ch13.html#posterior-distributions">§ Posterior</a></p></div>
+ <div class="frm"><div class="fx">$$\hat\beta = (X^{\!\top}X)^{-1} X^{\!\top} \mathbf{y}$$</div><p class="gloss"><em>Read it as</em> the least-squares coefficients project the targets onto the span of the features. <a href="chapters/ch13.html#least-squares">§ Least squares</a></p></div>
+ <div class="frm"><div class="fx">$$\bar{x} \pm z_{\alpha/2}\, \frac{\sigma}{\sqrt{n}}$$</div><p class="gloss"><em>Read it as</em> a confidence interval: the estimate, give or take a few standard errors. <a href="chapters/ch13.html#confidence-intervals">§ Confidence intervals</a></p></div>
+ <div class="frm"><div class="fx">$$\log p(x) = \mathrm{ELBO}(q) + \mathrm{KL}\big(q(z)\,\|\,p(z \mid x)\big)$$</div><p class="gloss"><em>Read it as</em> the evidence splits into a computable lower bound plus the gap to the true posterior — raise one, shrink the other. <a href="chapters/ch13.html#elbo">§ ELBO</a></p></div>
+ <div class="frm"><div class="fx">$$\alpha = \min\!\left(1,\; \frac{p(x')\,q(x \mid x')}{p(x)\,q(x' \mid x)}\right)$$</div><p class="gloss"><em>Read it as</em> Metropolis–Hastings: accept a proposed move with probability tilted toward higher-probability states, and the chain samples $p$. <a href="chapters/ch13.html#metropolis-hastings">§ Metropolis–Hastings</a></p></div>
+</section>
+
+<section class="topic" id="f-ch14"><h2><a href="chapters/ch14.html"><span class="cn">14</span>Fourier Analysis and Signals</a></h2>
+ <div class="frm"><div class="fx">$$\hat{f}(\omega) = \int_{-\infty}^{\infty} f(t)\, e^{-i\omega t}\, dt$$</div><p class="gloss"><em>Read it as</em> correlate the signal against every pure frequency; $\hat f(\omega)$ says how much of that wave is inside. <a href="chapters/ch14.html#fourier-transform">§ Fourier transform</a></p></div>
+ <div class="frm"><div class="fx">$$(f * g)(t) = \int f(\tau)\, g(t - \tau)\, d\tau$$</div><p class="gloss"><em>Read it as</em> slide one function across the other and accumulate the overlap — echoes, blurs, filters. <a href="chapters/ch14.html#convolution">§ Convolution</a></p></div>
+ <div class="frm"><div class="fx">$$\widehat{f * g} = \hat{f}\,\cdot\,\hat{g}$$</div><p class="gloss"><em>Read it as</em> convolution in time is plain multiplication in frequency — the trick that makes filtering (and the FFT) fast. <a href="chapters/ch14.html#convolution-theorem">§ Convolution theorem</a></p></div>
+ <div class="frm"><div class="fx">$$f_s > 2B$$</div><p class="gloss"><em>Read it as</em> to capture a signal faithfully, sample at more than twice its highest frequency, or aliasing folds the spectrum. <a href="chapters/ch14.html#sampling-theorem">§ Sampling theorem</a></p></div>
+</section>
+
+<section class="topic" id="f-ch15"><h2><a href="chapters/ch15.html"><span class="cn">15</span>Optimization</a></h2>
+ <div class="frm"><div class="fx">$$\theta_{t+1} = \theta_t - \eta\, \nabla L(\theta_t)$$</div><p class="gloss"><em>Read it as</em> step downhill, with step size $\eta$; repeat until the gradient vanishes. <a href="chapters/ch15.html#gradient-descent">§ Gradient descent</a></p></div>
+ <div class="frm"><div class="fx">$$\theta_{t+1} = \theta_t - \eta\, \nabla \hat{L}_{B}(\theta_t)$$</div><p class="gloss"><em>Read it as</em> the same step, but with the gradient estimated from a random mini-batch — noisy, cheap, and unbiased. <a href="chapters/ch15.html#stochastic-gradient-descent">§ SGD</a></p></div>
+ <div class="frm"><div class="fx">$$v_{t+1} = \beta v_t + \nabla L(\theta_t), \qquad \theta_{t+1} = \theta_t - \eta\, v_{t+1}$$</div><p class="gloss"><em>Read it as</em> momentum: a heavy ball accumulates velocity, smoothing noise and powering through shallow valleys. <a href="chapters/ch15.html#momentum">§ Momentum</a></p></div>
+ <div class="frm"><div class="fx">$$\theta_{t+1} = \theta_t - \eta\, \frac{\hat{m}_t}{\sqrt{\hat{v}_t} + \epsilon}$$</div><p class="gloss"><em>Read it as</em> Adam: divide the averaged gradient by its typical size, so every parameter gets a step scaled to its own history. <a href="chapters/ch15.html#adam">§ Adam</a></p></div>
+ <div class="frm"><div class="fx">$$f\big(\lambda x + (1{-}\lambda) y\big) \le \lambda f(x) + (1{-}\lambda) f(y)$$</div><p class="gloss"><em>Read it as</em> convexity: the chord lies above the curve, so every local minimum is global. <a href="chapters/ch15.html#convex-functions">§ Convex functions</a></p></div>
+ <div class="frm"><div class="fx">$$\theta_{t+1} = \theta_t - H^{-1} \nabla L(\theta_t)$$</div><p class="gloss"><em>Read it as</em> Newton's method: rescale the step by the curvature, jumping straight to the quadratic model's minimum. <a href="chapters/ch15.html#newtons-method">§ Newton's method</a></p></div>
+</section>
+
+<section class="topic" id="f-ch16"><h2><a href="chapters/ch16.html"><span class="cn">16</span>Information Theory</a></h2>
+ <div class="frm"><div class="fx">$$H(p) = -\sum_x p(x) \log p(x)$$</div><p class="gloss"><em>Read it as</em> average surprise: the minimum bits per symbol needed to encode draws from $p$. <a href="chapters/ch16.html#entropy">§ Entropy</a></p></div>
+ <div class="frm"><div class="fx">$$H(p, q) = -\sum_x p(x) \log q(x)$$</div><p class="gloss"><em>Read it as</em> the bits you actually pay when you code with model $q$ but the world runs on $p$ — every ML training loss's ancestor. <a href="chapters/ch16.html#cross-entropy">§ Cross-entropy</a></p></div>
+ <div class="frm"><div class="fx">$$\mathrm{KL}(p\,\|\,q) = \sum_x p(x) \log \frac{p(x)}{q(x)} \;\ge\; 0$$</div><p class="gloss"><em>Read it as</em> the extra bits wasted by believing $q$ when the truth is $p$; zero only when they match. <a href="chapters/ch16.html#kl-divergence">§ KL divergence</a></p></div>
+ <div class="frm"><div class="fx">$$I(X;Y) = H(X) - H(X \mid Y)$$</div><p class="gloss"><em>Read it as</em> mutual information: how many bits of uncertainty about $X$ disappear once you learn $Y$. <a href="chapters/ch16.html#mutual-information">§ Mutual information</a></p></div>
+ <div class="frm"><div class="fx">$$\hat{H} = \arg\min_H \big[ L(H) + L(D \mid H) \big]$$</div><p class="gloss"><em>Read it as</em> the best theory minimizes bits-to-state-the-theory plus bits-to-state-the-data-given-it — Occam with units. <a href="chapters/ch16.html#minimum-description-length">§ MDL</a></p></div>
+</section>
+
+<section class="topic" id="f-ch17"><h2><a href="chapters/ch17.html"><span class="cn">17</span>Discrete Mathematics and Computation</a></h2>
+ <div class="frm"><div class="fx">$$T(n) = a\,T(n/b) + f(n)$$</div><p class="gloss"><em>Read it as</em> the master recurrence: split into $a$ pieces of size $n/b$, pay $f(n)$ to combine; the theorem reads off the total. <a href="chapters/ch17.html#master-theorem">§ Master theorem</a></p></div>
+ <div class="frm"><div class="fx">$$\sum_{v \in V} \deg(v) = 2\,|E|$$</div><p class="gloss"><em>Read it as</em> every edge donates two endpoint-slots, so total degree is twice the edge count. <a href="chapters/ch17.html#graph-theory">§ Graph theory</a></p></div>
+ <div class="frm"><div class="fx">$$f(n) = O(g(n)) \iff \exists\, c, n_0:\; f(n) \le c\,g(n) \;\; \forall n \ge n_0$$</div><p class="gloss"><em>Read it as</em> eventually, $f$ is bounded by a constant multiple of $g$ — growth rate, ignoring constants. <a href="chapters/ch17.html#asymptotic-notation">§ Asymptotic notation</a></p></div>
+ <div class="frm"><div class="fx">$$G(x) = \sum_{n \ge 0} a_n x^n$$</div><p class="gloss"><em>Read it as</em> pack a whole sequence into one function; multiplying generating functions convolves the sequences. <a href="chapters/ch17.html#generating-functions">§ Generating functions</a></p></div>
+</section>
+
+<section class="topic" id="f-ch18"><h2><a href="chapters/ch18.html"><span class="cn">18</span>Numerical Mathematics</a></h2>
+ <div class="frm"><div class="fx">$$\mathrm{fl}(x) = x(1+\delta), \qquad |\delta| \le \epsilon_{\text{mach}}$$</div><p class="gloss"><em>Read it as</em> every stored number is the true one times a tiny relative error, bounded by machine epsilon. <a href="chapters/ch18.html#floating-point-error">§ Floating-point error</a></p></div>
+ <div class="frm"><div class="fx">$$\kappa(A) = \|A\|\,\|A^{-1}\|$$</div><p class="gloss"><em>Read it as</em> the condition number: how much a problem amplifies input error into output error, algorithm aside. <a href="chapters/ch18.html#conditioning">§ Conditioning</a></p></div>
+ <div class="frm"><div class="fx">$$x_{n+1} = x_n - \frac{f(x_n)}{f'(x_n)}$$</div><p class="gloss"><em>Read it as</em> follow the tangent line to where it hits zero; near a root, correct digits double each step. <a href="chapters/ch18.html#newtons-method">§ Newton's method</a></p></div>
+ <div class="frm"><div class="fx">$$\log \sum_i e^{x_i} = m + \log \sum_i e^{x_i - m}, \quad m = \max_i x_i$$</div><p class="gloss"><em>Read it as</em> subtract the max before exponentiating so nothing overflows — the trick inside every stable softmax. <a href="chapters/ch18.html#log-sum-exp-trick">§ Log-sum-exp</a></p></div>
+</section>
+
+<section class="topic" id="f-ch19"><h2><a href="chapters/ch19.html"><span class="cn">19</span>Machine Learning</a></h2>
+ <div class="frm"><div class="fx">$$P(y{=}1 \mid x) = \sigma(w^{\!\top} x + b), \qquad \sigma(z) = \frac{1}{1+e^{-z}}$$</div><p class="gloss"><em>Read it as</em> logistic regression: a linear score squashed to a probability. <a href="chapters/ch19.html#logistic-regression">§ Logistic regression</a></p></div>
+ <div class="frm"><div class="fx">$$L = -\sum_i \big[ y_i \log \hat{p}_i + (1-y_i)\log(1-\hat{p}_i) \big]$$</div><p class="gloss"><em>Read it as</em> log loss: pay heavily for confident wrong answers — cross-entropy between labels and predictions. <a href="chapters/ch19.html#log-loss">§ Log loss</a></p></div>
+ <div class="frm"><div class="fx">$$\mathbb{E}\big[(y - \hat{f})^2\big] = \text{Bias}^2 + \text{Variance} + \sigma^2$$</div><p class="gloss"><em>Read it as</em> error splits into being systematically off, being unstable across datasets, and irreducible noise. <a href="chapters/ch19.html#bias-variance-decomposition">§ Bias–variance</a></p></div>
+ <div class="frm"><div class="fx">$$K(x, x') = \langle \phi(x), \phi(x') \rangle$$</div><p class="gloss"><em>Read it as</em> the kernel trick: compute inner products in a huge feature space without ever visiting it. <a href="chapters/ch19.html#kernel-trick">§ Kernel trick</a></p></div>
+ <div class="frm"><div class="fx">$$\min_{\{c_k\}} \sum_i \min_k \|x_i - c_k\|^2$$</div><p class="gloss"><em>Read it as</em> k-means: place $k$ centers so every point sits close to its nearest one. <a href="chapters/ch19.html#k-means">§ K-means</a></p></div>
+</section>
+
+<section class="topic" id="f-ch20"><h2><a href="chapters/ch20.html"><span class="cn">20</span>Statistical Learning Theory</a></h2>
+ <div class="frm"><div class="fx">$$n \;\ge\; \frac{1}{\epsilon}\left(\ln|\mathcal{H}| + \ln\frac{1}{\delta}\right)$$</div><p class="gloss"><em>Read it as</em> enough samples to rule out every bad hypothesis in the class, with confidence $1-\delta$. <a href="chapters/ch20.html#finite-class-bounds">§ Finite class bounds</a></p></div>
+ <div class="frm"><div class="fx">$$R(h) \;\le\; \hat{R}(h) + O\!\left(\sqrt{\frac{d \ln n + \ln(1/\delta)}{n}}\right)$$</div><p class="gloss"><em>Read it as</em> true error is at most training error plus a complexity tax growing with VC dimension $d$ and shrinking with data $n$. <a href="chapters/ch20.html#generalization-bounds">§ Generalization bounds</a></p></div>
+ <div class="frm"><div class="fx">$$\hat{\mathfrak{R}}_n(\mathcal{F}) = \mathbb{E}_\sigma\!\left[\sup_{f \in \mathcal{F}} \frac{1}{n}\sum_i \sigma_i f(x_i)\right]$$</div><p class="gloss"><em>Read it as</em> Rademacher complexity: how well the class can fit pure coin-flip noise — the sharper measure of capacity. <a href="chapters/ch20.html#rademacher-complexity">§ Rademacher complexity</a></p></div>
+</section>
+
+<section class="topic" id="f-ch21"><h2><a href="chapters/ch21.html"><span class="cn">21</span>Deep Learning</a></h2>
+ <div class="frm"><div class="fx">$$\mathbf{a} = \sigma(W\mathbf{x} + \mathbf{b})$$</div><p class="gloss"><em>Read it as</em> a layer: mix the inputs linearly, then bend the result — stack these and you can approximate anything. <a href="chapters/ch21.html#neural-networks">§ Neural networks</a></p></div>
+ <div class="frm"><div class="fx">$$\operatorname{softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}}$$</div><p class="gloss"><em>Read it as</em> exponentiate scores and normalize: bigger scores get exponentially more of the probability. <a href="chapters/ch21.html#softmax">§ Softmax</a></p></div>
+ <div class="frm"><div class="fx">$$\operatorname{Attention}(Q,K,V) = \operatorname{softmax}\!\left(\frac{QK^{\!\top}}{\sqrt{d_k}}\right)V$$</div><p class="gloss"><em>Read it as</em> each query scores every key, the scores become weights, and each token's output is a weighted blend of values. <a href="chapters/ch21.html#self-attention">§ Self-attention</a></p></div>
+ <div class="frm"><div class="fx">$$\mathrm{LN}(x) = \gamma \odot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta$$</div><p class="gloss"><em>Read it as</em> re-center and re-scale each token's activations so training signals stay in a healthy range. <a href="chapters/ch21.html#layer-normalization">§ Layer norm</a></p></div>
+ <div class="frm"><div class="fx">$$\mathbf{h}_{l+1} = \mathbf{h}_l + F(\mathbf{h}_l)$$</div><p class="gloss"><em>Read it as</em> a residual connection: each block adds a correction to an identity highway, so gradients flow undamped. <a href="chapters/ch21.html#residual-connections">§ Residual connections</a></p></div>
+ <div class="frm"><div class="fx">$$L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha}$$</div><p class="gloss"><em>Read it as</em> loss falls as a power law in model size — smooth, predictable improvement over orders of magnitude. <a href="chapters/ch21.html#scaling-laws">§ Scaling laws</a></p></div>
+</section>
+
+<section class="topic" id="f-ch22"><h2><a href="chapters/ch22.html"><span class="cn">22</span>Generative Models</a></h2>
+ <div class="frm"><div class="fx">$$\mathrm{ELBO} = \mathbb{E}_{q(z|x)}\big[\log p(x \mid z)\big] - \mathrm{KL}\big(q(z \mid x)\,\|\,p(z)\big)$$</div><p class="gloss"><em>Read it as</em> reconstruct well, but keep the latent code close to the prior — the VAE's two-term bargain. <a href="chapters/ch22.html#elbo">§ ELBO</a></p></div>
+ <div class="frm"><div class="fx">$$z = \mu_\phi(x) + \sigma_\phi(x) \odot \epsilon, \qquad \epsilon \sim \mathcal{N}(0, I)$$</div><p class="gloss"><em>Read it as</em> move the randomness outside the network so gradients can flow through the sampling step. <a href="chapters/ch22.html#reparameterization-trick">§ Reparameterization</a></p></div>
+ <div class="frm"><div class="fx">$$\min_G \max_D \; \mathbb{E}_{x}\big[\log D(x)\big] + \mathbb{E}_{z}\big[\log(1 - D(G(z)))\big]$$</div><p class="gloss"><em>Read it as</em> a forger and a detective train against each other until fakes are indistinguishable. <a href="chapters/ch22.html#generative-adversarial-networks">§ GANs</a></p></div>
+ <div class="frm"><div class="fx">$$q(x_t \mid x_0) = \mathcal{N}\big(\sqrt{\bar\alpha_t}\, x_0,\; (1-\bar\alpha_t)\, I\big)$$</div><p class="gloss"><em>Read it as</em> after $t$ noising steps the image is a faded copy of the original plus Gaussian noise — and you can jump there in one line. <a href="chapters/ch22.html#ddpm">§ DDPM</a></p></div>
+ <div class="frm"><div class="fx">$$s(x) = \nabla_x \log p(x)$$</div><p class="gloss"><em>Read it as</em> the score: at every point, which way is "more probable" — the vector field diffusion models learn to follow backwards. <a href="chapters/ch22.html#score-functions">§ Score functions</a></p></div>
+</section>
+
+<section class="topic" id="f-ch23"><h2><a href="chapters/ch23.html"><span class="cn">23</span>Large Language Models</a></h2>
+ <div class="frm"><div class="fx">$$L = -\sum_t \log p_\theta\big(x_t \mid x_{&lt;t}\big)$$</div><p class="gloss"><em>Read it as</em> pretraining is next-token cross-entropy: compress the corpus one prediction at a time. <a href="chapters/ch23.html#pretraining-objective">§ Pretraining objective</a></p></div>
+ <div class="frm"><div class="fx">$$L(N, D) = E + \frac{A}{N^{\alpha}} + \frac{B}{D^{\beta}}$$</div><p class="gloss"><em>Read it as</em> loss decomposes into an irreducible floor plus penalties for too few parameters and too little data — balance them (Chinchilla). <a href="chapters/ch23.html#compute-optimal-scaling">§ Compute-optimal scaling</a></p></div>
+ <div class="frm"><div class="fx">$$p_i \propto \exp(z_i / T)$$</div><p class="gloss"><em>Read it as</em> temperature reshapes the sampling distribution: $T \to 0$ is greedy, large $T$ flattens toward uniform. <a href="chapters/ch23.html#temperature-top-k-and-top-p">§ Temperature</a></p></div>
+ <div class="frm"><div class="fx">$$\max_\pi\; \mathbb{E}\big[r(x, y)\big] - \beta\, \mathrm{KL}\big(\pi \,\|\, \pi_{\text{ref}}\big)$$</div><p class="gloss"><em>Read it as</em> RLHF: chase the reward, but stay within a KL leash of the pretrained model. <a href="chapters/ch23.html#rlhf">§ RLHF</a></p></div>
+ <div class="frm"><div class="fx">$$L_{\text{DPO}} = -\log \sigma\!\left(\beta \log\frac{\pi(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta \log\frac{\pi(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)$$</div><p class="gloss"><em>Read it as</em> DPO: push preferred completions up and rejected ones down, directly, with no explicit reward model or RL loop. <a href="chapters/ch23.html#dpo">§ DPO</a></p></div>
+ <div class="frm"><div class="fx">$$W' = W + BA, \qquad B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll d$$</div><p class="gloss"><em>Read it as</em> LoRA: fine-tune only a low-rank correction to each frozen weight matrix. <a href="chapters/ch23.html#lora">§ LoRA</a></p></div>
+</section>
+
+<section class="topic" id="f-ch24"><h2><a href="chapters/ch24.html"><span class="cn">24</span>Decision and Game Theory</a></h2>
+ <div class="frm"><div class="fx">$$\mathbb{E}[U(a)] = \sum_s P(s)\, U(a, s)$$</div><p class="gloss"><em>Read it as</em> score each action by its probability-weighted utility over possible worlds; pick the best. <a href="chapters/ch24.html#expected-utility">§ Expected utility</a></p></div>
+ <div class="frm"><div class="fx">$$a^* = \arg\max_a \; \mathbb{E}_{\theta \sim p(\theta \mid \text{data})}\big[U(a, \theta)\big]$$</div><p class="gloss"><em>Read it as</em> the Bayes-optimal act maximizes expected utility under your posterior beliefs. <a href="chapters/ch24.html#bayesian-decision-theory">§ Bayesian decisions</a></p></div>
+ <div class="frm"><div class="fx">$$u_i(s_i^*, s_{-i}^*) \;\ge\; u_i(s_i, s_{-i}^*) \quad \forall\, s_i$$</div><p class="gloss"><em>Read it as</em> Nash equilibrium: no player can gain by deviating alone — everyone's strategy is a best response to everyone else's. <a href="chapters/ch24.html#nash-equilibrium">§ Nash equilibrium</a></p></div>
+ <div class="frm"><div class="fx">$$\max_x \min_y \; u(x, y) = \min_y \max_x \; u(x, y)$$</div><p class="gloss"><em>Read it as</em> in a zero-sum game with mixed strategies, playing for the worst case is optimal — the minimax value exists. <a href="chapters/ch24.html#zero-sum-games-and-minimax">§ Minimax</a></p></div>
+</section>
+
+<section class="topic" id="f-ch25"><h2><a href="chapters/ch25.html"><span class="cn">25</span>Reinforcement Learning</a></h2>
+ <div class="frm"><div class="fx">$$G_t = \sum_{k=0}^{\infty} \gamma^k\, r_{t+k+1}$$</div><p class="gloss"><em>Read it as</em> the return: all future reward, with tomorrow discounted by $\gamma$ per step of delay. <a href="chapters/ch25.html#returns">§ Returns</a></p></div>
+ <div class="frm"><div class="fx">$$V^\pi(s) = \mathbb{E}_\pi\big[r + \gamma\, V^\pi(s')\big]$$</div><p class="gloss"><em>Read it as</em> a state's value is the immediate reward plus the discounted value of wherever you land — recursion over time. <a href="chapters/ch25.html#bellman-expectation-equation">§ Bellman expectation</a></p></div>
+ <div class="frm"><div class="fx">$$V^*(s) = \max_a \; \mathbb{E}\big[r + \gamma\, V^*(s')\big]$$</div><p class="gloss"><em>Read it as</em> the optimal value assumes you take the best action now and act optimally forever after. <a href="chapters/ch25.html#bellman-optimality-equation">§ Bellman optimality</a></p></div>
+ <div class="frm"><div class="fx">$$Q(s,a) \mathrel{+}= \alpha\big[\, r + \gamma \max_{a'} Q(s', a') - Q(s,a) \,\big]$$</div><p class="gloss"><em>Read it as</em> Q-learning: nudge your estimate toward the sampled one-step Bellman target. <a href="chapters/ch25.html#q-learning">§ Q-learning</a></p></div>
+ <div class="frm"><div class="fx">$$\delta_t = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)$$</div><p class="gloss"><em>Read it as</em> the TD error: how much better or worse things went than your value function expected. <a href="chapters/ch25.html#temporal-difference-learning">§ TD learning</a></p></div>
+ <div class="frm"><div class="fx">$$\nabla_\theta J = \mathbb{E}_\pi\big[\, G_t\, \nabla_\theta \log \pi_\theta(a_t \mid s_t) \,\big]$$</div><p class="gloss"><em>Read it as</em> the policy gradient: make actions that led to high return more probable, in proportion to that return. <a href="chapters/ch25.html#policy-gradients">§ Policy gradients</a></p></div>
+</section>
+
+<section class="topic" id="f-ch26"><h2><a href="chapters/ch26.html"><span class="cn">26</span>Planning and Search</a></h2>
+ <div class="frm"><div class="fx">$$f(n) = g(n) + h(n)$$</div><p class="gloss"><em>Read it as</em> A* ranks a node by cost paid so far plus estimated cost to go; with an admissible $h$, the first goal found is optimal. <a href="chapters/ch26.html#a-star">§ A*</a></p></div>
+ <div class="frm"><div class="fx">$$a^* = \arg\max_a \left[ \bar{Q}(s,a) + c \sqrt{\frac{\ln N(s)}{N(s,a)}} \right]$$</div><p class="gloss"><em>Read it as</em> UCT: pick the child with the best average value plus an exploration bonus for being under-visited. <a href="chapters/ch26.html#upper-confidence-trees">§ UCT</a></p></div>
+ <div class="frm"><div class="fx">$$h(n) \le h^*(n)$$</div><p class="gloss"><em>Read it as</em> an admissible heuristic never overestimates the true remaining cost — optimism that keeps A* honest. <a href="chapters/ch26.html#admissible-heuristics">§ Admissible heuristics</a></p></div>
+ <div class="frm"><div class="fx">$$\text{minimax}(n) = \begin{cases}\max_{c} \text{minimax}(c) & \text{our move}\\ \min_{c} \text{minimax}(c) & \text{their move}\end{cases}$$</div><p class="gloss"><em>Read it as</em> assume the opponent plays their best against your best, all the way down the game tree. <a href="chapters/ch26.html#minimax">§ Minimax</a></p></div>
+</section>
+
+<section class="topic" id="f-ch27"><h2><a href="chapters/ch27.html"><span class="cn">27</span>Causality</a></h2>
+ <div class="frm"><div class="fx">$$P(y \mid do(x)) \;\ne\; P(y \mid x)$$</div><p class="gloss"><em>Read it as</em> forcing $x$ is not the same as observing $x$ — intervention cuts the arrows into $x$, conditioning does not. <a href="chapters/ch27.html#interventions">§ Interventions</a></p></div>
+ <div class="frm"><div class="fx">$$P(y \mid do(x)) = \sum_z P(y \mid x, z)\, P(z)$$</div><p class="gloss"><em>Read it as</em> the backdoor adjustment: average over the confounders $z$, and observational data answers a causal question. <a href="chapters/ch27.html#backdoor-criterion">§ Backdoor criterion</a></p></div>
+ <div class="frm"><div class="fx">$$\mathrm{ATE} = \mathbb{E}\big[Y(1) - Y(0)\big]$$</div><p class="gloss"><em>Read it as</em> the average treatment effect: the mean gap between each unit's two potential outcomes — treated versus not. <a href="chapters/ch27.html#potential-outcomes">§ Potential outcomes</a></p></div>
+ <div class="frm"><div class="fx">$$X_i := f_i(\mathrm{pa}(X_i),\, U_i)$$</div><p class="gloss"><em>Read it as</em> a structural equation: each variable is a mechanism applied to its parents plus its own noise — the ":=" flows one way. <a href="chapters/ch27.html#structural-causal-models">§ Structural causal models</a></p></div>
+</section>
+
+<section class="topic" id="f-ch28"><h2><a href="chapters/ch28.html"><span class="cn">28</span>Dynamical Systems and Control</a></h2>
+ <div class="frm"><div class="fx">$$\dot{\mathbf{x}} = A\mathbf{x} \;\text{ stable} \iff \operatorname{Re}(\lambda_i) &lt; 0 \;\; \forall i$$</div><p class="gloss"><em>Read it as</em> a linear system settles to rest exactly when every eigenvalue's real part decays. <a href="chapters/ch28.html#stability">§ Stability</a></p></div>
+ <div class="frm"><div class="fx">$$V(x) > 0,\;\; \dot{V}(x) \le 0 \;\Rightarrow\; \text{stable}$$</div><p class="gloss"><em>Read it as</em> a Lyapunov function is an energy that never increases along trajectories — if one exists, the system can't escape. <a href="chapters/ch28.html#lyapunov-functions">§ Lyapunov functions</a></p></div>
+ <div class="frm"><div class="fx">$$\hat{x} \leftarrow \hat{x}^- + K\,(y - H\hat{x}^-)$$</div><p class="gloss"><em>Read it as</em> the Kalman update: correct your prediction by the surprise in the measurement, weighted by the gain $K$ (trust in data vs. model). <a href="chapters/ch28.html#kalman-filtering">§ Kalman filter</a></p></div>
+ <div class="frm"><div class="fx">$$J = \int_0^\infty \big( x^{\!\top} Q\, x + u^{\!\top} R\, u \big)\, dt$$</div><p class="gloss"><em>Read it as</em> LQR: penalize being off-target and spending control effort; the optimal controller is linear state feedback. <a href="chapters/ch28.html#linear-quadratic-regulator">§ LQR</a></p></div>
+</section>
+
+<section class="topic" id="f-ch29"><h2><a href="chapters/ch29.html"><span class="cn">29</span>World Models</a></h2>
+ <div class="frm"><div class="fx">$$z_t = \mathrm{enc}(o_t), \qquad \hat{z}_{t+1} = f_\theta(z_t, a_t)$$</div><p class="gloss"><em>Read it as</em> compress observations to a latent state, then learn to predict the next latent given the action — a simulator in latent space. <a href="chapters/ch29.html#latent-dynamics">§ Latent dynamics</a></p></div>
+ <div class="frm"><div class="fx">$$\epsilon_k \sim O\big((1+L)^k\, \epsilon_1\big)$$</div><p class="gloss"><em>Read it as</em> rollout error compounds: each predicted step feeds its own error into the next, so long imagined futures blur. <a href="chapters/ch29.html#compounding-error">§ Compounding error</a></p></div>
+ <div class="frm"><div class="fx">$$L_{\text{JEPA}} = \big\| \mathrm{pred}(z_x) - \mathrm{sg}\big(\mathrm{enc}(y)\big) \big\|^2$$</div><p class="gloss"><em>Read it as</em> predict the embedding of the target, not its pixels — model what matters, ignore what doesn't. <a href="chapters/ch29.html#joint-embedding-predictive-architecture">§ JEPA</a></p></div>
+</section>
+
+<section class="topic" id="f-ch30"><h2><a href="chapters/ch30.html"><span class="cn">30</span>Reasoning</a></h2>
+ <div class="frm"><div class="fx">$$\hat{y} = \operatorname{majority}\big(y^{(1)}, \dots, y^{(k)}\big)$$</div><p class="gloss"><em>Read it as</em> self-consistency: sample many reasoning paths and trust the answer they converge on. <a href="chapters/ch30.html#self-consistency">§ Self-consistency</a></p></div>
+ <div class="frm"><div class="fx">$$\text{score}(y) = \prod_t p_{\text{PRM}}(\text{step}_t \text{ correct})$$</div><p class="gloss"><em>Read it as</em> a process reward model grades every step of the chain, so one bad link sinks the whole argument. <a href="chapters/ch30.html#process-reward-models">§ Process reward models</a></p></div>
+ <div class="frm"><div class="fx">$$P(h \mid e) \propto P(e \mid h)\, P(h)$$</div><p class="gloss"><em>Read it as</em> abduction made quantitative: the best explanation is the one that makes the evidence likeliest, weighted by plausibility. <a href="chapters/ch30.html#probabilistic-reasoning">§ Probabilistic reasoning</a></p></div>
+</section>
+
+<section class="topic" id="f-ch31"><h2><a href="chapters/ch31.html"><span class="cn">31</span>Agent Architectures</a></h2>
+ <div class="frm"><div class="fx">$$\text{BM25}(q,d) = \sum_{t \in q} \mathrm{IDF}(t)\, \frac{f(t,d)\,(k_1+1)}{f(t,d) + k_1\big(1 - b + b\,\tfrac{|d|}{\text{avgdl}}\big)}$$</div><p class="gloss"><em>Read it as</em> rank documents by rare shared terms, with diminishing returns for repetition and a penalty for long documents. <a href="chapters/ch31.html#bm25">§ BM25</a></p></div>
+ <div class="frm"><div class="fx">$$\operatorname{sim}(q, d) = \frac{\mathbf{q} \cdot \mathbf{d}}{\|\mathbf{q}\|\,\|\mathbf{d}\|}$$</div><p class="gloss"><em>Read it as</em> dense retrieval: embed query and document, and let the cosine of the angle measure meaning-similarity. <a href="chapters/ch31.html#dense-retrieval">§ Dense retrieval</a></p></div>
+ <div class="frm"><div class="fx">$$\mathrm{RRF}(d) = \sum_{r \in \text{rankers}} \frac{1}{k + \operatorname{rank}_r(d)}$$</div><p class="gloss"><em>Read it as</em> fuse rankings by rewarding documents that appear near the top of any list — no score calibration needed. <a href="chapters/ch31.html#reciprocal-rank-fusion">§ Reciprocal Rank Fusion</a></p></div>
+</section>
+
+<section class="topic" id="f-ch32"><h2><a href="chapters/ch32.html"><span class="cn">32</span>Tool-Using Agents</a></h2>
+ <div class="frm"><div class="fx">$$f(f(x)) = f(x)$$</div><p class="gloss"><em>Read it as</em> idempotency: running the operation twice changes nothing more — the property that makes retries safe. <a href="chapters/ch32.html#idempotency">§ Idempotency</a></p></div>
+ <div class="frm"><div class="fx">$$\mathbb{E}[\text{attempts}] = \frac{1}{1 - p_{\text{fail}}}$$</div><p class="gloss"><em>Read it as</em> with independent failures, expected tries follow the geometric distribution — a 20% failure rate costs only 1.25 tries on average. <a href="chapters/ch32.html#retries">§ Retries</a></p></div>
+ <div class="frm"><div class="fx">$$\text{risk} = P(\text{harm}) \times \text{impact}$$</div><p class="gloss"><em>Read it as</em> escalate to a human when likelihood times damage crosses the threshold — cheap reversible actions run free, costly irreversible ones ask first. <a href="chapters/ch32.html#escalation-policies">§ Escalation policies</a></p></div>
+</section>
+
+<section class="topic" id="f-ch33"><h2><a href="chapters/ch33.html"><span class="cn">33</span>Multi-Agent Systems</a></h2>
+ <div class="frm"><div class="fx">$$P(\text{majority wrong}) = \sum_{k > n/2} \binom{n}{k} \epsilon^k (1-\epsilon)^{n-k}$$</div><p class="gloss"><em>Read it as</em> Condorcet: if voters err independently with $\epsilon &lt; \tfrac12$, the majority's error rate collapses as the panel grows. <a href="chapters/ch33.html#voting-and-aggregation">§ Voting</a></p></div>
+ <div class="frm"><div class="fx">$$n \ge 3f + 1$$</div><p class="gloss"><em>Read it as</em> Byzantine consensus needs strictly more than two-thirds honest agents to tolerate $f$ arbitrary traitors. <a href="chapters/ch33.html#consensus">§ Consensus</a></p></div>
+</section>
+
+<section class="topic" id="f-ch34"><h2><a href="chapters/ch34.html"><span class="cn">34</span>Formal Methods</a></h2>
+ <div class="frm"><div class="fx">$$\{P\}\; C\; \{Q\}$$</div><p class="gloss"><em>Read it as</em> a Hoare triple: if precondition $P$ holds and $C$ terminates, postcondition $Q$ is guaranteed. <a href="chapters/ch34.html#hoare-logic">§ Hoare logic</a></p></div>
+ <div class="frm"><div class="fx">$$I \text{ holds before loop},\;\; \{I \land b\}\, \text{body}\, \{I\} \;\Rightarrow\; \{I \land \neg b\} \text{ after}$$</div><p class="gloss"><em>Read it as</em> a loop invariant is induction for programs: true going in, preserved each pass, so true (plus exit condition) coming out. <a href="chapters/ch34.html#invariants">§ Invariants</a></p></div>
+ <div class="frm"><div class="fx">$$\mathbf{G}\,\neg\text{bad}, \qquad \mathbf{F}\,\text{goal}$$</div><p class="gloss"><em>Read it as</em> temporal logic in two glyphs: Globally (nothing bad ever happens — safety) and Finally (something good eventually does — liveness). <a href="chapters/ch34.html#temporal-logic">§ Temporal logic</a></p></div>
+</section>
+
+<section class="topic" id="f-ch35"><h2><a href="chapters/ch35.html"><span class="cn">35</span>Interpretability, Alignment and Safety</a></h2>
+ <div class="frm"><div class="fx">$$L = \|x - \hat{x}\|^2 + \lambda \|f(x)\|_1$$</div><p class="gloss"><em>Read it as</em> a sparse autoencoder: reconstruct the activations while forcing only a few features to fire — dictionary learning for a model's mind. <a href="chapters/ch35.html#sparse-autoencoders">§ Sparse autoencoders</a></p></div>
+ <div class="frm"><div class="fx">$$h' = h + \alpha\, \mathbf{v}$$</div><p class="gloss"><em>Read it as</em> steering: add a concept's direction to the residual stream and the model's behavior shifts along that concept. <a href="chapters/ch35.html#steering-vectors">§ Steering vectors</a></p></div>
+ <div class="frm"><div class="fx">$$n_{\text{features}} \gg d_{\text{model}}$$</div><p class="gloss"><em>Read it as</em> superposition: models cram more features than dimensions by storing them as nearly-orthogonal directions that interfere slightly. <a href="chapters/ch35.html#superposition">§ Superposition</a></p></div>
+</section>
+
+<section class="topic" id="f-ch36"><h2><a href="chapters/ch36.html"><span class="cn">36</span>Advanced AGI Theory</a></h2>
+ <div class="frm"><div class="fx">$$\Upsilon(\pi) = \sum_{\mu} 2^{-K(\mu)}\, V^\pi_\mu$$</div><p class="gloss"><em>Read it as</em> universal intelligence: an agent's score is its value across all computable environments, each weighted by its simplicity. <a href="chapters/ch36.html#universal-intelligence-and-aixi">§ Universal intelligence</a></p></div>
+ <div class="frm"><div class="fx">$$\min_\theta \; \mathbb{E}_{\mathcal{T}}\Big[ L_{\mathcal{T}}\big(\theta - \eta \nabla L_{\mathcal{T}}(\theta)\big) \Big]$$</div><p class="gloss"><em>Read it as</em> meta-learning (MAML): find initial weights from which one gradient step solves any sampled task — learn to be fine-tunable. <a href="chapters/ch36.html#meta-learning">§ Meta-learning</a></p></div>
+ <div class="frm"><div class="fx">$$L_i(\theta) \text{ low } \forall i \le t \;\;\text{while training on task } t$$</div><p class="gloss"><em>Read it as</em> continual learning's demand: new skills must not overwrite old ones — the fight against catastrophic forgetting. <a href="chapters/ch36.html#continual-learning">§ Continual learning</a></p></div>
+</section>
+
+</div>
+</body></html>

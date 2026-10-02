@@ -1,0 +1,615 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 24 Decision and Game Theory</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','24')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">24</div><h1>Decision and Game Theory</h1><p class="lede">Choosing well alone, and against others.</p>
+   <div class="meta"><span class="chip">24 topics</span><span class="chip">needs: chapters 11, 13, 15</span><span class="chip">feeds: chapters 25, 26, 33</span></div>
+  </div>
+
+<section class="topic" id="states">
+ <h2>States</h2>
+ <p>Every decision problem begins with "what might the world be?" A state is one complete way things could stand — everything relevant to the outcome of your choice, whether or not you can see it. Listing the states carefully is half the work: a bad state space hides exactly the possibilities that matter.</p>
+ <div class="box def"><span class="label">Definition</span> A state space $\mathcal S$ is a set of mutually exclusive, jointly exhaustive descriptions of the world; exactly one state $s\in\mathcal S$ obtains. The decision maker holds a belief $p(s)$ over states (Ch 11), and outcomes are determined jointly by the state and the chosen action.</div>
+ <div class="box ex"><span class="label">Worked example</span> Deciding whether to carry an umbrella: $\mathcal S=\{\text{rain},\ \text{no rain}\}$ with belief $p(\text{rain})=0.3$. That two-state model suffices for the umbrella — but not for "bike or bus?", where $\{\text{light rain},\text{downpour},\text{dry}\}$ change the answer differently: the right granularity of $\mathcal S$ depends on which distinctions change the best action.</div>
+ <div class="box pit"><span class="label">Pitfall</span> States must be action-independent in the basic framework: "the state is that I'll be late" is contaminated by your own choice. If your action influences the world's evolution, you need the sequential machinery later in this chapter (and Ch 25's MDPs), or causal decision theory (Ch 27) — folding action effects into "states" produces incoherent expected values.</div>
+ <div class="box link"><span class="label">Where this goes</span> States become Markov states in Ch 25, belief states under partial observability in Ch 26/28, and latent world-model states in Ch 29.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a medical test decision, propose a minimal state space and check the two defining properties.<details class="sol"><summary>Solution</summary><div>$\mathcal S=\{\text{disease present},\ \text{disease absent}\}$: mutually exclusive (not both), exhaustive (one must hold). Note the <em>test result</em> is not a state — it is an observation correlated with the state.</div></details></li>
+  <li><span class="lvl m">MED</span> A poker player models the state as "opponent's hole cards". How many states with two hidden cards from a 52-card deck after seeing her own two cards?<details class="sol"><summary>Solution</summary><div>$\binom{50}{2}=\frac{50\cdot49}{2}=1225$ states — small enough to enumerate exactly, which is why poker solvers can maintain exact beliefs over hands.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why coarsening a state space (merging states) can strictly reduce achievable expected utility, and give the condition under which it is harmless.<details class="sol"><summary>Solution</summary><div>The best decision rule maps information about states to actions; merging $s_1,s_2$ forces a single action wherever they were distinguishable, so if the optimal actions differ ($a^*(s_1)\ne a^*(s_2)$) and the decision maker had information separating them, the merged problem's optimum is a strict average-of-constrained choice — weakly worse, strictly if the utilities differ. Harmless iff the merged states are decision-equivalent: the same action is optimal in both for every attainable belief (a "sufficient statistic" of the state for the decision — Ch 13's sufficiency, reappearing).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="actions">
+ <h2>Actions</h2>
+ <p>Actions are what you actually control: the menu of choices. In the classic formulation an action is a function from states to outcomes — choosing an action means choosing which column of the outcome table you live in, without knowing the row.</p>
+ <div class="box def"><span class="label">Definition</span> An action set $\mathcal A$ lists the feasible choices. With outcome function $o(a,s)$, each action $a\in\mathcal A$ induces a row-by-row gamble: the outcome profile $\{o(a,s)\}_{s\in\mathcal S}$. A decision rule (policy) more generally maps observations to actions.</div>
+ <div class="box ex"><span class="label">Worked example</span> Umbrella problem, outcome table (comfort levels): carry/rain: dry-but-encumbered (7); carry/no rain: encumbered (8); leave/rain: soaked (1); leave/no rain: free (10). Choosing "carry" means accepting the profile $(7,8)$ over the states; "leave" the profile $(1,10)$. Nothing is yet said about which is better — that needs beliefs and utilities.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is "win the lottery" not an action while "buy a lottery ticket" is?<details class="sol"><summary>Solution</summary><div>Actions must be directly controllable: you can choose to buy a ticket; winning is an outcome determined by action plus state (the drawn numbers).</div></details></li>
+  <li><span class="lvl m">MED</span> An action $a$ <em>dominates</em> $b$ if $o(a,s)\succeq o(b,s)$ for all $s$, strictly for some. Show dominance in the table: add action "carry tiny umbrella" with outcomes (rain: 6, no rain: 9). Does it dominate either existing action?<details class="sol"><summary>Solution</summary><div>Vs carry $(7,8)$: tiny gives $(6,9)$ — better in no-rain, worse in rain: no dominance. Vs leave $(1,10)$: $(6,9)$ — better in rain, worse in no-rain: no dominance. No action here dominates; the choice genuinely depends on beliefs. (Dominated actions, when they exist, can be deleted before any probability is assessed.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Mixed actions: allow randomizing between "carry" ($7,8$) and "leave" ($1,10$) with probability $q$ on carry. With utility = comfort and $p(\text{rain})=0.3$, is any randomization strictly better than both pure actions?<details class="sol"><summary>Solution</summary><div>Expected utility is linear in $q$: $EU(q)=q\,EU(\text{carry})+(1-q)EU(\text{leave})$. $EU(\text{carry})=0.3\cdot7+0.7\cdot8=7.7$; $EU(\text{leave})=0.3\cdot1+0.7\cdot10=7.3$. Any mixture lies between 7.3 and 7.7: never above the best pure action. In single-agent decision problems randomization can never strictly help (linearity); it becomes valuable only against a strategic opponent (mixed strategies, below) or for exploration over time (bandits).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="preferences">
+ <h2>Preferences</h2>
+ <p>Before any numbers, there are rankings: you prefer this outcome to that one. Decision theory's foundation is that if your preferences over gambles satisfy a few consistency axioms — you can always compare, you don't cycle, and irrelevant alternatives don't distract you — then they behave <em>as if</em> you were maximizing some utility function. The numbers are earned from the rankings, not assumed.</p>
+ <div class="box def"><span class="label">Definition</span> A preference relation $\succeq$ over outcomes (or lotteries) is: <b>complete</b> ($x\succeq y$ or $y\succeq x$ for all pairs), <b>transitive</b> ($x\succeq y\succeq z\Rightarrow x\succeq z$). The von Neumann–Morgenstern axioms add <b>continuity</b> (if $x\succ y\succ z$, some mixture of $x,z$ is indifferent to $y$) and <b>independence</b> ($x\succeq y\iff\alpha x+(1-\alpha)w\succeq\alpha y+(1-\alpha)w$ for lotteries).</div>
+ <div class="box thm"><span class="label">Theorem (von Neumann–Morgenstern)</span> Preferences over lotteries satisfy the four axioms iff there exists $u$ such that $L_1\succeq L_2\iff\mathbb E_{L_1}[u]\ge\mathbb E_{L_2}[u]$; $u$ is unique up to positive affine transformation $u\mapsto au+b$, $a>0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Money pump: suppose an agent has cyclic preferences $A\succ B\succ C\succ A$ and will pay 1¢ to swap to anything preferred. Start it holding $C$: it pays to get $B$, pays to get $A$, pays to get $C$ — back where it started, 3¢ poorer, forever. Transitivity is not politeness; it is what makes an agent unexploitable by a bookie shuffling its own preferences.</div>
+ <div class="box link"><span class="label">Where this goes</span> Preference data over model outputs (Ch 23's reward modeling) is exactly this machinery: Bradley–Terry fits a utility from noisy pairwise $\succeq$ judgments — inheriting these axioms' assumptions, and their failures when human preferences are intransitive or context-dependent.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give a real example where human preferences violate completeness.<details class="sol"><summary>Solution</summary><div>Incomparable options: "career in city A" vs "different career in city B" — many people genuinely cannot rank them and are not indifferent either (small sweeteners to one side don't resolve the choice, which indifference would imply).</div></details></li>
+  <li><span class="lvl m">MED</span> The Allais paradox: most people prefer (a) certain \$1M over (b) 10% \$5M / 89% \$1M / 1% \$0, yet prefer (d) 10% \$5M / 90% \$0 over (c) 11% \$1M / 89% \$0. Show this violates independence.<details class="sol"><summary>Solution</summary><div>Write choices as mixtures with a common 89% component. (a) = 11% [\$1M] + 89% [\$1M]; (b) = 11% [<span>$\frac{10}{11}$</span> \$5M, <span>$\frac{1}{11}$</span> \$0] + 89% [\$1M]. (c) and (d) are the same two 11%-sublotteries mixed with 89% [\$0] instead. Independence says the ranking of the 11%-sublotteries must not depend on the common component — but people flip: (a)≻(b) yet (d)≻(c). Certainty is overweighted; human preferences are not vNM-consistent.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $u$ represents $\succeq$, so does $v=au+b$ ($a>0$), and that a <em>nonlinear</em> monotone transform can fail for lotteries.<details class="sol"><summary>Solution</summary><div>Affine: $\mathbb E[v]=a\mathbb E[u]+b$, an increasing function of $\mathbb E[u]$, so all lottery comparisons are preserved. Nonlinear: take $u$ values 0, 1, 2 for outcomes $z,y,x$ and $v=u^2$ (0,1,4). Lottery $L$ = 50/50 $x,z$ vs sure $y$: under $u$, $\mathbb E=1=1$ (indifferent); under $v$, $\mathbb E=2>1$ (strict preference). Monotone transforms preserve rankings of <em>outcomes</em> but not of <em>expectations</em> — cardinal structure matters for choice under risk, which is exactly what vNM utility adds beyond ordinal preference.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="utility-functions">
+ <h2>Utility functions</h2>
+ <p>A utility function turns outcomes into numbers so that "prefer" becomes "bigger". Its shape encodes taste for risk: concave utility means each extra dollar matters less than the last, making a bird in the hand worth two in the bush. Utility is not money — conflating them is the oldest error in the subject.</p>
+ <div class="box def"><span class="label">Definition</span> A utility function $u:\mathcal O\to\mathbb R$ represents $\succeq$ when $x\succeq y\iff u(x)\ge u(y)$ (and over lotteries via expectations, per vNM). For wealth: $u$ concave $\Leftrightarrow$ risk-averse, linear $\Leftrightarrow$ risk-neutral, convex $\Leftrightarrow$ risk-seeking. Common families: $u(w)=\log w$; CRRA $u(w)=\frac{w^{1-\gamma}}{1-\gamma}$; CARA $u(w)=-e^{-\alpha w}$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide risk aversion $\gamma$ and see the CRRA utility curve, a 50/50 gamble between \$50 and \$150, its expected utility (dot on the chord) and the certainty equivalent (where the curve crosses that level).</p>
+  <canvas id="cv-util"></canvas>
+  <div class="ctl"><label>risk aversion γ <input type="range" id="ut-g" min="0" max="4" step="0.1" value="1"></label></div>
+  <div class="out" id="ut-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> $u(w)=\log w$, gamble: 50% \$50, 50% \$150. $\mathbb E[u]=\tfrac12\ln50+\tfrac12\ln150=\tfrac12(3.912+5.011)=4.4615$. Certainty equivalent: $e^{4.4615}\approx\$86.6$ — a log-utility agent trades this \$100-expected-value gamble for any sure amount above \$86.60. The \$13.40 gap is the risk premium.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Utility numbers have no absolute meaning — only differences-of-expectations comparisons within one agent. "My utility is 40, yours is 30" licenses nothing: interpersonal comparison and summation of vNM utilities requires extra assumptions the theorem does not provide (a live issue for social choice and for aggregating preferences across users in Ch 23-style reward modeling).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $u(w)=\sqrt w$, which is preferred: sure \$400, or 50/50 \$100/\$900?<details class="sol"><summary>Solution</summary><div>Sure: $u=20$. Gamble: $\tfrac12\cdot10+\tfrac12\cdot30=20$. Exactly indifferent — the gamble's certainty equivalent is precisely \$400 (note its expected <em>value</em> is \$500; the \$100 premium is the price of risk at this curvature).</div></details></li>
+  <li><span class="lvl m">MED</span> Define the Arrow–Pratt coefficient $A(w)=-u''(w)/u'(w)$ and compute it for $\log w$ and for CARA $-e^{-\alpha w}$.<details class="sol"><summary>Solution</summary><div>$\log$: $u'=1/w$, $u''=-1/w^2$: $A(w)=1/w$ — absolute risk aversion falls with wealth (richer ⇒ more risk-tolerant in absolute stakes). CARA: $u'=\alpha e^{-\alpha w}$, $u''=-\alpha^2e^{-\alpha w}$: $A(w)=\alpha$, constant — the same absolute caution at any wealth.</div></details></li>
+  <li><span class="lvl h">HARD</span> For small risks, show the risk premium $\pi$ of a zero-mean gamble $\varepsilon$ (variance $\sigma^2$) at wealth $w$ satisfies $\pi\approx\tfrac12A(w)\sigma^2$.<details class="sol"><summary>Solution</summary><div>Definition: $u(w-\pi)=\mathbb E[u(w+\varepsilon)]$. Taylor both sides: left $\approx u(w)-\pi u'(w)$; right $\approx u(w)+u'(w)\mathbb E[\varepsilon]+\tfrac12u''(w)\mathbb E[\varepsilon^2]=u(w)+\tfrac12u''(w)\sigma^2$. Equate: $-\pi u'=\tfrac12u''\sigma^2\Rightarrow\pi=\tfrac12\big(-\tfrac{u''}{u'}\big)\sigma^2=\tfrac12A(w)\sigma^2$. ∎ Risk premia scale with variance and with local curvature — the bridge between utility theory and mean–variance analysis.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="expected-utility">
+ <h2>Expected utility</h2>
+ <p>The master rule of decision under risk: score each action by the probability-weighted average utility of its outcomes, and take the argmax. Everything in this chapter and the next two — value functions, Bellman equations, minimax — is this rule wearing different clothes.</p>
+ <div class="box def"><span class="label">Definition</span> The expected utility of action $a$ under belief $p$: $$EU(a)=\sum_{s\in\mathcal S}p(s)\,u\big(o(a,s)\big),$$ and the rational choice is $a^*=\arg\max_{a\in\mathcal A}EU(a)$. With observations, beliefs are first updated by Bayes (Ch 11) and the rule applies to the posterior.</div>
+ <div class="box ex"><span class="label">Worked example</span> Umbrella, utilities as before, $p(\text{rain})=0.3$: $EU(\text{carry})=0.3\cdot7+0.7\cdot8=7.7$; $EU(\text{leave})=0.3\cdot1+0.7\cdot10=7.3$. Carry. Break-even belief: $7p+8(1-p)=p+10(1-p)\Rightarrow 8-p=10-9p\Rightarrow8p=2\Rightarrow p^*=0.25$ — above 25% rain probability, carry; below, leave. The decision reduces to comparing your belief to a threshold, a structure that recurs everywhere.</div>
+ <div class="box think"><span class="label">Think first</span> Why weight by probabilities at all — why not judge an action by its worst case, or its best? <details class="sol"><summary>Reveal</summary><div>Worst-case (maximin) ignores how <em>unlikely</em> the worst is: it refuses any gamble with a bad tail, however tiny, and is paralyzed in rich state spaces where every action has some awful state. Best-case is symmetric folly. The vNM theorem says: if your preferences over gambles are merely consistent (no money pumps, no certainty-mirage flips), you are already an expected-utility maximizer for some $u$ — the weighting is not an extra assumption but a consequence. Maximin remains sensible when probabilities themselves are unknowable (adversarial settings — see zero-sum games below).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A test costs 2 utils and would change your action only if positive, which happens with probability 0.1, gaining you 15 utils in that case. Take it?<details class="sol"><summary>Solution</summary><div>Expected gain $=0.1\cdot15=1.5<2$: don't. (This is a value-of-information calculation — formalized two sections ahead.)</div></details></li>
+  <li><span class="lvl m">MED</span> Insurance: house worth \$300k, fire probability 0.001, premium \$450, $u(w)=\log w$, current wealth \$400k (including house). Buy?<details class="sol"><summary>Solution</summary><div>No insurance: $EU=0.999\ln(400000)+0.001\ln(100000)=0.999\cdot12.899+0.001\cdot11.513=12.8976$. Insurance: sure wealth $399550$: $\ln(399550)=12.8981$. Buy — the \$450 premium exceeds the \$300 expected loss, yet concavity makes the certain small loss preferable to the tiny chance of catastrophe. Insurance exists because of curvature, not despite the unfair premium.</div></details></li>
+  <li><span class="lvl h">HARD</span> St. Petersburg: a coin is flipped until heads; payout $2^n$ for first heads on flip $n$. Expected value is infinite. Compute the log-utility fair price for an agent with wealth exactly the ticket price... simpler: compute $\mathbb E[u]$ with $u=\log_2(\text{payout})$ and the corresponding certainty equivalent, and explain the resolution.<details class="sol"><summary>Solution</summary><div>$\mathbb E[\log_2 X]=\sum_{n\ge1}2^{-n}\cdot n=2$ (standard sum). Certainty equivalent $=2^2=\$4$: a log-utility agent pays at most ~\$4 for the infinite-expected-value game. Resolution: unbounded expected <em>money</em> is irrelevant; bounded-ish expected <em>utility</em> is what governs choice, and concavity crushes the huge-but-vanishingly-rare payouts. (Bernoulli invented log utility for exactly this puzzle in 1738.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="expected-value">
+ <h2>Expected value</h2>
+ <p>Expected value is expected utility with $u(w)=w$: the probability-weighted average payoff itself. It is the right criterion when stakes are small relative to your wealth, when the same gamble repeats many times (the law of large numbers makes the average the near-certain outcome), or when you are a fleet operator aggregating thousands of independent decisions.</p>
+ <div class="box def"><span class="label">Definition</span> $EV(a)=\sum_sp(s)\,x(a,s)$ for monetary/numeric payoffs $x$. By the LLN (Ch 11), the average payoff of $n$ i.i.d. plays converges to $EV$; by the CLT, fluctuations shrink as $\sigma/\sqrt n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A \$1 lottery ticket wins \$500 with probability $10^{-3}$: $EV=0.001\cdot500-1=-\$0.50$. One ticket is a cheap thrill; a strategy of buying 10,000 tickets has $EV=-\$5000$ with standard deviation $\sqrt{10^4}\cdot\sigma_1\approx100\cdot15.8\approx\$1580$: the loss is now ~3σ certain. Repetition converts a fuzzy gamble into its expected value — for better or worse.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Expected value is blind to ruin. A strategy with positive EV per bet but a chance of losing everything (after which you cannot continue) has long-run growth determined by $\mathbb E[\log(\text{wealth ratio})]$, not $\mathbb E[\text{gain}]$ — the Kelly criterion's domain. Maximizing EV bet-by-bet with full stakes goes bankrupt with probability 1.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A die game pays the face value in dollars, costs \$4 to play. EV?<details class="sol"><summary>Solution</summary><div>$\mathbb E[\text{face}]=3.5$: $EV=-\$0.50$. Decline (at any utility, since it's dominated for risk-averse agents too).</div></details></li>
+  <li><span class="lvl m">MED</span> Kelly: repeated bets at even odds with win probability $p=0.6$. Betting fraction $f$ of wealth each round, growth rate is $g(f)=p\ln(1+f)+(1-p)\ln(1-f)$. Find $f^*$.<details class="sol"><summary>Solution</summary><div>$g'(f)=\frac{p}{1+f}-\frac{1-p}{1-f}=0\Rightarrow p(1-f)=(1-p)(1+f)\Rightarrow f^*=2p-1=0.2$. Bet 20%. ($g(0.2)=0.6\ln1.2+0.4\ln0.8\approx0.1094-0.0893=0.0201$ per round ≈ 2% compounded growth; betting $f=1$ gives $g=-\infty$ — one loss ruins you.)</div></details></li>
+  <li><span class="lvl h">HARD</span> A fleet of $10^4$ delivery decisions per day each yields \$2 EV with per-decision std \$40, independent. Compute the probability of a losing day, and explain why the operator should be nearly risk-neutral per decision even if the owner is risk-averse.<details class="sol"><summary>Solution</summary><div>Daily total: mean $\$20{,}000$, std $\sqrt{10^4}\cdot40=\$4000$. Losing day: $\Pr[Z<-5]\approx2.9\times10^{-7}$ — essentially never. Aggregation makes the portfolio outcome nearly deterministic at the mean, so curvature of $u$ over the tiny residual spread is second-order (the risk premium $\approx\tfrac12A\sigma^2$ is negligible at fleet scale): maximize per-decision EV and let the CLT do the rest. Risk aversion should be reserved for decisions correlated across the fleet (a policy change, a pricing move) that don't diversify away.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="risk">
+ <h2>Risk</h2>
+ <p>Two gambles with the same mean can feel utterly different — the difference is risk: the spread and shape of the outcome distribution. Variance is the first summary; tail measures like Value-at-Risk and CVaR capture what variance misses — the size of the bad tail specifically, which is what actually keeps decision makers awake.</p>
+ <div class="box def"><span class="label">Definition</span> For payoff $X$: <b>variance</b> $\sigma^2=\mathbb E[(X-\mu)^2]$; <b>Value-at-Risk</b> $\mathrm{VaR}_\alpha$ = the loss threshold exceeded with probability at most $1-\alpha$ (the $\alpha$-quantile of loss); <b>Conditional VaR</b> $\mathrm{CVaR}_\alpha=\mathbb E[\text{loss}\mid\text{loss}\ge\mathrm{VaR}_\alpha]$ — the mean of the worst $(1-\alpha)$ tail. A distribution $X$ is riskier than $Y$ with equal mean (second-order stochastic dominance) if every risk-averse EU maximizer prefers $Y$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Loss distribution: \$0 with 0.95, \$10k with 0.04, \$100k with 0.01. $\mathrm{VaR}_{0.95}$: the 95th percentile of loss $=\$10$k (5% of outcomes lose $\ge$\$10k). $\mathrm{CVaR}_{0.95}=\mathbb E[\text{loss}\mid\text{loss}\ge10\text{k}]=\frac{0.04\cdot10+0.01\cdot100}{0.05}$k$=\frac{1.4}{0.05}$k$=\$28$k. Variance-based analysis treats the two bad outcomes symmetrically with gains; CVaR reads only the tail that hurts.</div>
+ <div class="box pit"><span class="label">Pitfall</span> VaR is not subadditive: merging two portfolios can <em>increase</em> reported VaR beyond the sum, and VaR says nothing about how bad the tail is beyond the threshold — a 5% chance of losing \$10k and a 5% chance of losing \$10M can have the same $\mathrm{VaR}_{0.95}$. CVaR fixes both (it is a coherent risk measure) and is furthermore optimizable by linear programming.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Gambles A: sure \$0. B: ±\$100 at 50/50. Same mean. Which does every risk-averse agent prefer, and why?<details class="sol"><summary>Solution</summary><div>A. Jensen (Ch 11): $\mathbb E[u(B)]=\tfrac12u(100)+\tfrac12u(-100)<u(0)$ for strictly concave $u$ — a mean-preserving spread is always dispreferred.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute mean, variance and $\mathrm{CVaR}_{0.9}$ of loss for: loss \$0 w.p. 0.9, \$50 w.p. 0.1.<details class="sol"><summary>Solution</summary><div>Mean loss $=5$. Variance $=0.9\cdot25+0.1\cdot2025=22.5+202.5=225$ (std 15). $\mathrm{CVaR}_{0.9}$: worst 10% tail is exactly the \$50 outcome: $\mathrm{CVaR}=50$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show CVaR admits the Rockafellar–Uryasev form $\mathrm{CVaR}_\alpha(L)=\min_{c}\ \big\{c+\tfrac{1}{1-\alpha}\mathbb E[(L-c)^+]\big\}$ for continuous $L$, and why this matters computationally.<details class="sol"><summary>Solution</summary><div>Let $F(c)=c+\frac{1}{1-\alpha}\mathbb E[(L-c)^+]$. $F'(c)=1-\frac{1}{1-\alpha}\Pr[L>c]$, zero when $\Pr[L>c]=1-\alpha$, i.e. $c^*=\mathrm{VaR}_\alpha$ (convexity of $F$ makes it the min). Then $F(c^*)=\mathrm{VaR}+\frac{1}{1-\alpha}\mathbb E[(L-\mathrm{VaR})^+]=\mathbb E[L\mid L\ge\mathrm{VaR}]=\mathrm{CVaR}$. Computational payoff: $(L-c)^+$ is convex in both $c$ and portfolio weights, so minimizing CVaR over decisions becomes a convex (even linear, with samples) program (Ch 15) — quantiles alone offer no such structure.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="risk-sensitive-decision-making">
+ <h2>Risk-sensitive decision making</h2>
+ <p>Sometimes the mean is not what you should optimize: a surgeon, a portfolio manager and a safety-critical agent all care about the distribution's shape. Risk-sensitive decision making bakes the caution into the objective — exponential utility, mean–variance trade-offs, or CVaR constraints — turning "be careful" into mathematics an optimizer can obey.</p>
+ <div class="box def"><span class="label">Definition</span> Common risk-sensitive objectives: <b>exponential/entropic</b>: maximize $-\frac1\alpha\log\mathbb E[e^{-\alpha X}]$ (risk-aversion $\alpha>0$; recovers $\mathbb E[X]$ as $\alpha\to0$); <b>mean–variance</b>: maximize $\mathbb E[X]-\lambda\mathrm{Var}(X)$; <b>CVaR objective</b>: maximize $\mathbb E[X]$ subject to $\mathrm{CVaR}_\alpha(\text{loss})\le c$, or maximize $\mathrm{CVaR}_\alpha(X)$ itself.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two policies: A yields $X\sim\mathcal N(10,\,4)$; B yields $\mathcal N(12,\,64)$. Entropic value at $\alpha=0.25$ (Gaussian identity: $-\frac1\alpha\log\mathbb E[e^{-\alpha X}]=\mu-\frac{\alpha\sigma^2}{2}$): A: $10-\frac{0.25\cdot4}{2}=9.5$; B: $12-\frac{0.25\cdot64}{2}=4.0$. A wins despite 2 less mean — the objective charges B its variance at rate $\alpha/2$. At $\alpha=0.05$: A $=9.9$, B $=10.4$: B wins. One knob spans the whole caution spectrum.</div>
+ <div class="box link"><span class="label">Where this goes</span> Risk-sensitive and distributional RL (Ch 25) optimize these objectives over trajectories; Ch 32's execution budgets and escalation policies are CVaR-thinking applied to agent actions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify the entropic objective reduces to the mean as $\alpha\to0$ (expand to first order).<details class="sol"><summary>Solution</summary><div>$\mathbb E[e^{-\alpha X}]\approx1-\alpha\mathbb E[X]+O(\alpha^2)$, so $-\frac1\alpha\log(\cdot)\approx-\frac1\alpha(-\alpha\mathbb E[X])=\mathbb E[X]+O(\alpha)$. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Under mean–variance with $\lambda=0.1$, choose between C: mean 20, var 50 and D: mean 25, var 120.<details class="sol"><summary>Solution</summary><div>C: $20-5=15$. D: $25-12=13$. Choose C. (Note mean–variance can violate stochastic dominance in extreme cases — it penalizes upside variance too — which is why tail-only measures like CVaR are often preferred for safety.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the Gaussian identity used above: for $X\sim\mathcal N(\mu,\sigma^2)$, $-\frac1\alpha\log\mathbb E[e^{-\alpha X}]=\mu-\frac{\alpha\sigma^2}{2}$.<details class="sol"><summary>Solution</summary><div>The moment generating function (Ch 11): $\mathbb E[e^{tX}]=e^{t\mu+t^2\sigma^2/2}$. With $t=-\alpha$: $\mathbb E[e^{-\alpha X}]=e^{-\alpha\mu+\alpha^2\sigma^2/2}$. Then $-\frac1\alpha\log(\cdot)=\mu-\frac{\alpha\sigma^2}{2}$. ∎ The entropic risk of a Gaussian is exactly mean minus a variance charge — mean–variance is the Gaussian shadow of exponential utility.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="value-of-information">
+ <h2>Value of information</h2>
+ <p>Information is worth exactly what it lets you do differently. Before paying for a test, a survey or a sensor, compute: expected utility deciding <em>with</em> the information (choosing optimally after each possible answer) minus expected utility of the best decision <em>without</em> it. If the answer couldn't change your action, its value is zero — no matter how much it reduces uncertainty.</p>
+ <div class="box def"><span class="label">Definition</span> The expected value of information from observing $Y$: $$\mathrm{EVOI}(Y)=\mathbb E_{y}\Big[\max_a\ \mathbb E[u(a,S)\mid Y=y]\Big]-\max_a\ \mathbb E[u(a,S)],$$ always $\ge0$. The expected value of <em>perfect</em> information (observing $S$ itself): $\mathrm{EVPI}=\mathbb E_s[\max_au(a,s)]-\max_a\mathbb E_s[u(a,s)]$, an upper bound on any test's value.</div>
+ <div class="box ex"><span class="label">Worked example</span> Umbrella again ($p_{\text{rain}}=0.3$; carry: 7.7, leave: 7.3 — recall leave is optimal only below $p^*=0.25$). EVPI: with perfect foresight, rain→carry (7), no rain→leave (10): $\mathbb E=0.3\cdot7+0.7\cdot10=9.1$. Without: 7.7. $\mathrm{EVPI}=1.4$ utils — the most any forecast could be worth. A forecast that is 80% accurate in each state: $p(\text{say rain})=0.3\cdot0.8+0.7\cdot0.2=0.38$; posterior given "rain" $=\frac{0.24}{0.38}=0.632$→carry ($EU=0.632\cdot7+0.368\cdot8=7.368$); given "dry": $p_{\text{rain}}=\frac{0.06}{0.62}=0.097$→leave ($EU=0.097\cdot1+0.903\cdot10=9.13$). $\mathrm{EVOI}=0.38\cdot7.368+0.62\cdot9.13-7.7=2.80+5.66-7.7=0.76$ utils.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Information that arrives after the decision is locked, that you will ignore, or that only confirms the action you'd take anyway has zero decision value — a lesson organizations relearn expensively ("we commissioned a study" ≠ value). Conversely EVOI is computed against your <em>current</em> belief: adversarially chosen or biased information sources need the game-theoretic treatment, not this formula.</div>
+ <div class="box link"><span class="label">Where this goes</span> Exploration bonuses in bandits/RL (below, Ch 25) are EVOI in disguise; Ch 26's information-gathering actions and Ch 30's metareasoning ("is more thinking worth it?") reuse the same calculation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is EVOI never negative for a Bayesian who can ignore the signal?<details class="sol"><summary>Solution</summary><div>One available policy after observing $Y$ is "ignore it and act as before", achieving exactly the no-information utility; the max over post-observation policies is $\ge$ that. Information can only add options.</div></details></li>
+  <li><span class="lvl m">MED</span> In the worked example, what is the maximum price (in utils) worth paying for the 80% forecast? For a perfect one?<details class="sol"><summary>Solution</summary><div>0.76 and 1.4 respectively — pay up to the EVOI/EVPI, no more. Note the imperfect forecast delivers 54% of perfect value: accuracy-to-value is nonlinear and problem-dependent.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if the same action is optimal under every possible posterior $p(s\mid y)$, then $\mathrm{EVOI}(Y)=0$, and construct a case where a <em>huge</em> reduction in entropy has zero EVOI.<details class="sol"><summary>Solution</summary><div>If $a^*$ is optimal for every $y$, then $\mathbb E_y[\max_a\mathbb E[u\mid y]]=\mathbb E_y[\mathbb E[u(a^*,S)\mid y]]=\mathbb E[u(a^*,S)]=\max_a\mathbb E[u]$ (tower rule): EVOI $=0$. Construction: state $=$ result of a fair 100-sided die; action: bet "the roll is ≤99" vs "is 100", payoffs making ≤99 optimal for any belief with $p(\le99)>0.5$. Observing the exact parity/last-digit of the roll slashes entropy by bits yet every posterior keeps $p(\le99)$ far above 0.5: same action, zero value. Decision-relevance, not uncertainty reduction, is what pays.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bayesian-decision-theory">
+ <h2>Bayesian decision theory</h2>
+ <p>The full pipeline: hold a prior, observe evidence, update by Bayes, then choose the action minimizing expected loss under the posterior. Different loss functions yield different "best answers" from the same posterior — the mean, the median, the mode — which is why estimation (Ch 13) is secretly decision theory.</p>
+ <div class="box def"><span class="label">Definition</span> With loss $L(a,s)$ and posterior $p(s\mid y)$, the Bayes-optimal act is $$a^*(y)=\arg\min_a\ \mathbb E[L(a,S)\mid y].$$ Standard results: squared loss → posterior mean; absolute loss → posterior median; 0–1 loss → posterior mode (MAP). The <em>Bayes risk</em> is the resulting expected loss over both data and states.</div>
+ <div class="box ex"><span class="label">Worked example</span> Disease with prior 1%; test with sensitivity 95%, specificity 95% comes back positive. Posterior: $\frac{0.01\cdot0.95}{0.01\cdot0.95+0.99\cdot0.05}=\frac{0.0095}{0.0590}\approx0.161$. Loss table: treat/sick 1, treat/healthy 5, skip/sick 50, skip/healthy 0. Expected losses: treat $=0.161\cdot1+0.839\cdot5=4.36$; skip $=0.161\cdot50=8.05$. Treat — despite the disease being 5× more likely absent than present, because missing it costs 10× the false-treatment harm. The 16% posterior alone decides nothing; posterior × loss decides.</div>
+ <div class="box think"><span class="label">Think first</span> At what posterior probability of disease would you be exactly indifferent between treat and skip, given this loss table? <details class="sol"><summary>Reveal</summary><div>Set $q\cdot1+(1-q)\cdot5=q\cdot50$: $5-4q=50q\Rightarrow q^*=5/54\approx0.093$. Treat whenever the posterior exceeds ~9.3% — thresholds of this form ($\frac{\text{cost of false alarm}}{\text{cost sum}}$) are the universal shape of binary Bayes decisions, and exactly what classifier decision thresholds should be set from (Ch 19's precision/recall trade is this table in disguise).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Posterior over a parameter is $\mathcal N(3,4)$. Report the Bayes-optimal point estimate under squared loss, and under absolute loss.<details class="sol"><summary>Solution</summary><div>Both are 3 — the Gaussian's mean and median coincide. (They'd differ for a skewed posterior.)</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the posterior mean minimizes expected squared loss.<details class="sol"><summary>Solution</summary><div>$\mathbb E[(S-a)^2\mid y]=\mathbb E[S^2\mid y]-2a\mathbb E[S\mid y]+a^2$; differentiate in $a$: $-2\mathbb E[S\mid y]+2a=0\Rightarrow a=\mathbb E[S\mid y]$, a minimum by convexity. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Asymmetric loss: $L(a,s)=c_u(s-a)^+ + c_o(a-s)^+$ (underage cost $c_u$, overage $c_o$ — the newsvendor). Show the optimal $a$ is the $\frac{c_u}{c_u+c_o}$-quantile of the posterior.<details class="sol"><summary>Solution</summary><div>$\frac{d}{da}\mathbb E[L]=-c_u\Pr[S>a]+c_o\Pr[S<a]=0$ (differentiating the two integral pieces), giving $c_u(1-F(a))=c_oF(a)\Rightarrow F(a^*)=\frac{c_u}{c_u+c_o}$. ∎ Stock more when running out is costlier — e.g. $c_u=9$, $c_o=1$: hold the 90th percentile of demand. Squared/absolute/0-1 losses are all special cases of "pick the right quantile-like functional of the posterior".</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sequential-decision-making">
+ <h2>Sequential decision making</h2>
+ <p>Real decisions come in chains: today's choice changes what you'll know and what you can do tomorrow. The central technique is to reason <em>backward</em> — value the future first, then choose the present in light of it. Decision trees make this concrete: chance nodes average, decision nodes maximize, and the recursion rolls values from the leaves to the root.</p>
+ <div class="box def"><span class="label">Definition</span> A finite-horizon sequential problem: at stages $t=1..T$, observe, choose $a_t$, receive reward, transition. Backward induction computes $$V_T(\cdot)=\max_a\ \mathbb E[u],\qquad V_t(x)=\max_{a}\ \mathbb E\big[r_t(x,a)+V_{t+1}(X')\ \big|\ x,a\big]$$ — the finite-horizon Bellman recursion (Ch 25 makes it stationary and infinite-horizon).</div>
+ <div class="box ex"><span class="label">Worked example</span> Sell an asset within 2 days; each day an offer arrives: \$100 or \$200 with equal probability; refuse today and you must take tomorrow's offer. Day 2 value (must accept): $V_2=\mathbb E[\text{offer}]=150$. Day 1 policy: accept offer $x$ iff $x\ge V_2=150$: accept 200, refuse 100. Day-1 value: $\tfrac12\cdot200+\tfrac12\cdot150=175$. Note the naive "take the first decent offer" undervalues waiting; the option to refuse is worth \$25 over the myopic $\mathbb E=150$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Solving forward — greedily optimizing each step's immediate payoff — fails whenever actions have option value or information value: greedy sells at \$100 half the time here (expected \$150). Equally wrong: evaluating a plan by its expected path while ignoring that you'll <em>re-decide</em> at each node with new information; rigid-plan evaluation understates value exactly when flexibility matters most.</div>
+ <div class="box link"><span class="label">Where this goes</span> This recursion is Ch 25's Bellman equation, Ch 26's game-tree/expectimax search, and Ch 28's dynamic programming for control — the single most reused idea in the AGI half of this book.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Extend the asset example to 3 days (day 3: must accept). Compute $V_3,V_2,V_1$.<details class="sol"><summary>Solution</summary><div>$V_3=150$. Day 2: accept iff offer $\ge150$: $V_2=\tfrac12\cdot200+\tfrac12\cdot150=175$. Day 1: accept iff $\ge175$: accept 200 only: $V_1=\tfrac12\cdot200+\tfrac12\cdot175=187.5$. More runway → choosier threshold → higher value.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must backward induction process stages in reverse order — what exactly breaks if you compute $V_1$ before $V_2$?<details class="sol"><summary>Solution</summary><div>$V_1$'s optimal action depends on the continuation value $V_2$ (accept iff offer $\ge V_2$); without $V_2$ you cannot price the option of refusing. Formally the recursion $V_t=\max_a\mathbb E[r+V_{t+1}]$ has a data dependency on $t+1$; computing in forward order uses undefined (or guessed) continuation values — which is precisely what value iteration fixes by iterating guesses to a fixed point (Ch 25).</div></details></li>
+  <li><span class="lvl h">HARD</span> Secretary-style: 3 candidates arrive in random order; you observe only relative ranks and must accept or irrevocably reject each. Maximize the probability of hiring the best. Find the optimal rule and its success probability by backward induction.<details class="sol"><summary>Solution</summary><div>Rule form: reject the first $k$, then take the first candidate better than all seen. $k=0$ (accept first): $P=1/3$. $k=1$: skip #1; accept #2 iff better than #1, else forced to #3. Success: best is in position 2 <em>and</em> better than #1 (always true if best): $P(\text{best at }2)=1/3$ — accepted ✓. Best at 3: reach #3 iff #2 wasn't better than #1, i.e. #2 is not the best-so-far: given best at 3, the better of first two is first with prob 1/2 → then #2 rejected, #3 accepted ✓: contributes $\tfrac13\cdot\tfrac12=\tfrac16$. Total $=\tfrac13+\tfrac16=\tfrac12$. $k=2$: accept #3 always: $P=1/3$. Optimal: skip 1, then take the first record — succeeds with probability $\tfrac12$ (the $n=3$ case of the famous $1/e$ rule).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exploration">
+ <h2>Exploration</h2>
+ <p>When acting also teaches, some actions are worth taking <em>because you don't know</em> how good they are. Exploration is deliberately choosing informative over currently-best: trying the new restaurant, the untested ad, the unproven arm. Its value is exactly the value of information applied to your own future decisions.</p>
+ <div class="box def"><span class="label">Definition</span> In sequential problems with unknown payoff parameters, exploration is choosing actions to improve estimates of their values, sacrificing immediate expected reward for expected future reward. Canonical devices: random exploration ($\epsilon$-greedy), optimism (act as if uncertain arms were as good as plausibly possible — UCB), and posterior sampling (Thompson, below).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two slot machines: A has known payout rate 0.5; B is unknown, prior Beta(1,1) (uniform). Myopically A ties B ($\mathbb E=0.5$). But one pull of B is informative: if B turns out better (posterior mean rises), you exploit it for all remaining pulls; if worse, you return to A having lost little. With 100 pulls remaining, pulling B first is strictly optimal — the information about B compounds over 99 future decisions while A's known rate teaches nothing.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Under-exploration is invisible: a policy that settled early on a mediocre action shows steady reward and no error signal — the better option's superiority is exactly the data you never collected. This haunts A/B testing (stopping early), recommender systems (feedback loops narrow to what's already shown) and RLHF-tuned models (Ch 23) whose training suppressed diverse outputs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does exploration's value shrink as the remaining horizon shrinks?<details class="sol"><summary>Solution</summary><div>Information pays through changed <em>future</em> decisions; with few decisions left there is little future to improve. On the last step, explore-value is zero: act greedily.</div></details></li>
+  <li><span class="lvl m">MED</span> After 10 pulls, arm estimates are $\hat\mu_A=0.6$ (from 8 pulls) and $\hat\mu_B=0.5$ (from 2 pulls). Why might pulling B be correct despite the lower estimate?<details class="sol"><summary>Solution</summary><div>B's estimate carries far more uncertainty (2 samples): its plausible range easily contains values above 0.6, and resolving that uncertainty is cheap now and valuable for the whole future. The decision should compare A's known-ish 0.6 against B's <em>upper plausible</em> value or posterior draw — the logic UCB and Thompson formalize.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct a two-armed example where a myopic (one-step EVOI) explorer under-explores relative to the true multi-step optimum.<details class="sol"><summary>Solution</summary><div>Arm A: known 0.5. Arm B: either 0.9 or 0.1 with prior 50/50, but B's payoffs are <em>noisy</em> enough that one pull barely moves the posterior (e.g. Bernoulli observations shift posterior odds by a factor 9 only after several consistent outcomes). One-step EVOI: a single pull's posterior change may not flip any immediate decision → myopic value ≈ 0 → never explore. Multi-step: a <em>sequence</em> of 5 pulls of B resolves it nearly fully; with 1000 pulls remaining, expected gain $\approx\tfrac12\cdot(0.9-0.5)\cdot995$ minus small exploration cost — enormous. Information can be a threshold good: worthless in one bite, decisive in five — myopic EVOI misses exactly those cases (this is why bandit algorithms reason about cumulative regret, not single-step lookahead).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exploitation">
+ <h2>Exploitation</h2>
+ <p>Exploitation is cashing in: choosing the action your current knowledge says is best. It is the default that exploration must justify deviating from — and knowing <em>when</em> to stop exploring is as important as exploring at all. The tension between the two is the defining dilemma of learning while acting.</p>
+ <div class="box def"><span class="label">Definition</span> The greedy/exploiting action under estimates $\hat\mu$: $a^{\text{greedy}}=\arg\max_a\hat\mu_a$. The exploration–exploitation trade-off is scored by cumulative <b>regret</b>: $$R_T=T\mu^*-\mathbb E\Big[\sum_{t=1}^{T}\mu_{a_t}\Big],$$ the total expected shortfall versus always playing the best arm $\mu^*=\max_a\mu_a$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Arms with true rates $(0.5,\,0.4)$. Pure exploitation after 2 initial pulls each: with modest probability the worse arm looks better (e.g. B lucks into 2/2 while A hits 1/2) and greedy locks onto B forever: regret grows linearly, $0.1$ per step. Pure exploration (uniform random forever): regret $=T\cdot\frac{0.1}{2}=0.05T$ — also linear. Good algorithms interpolate: explore enough to identify A (cost $O(\log T)$), then exploit — sublinear regret.</div>
+ <div class="quiz" data-answer="1"><div class="q">An algorithm's cumulative regret grows like $\sqrt T$. What does that imply about its <em>average</em> per-step regret?</div><button class="opt">It is constant</button><button class="opt">It shrinks to zero like $1/\sqrt T$ — the algorithm converges to playing optimally</button><button class="opt">It grows slowly</button><div class="why" hidden>Average regret $=R_T/T=1/\sqrt T\to0$: sublinear cumulative regret means the fraction of time spent on suboptimal arms vanishes. Linear regret ($R_T\propto T$) is the signature of never learning — constant average shortfall forever.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> True rates $(0.7,0.5,0.3)$; an algorithm plays them $(800,150,50)$ times in $T=1000$. Compute its regret.<details class="sol"><summary>Solution</summary><div>$R=1000\cdot0.7-(800\cdot0.7+150\cdot0.5+50\cdot0.3)=700-(560+75+15)=700-650=50$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the "explore then commit" strategy (uniform for $m$ rounds per arm, then greedy forever) have a delicate $m$? Give both failure directions.<details class="sol"><summary>Solution</summary><div>$m$ too small: the empirical best is wrong with non-negligible probability, and committing to a wrong arm costs $\Delta$ per step for the remaining $T-Km$ steps — expected regret linear in $T$. $m$ too large: exploration itself costs $\approx m\sum_a\Delta_a$, wasting rounds on known-worse arms. The optimum balances $m\Delta$ against $T\cdot\Pr[\text{wrong}]\cdot\Delta$ with $\Pr[\text{wrong}]\approx e^{-m\Delta^2/2}$: $m\propto\frac{\log T}{\Delta^2}$ — which requires knowing $\Delta$ and $T$; adaptive algorithms (UCB, Thompson) achieve it without knowing either.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove pure greedy (with each arm tried once initially) can incur linear regret with constant probability, for two Bernoulli arms $(\mu_1,\mu_2)=(0.9,\,0.1)$.<details class="sol"><summary>Solution</summary><div>Initial pulls: with probability $(1-\mu_1)\mu_2=0.1\cdot0.1=0.01$, arm 1 yields 0 and arm 2 yields 1: estimates $(0,1)$. Greedy then plays arm 2; every success keeps $\hat\mu_2>0$... more carefully: $\hat\mu_2$ stays $\ge$ some positive value while $\hat\mu_1=0$ is never updated (arm 1 is never replayed since $\hat\mu_1=0$ can't exceed $\hat\mu_2>0$ as long as arm 2 registers any success, and even at $\hat\mu_2\to0.1$ it exceeds 0). So with probability $\ge0.01\cdot$(arm 2 not flatlining to exactly 0, which has probability bounded away from 0... at worst ties are broken toward arm 2) the algorithm plays arm 2 forever: regret $\ge c\cdot0.8T$ — linear with constant probability, hence linear expected regret. The flaw: a zero estimate from one unlucky sample is never revisited — no optimism, no randomness, no second chances.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multi-armed-bandits">
+ <h2>Multi-armed bandits</h2>
+ <p>The bandit is the fruit-fly of decision-making-under-ignorance: $K$ arms with unknown reward rates, one pull per round, maximize total reward. No states, no transitions — just the naked explore/exploit trade-off. Its theory produces the two workhorse ideas (optimism via UCB, posterior sampling via Thompson) that power everything from A/B testing to LLM router selection and Ch 26's tree search.</p>
+ <div class="box def"><span class="label">Definition</span> A stochastic $K$-armed bandit: unknown means $\mu_1..\mu_K$; each round pick $a_t$, observe reward drawn from arm $a_t$'s distribution. <b>UCB1</b>: play $a_t=\arg\max_a\ \hat\mu_a+\sqrt{\tfrac{2\ln t}{n_a}}$ ($n_a$ = pulls of $a$). Guarantee: regret $O\big(\sum_{a:\Delta_a>0}\tfrac{\ln T}{\Delta_a}\big)$ — logarithmic, and (Lai–Robbins) no algorithm beats $\Omega(\ln T)$ on all instances.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Three arms (true rates 0.35, 0.55, 0.45 — hidden from the algorithms). Press Run to simulate 500 pulls of ε-greedy vs UCB and watch cumulative regret; UCB's should bend logarithmic while ε-greedy's keeps a linear drift.</p>
+  <canvas id="cv-bandit"></canvas>
+  <div class="ctl"><label>ε (for ε-greedy) <input type="range" id="bd-eps" min="0" max="0.5" step="0.01" value="0.1"></label>
+  <button class="btn" id="bd-run">Run / Reset</button></div>
+  <div class="out" id="bd-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> UCB at $t=100$: arm A: $\hat\mu=0.60$, $n=80$; arm B: $\hat\mu=0.50$, $n=20$. Bonuses: A: $\sqrt{\frac{2\ln100}{80}}=\sqrt{\frac{9.21}{80}}=0.339$; B: $\sqrt{\frac{9.21}{20}}=0.679$. Indices: A $=0.939$, B $=1.179$ — play B despite the worse mean: 20 samples haven't earned trust, and the bonus prices exactly that. As $n_B$ grows the bonus shrinks like $1/\sqrt{n_B}$, and B must keep winning on merit to keep being played.</div>
+ <div class="box link"><span class="label">Where this goes</span> UCB applied to tree nodes is Ch 26's UCT/Monte Carlo Tree Search; bandit thinking runs through Ch 25's exploration strategies and Ch 30's test-time compute allocation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In UCB1, what happens to an arm's index if it is never played while others are?<details class="sol"><summary>Solution</summary><div>Its $\hat\mu$ and $n_a$ freeze while $\ln t$ grows: the bonus $\sqrt{2\ln t/n_a}$ increases without bound, so every arm is eventually retried — starvation is impossible by construction.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the shape of the UCB bonus from Hoeffding's inequality (Ch 11).<details class="sol"><summary>Solution</summary><div>Hoeffding: $\Pr[\mu_a>\hat\mu_a+\epsilon]\le e^{-2n_a\epsilon^2}$. Demand failure probability $\le t^{-4}$ (small enough to union-bound over time and arms): $e^{-2n_a\epsilon^2}=t^{-4}\Rightarrow\epsilon=\sqrt{\frac{2\ln t}{n_a}}$. The index $\hat\mu_a+\epsilon$ is thus a high-confidence upper bound on $\mu_a$: "optimism in the face of uncertainty" with the optimism calibrated to vanish exactly as fast as confidence accrues.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch why optimism yields low regret: bound the number of pulls of a suboptimal arm $a$ (gap $\Delta_a$) under UCB.<details class="sol"><summary>Solution</summary><div>Arm $a$ is pulled at time $t$ only if $\hat\mu_a+c_{t,n_a}\ge\hat\mu^*+c_{t,n^*}$. With confidence bounds holding (whp): $\hat\mu_a\le\mu_a+c_{t,n_a}$ and $\hat\mu^*+c_{t,n^*}\ge\mu^*$. Chaining: $\mu_a+2c_{t,n_a}\ge\mu^*$, i.e. $2\sqrt{2\ln t/n_a}\ge\Delta_a$, forcing $n_a\le\frac{8\ln t}{\Delta_a^2}$. So each bad arm is played $O(\ln T/\Delta_a^2)$ times, contributing regret $n_a\Delta_a=O(\ln T/\Delta_a)$; summing over arms gives the theorem (plus $O(1)$ terms from the rare confidence failures). The bonus is engineered so that being played <em>shrinks</em> your claim to optimism at exactly the rate that makes over-pulling impossible.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="thompson-sampling">
+ <h2>Thompson sampling</h2>
+ <p>Thompson sampling explores by believing its own uncertainty: keep a posterior over each arm's rate, draw one sample from each posterior, and play the arm whose <em>sample</em> is highest. Arms are chosen with exactly the probability that they are the best — bold while uncertain, settling automatically as posteriors sharpen. Thirty lines of code, state-of-the-art regret.</p>
+ <div class="box def"><span class="label">Definition</span> Maintain posterior $p(\mu_a\mid\text{data})$ per arm. Each round: sample $\tilde\mu_a\sim p(\mu_a\mid\cdot)$ for all $a$; play $a_t=\arg\max_a\tilde\mu_a$; update the played arm's posterior. For Bernoulli arms with Beta priors: arm $a$ with $s$ successes, $f$ failures has posterior $\mathrm{Beta}(1+s,\,1+f)$ (conjugacy, Ch 13). Property: $\Pr[a_t=a]=\Pr[\mu_a=\max_b\mu_b\mid\text{data}]$ — probability matching.</div>
+ <div class="box ex"><span class="label">Worked example</span> Arm A: 6 successes / 4 failures → Beta(7,5), mean 0.583. Arm B: 1 success / 1 failure → Beta(2,2), mean 0.5. A single round: draw $\tilde\mu_A\sim$Beta(7,5), $\tilde\mu_B\sim$Beta(2,2). Beta(2,2) is wide (std ≈ 0.22 vs Beta(7,5)'s 0.14): $\Pr[\tilde\mu_B>\tilde\mu_A]\approx0.36$ — B gets a real minority of play, in proportion to its genuine chance of being better. After 100 more observations each, the posteriors sharpen and the same rule exploits nearly deterministically.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Thompson's magic assumes the posterior is honest. Misspecified likelihoods (rewards that drift over time, correlated observations) make posteriors falsely confident and kill exploration prematurely; delayed feedback batches updates and over-samples stale beliefs. Fixes: discount old data / sliding windows for nonstationarity, and inject the delay structure into the model.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A fresh arm has prior Beta(1,1). What is the probability Thompson plays it against an arm whose posterior is sharply concentrated at 0.5?<details class="sol"><summary>Solution</summary><div>$\Pr[\tilde\mu_{\text{new}}>0.5]$ with $\tilde\mu_{\text{new}}\sim U[0,1]$: exactly 0.5 — a completely unknown arm gets half the play against a known-average one, which is just right: it's better with probability ½.</div></details></li>
+  <li><span class="lvl m">MED</span> Update: the Beta(2,2) arm from the worked example is played and fails. New posterior, new mean, and the qualitative effect on its future play rate?<details class="sol"><summary>Solution</summary><div>Beta(2,3): mean $=2/5=0.4$, and the distribution narrows slightly. $\Pr[\tilde\mu_B>\tilde\mu_A]$ falls (mean gap widened to 0.183 and B's variance shrank) — roughly to ~0.25: play rate decays smoothly with evidence, never to zero while real doubt remains.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compare Thompson and UCB on: (a) determinism/auditability, (b) behavior with many near-identical arms, (c) incorporating prior knowledge.<details class="sol"><summary>Solution</summary><div>(a) UCB is deterministic given history (auditable, reproducible; but predictable/exploitable by adversaries); Thompson is randomized (harder to audit per-decision, robust to being gamed, and its randomness doubles as tie-breaking). (b) Many near-equal arms: UCB cycles through all of them since each unplayed arm's bonus dominates — cost linear in $K$; Thompson also spreads play but proportionally to posterior optimality, gracefully splitting among true near-ties instead of insisting on resolving unresolvable gaps. (c) Priors: Thompson consumes real prior information natively (informative Betas shift early play), while UCB has no principled prior slot — warm-starting requires hacking pseudo-counts. Empirically Thompson often wins in practice; both meet the $\ln T$ lower bound in theory.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="abstention">
+ <h2>Abstention</h2>
+ <p>Sometimes the best answer is "I won't answer": route to a human, run another test, decline the bet. Abstention adds a special action whose payoff is a known, modest cost — worth taking exactly when your confidence is inside the band where both errors are more expensive. For classifiers and LLMs alike, knowing when not to act is a capability, not a cop-out.</p>
+ <div class="box def"><span class="label">Definition</span> Classification with rejection: predict $\hat y$ or abstain at cost $c\in(0,\tfrac12)$ (0–1 loss for errors — wait: errors cost 1). Chow's rule: with posterior confidence $q=\max_y p(y\mid x)$, $$\text{abstain}\iff q<1-c,$$ i.e. predict only when the error probability $1-q$ is below the abstention cost. Selective prediction reports the coverage–risk curve: error rate among answered cases vs fraction answered.</div>
+ <div class="box ex"><span class="label">Worked example</span> $c=0.3$: answer iff $q\ge0.7$. On a case with posterior $(0.6,0.4)$: answering errs with probability 0.4 > 0.3 → abstain. Case $(0.8,0.2)$: error 0.2 < 0.3 → answer. If 20% of cases fall in the abstain band with average error 0.35 there, and answered cases err at 0.08: total expected loss $=0.8\cdot0.08+0.2\cdot0.3=0.064+0.06=0.124$ vs always-answer $=0.8\cdot0.08+0.2\cdot0.35=0.134$ — abstention buys 1 point of loss, and (often more valuable) an answered-set error of 8% instead of 13.4%.</div>
+ <div class="box link"><span class="label">Where this goes</span> LLM hallucination mitigation (Ch 23) is abstention with poorly calibrated $q$; Ch 32's human-approval escalation is abstention priced by the human's time; uncertainty-aware decisions (next) generalize the confidence machinery.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Under Chow's rule with $c=0.1$, what confidence is required to answer? And with $c=0.45$?<details class="sol"><summary>Solution</summary><div>$q\ge0.9$ (cheap abstention → answer rarely); $q\ge0.55$ (expensive abstention → answer nearly always).</div></details></li>
+  <li><span class="lvl m">MED</span> Derive Chow's rule from expected loss.<details class="sol"><summary>Solution</summary><div>Answering with the argmax class errs with probability $1-q$: expected loss $1-q$. Abstaining costs $c$. Answer iff $1-q\le c\iff q\ge1-c$. ∎ (With asymmetric error costs the threshold shifts per class — same one-line derivation with the loss table of the Bayesian-decision section.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does abstention based on a <em>miscalibrated</em> confidence (e.g. an over-confident LLM) fail asymmetrically, and how does the coverage–risk curve reveal it?<details class="sol"><summary>Solution</summary><div>Overconfidence puts wrong answers above the threshold: the abstain band catches too few errors, so answered-set risk stays high while coverage barely drops — the curve is flat where it should fall steeply. Perfectly calibrated confidence yields the steepest achievable curve (each increment of abstention removes the currently-riskiest cases); deviations from that ideal curve localize <em>where</em> in the confidence range calibration is broken (Ch 13's calibration + ECE, operationalized). Fixes: recalibrate (temperature scaling), or use auxiliary uncertainty signals (sampled self-consistency) as the gating quantity instead of raw softmax confidence.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="uncertainty-aware-decisions">
+ <h2>Uncertainty-aware decisions</h2>
+ <p>Not all uncertainty is the same substance. Aleatoric uncertainty is the dice — irreducible randomness in the world; epistemic uncertainty is your ignorance — reducible by data. The distinction is decision-relevant: epistemic uncertainty rewards information-gathering and caution about model error, aleatoric uncertainty rewards hedging and risk pricing. Acting well means responding to each with its own remedy.</p>
+ <div class="box def"><span class="label">Definition</span> Under a posterior over models $p(\theta\mid\mathcal D)$, predictive uncertainty decomposes (for outcome $Y$): $$\underbrace{\mathrm{Var}[Y]}_{\text{total}}=\underbrace{\mathbb E_\theta[\mathrm{Var}(Y\mid\theta)]}_{\text{aleatoric}}+\underbrace{\mathrm{Var}_\theta[\mathbb E(Y\mid\theta)]}_{\text{epistemic}}$$ (law of total variance, Ch 11). Decision consequences: epistemic variance shrinks with data (EVOI $>0$); robust/pessimistic choices hedge epistemic model error; aleatoric spread is priced by risk measures.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two coins each estimated at 50% heads: coin A observed 5000 times (aleatoric only: it <em>is</em> fair); coin B never observed, model average of "always heads" and "always tails" (purely epistemic). Same predictive $p=0.5$; utterly different decisions. Betting repeatedly on A is safe diversification (independent flips, CLT). Betting repeatedly on B is catastrophic: outcomes are perfectly correlated across bets (same unknown coin) — one flip of information first is worth almost the entire stake. Total variance per flip is identical; the <em>decomposition</em> drives the choice.</div>
+ <div class="box think"><span class="label">Think first</span> An LLM gives an answer with stated confidence 70%. What single follow-up experiment distinguishes whether the missing 30% is aleatoric or epistemic — and why does it matter for whether to consult a second model? <details class="sol"><summary>Reveal</summary><div>Resample: ask the same question many times (and/or rephrase). If answers scatter across options — the model itself is unsure — the uncertainty behaves epistemically <em>at the ensemble level</em>: a second model or a retrieval step likely adds real information. If it answers identically every time yet is wrong 30% in calibration terms, the residual is (from this model's view) irreducible — a second <em>identical-family</em> model correlates and adds little; you need a different information source. Ensembles help exactly in proportion to error <em>decorrelation</em> — the epistemic share.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify: (a) measurement noise of a thermometer; (b) not knowing the thermometer's bias; (c) tomorrow's coin flip; (d) which of two demand models is right.<details class="sol"><summary>Solution</summary><div>Aleatoric: (a), (c). Epistemic: (b), (d) — both reducible by calibration/data.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the decomposition numerically: $\theta\in\{0.2,0.8\}$ equally likely, $Y\sim\mathrm{Bern}(\theta)$.<details class="sol"><summary>Solution</summary><div>Total: $p(Y{=}1)=0.5$, $\mathrm{Var}=0.25$. Aleatoric: $\mathbb E[\theta(1-\theta)]=\tfrac12(0.16)+\tfrac12(0.16)=0.16$. Epistemic: $\mathrm{Var}(\theta)=\mathbb E[\theta^2]-0.25=\tfrac12(0.04+0.64)-0.25=0.34-0.25=0.09$. $0.16+0.09=0.25$ ✓ — 36% of the variance is removable by learning $\theta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A robot's collision-probability estimate for a maneuver is 1% from a model ensemble whose members individually say (0.1%, 0.1%, 2.9%). Why is treating "1%" as aleatoric risk dangerous, and what decision rule respects the structure?<details class="sol"><summary>Solution</summary><div>The spread is epistemic: one plausible model says 2.9% — the true risk may be ~3×, and crucially the error is <em>systematic</em>: if the pessimistic model is right, it is right on every future maneuver too (correlated failures, no CLT rescue). Averaging launders model disagreement into a false point estimate. Respecting the structure: act on a robust quantile of the ensemble (e.g. decide as if risk = worst plausible member, or CVaR over the model posterior), and treat the disagreement as an EVOI signal — gather data that discriminates the members before committing to repeated execution.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="normal-form-games">
+ <h2>Normal-form games</h2>
+ <p>Now the environment thinks back. A normal-form game strips strategic interaction to its skeleton: players, each with a strategy menu, and a payoff for every combination of choices, all decided simultaneously. The payoff matrix is to game theory what the state space is to decision theory — get it right and the analysis is half done.</p>
+ <div class="box def"><span class="label">Definition</span> A normal-form game: players $i=1..n$, strategy sets $S_i$, payoff functions $u_i:S_1\times\cdots\times S_n\to\mathbb R$. Two-player games are written as a bimatrix: cell $(a,b)$ holds $(u_1(a,b),u_2(a,b))$. Each player knows the whole structure; choices are simultaneous.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prisoner's Dilemma (years in prison as negative payoff; C = stay silent, D = betray):
+ $$\begin{array}{c|cc} & C & D\\\hline C & (-1,-1) & (-10,0)\\ D & (0,-10) & (-6,-6)\end{array}$$
+ Each cell: (row's payoff, column's payoff). Whatever the column player does, the row player fares better defecting ($0>-1$ against C; $-6>-10$ against D) — and symmetrically. Both defect, landing at $(-6,-6)$ though $(-1,-1)$ was available: individually flawless reasoning, collectively poor outcome. That gap is the subject of the rest of this chapter.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the payoff matrix for Matching Pennies: both pick heads or tails; row wins \$1 if they match, column wins \$1 if they differ.<details class="sol"><summary>Solution</summary><div>$\begin{array}{c|cc} & H & T\\\hline H & (1,-1) & (-1,1)\\ T & (-1,1) & (1,-1)\end{array}$ — a zero-sum game: every cell's payoffs sum to 0.</div></details></li>
+  <li><span class="lvl m">MED</span> Stag Hunt: hunt stag together (4,4); hunt hare alone (3,0 hare-hunter... precisely: (S,S)=(4,4), (S,H)=(0,3), (H,S)=(3,0), (H,H)=(3,3)). What makes this strategically different from the Prisoner's Dilemma?<details class="sol"><summary>Solution</summary><div>No dominant strategy: stag is best iff the other hunts stag; hare is best iff the other hunts hare. Two self-consistent conventions exist ((S,S) — payoff-dominant, and (H,H) — risk-dominant safe), and the problem is <em>coordination and trust</em>, not temptation: unlike the PD, mutual cooperation is self-enforcing once expected.</div></details></li>
+  <li><span class="lvl h">HARD</span> Model two LLM-agent companies choosing "release fast" vs "test thoroughly", where fast release wins market share but joint fast release causes incidents harming both. Assign payoffs making it (a) a Prisoner's Dilemma; then adjust one number to make it (b) a Stag Hunt, and interpret.<details class="sol"><summary>Solution</summary><div>(a) PD: (Test,Test)=(3,3); (Fast,Test)=(4,0); (Test,Fast)=(0,4); (Fast,Fast)=(1,1). Fast dominates ($4>3$, $1>0$): both race, get (1,1) — the safety race-to-the-bottom. (b) Raise the incident cost of unilateral fast release (fast releaser hit by backlash): (Fast,Test)=(2,0) — now against Test, Test is better ($3>2$); against Fast, Fast is better ($1>0$): a Stag Hunt with equilibria (Test,Test) and (Fast,Fast). Interpretation: reputational/regulatory costs on defectors convert a doomed dilemma into a coordination problem where mutual care is stable if expected — the strategic purpose of enforceable norms (mechanism design, last section).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dominant-strategies">
+ <h2>Dominant strategies</h2>
+ <p>A dominant strategy is best no matter what opponents do — the rare luxury of not needing to predict anyone. When every player has one, the game solves itself (as in the Prisoner's Dilemma); more often, deleting <em>dominated</em> strategies iteratively prunes the game, sometimes all the way to a unique prediction.</p>
+ <div class="box def"><span class="label">Definition</span> Strategy $s_i$ <b>strictly dominates</b> $s_i'$ if $u_i(s_i,s_{-i})>u_i(s_i',s_{-i})$ for every opponent profile $s_{-i}$ (weakly: $\ge$ everywhere, $>$ somewhere). Iterated elimination of strictly dominated strategies (IESDS): repeatedly delete dominated strategies from any player; the surviving set is order-independent and contains all Nash equilibria.</div>
+ <div class="box ex"><span class="label">Worked example</span> Row has strategies U, M, D vs column's L, R with row payoffs: U: (3,0); M: (2,2); D: (0,3) and suppose column payoffs make column play either. Is M dominated? By U: no ($2>0$ at R... compare per column: L: U=3>M=2; R: U=0<M=2) — not by U; by D: L: 0<2, no. But by a <em>mixture</em>: play U and D each with ½: payoffs (1.5, 1.5)... that loses to M at both. Try mixing U,D with weights $(q,1-q)$: L: $3q$, R: $3(1-q)$. Need both $>2$: $q>\tfrac23$ and $q<\tfrac13$ — impossible: M is not dominated here. Change M to (1.4,1.4): mixture at $q=\tfrac12$ gives (1.5,1.5) > (1.4,1.4): M is strictly dominated <em>by a mixed strategy</em> though no pure strategy dominates it — mixtures matter even for elimination.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the Prisoner's Dilemma, verify D strictly dominates C for the row player.<details class="sol"><summary>Solution</summary><div>Against C: $u(D)=0>-1=u(C)$. Against D: $-6>-10$. Strict dominance in both columns. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Solve by IESDS: row payoffs $\begin{pmatrix}L&C&R\\ T:\,4&3&2\\ B:\,2&1&3\end{pmatrix}$... use bimatrix: (T,L)=(4,2),(T,C)=(3,3),(T,R)=(2,1); (B,L)=(2,1),(B,C)=(1,2),(B,R)=(3,4). Eliminate.<details class="sol"><summary>Solution</summary><div>Column's payoffs: L gives (2,1), C gives (3,2), R gives (1,4) against (T,B). Does C dominate L for column? vs T: $3>2$ ✓; vs B: $2>1$ ✓ — L strictly dominated, delete. Remaining columns C,R: row compares T (3 vs 2) and B (1 vs 3) — neither dominates. Column between C and R: vs T: 3>1 keeps... column payoffs: (T,C)=3,(T,R)=1; (B,C)=2,(B,R)=4 — no dominance. Two-by-two remains: no further elimination; IESDS narrows but doesn't fully solve (Nash analysis takes over — next section: check (T,C) is a pure Nash: row at C: T=3>B=1 ✓; column at T: C=3>R=1 ✓ — equilibrium).</div></details></li>
+  <li><span class="lvl h">HARD</span> In a second-price sealed-bid auction (highest bidder wins, pays second-highest bid), show bidding your true value $v$ weakly dominates every other bid.<details class="sol"><summary>Solution</summary><div>Let $p$ = highest opposing bid. Bid $b=v$: win iff $p<v$, pay $p$, surplus $v-p>0$; lose otherwise, surplus 0. Any $b>v$: outcomes identical when $p<v$ or $p>b$; but when $v\le p<b$... for $p$ between $v$ and $b$ you now win and pay $p\ge v$: surplus $\le0$ — weakly worse. Any $b<v$: identical when $p<b$ or $p>v$; when $b\le p<v$ you now lose a profitable win (surplus $v-p>0$ forgone) — weakly worse. So truthful bidding is optimal regardless of opponents: the auction is <em>strategyproof</em>, the flagship example of mechanism design (final section).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="nash-equilibrium">
+ <h2>Nash equilibrium</h2>
+ <p>A Nash equilibrium is a profile of strategies where nobody gains by deviating alone: every player's choice is a best response to everyone else's. It is the self-consistency condition of strategic prediction — any proposed "solution" failing it refutes itself, since some player would break it. Existence is guaranteed (with mixtures); uniqueness and goodness are not.</p>
+ <div class="box def"><span class="label">Definition</span> A profile $(s_1^*,\dots,s_n^*)$ is a Nash equilibrium if for every player $i$ and every alternative $s_i$: $$u_i(s_i^*,s_{-i}^*)\ \ge\ u_i(s_i,s_{-i}^*).$$ <b>Theorem (Nash 1950)</b>: every finite game has at least one equilibrium in mixed strategies.</div>
+ <div class="box ex"><span class="label">Worked example</span> Battle of the Sexes: two friends prefer being together; row prefers opera, column prefers football: (O,O)=(2,1), (F,F)=(1,2), miscoordination (0,0). Check (O,O): row deviating to F gets 0<2 ✓; column deviating gets 0<1 ✓ — equilibrium. Symmetrically (F,F). Two pure equilibria (plus one mixed) — Nash narrows to self-consistent outcomes but does not select among them; conventions, communication or focal points do.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Nash ≠ optimal: the Prisoner's Dilemma's unique equilibrium (D,D) is Pareto-dominated by (C,C). Equilibrium is a stability concept — no <em>unilateral</em> incentive to move — not a welfare concept; groups can be stably stuck in bad places. Also: real humans (and trained agents) often don't play Nash, especially in one-shot games; treat it as a boundary condition, not a forecast.</div>
+ <div class="quiz" data-answer="2"><div class="q">A game has no pure-strategy Nash equilibrium. What does Nash's theorem guarantee?</div><button class="opt">Nothing — some games have no equilibrium</button><button class="opt">A pure equilibrium exists if the game is zero-sum</button><button class="opt">A mixed-strategy equilibrium exists (the game is finite)</button><div class="why" hidden>Nash's theorem: every finite game has an equilibrium once randomized strategies are allowed. Matching Pennies is the canonical example — no pure equilibrium, unique mixed one at 50/50 for both.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find all pure Nash equilibria of the Stag Hunt ((S,S)=(4,4),(S,H)=(0,3),(H,S)=(3,0),(H,H)=(3,3)).<details class="sol"><summary>Solution</summary><div>(S,S): deviate to H gets 3<4 ✓ both — equilibrium. (H,H): deviate to S gets 0<3 ✓ both — equilibrium. (S,H)/(H,S): the S-player gains by switching (0→3): not equilibria. Two pure equilibria.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify (D,D) is the unique Nash equilibrium of the Prisoner's Dilemma.<details class="sol"><summary>Solution</summary><div>(D,D): deviating to C gives $-10<-6$ ✓ both: equilibrium. (C,C): deviate to D: $0>-1$ — not. (C,D): row deviates C→D: $-6>-10$ — not. (D,C) symmetric. Mixed: since D strictly dominates C, any positive weight on C is strictly improvable; the unique equilibrium is pure (D,D).</div></details></li>
+  <li><span class="lvl h">HARD</span> Three drivers simultaneously choose route A or B; payoff = $-$(congestion): a route with $k$ users costs each of them $k$. Find all pure equilibria and compare to the social optimum.<details class="sol"><summary>Solution</summary><div>Splits: (3,0): a driver on A pays 3; switching to B pays 1 — deviates: not equilibrium. (2,1): A-drivers pay 2; switching → B has 2 users → pays 2: no gain. B-driver pays 1; switching → A has 3 → pays 3: no. Equilibrium ✓ (any 2–1 split; 6 such profiles). Total cost at (2,1): $2+2+1=5$. Social optimum: minimize $k^2+(3-k)^2$: $k=1.5$ → integer best is the same 2–1 split, cost 5. Here equilibrium <em>is</em> optimal; with nonlinear congestion (cost $k^2$ each) equilibria and optima diverge — the "price of anarchy" measures that gap, and it is why traffic and compute-cluster scheduling need mechanisms, not just equilibria.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mixed-strategies">
+ <h2>Mixed strategies</h2>
+ <p>When any predictable choice can be punished, unpredictability becomes the strategy: randomize. A mixed strategy assigns probabilities to your pure options, and in equilibrium the probabilities are set by a strange, backwards logic — each player randomizes exactly so as to make the <em>opponent</em> indifferent among the actions they mix over.</p>
+ <div class="box def"><span class="label">Definition</span> A mixed strategy for player $i$ is a distribution $\sigma_i$ over $S_i$; payoffs extend by expectation. <b>Indifference principle</b>: in equilibrium, every pure strategy in the support of $\sigma_i$ earns the same expected payoff against $\sigma_{-i}$ (else $i$ would shift mass to the better one), and no strategy outside the support earns more.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Matching Pennies from the row player's view: slide column's $\Pr(H)$ and see row's expected payoff for H, T and the best response; equilibrium is where the lines cross (0.5) and row becomes indifferent.</p>
+  <canvas id="cv-mixed"></canvas>
+  <div class="ctl"><label>column's Pr(H) <input type="range" id="mx-q" min="0" max="1" step="0.01" value="0.65"></label></div>
+  <div class="out" id="mx-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Battle of the Sexes mixed equilibrium. Let column play O with probability $q$. Row indifferent: $u(O)=2q$, $u(F)=1(1-q)$: $2q=1-q\Rightarrow q=\tfrac13$. Symmetrically row plays O with $p$ making column indifferent: $1\cdot p=2(1-p)\Rightarrow p=\tfrac23$. Equilibrium: row (⅔ O), column (⅓ O). Expected payoff each: $2\cdot\tfrac23\cdot\tfrac13+1\cdot\tfrac13\cdot\tfrac23+0=\tfrac23$ — worse than either pure equilibrium (1 and 2): the price of failing to coordinate, paid in miscoordination probability $\tfrac23\cdot\tfrac23+\tfrac13\cdot\tfrac13=\tfrac59$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must Matching Pennies' equilibrium be 50/50 for both?<details class="sol"><summary>Solution</summary><div>Any bias is exploitable: if column plays H with $q>\tfrac12$, row's H earns $2q-1>0$ — row plays pure H, then column strictly prefers T, contradiction. Only $q=p=\tfrac12$ makes both indifferent, hence stable.</div></details></li>
+  <li><span class="lvl m">MED</span> A penalty kicker scores with probability 0.9 shooting left if the keeper dives right, 0.5 if the keeper guesses left; shooting right: 0.8 vs keeper-right... set: score matrix (kicker's probability): (L, keeper-L)=0.5, (L, keeper-R)=0.9, (R, keeper-L)=0.8, (R, keeper-R)=0.4. Find the keeper's equilibrium mix.<details class="sol"><summary>Solution</summary><div>Keeper (minimizing score) picks $\Pr(\text{keeper-L})=g$ making kicker indifferent: $0.5g+0.9(1-g)=0.8g+0.4(1-g)\Rightarrow0.9-0.4g=0.4+0.4g\Rightarrow0.8g=0.5\Rightarrow g=0.625$. Kicker's equilibrium scoring rate: $0.5\cdot0.625+0.9\cdot0.375=0.65$. (Real keeper/kicker data famously matches indifference predictions well — one of game theory's cleanest empirical wins.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that in any finite two-player game, if $\sigma$ is a mixed equilibrium then every pure strategy in $\mathrm{supp}(\sigma_1)$ is a best response to $\sigma_2$ — and explain the seeming paradox that the mixing player gains nothing from randomizing.<details class="sol"><summary>Solution</summary><div>Expected payoff is linear in $\sigma_1$: $u_1(\sigma_1,\sigma_2)=\sum_sp_su_1(s,\sigma_2)$. If some support strategy $s'$ had $u_1(s',\sigma_2)<\max_su_1(s,\sigma_2)$, moving its mass to the max strictly increases the sum — contradicting equilibrium. Hence all support strategies achieve the max: each is a best response. The "paradox": given the opponent's equilibrium mix, the randomizer is indeed indifferent — randomization isn't for <em>this</em> payoff but for <em>stability</em>: any deterministic choice would change the opponent's best response and unravel the profile. The mix is held in place by the opponent's exploitation threat, not by direct gain.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="zero-sum-games-and-minimax">
+ <h2>Zero-sum games and minimax</h2>
+ <p>In strictly competitive games — my gain is exactly your loss — the right paranoia is provably optimal: choose the strategy whose worst case is best, expecting an opponent who sees you coming. Von Neumann's theorem says the maximin and minimax values coincide (with mixing), so "security level" thinking loses nothing, and equilibrium = optimal play for both.</p>
+ <div class="box def"><span class="label">Definition</span> A two-player zero-sum game: $u_2=-u_1$; write the row player's payoff matrix $A$. Maximin: $\underline v=\max_{\sigma_1}\min_{\sigma_2}\sigma_1^\top A\sigma_2$; minimax: $\bar v=\min_{\sigma_2}\max_{\sigma_1}\sigma_1^\top A\sigma_2$. <b>Minimax theorem (von Neumann 1928)</b>: $\underline v=\bar v=v$, the game's value; optimal mixed strategies exist and form exactly the Nash equilibria. Computable by linear programming (Ch 15's duality: the two players' LPs are duals).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A=\begin{pmatrix}3&-1\\-2&4\end{pmatrix}$ (row maximizes). No saddle point (row minima: $-1,-2$; max $=-1$; column maxima: $3,4$; min $=3$; $-1\ne3$). Row mixes $(p,1-p)$ to equalize column responses: vs col-1: $3p-2(1-p)=5p-2$; vs col-2: $-p+4(1-p)=4-5p$. Equal: $5p-2=4-5p\Rightarrow p=0.6$, value $v=5(0.6)-2=1$. Column mixes $(q,1-q)$: $3q-(1-q)=4q-1$ and $-2q+4(1-q)=4-6q$: $4q-1=4-6q\Rightarrow q=0.5$, value $=1$ ✓. Row guarantees $\ge1$; column guarantees row $\le1$: the value is exactly 1.</div>
+ <div class="box link"><span class="label">Where this goes</span> Minimax is Ch 26's game-tree search criterion (chess engines are approximate minimax machines), the "min" player in GAN training (Ch 22), and the worst-case stance of robust/adversarial ML (Ch 35).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the saddle point of $A=\begin{pmatrix}4&2\\1&0\end{pmatrix}$.<details class="sol"><summary>Solution</summary><div>Row minima: $(2,0)$ → maximin row 1, $\underline v=2$. Column maxima: $(4,2)$ → minimax col 2, $\bar v=2$. Equal: saddle at (row 1, col 2), value 2 — pure optimal strategies, no mixing needed.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the row player's "equalize the opponent's options" computation find the optimal mix in a 2×2 game without a saddle?<details class="sol"><summary>Solution</summary><div>If column's two responses gave different payoffs against row's mix, column would pick the lower one, and row could improve by shifting probability against that response — so at the optimum row's worst case is flat across column's supports: equalization = maximizing the minimum. It is the indifference principle viewed from the defender's side; in larger games the same logic becomes the LP $\max v$ s.t. $A^\top\sigma_1\ge v\mathbf1$, $\sigma_1\in\Delta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that in zero-sum games equilibrium strategies are interchangeable and equal-valued (if $(\sigma_1,\sigma_2)$ and $(\tau_1,\tau_2)$ are equilibria, so are the crosses, all with value $v$) — and why this fails outside zero-sum.<details class="sol"><summary>Solution</summary><div>Equilibrium payoffs: $u(\sigma_1,\sigma_2)=u(\tau_1,\tau_2)=v$ (both equal the game value by the minimax theorem). Cross profile $(\sigma_1,\tau_2)$: $\sigma_1$ guarantees $\ge v$ against anything (it attains the maximin); $\tau_2$ guarantees $\le v$: hence $u(\sigma_1,\tau_2)=v$, and each is a best response to the other (neither can beat the value the other enforces): equilibrium. Non-zero-sum counterexample: Battle of the Sexes — (O,O) and (F,F) are equilibria with different payoffs, and the crosses (O,F),(F,O) pay (0,0): not equilibria. Interchangeability is the special zero-sum gift: "optimal play" is well-defined without coordination — the reason chess engines needn't model their specific opponent.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="repeated-games">
+ <h2>Repeated games</h2>
+ <p>Play the same game tomorrow and today's defection has a price: your reputation. Repetition turns one-shot logic upside down — cooperation in the Prisoner's Dilemma can become equilibrium behavior, sustained by the credible threat of future punishment, provided the future matters enough (high continuation probability / low discounting).</p>
+ <div class="box def"><span class="label">Definition</span> A repeated game plays stage game $G$ for $T$ rounds (or infinitely, with discount factor $\delta\in(0,1)$: payoff $\sum_t\delta^tu_i(t)$, or continuation probability $\delta$ per round). Strategies condition on history. <b>Folk theorem (informal)</b>: for $\delta$ close enough to 1, every feasible payoff profile giving each player more than their minmax value is sustainable as an equilibrium — repetition makes an enormous set of outcomes self-enforcing, cooperation included.</div>
+ <div class="box ex"><span class="label">Worked example</span> PD with payoffs (C,C)=3 each, (D,C)=5 to defector / 0 to victim, (D,D)=1, discount $\delta$. Grim trigger: cooperate until anyone defects, then defect forever. Deviation payoff: $5+\delta\cdot\frac{1}{1-\delta}$ vs cooperation $\frac{3}{1-\delta}$. Cooperation sustained iff $\frac{3}{1-\delta}\ge5+\frac{\delta}{1-\delta}$: $3\ge5(1-\delta)+\delta\Rightarrow3\ge5-4\delta\Rightarrow\delta\ge\tfrac12$. If each round follows with $\ge$50% probability, the one-time gain of 2 never beats the perpetual loss of 2 per round.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Finitely repeated with a <em>known</em> last round: backward induction unravels cooperation entirely (defect at $T$ since no future; then $T-1$ is effectively last; induction to round 1). Real cooperation survives because horizons are uncertain, reputations extend beyond the pair, and players aren't common-knowledge rational — the theory's cleanest negative result is also its best-documented empirical failure. Noise matters too: with occasional misperceived moves, grim trigger detonates permanently over accidents; forgiving strategies (tit-for-tat with occasional forgiveness, win-stay-lose-shift) dominate noisy tournaments.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Under grim trigger with $\delta=0.9$ (worked example's payoffs), compute both the cooperate-forever and deviate-now values.<details class="sol"><summary>Solution</summary><div>Cooperate: $3/(1-0.9)=30$. Deviate: $5+0.9\cdot1/(0.1)=5+9=14$. Cooperation wins by 16 — heavily enforced at high $\delta$.</div></details></li>
+  <li><span class="lvl m">MED</span> Tit-for-tat (start C, then copy opponent's last move) famously won Axelrod's tournaments. Name its four celebrated properties and one weakness.<details class="sol"><summary>Solution</summary><div>Nice (never defects first), retaliatory (punishes immediately), forgiving (returns to C after opponent does), clear (opponents can learn it). Weakness: noise — a single accidental D triggers an echo of alternating retaliation (D,C),(C,D),… forever with another TFT; generous or contrite variants break the echo.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two LLM agents repeatedly negotiate API prices for their principals. Explain, using the folk theorem and the last-round problem, why (a) long-horizon deployment with unknown termination fosters collusive pricing, and (b) what a mechanism designer could change to prevent it.<details class="sol"><summary>Solution</summary><div>(a) Unknown termination = effective discount $\delta$ near 1: the folk theorem makes high-price collusion (both quoting high, punishing undercuts by price wars) an equilibrium — no communication needed, just history-conditioned strategies; learning agents can converge to such conduct from reward alone (documented in pricing-algorithm studies). (b) Levers that break the enforcement mechanism: shorten effective horizons (randomized re-matching so the same pair rarely repeats), reduce observability of rivals' prices (punishment can't condition on what can't be seen), cap memory/history available to the agents, or add auditing that penalizes punishment-shaped strategies directly. All work by pushing the interaction back toward the one-shot game, where competitive pricing is dominant — a rare case where <em>destroying</em> repeated-game structure is the pro-social design (Ch 33's collusion risks).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mechanism-design">
+ <h2>Mechanism design</h2>
+ <p>Mechanism design is game theory played backwards: you want a social outcome — honest bids, efficient allocation, truthful reports — and you get to write the rules. Design payoffs so that each participant's selfish best move is the behavior you wanted. The crown jewels: truthful auctions (second-price/VCG) and the revelation principle, which says you can always look for mechanisms where honesty is optimal.</p>
+ <div class="box def"><span class="label">Definition</span> A mechanism specifies a message space per agent and an outcome rule (allocation + payments) mapping messages to results. It is <b>incentive-compatible</b> (strategyproof, in dominant strategies) if truthful reporting is optimal for every agent regardless of others. <b>Revelation principle</b>: any equilibrium outcome of any mechanism can be replicated by a truthful direct mechanism. <b>VCG</b>: allocate to maximize reported total value; charge each agent the externality they impose on others — truthfulness is a dominant strategy.</div>
+ <div class="box ex"><span class="label">Worked example</span> One item, bidders value it (privately) at 10, 8, 5. Second-price auction: everyone bids truthfully (dominance, proved in the dominant-strategies drill); bidder 1 wins, pays 8 — the externality: without bidder 1, the item would have gone to bidder 2 who valued it at 8. Check VCG framing: others' welfare without me: 8; with me winning: 0; my payment $=8-0=8$ ✓. The winner's own bid sets whether they win, never what they pay — severing that link is what kills the incentive to shade.</div>
+ <div class="box link"><span class="label">Where this goes</span> Mechanism design governs multi-agent AI directly: eliciting honest confidence from model ensembles (proper scoring rules are mechanisms), allocating shared compute among agents, auction-based task delegation (Ch 33), and designing evaluation schemes agents can't game (Ch 32, Ch 35).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In a first-price auction (winner pays own bid), why is truthful bidding <em>not</em> optimal?<details class="sol"><summary>Solution</summary><div>Bidding your value guarantees zero surplus even when you win; shading below value trades a small win-probability loss for positive surplus on wins — the optimal bid is strictly below value (e.g. with uniform rivals, bid $\frac{n-1}{n}v$). Strategy re-enters, and with it, guesswork about others.</div></details></li>
+  <li><span class="lvl m">MED</span> A logarithmic scoring rule pays a forecaster $\log p(y)$ where $p$ is their reported distribution and $y$ the realized outcome. Show truthful reporting maximizes expected payment.<details class="sol"><summary>Solution</summary><div>With true belief $q$, expected pay for reporting $p$: $\sum_yq(y)\log p(y)=-H(q)-\mathrm{KL}(q\|p)$ (Ch 16). KL $\ge0$ with equality iff $p=q$: any dishonest report costs exactly the KL divergence. The log score is a mechanism making honesty dominant for beliefs — the elicitation analogue of the second-price auction (and the reason log-loss-trained models are incentivized toward calibrated probabilities).</div></details></li>
+  <li><span class="lvl h">HARD</span> VCG with two items and three bidders: A values the pair (only together) at 10; B values item 1 alone at 6; C values item 2 alone at 5. Compute the efficient allocation and each winner's VCG payment.<details class="sol"><summary>Solution</summary><div>Allocations: A takes both: welfare 10. B and C take one each: $6+5=11$ — efficient: B gets item 1, C gets item 2. Payments = externality imposed: <b>B</b>: others' welfare without B: best is A's 10 (C alone gives 5): 10; others' welfare with B present: C's 5 (A gets nothing): 5. B pays $10-5=5$. <b>C</b>: without C: 10 (A takes pair; B alone gives 6 — take max: 10); with C: B's 6. C pays $10-6=4$. Checks: B's surplus $6-5=1>0$, C's $5-4=1>0$; truthful reports are dominant. Note the "exposure" bidder A, though losing, disciplines both prices — and total revenue $9<11$: VCG buys truthfulness and efficiency, not revenue maximization (and in combinatorial settings has its own vulnerabilities — collusion and shill bids — which is why mechanism design remains open engineering, not solved math).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Test, then treat — the full Bayesian decision pipeline.</b> Disease prior 2%; test sensitivity 90%, specificity 96%, test cost 0.5 utils. Losses: treat/sick 2, treat/healthy 8, skip/sick 60, skip/healthy 0. (a) Without testing, what is the best action and expected loss? (b) Compute both posteriors and post-test decisions. (c) Is the test worth its cost?<details class="sol"><summary>Solution</summary><div>(a) Treat: $0.02\cdot2+0.98\cdot8=7.88$; skip: $0.02\cdot60=1.2$. Skip; loss 1.2. (b) $p(+)=0.02\cdot0.9+0.98\cdot0.04=0.018+0.0392=0.0572$. Posterior$(+)=0.018/0.0572=0.3147$: treat costs $0.3147\cdot2+0.6853\cdot8=6.11$... vs skip $0.3147\cdot60=18.9$: treat (loss 6.11). Posterior$(-)=\frac{0.02\cdot0.1}{0.9428}=0.00212$: skip costs $0.00212\cdot60=0.127$; treat costs $0.00212\cdot2+0.9979\cdot8\approx7.99$: skip (loss 0.127). (c) Expected loss with test $=0.0572\cdot6.11+0.9428\cdot0.127=0.3495+0.1197=0.469$, plus cost 0.5 → 0.969 < 1.2. Yes — worth it, by 0.23 utils (EVOI $=1.2-0.469=0.731>0.5$).</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Bandit meets abstention.</b> An LLM router chooses between model A (accuracy 0.82, known) and new model B (unknown accuracy, prior Beta(8,4) — mean ⅔) per query; wrong answers cost 1, right answers 0, and it may instead escalate to a human at cost 0.25. (a) With no learning (one query), what does it do? (b) After routing 40 queries to B with 30 correct, what now? (c) Explain why the one-shot answer in (a) understates B's value in a 10,000-query deployment, and give the Thompson-style routing rule.<details class="sol"><summary>Solution</summary><div>(a) Expected costs: A: 0.18; B: $1-\tfrac23=0.333$; human: 0.25. Route to A (0.18 < 0.25 < 0.333). (b) Posterior Beta(38,14): mean $=38/52\approx0.731$; cost 0.269 — still worse than A; keep A (and escalation still loses to A). (c) One-shot ignores information value: if B's true accuracy exceeds 0.82 (posterior probability $\Pr[\mu_B>0.82]$ is small but real — Beta(8,4) puts ~11% above 0.82), discovering that is worth $\approx10^4\cdot(\mu_B-0.82)$ saved errors; a few hundred exploratory routes cost at most $\approx(0.333-0.18)\cdot n_{\text{explore}}$. Thompson rule: per query sample $\tilde\mu_B\sim\mathrm{Beta}(s+8,f+4)$; route to B iff $1-\tilde\mu_B<0.18$ (i.e. $\tilde\mu_B>0.82$), else A; escalate never while a model beats 0.25... precisely: route to human iff $\min(0.18,1-\tilde\mu_B)>0.25$ — never here. The posterior draws automatically decay exploration as evidence accumulates, and would have routed B a natural minority share from the start.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Design a safety game.</b> Two labs choose test durations $t\in\{0,1,2\}$ (months). Market payoff: $6-3t_i+2t_j$... use: releasing earlier than the rival gains market share; incidents cost both. Payoffs: $u_i=4+2(t_j-t_i)-\mathbf 1[t_i{=}0]\cdot2-\mathbf 1[t_i{=}0\wedge t_j{=}0]\cdot4$. (a) Build the 3×3 payoff matrix and find pure Nash equilibria. (b) Find the social optimum. (c) Design the smallest per-unit-of-undertesting fine $F$ (paid on $2-t_i$) that makes $(2,2)$ a dominant-strategy outcome.<details class="sol"><summary>Solution</summary><div>(a) Compute $u_1(t_1,t_2)$: $t_1=0$: base $4+2t_2-2$, minus 4 more if $t_2=0$: row $(-2,4,6)$ for $t_2=(0,1,2)$. $t_1=1$: $4+2(t_2-1)$: $(2,4,6)$. $t_1=2$: $4+2(t_2-2)$: $(0,2,4)$. Best responses to $t_2=0$: max$(-2,2,0)$→$t_1=1$; to $t_2=1$: $(4,4,2)$→$t_1\in\{0,1\}$; to $t_2=2$: $(6,6,4)$→$\{0,1\}$. Symmetric pure equilibria: $(1,1)$ ✓ (both best-respond: $u=4$, deviations give 2 or... check row at $t_2=1$: $(4,4,2)$ — $t_1=1$ ties $t_1=0$: $(1,1)$ is an equilibrium (weak), and $(0,1)/(1,0)$: at $(0,1)$ row gets 4 (tie, stays), column at $t_1=0$: $(−2? )$ column's payoffs mirror: $u_2(0,1)$ means $t_2=1$ vs $t_1=0$: from the $t_1=1$-row logic with roles swapped: $u_2=2$; column's alternatives vs $t_1=0$: $t_2=0$: $-2$; $t_2=1$: 2; $t_2=2$: 0 → stays: $(0,1)$ is also (weak) Nash with payoffs $(4,2)$. (b) Social welfare $u_1+u_2$: $(2,2)$: $4+4=8$; $(1,1)$: 8; $(0,0)$: $-4$; asymmetric $(0,1)$: 6; $(1,2)$: $6+2=8$. Several profiles tie at 8; note transfers $2(t_j-t_i)$ cancel in the sum — welfare is $8-2\mathbf1[t_1{=}0]-2\mathbf1[t_2{=}0]-8\mathbf1[\text{both }0]$, maximized by any profile avoiding $t=0$. (c) Add fine $F(2-t_i)$: $u_i'=u_i-F(2-t_i)$. Undertesting's private gain per unit is at most 2 (the $-2t_i$ inside $2(t_j-t_i)$), plus 2 more avoiding the $t_i=0$ penalty is negative — dominant $t_i=2$ requires $u'$ increasing in $t_i$ against every $t_j$: marginal gain of raising $t_i$ by 1 is $-2+F$ (plus $+2$ leaving $t_i=0$). Need $F>2$: any $F>2$ (e.g. $F=2.01$) makes $t_i=2$ strictly dominant, selecting $(2,2)$ with welfare 8 and no incidents. The fine needn't exceed the <em>private</em> gain from racing (2/unit), not the social harm — pricing the deviation incentive, not the damage, is the mechanism-design move.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: a bandit bake-off, a decision-tree EVOI calculator, and a Nash solver for 2×2 games.</p>
+ <div class="box ex"><span class="label">Task 1 — ε-greedy vs UCB vs Thompson</span> Simulate a 3-armed Bernoulli bandit (rates 0.35, 0.55, 0.45) for 5,000 steps × 200 runs; plot/print mean cumulative regret of the three algorithms.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+mu = np.array([0.35, 0.55, 0.45]); K = 3; T = 5000; RUNS = 200
+best = mu.max()
+
+def run(algo):
+    regret = np.zeros(T)
+    for _ in range(RUNS):
+        s = np.zeros(K); f = np.zeros(K)   # successes, failures
+        for t in range(T):
+            n = s + f
+            if algo == 'eps':
+                a = rng.integers(K) if rng.random() &lt; 0.1 else np.argmax(s/np.maximum(n,1))
+            elif algo == 'ucb':
+                a = t if t &lt; K else np.argmax(s/n + np.sqrt(2*np.log(t+1)/n))
+            else:  # thompson
+                a = np.argmax(rng.beta(s+1, f+1))
+            r = rng.random() &lt; mu[a]
+            s[a] += r; f[a] += 1-r
+            regret[t] += best - mu[a]
+    return regret.cumsum() / RUNS
+
+for algo in ['eps', 'ucb', 'thompson']:
+    reg = run(algo)
+    print(f"{algo:9s} regret @1000: {reg[999]:7.1f}  @5000: {reg[-1]:7.1f}")
+# expected: eps grows ~linearly (~0.1*mean-gap*T); ucb & thompson ~log T,
+# with thompson typically lowest.</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — EVOI on a decision tree</span> Implement generic EVOI: given prior, likelihoods, actions and a utility table, compute prior-optimal EU, posterior decisions per observation, EVOI and EVPI. Verify the umbrella numbers from this chapter.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def evoi(prior, like, U):
+    # prior: (S,), like: p(y|s) shape (S,Y), U: utility (A,S)
+    prior = np.asarray(prior, float)
+    EU_prior = (U * prior).sum(1)                 # (A,)
+    base = EU_prior.max()
+    py = like.T @ prior                           # (Y,)
+    post = (like * prior[:, None]).T / py[:, None]  # (Y,S)
+    EU_post = post @ U.T                          # (Y,A)
+    with_info = (py * EU_post.max(1)).sum()
+    evpi = (prior * U.max(0)).sum() - base
+    return base, with_info - base, evpi
+
+# umbrella: states [rain, dry], actions [carry, leave]
+prior = [0.3, 0.7]
+U = np.array([[7, 8],     # carry: rain, dry
+              [1, 10]])   # leave
+like = np.array([[0.8, 0.2],   # p(forecast | rain)   -&gt; [says-rain, says-dry]
+                 [0.2, 0.8]])  # p(forecast | dry)
+base, ev, evpi = evoi(prior, like, U)
+print(f"base EU {base:.3f}  EVOI {ev:.3f}  EVPI {evpi:.3f}")
+# base 7.700, EVOI 0.760, EVPI 1.400  (matches the chapter)</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — 2×2 Nash solver</span> Write a solver returning all pure equilibria and the mixed equilibrium (when it exists) of a 2×2 bimatrix game; verify on Matching Pennies, Prisoner's Dilemma and Battle of the Sexes.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def nash_2x2(A, B):
+    # A: row payoffs (2x2), B: column payoffs (2x2)
+    A, B = np.asarray(A, float), np.asarray(B, float)
+    pure = []
+    for i in range(2):
+        for j in range(2):
+            if A[i, j] &gt;= A[1-i, j] and B[i, j] &gt;= B[i, 1-j]:
+                pure.append((i, j))
+    mixed = None
+    # column mixes q on col0 to make row indifferent; row mixes p on row0 for column
+    denq = (A[0,0]-A[0,1]-A[1,0]+A[1,1])
+    denp = (B[0,0]-B[1,0]-B[0,1]+B[1,1])
+    if denq != 0 and denp != 0:
+        q = (A[1,1]-A[0,1]) / denq
+        p = (B[1,1]-B[1,0]) / denp
+        if 0 &lt; q &lt; 1 and 0 &lt; p &lt; 1:
+            mixed = (p, q)
+    return pure, mixed
+
+MP_A = [[ 1,-1],[-1, 1]]; MP_B = [[-1, 1],[ 1,-1]]
+PD_A = [[-1,-10],[0,-6]]; PD_B = [[-1,0],[-10,-6]]
+BS_A = [[2,0],[0,1]];     BS_B = [[1,0],[0,2]]
+
+print(nash_2x2(MP_A, MP_B))  # ([], (0.5, 0.5))
+print(nash_2x2(PD_A, PD_B))  # ([(1, 1)], None)   -&gt; (D,D)
+print(nash_2x2(BS_A, BS_B))  # ([(0,0),(1,1)], (2/3, 1/3))</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/14-12-economic-applications-of-game-theory-fall-2012/">MIT OCW 14.12 — Economic Applications of Game Theory</a> — full lecture notes covering normal-form games, Nash, mixing, repeated games.</li>
+  <li><a href="https://www.masfoundations.org/">Shoham &amp; Leyton-Brown — <i>Multiagent Systems</i> (free PDF)</a> — game theory and mechanism design written for AI readers; the bridge to Ch 33.</li>
+  <li><a href="https://tor-lattimore.com/downloads/book/book.pdf">Lattimore &amp; Szepesvári — <i>Bandit Algorithms</i> (free)</a> — the definitive treatment of UCB, Thompson sampling and regret bounds.</li>
+  <li><a href="http://incompleteideas.net/book/the-book-2nd.html">Sutton &amp; Barto — <i>Reinforcement Learning</i>, ch. 2</a> — the bandit chapter: exploration/exploitation with code-level clarity, leading straight into Ch 25.</li>
+  <li><a href="https://www.stat.cmu.edu/~larry/all-of-statistics/">Wasserman — <i>All of Statistics</i>, ch. 12–13</a> — statistical decision theory: loss, risk, Bayes rules.</li>
+  <li><a href="http://aima.cs.berkeley.edu/">Russell &amp; Norvig — <i>Artificial Intelligence: A Modern Approach</i> (companion site)</a> — utility theory, value of information, sequential decisions and game theory in AI framing (ch. 15–18).</li>
+  <li><a href="https://arxiv.org/abs/1707.02038">Russo et al. — A Tutorial on Thompson Sampling (2017)</a> — clear, practical, with the probability-matching viewpoint used here.</li>
+  <li><a href="https://www.cs.cmu.edu/~sandholm/cs15-892F13/algorithmic-game-theory.pdf">Nisan, Roughgarden, Tardos, Vazirani — <i>Algorithmic Game Theory</i> (free)</a> — mechanism design, price of anarchy, and computation of equilibria.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch23.html">&larr; 23 · Large Language Models</a>
+ <a class="btn" href="ch25.html">25 · Reinforcement Learning &rarr;</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function ready(f){if(document.readyState!=='loading')f();else document.addEventListener('DOMContentLoaded',f);}
+ ready(function(){
+  var mono='13px "JetBrains Mono", monospace';
+
+  // Explorer 1: CRRA utility, gamble chord, certainty equivalent
+  (function(){
+   var c=document.getElementById('cv-util'); if(!c) return;
+   var gctl=document.getElementById('ut-g'),out=document.getElementById('ut-out');
+   function u(w,g){return Math.abs(g-1)<1e-9? Math.log(w): (Math.pow(w,1-g)-1)/(1-g);}
+   function uinv(v,g){return Math.abs(g-1)<1e-9? Math.exp(v): Math.pow(v*(1-g)+1,1/(1-g));}
+   function draw(){
+    var s=setupCanvas(c,300),g2=s.g,w=s.w,h=s.h;
+    var gam=parseFloat(gctl.value);
+    g2.clearRect(0,0,w,h);
+    var w0=20,w1=200;
+    var u0=u(w0,gam),u1=u(w1,gam);
+    function px(x){return 46+(w-66)*(x-w0)/(w1-w0);}
+    function py(v){return h-40-(h-70)*(v-u0)/(u1-u0+1e-12);}
+    g2.strokeStyle=cssVar('--ink-2');g2.globalAlpha=.5;
+    g2.beginPath();g2.moveTo(46,h-40);g2.lineTo(w-20,h-40);g2.moveTo(46,20);g2.lineTo(46,h-40);g2.stroke();g2.globalAlpha=1;
+    g2.font=mono;g2.fillStyle=cssVar('--ink-2');
+    g2.fillText('$20',40,h-24);g2.fillText('$200',w-52,h-24);g2.fillText('u(w)',8,26);
+    // utility curve
+    g2.strokeStyle=cssVar('--cobalt');g2.lineWidth=2.5;g2.beginPath();
+    for(var i=0;i<=200;i++){var x=w0+(w1-w0)*i/200;var X=px(x),Y=py(u(x,gam));if(i===0)g2.moveTo(X,Y);else g2.lineTo(X,Y);}
+    g2.stroke();
+    // gamble 50/50 between 50 and 150
+    var a=50,b=150,EU=0.5*u(a,gam)+0.5*u(b,gam),EV=100,CE=uinv(EU,gam);
+    g2.strokeStyle=cssVar('--ink-2');g2.setLineDash([4,4]);
+    g2.beginPath();g2.moveTo(px(a),py(u(a,gam)));g2.lineTo(px(b),py(u(b,gam)));g2.stroke();g2.setLineDash([]);
+    g2.fillStyle=cssVar('--orange');g2.beginPath();g2.arc(px(EV),py(EU),5,0,2*Math.PI);g2.fill();
+    
+    g2.fillStyle=cssVar('--orange');g2.fillText('E[u] at $100',px(EV)+8,py(EU)+4);
+    g2.fillStyle=cssVar('--green');g2.beginPath();g2.arc(px(CE),py(EU),5,0,2*Math.PI);g2.fill();
+    g2.fillText('CE',px(CE)-8,py(EU)-10);
+    // endpoints
+    g2.fillStyle=cssVar('--cobalt');
+    [[a,'$50'],[b,'$150']].forEach(function(pt){g2.beginPath();g2.arc(px(pt[0]),py(u(pt[0],gam)),4,0,2*Math.PI);g2.fill();});
+    if(out)out.textContent='γ='+gam.toFixed(1)+': certainty equivalent of the 50/50 $50/$150 gamble = $'+CE.toFixed(2)+' — risk premium $'+(100-CE).toFixed(2)+(gam<0.05?' (risk-neutral: CE = EV)':'');
+   }
+   gctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 2: bandit simulator (eps-greedy vs UCB)
+  (function(){
+   var c=document.getElementById('cv-bandit'); if(!c) return;
+   var ectl=document.getElementById('bd-eps'),run=document.getElementById('bd-run'),out=document.getElementById('bd-out');
+   var mu=[0.35,0.55,0.45],best=0.55,T=500;
+   var data=null,anim=null,step=0;
+   function fresh(){return {s:[0,0,0],f:[0,0,0],reg:[0],cur:0};}
+   function pick(st,algo,t,eps){
+    var n=[0,1,2].map(function(a){return st.s[a]+st.f[a];});
+    if(algo==='eps'){
+     if(Math.random()<eps)return Math.floor(Math.random()*3);
+     var m=[0,1,2].map(function(a){return n[a]?st.s[a]/n[a]:0.5;});
+     return m.indexOf(Math.max.apply(null,m));
+    }
+    for(var a=0;a<3;a++)if(n[a]===0)return a;
+    var idx=[0,1,2].map(function(a){return st.s[a]/n[a]+Math.sqrt(2*Math.log(t+1)/n[a]);});
+    return idx.indexOf(Math.max.apply(null,idx));
+   }
+   function advance(){
+    var eps=parseFloat(ectl.value);
+    for(var k=0;k<5&&step<T;k++,step++){
+     ['eps','ucb'].forEach(function(algo){
+      var st=data[algo];
+      var a=pick(st,algo,step,eps);
+      var r=Math.random()<mu[a]?1:0;
+      st.s[a]+=r;st.f[a]+=1-r;
+      st.cur+=best-mu[a];st.reg.push(st.cur);
+     });
+    }
+    draw();
+    if(step<T)anim=requestAnimationFrame(advance);
+    else if(out)out.textContent='final cumulative regret — ε-greedy: '+data.eps.cur.toFixed(1)+', UCB: '+data.ucb.cur.toFixed(1)+' (rerun to see variance)';
+   }
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    g.clearRect(0,0,w,h);
+    var maxR=Math.max(10,data?Math.max(data.eps.cur,data.ucb.cur)*1.15:10);
+    function px(t){return 46+(w-66)*t/T;}
+    function py(r){return h-40-(h-70)*r/maxR;}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;
+    g.beginPath();g.moveTo(46,h-40);g.lineTo(w-20,h-40);g.moveTo(46,20);g.lineTo(46,h-40);g.stroke();g.globalAlpha=1;
+    g.font=mono;g.fillStyle=cssVar('--ink-2');
+    g.fillText('pulls →',w-80,h-24);g.fillText('cumulative regret',50,16);
+    if(!data)return;
+    [['eps','--red','ε-greedy'],['ucb','--cobalt','UCB']].forEach(function(cfg,ci){
+     var st=data[cfg[0]];
+     g.strokeStyle=cssVar(cfg[1]);g.lineWidth=2;g.beginPath();
+     st.reg.forEach(function(r,t){var X=px(t),Y=py(r);if(t===0)g.moveTo(X,Y);else g.lineTo(X,Y);});
+     g.stroke();
+     g.fillStyle=cssVar(cfg[1]);g.fillText(cfg[2],w-120,34+16*ci);
+    });
+   }
+   run.addEventListener('click',function(){
+    if(anim)cancelAnimationFrame(anim);
+    data={eps:fresh(),ucb:fresh()};step=0;
+    if(out)out.textContent='running…';advance();
+   });
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 3: best response in matching pennies
+  (function(){
+   var c=document.getElementById('cv-mixed'); if(!c) return;
+   var qctl=document.getElementById('mx-q'),out=document.getElementById('mx-out');
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var q=parseFloat(qctl.value);
+    g.clearRect(0,0,w,h);
+    // row payoffs: H: q*1 + (1-q)*(-1)=2q-1 ; T: q*(-1)+(1-q)*1=1-2q
+    function px(x){return 46+(w-66)*x;}
+    function py(v){return h-40-(h-70)*(v+1)/2;} // v in [-1,1]
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;
+    g.beginPath();g.moveTo(46,h-40);g.lineTo(w-20,h-40);g.moveTo(46,20);g.lineTo(46,h-40);
+    g.moveTo(46,py(0));g.lineTo(w-20,py(0));g.stroke();g.globalAlpha=1;
+    g.font=mono;g.fillStyle=cssVar('--ink-2');
+    g.fillText('column Pr(H) →',w-140,h-24);g.fillText('row payoff',50,16);
+    g.fillText('0',42,h-24);g.fillText('1',w-24,h-24);g.fillText('0',34,py(0)+4);
+    // lines
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;
+    g.beginPath();g.moveTo(px(0),py(-1));g.lineTo(px(1),py(1));g.stroke();  // play H: 2q-1
+    g.strokeStyle=cssVar('--green');
+    g.beginPath();g.moveTo(px(0),py(1));g.lineTo(px(1),py(-1));g.stroke();  // play T: 1-2q
+    g.fillStyle=cssVar('--cobalt');g.fillText('row plays H',px(0.75),py(2*0.75-1)-8);
+    g.fillStyle=cssVar('--green');g.fillText('row plays T',px(0.75),py(1-2*0.75)+16);
+    // best response envelope
+    g.strokeStyle=cssVar('--orange');g.lineWidth=3;g.globalAlpha=.7;
+    g.beginPath();g.moveTo(px(0),py(1));g.lineTo(px(0.5),py(0));g.lineTo(px(1),py(1));g.stroke();g.globalAlpha=1;
+    // marker
+    var vH=2*q-1,vT=1-2*q,bestv=Math.max(vH,vT);
+    g.fillStyle=cssVar('--orange');g.beginPath();g.arc(px(q),py(bestv),5,0,2*Math.PI);g.fill();
+    if(out)out.textContent='q='+q.toFixed(2)+': E[H]='+vH.toFixed(2)+', E[T]='+vT.toFixed(2)+' — best response: '+(Math.abs(vH-vT)<1e-9?'indifferent (equilibrium!)':(vH>vT?'H':'T'))+'; column is exploited unless q=0.5';
+   }
+   qctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+ });
+})();
+</script>
+
+</body></html>

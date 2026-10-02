@@ -1,0 +1,466 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 14 Fourier Analysis and Signals</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','14')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">14</div><h1>Fourier Analysis and Signals</h1><p class="lede">Every signal as a sum of waves.</p>
+   <div class="meta"><span class="chip">15 topics</span><span class="chip">needs: chapters 6, 7, 8</span><span class="chip">feeds: chapters 21, 23</span></div>
+  </div>
+
+<section class="topic" id="signals-and-systems">
+ <h2>Signals and systems</h2>
+ <p>A signal is a function carrying information — sound pressure over time, brightness over pixels, activations over tokens. A system is anything that transforms one signal into another. The systems that dominate engineering and deep learning are the linear time-invariant (LTI) ones, because they are completely characterized by one experiment: poke them once and record the echo.</p>
+ <div class="box def"><span class="label">Definition</span> A continuous-time signal is $x(t):\mathbb R\to\mathbb C$; discrete-time, $x[n]:\mathbb Z\to\mathbb C$. A system $H$ is <em>linear</em> if $H(ax_1+bx_2)=aH(x_1)+bH(x_2)$ and <em>time-invariant</em> if delaying the input delays the output identically: $x(t-\tau)\mapsto y(t-\tau)$. Its <em>impulse response</em> $h$ is the output when the input is a unit impulse $\delta$; for LTI systems, output $=$ input convolved with $h$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The moving-average smoother $y[n] = \frac12(x[n]+x[n-1])$ is LTI: scaling and adding inputs scales and adds outputs, and shifting the input shifts the output. Its impulse response: feed $\delta[n]=(\dots,0,1,0,\dots)$ and read off $h[n]=(\frac12,\frac12)$ at $n=0,1$. In contrast $y[n]=x[n]^2$ is time-invariant but not linear, and $y[n]=x[2n]$ (downsampling) is linear but not time-invariant.</div>
+ <div class="box link"><span class="label">Where this goes</span> A convolutional layer (Ch 21) is exactly a bank of learned LTI systems (plus bias and nonlinearity); its kernel is the impulse response.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $y(t) = 3x(t) + 1$ linear? <details class="sol"><summary>Solution</summary><div>No. Linearity requires $H(0)=0$, but the constant offset gives $H(0)=1$. (It is affine; engineers call it "incrementally linear.")</div></details></li>
+  <li><span class="lvl m">MED</span> Classify $y[n] = n\,x[n]$: linear? time-invariant? <details class="sol"><summary>Solution</summary><div>Linear: yes, $n(ax_1[n]+bx_2[n]) = a\,nx_1[n]+b\,nx_2[n]$. Time-invariant: no — input $x[n-k]$ gives $n\,x[n-k]$, but the shifted output would be $(n-k)x[n-k]$. The gain depends on when you arrive.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that for any discrete LTI system, $y[n] = \sum_k x[k]\,h[n-k]$. <details class="sol"><summary>Solution</summary><div>Write the input as a weighted sum of shifted impulses: $x[n] = \sum_k x[k]\,\delta[n-k]$ (an identity — each term picks out one sample). By linearity, $y = \sum_k x[k]\,H(\delta[\cdot-k])$; by time invariance, $H(\delta[\cdot-k])[n] = h[n-k]$. Hence $y[n]=\sum_k x[k]h[n-k]$: the impulse response determines everything. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fourier-series">
+ <h2>Fourier series</h2>
+ <p>Fourier's astonishing claim: any reasonable periodic function — even a square wave with corners — is a sum of smooth sines and cosines at integer multiples of the base frequency. The recipe for the coefficients is projection, exactly as in Ch 8: inner products against an orthogonal family.</p>
+ <div class="box def"><span class="label">Definition</span> For $f$ with period $T$ (frequency $\omega_0 = 2\pi/T$): $$f(t) = \frac{a_0}{2} + \sum_{n=1}^\infty \big[a_n\cos(n\omega_0 t) + b_n\sin(n\omega_0 t)\big],$$ $$a_n = \frac2T\int_0^T f(t)\cos(n\omega_0 t)\,dt,\qquad b_n = \frac2T\int_0^T f(t)\sin(n\omega_0 t)\,dt.$$ Convergence: pointwise to $f$ where continuous, to the midpoint at jumps (Dirichlet).</div>
+ <div class="box ex"><span class="label">Worked example</span> Square wave: $f(t)=1$ on $(0,\pi)$, $-1$ on $(\pi,2\pi)$, period $2\pi$. By odd symmetry all $a_n=0$. $$b_n = \frac1\pi\int_0^{2\pi} f\sin(nt)\,dt = \frac2\pi\int_0^\pi \sin(nt)\,dt = \frac2\pi\cdot\frac{1-\cos(n\pi)}{n} = \begin{cases}\frac{4}{\pi n}& n\text{ odd}\\ 0 & n\text{ even.}\end{cases}$$ So $f(t) = \frac4\pi\big(\sin t + \frac{\sin 3t}{3} + \frac{\sin 5t}{5} + \cdots\big)$. At the jump $t=0$ the series sums to 0, the midpoint; near jumps partial sums overshoot by ~9% forever (the Gibbs phenomenon).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Add harmonics one by one and watch sines assemble a square wave — and the stubborn Gibbs overshoot at the jumps.</p>
+  <canvas id="cv-fs"></canvas>
+  <div class="ctl"><label>harmonics <input type="range" id="fs-n" min="1" max="60" step="1" value="3"></label><label>wave <select id="fs-w"><option value="sq">square</option><option value="saw">sawtooth</option></select></label></div>
+  <div class="out" id="fs-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why are all $b_n = 0$ for an even function? <details class="sol"><summary>Solution</summary><div>$f(t)\sin(n\omega_0 t)$ is (even)·(odd) $=$ odd, and an odd function integrates to zero over a symmetric period. Even functions are pure cosine series; odd ones pure sine.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the Fourier series of the sawtooth $f(t)=t$ on $(-\pi,\pi)$, period $2\pi$. <details class="sol"><summary>Solution</summary><div>Odd, so $a_n=0$. $b_n = \frac1\pi\int_{-\pi}^{\pi} t\sin(nt)dt = \frac2\pi\int_0^\pi t\sin(nt)dt$. By parts: $\int_0^\pi t\sin(nt)dt = \big[-\frac{t\cos nt}{n}\big]_0^\pi + \frac1n\int_0^\pi\cos(nt)dt = -\frac{\pi\cos(n\pi)}{n} + 0 = -\frac{\pi(-1)^n}{n}$. So $b_n = \frac{2(-1)^{n+1}}{n}$: $f(t) = 2\big(\sin t - \frac{\sin 2t}{2} + \frac{\sin 3t}{3} - \cdots\big)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use Parseval's identity $\frac1T\int_0^T|f|^2 = \frac{a_0^2}{4} + \frac12\sum(a_n^2+b_n^2)$ on the square wave to evaluate $\sum_{n\text{ odd}} \frac{1}{n^2}$. <details class="sol"><summary>Solution</summary><div>LHS: $\frac{1}{2\pi}\int_0^{2\pi} 1\,dt = 1$. RHS: $\frac12\sum_{n\text{ odd}}\frac{16}{\pi^2n^2}$. So $1 = \frac{8}{\pi^2}\sum_{n\text{ odd}}\frac{1}{n^2}$, giving $\sum_{n\text{ odd}} n^{-2} = \frac{\pi^2}{8}$. (And since $\sum_{\text{all}} = \sum_{\text{odd}} + \frac14\sum_{\text{all}}$, this recovers $\sum n^{-2} = \frac{\pi^2}{6}$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="complex-exponentials-as-a-basis">
+ <h2>Complex exponentials as a basis</h2>
+ <p>Sines and cosines are two halves of one cleaner object: $e^{i\omega t}$ (Euler, Ch 6). The complex exponentials $\{e^{in\omega_0 t}\}$ form an orthogonal basis of period-$T$ signals, turning Fourier analysis into linear algebra: coefficients are coordinates, and — crucially — every complex exponential is an eigenfunction of every LTI system.</p>
+ <div class="box def"><span class="label">Definition</span> With inner product $\langle f, g\rangle = \frac1T\int_0^T f(t)\overline{g(t)}\,dt$, the family $\phi_n(t) = e^{in\omega_0 t}$, $n\in\mathbb Z$, is orthonormal: $\langle\phi_n,\phi_m\rangle = \delta_{nm}$. Any period-$T$ signal expands as $f(t) = \sum_{n=-\infty}^\infty c_n e^{in\omega_0 t}$ with $c_n = \langle f,\phi_n\rangle = \frac1T\int_0^T f(t)e^{-in\omega_0 t}dt$; the real-form coefficients are $c_n = \frac{a_n - ib_n}{2}$ for $n>0$, $c_{-n} = \bar c_n$ for real $f$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Orthogonality check for $n\ne m$: $\langle\phi_n,\phi_m\rangle = \frac1T\int_0^T e^{i(n-m)\omega_0 t}dt = \frac{1}{T}\cdot\frac{e^{i(n-m)\omega_0 t}}{i(n-m)\omega_0}\Big|_0^T = \frac{e^{i(n-m)2\pi}-1}{i(n-m)\omega_0 T} = 0$ since $e^{i2\pi k}=1$. For $n=m$ the integrand is 1, giving 1. Eigenfunction property: feed $e^{i\omega t}$ to an LTI system with impulse response $h$: $y(t) = \int h(\tau)e^{i\omega(t-\tau)}d\tau = e^{i\omega t}\underbrace{\int h(\tau)e^{-i\omega\tau}d\tau}_{H(\omega)}$ — the same wave, scaled by a complex number $H(\omega)$.</div>
+ <div class="box link"><span class="label">Where this goes</span> "Diagonalize the operator by choosing the right basis" is the spectral theorem story of Ch 8; convolution becomes multiplication (below) because this basis diagonalizes all convolutions at once.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Express $\cos(\omega t)$ and $\sin(\omega t)$ in the exponential basis. <details class="sol"><summary>Solution</summary><div>$\cos\omega t = \frac{e^{i\omega t}+e^{-i\omega t}}{2}$, $\sin\omega t = \frac{e^{i\omega t}-e^{-i\omega t}}{2i}$: each real wave is two complex ones at $\pm\omega$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the complex Fourier coefficients of $f(t) = 3 + 2\cos(\omega_0 t) + 4\sin(2\omega_0 t)$. <details class="sol"><summary>Solution</summary><div>$c_0 = 3$; $c_{\pm1} = 1$ (from $2\cos = e^{+} + e^{-}$); $c_2 = \frac{4}{2i} = -2i$, $c_{-2} = 2i$. All other $c_n = 0$. Note $c_{-n} = \bar c_n$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for real $f$, $|c_n|$ and the phase of $c_n$ encode the amplitude and phase shift of the $n$-th harmonic. <details class="sol"><summary>Solution</summary><div>Pair conjugate terms: $c_ne^{in\omega_0t} + \bar c_ne^{-in\omega_0 t} = 2\,\mathrm{Re}(c_ne^{in\omega_0 t})$. Writing $c_n = |c_n|e^{i\varphi_n}$: $= 2|c_n|\cos(n\omega_0 t + \varphi_n)$. So harmonic $n$ has amplitude $2|c_n|$ and phase $\varphi_n$ — the polar form of the coefficient IS the physics.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fourier-transform">
+ <h2>Fourier transform</h2>
+ <p>Let the period go to infinity and the discrete harmonics blur into a continuum: a non-periodic signal is an integral of waves over all frequencies. The Fourier transform is the function that assigns each frequency its (complex) amount. Time domain and frequency domain are two faithful pictures of one object.</p>
+ <div class="box def"><span class="label">Definition</span> $$\hat f(\omega) = \int_{-\infty}^{\infty} f(t)\,e^{-i\omega t}\,dt, \qquad f(t) = \frac{1}{2\pi}\int_{-\infty}^{\infty} \hat f(\omega)\,e^{i\omega t}\,d\omega.$$ Key properties: linearity; time shift $f(t-a)\mapsto e^{-i\omega a}\hat f(\omega)$; scaling $f(at)\mapsto \frac{1}{|a|}\hat f(\omega/a)$; derivative $f'(t)\mapsto i\omega\hat f(\omega)$; Parseval/Plancherel $\int|f|^2dt = \frac1{2\pi}\int|\hat f|^2d\omega$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rectangular pulse $f(t)=1$ for $|t|\le\frac12$, else 0: $$\hat f(\omega) = \int_{-1/2}^{1/2} e^{-i\omega t}dt = \frac{e^{-i\omega t}}{-i\omega}\Big|_{-1/2}^{1/2} = \frac{2\sin(\omega/2)}{\omega} = \mathrm{sinc}\!\big(\tfrac{\omega}{2\pi}\big)\ \text{(engineering sinc)}.$$ A sharp box in time is an infinitely wide ripple in frequency. The scaling property makes this quantitative: squeeze the box by $a$ and the sinc stretches by $a$ — you cannot localize in both domains at once (the uncertainty principle; for Gaussians, $\widehat{e^{-t^2/2}} = \sqrt{2\pi}\,e^{-\omega^2/2}$, the fixed point).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Conventions differ: some texts put $2\pi$ in the forward transform, some split $\frac{1}{\sqrt{2\pi}}$ symmetrically, some use frequency $\nu$ (Hz) with $e^{-2\pi i\nu t}$ and no prefactor anywhere. Formulas (Parseval, convolution) change cosmetically between books — check the convention before mixing sources.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Using the shift property, what is the transform of the pulse moved to $[0,1]$? <details class="sol"><summary>Solution</summary><div>That's $f(t-\frac12)$ for the centered pulse, so $\hat g(\omega) = e^{-i\omega/2}\cdot\frac{2\sin(\omega/2)}{\omega}$: same magnitude, linear phase ramp. Shifts live entirely in phase.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the Fourier transform of $f(t) = e^{-a|t|}$, $a>0$. <details class="sol"><summary>Solution</summary><div>$\hat f = \int_{-\infty}^0 e^{at}e^{-i\omega t}dt + \int_0^\infty e^{-at}e^{-i\omega t}dt = \frac{1}{a-i\omega} + \frac{1}{a+i\omega} = \frac{2a}{a^2+\omega^2}$ — a Lorentzian. Slow $1/\omega^2$ decay in frequency reflects the kink at $t=0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that smoothness controls spectral decay: if $f$ has $k$ integrable derivatives, then $|\hat f(\omega)| = O(|\omega|^{-k})$. <details class="sol"><summary>Solution</summary><div>Integrate by parts $k$ times (boundary terms vanish for integrable derivatives): $\hat f(\omega) = \frac{1}{(i\omega)^k}\widehat{f^{(k)}}(\omega)$. Since $f^{(k)}\in L^1$, $|\widehat{f^{(k)}}|\le \|f^{(k)}\|_1$ is bounded, so $|\hat f| \le \|f^{(k)}\|_1/|\omega|^k$. Corners (square wave, $1/n$ coefficients) vs smooth Gaussians (faster-than-polynomial decay) are the two ends of this law.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="frequency-domain">
+ <h2>Frequency domain</h2>
+ <p>The frequency domain is the view where signals are described by "how much of each pitch" rather than "what value at each instant." Operations agonizing in time — solving ODEs, undoing echoes, designing filters — become pointwise arithmetic on spectra. Learning to hop between domains is the chapter's core skill.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>spectrum</em> of $f$ is $\hat f(\omega)$; $|\hat f(\omega)|$ is the <em>magnitude spectrum</em> (energy at each frequency, via $|\hat f|^2$, the power/energy spectral density) and $\arg\hat f(\omega)$ the <em>phase spectrum</em> (alignment of each wave). An LTI system acts diagonally: $\hat y(\omega) = H(\omega)\hat x(\omega)$ with frequency response $H = \hat h$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $y' + 3y = x(t)$ in the frequency domain. Transform both sides: $i\omega\hat y + 3\hat y = \hat x$, so $\hat y = \frac{\hat x}{3 + i\omega}$: the system is a filter with $H(\omega) = \frac{1}{3+i\omega}$. Gain $|H| = \frac{1}{\sqrt{9+\omega^2}}$: flat $\approx\frac13$ at low frequency, dying like $1/\omega$ at high — a low-pass filter. The ODE (Ch 10) became one division.</div>
+ <div class="box think"><span class="label">Think first</span> Which matters more for how a photo looks — the magnitude spectrum or the phase spectrum? <details class="sol"><summary>Reveal</summary><div>Phase, overwhelmingly. Swap the magnitude spectra of two images but keep phases: each image still resembles its phase-donor. Phase encodes where edges align; magnitude only how much of each frequency exists. (Classic Oppenheim–Lim demonstration.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A signal has $\hat f(\omega) = 0$ for $|\omega| > 100$. What is such a signal called? <details class="sol"><summary>Solution</summary><div>Band-limited (with bandwidth 100 rad/s) — the star assumption of the sampling theorem below.</div></details></li>
+  <li><span class="lvl m">MED</span> White noise has a flat power spectrum. What does its autocorrelation look like, and why? <details class="sol"><summary>Solution</summary><div>A delta at lag 0: the Wiener–Khinchin theorem says power spectrum and autocorrelation are Fourier pairs, and the transform of a constant is a delta. Flat spectrum ⟺ no correlation between distinct times.</div></details></li>
+  <li><span class="lvl h">HARD</span> An echo system produces $y(t) = x(t) + \frac12 x(t-1)$. Find $H(\omega)$, and design the inverse (de-echo) filter. Is it stable? <details class="sol"><summary>Solution</summary><div>$H(\omega) = 1 + \frac12 e^{-i\omega}$. Inverse: $G = \frac{1}{1+\frac12e^{-i\omega}} = \sum_{k=0}^\infty (-\tfrac12)^k e^{-ik\omega}$ (geometric series, valid since $|\frac12|<1$): the de-echoer subtracts a copy at delay 1 scaled $\frac12$, adds one at delay 2 scaled $\frac14$, ... Coefficients $(-\frac12)^k$ are absolutely summable, so yes, stable. Had the echo strength exceeded 1, $H$ would vanish at some frequency and no stable causal inverse would exist — information truly lost.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convolution">
+ <h2>Convolution</h2>
+ <p>Convolution slides one function across another, accumulating overlap: it is how LTI systems respond, how probability densities of sums combine, how blur happens, and what a CNN layer computes. Geometrically: flip one signal, shift it, multiply pointwise, integrate; repeat for every shift.</p>
+ <div class="box def"><span class="label">Definition</span> Continuous: $(f*g)(t) = \int_{-\infty}^\infty f(\tau)\,g(t-\tau)\,d\tau$. Discrete: $(x*h)[n] = \sum_k x[k]\,h[n-k]$. Properties: commutative, associative, distributive; $\delta$ is the identity; differentiation and shifts pass onto either factor. If $f$ has support of length $A$ and $g$ length $B$, $f*g$ has support of length $A+B$ (discrete: $A+B-1$ taps).</div>
+ <div class="box ex"><span class="label">Worked example</span> Discrete: $x = (1, 2, 3)$, $h = (1, 1)$ (indices from 0). $(x*h)[n] = \sum_k x[k]h[n-k]$: $y[0] = 1\cdot1 = 1$; $y[1] = 1\cdot1 + 2\cdot1 = 3$; $y[2] = 2 + 3 = 5$; $y[3] = 3$. So $y = (1, 3, 5, 3)$ — length $3+2-1 = 4$ ✓. Sanity check by polynomial multiplication: $(1+2z+3z^2)(1+z) = 1+3z+5z^2+3z^3$: convolution IS multiplication of polynomial coefficients.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the shift and watch the flipped kernel slide across the signal; the shaded overlap area is the convolution's value at that shift.</p>
+  <canvas id="cv-conv"></canvas>
+  <div class="ctl"><label>shift t <input type="range" id="cn-t" min="-1" max="5" step="0.02" value="0"></label><label>kernel width <input type="range" id="cn-w" min="0.3" max="2" step="0.05" value="1"></label></div>
+  <div class="out" id="cn-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Deep learning "convolutions" are usually cross-correlations — the kernel is NOT flipped. For learned kernels it makes no difference (the net learns the flip), but when you hand-code a known filter or check math against a DL framework, the missing flip is a classic bug.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $(1, 1, 1) * (1, 1, 1)$. <details class="sol"><summary>Solution</summary><div>$(1, 2, 3, 2, 1)$ — the triangle. Convolving boxes gives triangles; convolving again gives smoother bumps, marching toward a Gaussian (CLT!).</div></details></li>
+  <li><span class="lvl m">MED</span> $X, Y$ independent, each Uniform(0,1). Use convolution to find the density of $X+Y$ at $s = 0.5$ and $s = 1.5$. <details class="sol"><summary>Solution</summary><div>$f_{X+Y}(s) = \int f_X(\tau)f_Y(s-\tau)d\tau = $ length of $[0,1]\cap[s-1,s]$: the triangular density $f(s) = s$ on $[0,1]$, $2-s$ on $[1,2]$. So $f(0.5) = 0.5$, $f(1.5) = 0.5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove associativity $(f*g)*h = f*(g*h)$ for integrable functions. <details class="sol"><summary>Solution</summary><div>$((f*g)*h)(t) = \iint f(\sigma)g(\tau-\sigma)h(t-\tau)\,d\sigma\,d\tau$. Substitute $u = \tau - \sigma$ (for fixed $\sigma$): $= \iint f(\sigma)g(u)h(t-\sigma-u)\,d\sigma\,du = \int f(\sigma)\Big[\int g(u)h((t-\sigma)-u)du\Big]d\sigma = (f*(g*h))(t)$, with Fubini justifying the swap. Cascaded LTI systems therefore compose in any order.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convolution-theorem">
+ <h2>Convolution theorem</h2>
+ <p>The most useful sentence in signal processing: convolution in one domain is multiplication in the other. Sliding-window sums become pointwise products; filtering becomes multiplying spectra; and (via the FFT) an $O(n^2)$ operation collapses to $O(n\log n)$.</p>
+ <div class="box def"><span class="label">Definition</span> $$\widehat{f*g}(\omega) = \hat f(\omega)\,\hat g(\omega), \qquad \widehat{f\,g}(\omega) = \frac{1}{2\pi}\,(\hat f * \hat g)(\omega).$$ Discrete/periodic version: circular convolution of length-$N$ sequences ⟺ pointwise product of DFTs.</div>
+ <div class="box ex"><span class="label">Worked example</span> Proof in four lines: $$\widehat{f*g}(\omega) = \int\!\!\int f(\tau)g(t-\tau)\,d\tau\, e^{-i\omega t}dt = \int f(\tau)\int g(t-\tau)e^{-i\omega t}\,dt\,d\tau.$$ Substitute $u = t-\tau$ in the inner integral: $\int g(u)e^{-i\omega u}du\cdot e^{-i\omega\tau} = \hat g(\omega)e^{-i\omega\tau}$. Then $\widehat{f*g} = \hat g(\omega)\int f(\tau)e^{-i\omega\tau}d\tau = \hat f(\omega)\hat g(\omega)$. ∎ Application: blur a photo twice with Gaussian kernels of SDs 3 and 4; spectra multiply, Gaussians multiply, and the result is one Gaussian blur of SD $\sqrt{3^2+4^2} = 5$.</div>
+ <div class="box link"><span class="label">Where this goes</span> FFT-based convolution accelerates long-kernel CNNs and polynomial multiplication (Ch 17); attention alternatives (state-space models like S4/Mamba-style) exploit exactly this theorem to apply very long filters cheaply.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Filter design view: to kill all frequencies above $\omega_c$ exactly, what must $H(\omega)$ be, and what is $h(t)$? <details class="sol"><summary>Solution</summary><div>$H = \mathbf 1[|\omega|\le\omega_c]$, whose inverse transform is $h(t) = \frac{\sin(\omega_c t)}{\pi t}$ — the ideal low-pass is a sinc: infinitely long, non-causal. Real filters only approximate it.</div></details></li>
+  <li><span class="lvl m">MED</span> Use DFTs conceptually: multiply the polynomials $1+2z+3z^2$ and $1+z$ by the convolution theorem recipe. <details class="sol"><summary>Solution</summary><div>Zero-pad both to length $\ge 4$, DFT each, multiply pointwise, inverse DFT: recovers $(1,3,5,3)$, matching the direct convolution from the previous section. For two length-$n$ polynomials this costs $O(n\log n)$ instead of $O(n^2)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Circular vs linear: convolving $x=(1,2,3)$ with $h=(1,1)$ using length-3 DFTs gives what — and why is it wrong for linear convolution? <details class="sol"><summary>Solution</summary><div>Length-3 circular convolution wraps the tail: linear result $(1,3,5,3)$ has its 4th sample folded onto index 0, giving $(1+3, 3, 5) = (4,3,5)$. The product of length-3 DFTs equals the DFT of the CIRCULAR convolution. Fix: zero-pad both to length $\ge 3+2-1 = 4$ before transforming — the rule behind every FFT-convolution implementation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="discrete-fourier-transform">
+ <h2>Discrete Fourier transform</h2>
+ <p>Computers hold finite lists of samples, so we need a Fourier transform for length-$N$ vectors. The DFT is exactly that: an $N\times N$ change of basis into sampled complex exponentials. It is a unitary-up-to-scaling matrix, so everything from Ch 8 — orthogonality, inverses, Parseval — applies verbatim.</p>
+ <div class="box def"><span class="label">Definition</span> For $x[0..N{-}1]$: $$X[k] = \sum_{n=0}^{N-1} x[n]\,e^{-2\pi i kn/N},\qquad x[n] = \frac1N\sum_{k=0}^{N-1} X[k]\,e^{2\pi i kn/N}.$$ Equivalently $X = Fx$ where $F_{kn} = W^{kn}$, $W = e^{-2\pi i/N}$; $F^{-1} = \frac1N F^*$. Bin $k$ corresponds to frequency $k f_s/N$ Hz at sampling rate $f_s$; for real $x$, $X[N-k] = \overline{X[k]}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $N = 4$, $x = (1, 0, -1, 0)$ — one full cycle of a sampled cosine. $W = e^{-i\pi/2} = -i$. $X[k] = \sum_n x[n](-i)^{kn}$: $X[0] = 1 - 1 = 0$; $X[1] = 1 + 0 + (-1)(-i)^2 + 0 = 1 - (-1)\cdot(-1)\cdot(-1)\cdot ... $ carefully: $(-i)^2 = -1$, so $X[1] = 1 - 1\cdot(-1) = 2$; $X[2] = 1 + (-1)(-i)^4 = 1 - 1 = 0$; $X[3] = 1 + (-1)(-i)^6 = 1 - (-1) = 2$. So $X = (0, 2, 0, 2)$: energy at bins 1 and 3 ($= -1$), the conjugate pair representing $\cos(2\pi n/4)$, and indeed $x[n] = \frac14(2e^{i\pi n/2} + 2e^{-i\pi n/2}) = \cos(\pi n/2)$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> <em>Spectral leakage:</em> the DFT silently assumes the signal is $N$-periodic. A sinusoid that doesn't complete a whole number of cycles in the window jumps at the wrap-around, smearing its energy across many bins. Windowing (Hann, Hamming) tapers the edges to tame the smear at the cost of wider peaks.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the DFT of $x = (1, 1, 1, 1)$. <details class="sol"><summary>Solution</summary><div>$X[0] = 4$; for $k\ne0$, $X[k] = \sum_n W^{kn} = 0$ (geometric series over a full set of roots of unity). A constant lives entirely in bin 0 (DC).</div></details></li>
+  <li><span class="lvl m">MED</span> Verify Parseval, $\sum_n |x[n]|^2 = \frac1N\sum_k |X[k]|^2$, on the worked example. <details class="sol"><summary>Solution</summary><div>Time side: $1 + 0 + 1 + 0 = 2$. Frequency side: $\frac14(0 + 4 + 0 + 4) = 2$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> A 1000 Hz tone is sampled at 8000 Hz for $N = 64$ samples. Which DFT bin does it land in, and does it leak? <details class="sol"><summary>Solution</summary><div>Bin spacing $= 8000/64 = 125$ Hz; $1000/125 = 8$ exactly, so all energy lands cleanly in bin 8 (and conjugate bin 56). Change the tone to 1030 Hz: $1030/125 = 8.24$ cycles — not an integer, so energy leaks into neighboring bins with a sinc-shaped skirt; a Hann window would confine it to a few bins.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fast-fourier-transform">
+ <h2>Fast Fourier transform</h2>
+ <p>Multiplying by the DFT matrix costs $N^2$ operations; the FFT computes the identical result in $N\log_2 N$ by divide and conquer. The trick: a length-$N$ DFT splits into two length-$N/2$ DFTs (even and odd samples) glued together with $N/2$ "twiddle" multiplications. It is routinely called the most important algorithm of the 20th century.</p>
+ <div class="box def"><span class="label">Definition</span> Cooley–Tukey split ($N$ even, $W_N = e^{-2\pi i/N}$): $$X[k] = E[k] + W_N^k\,O[k],\qquad X[k+N/2] = E[k] - W_N^k\,O[k],\quad k=0..\tfrac N2-1,$$ where $E, O$ are the DFTs of the even- and odd-indexed halves. Recurrence $T(N) = 2T(N/2) + O(N)$ solves to $T(N) = O(N\log N)$ (Ch 17's master theorem).</div>
+ <div class="box ex"><span class="label">Worked example</span> Recompute the $N=4$ example $x = (1, 0, -1, 0)$ by FFT. Evens $(1,-1)$: $E[0] = 0$, $E[1] = 2$. Odds $(0,0)$: $O = (0,0)$. Twiddles $W_4^0 = 1$, $W_4^1 = -i$. Then $X[0] = E[0] + O[0] = 0$; $X[1] = E[1] - i\,O[1] = 2$; $X[2] = E[0] - O[0] = 0$; $X[3] = E[1] + i\,O[1] = 2$. Same $(0, 2, 0, 2)$, with 2 length-2 DFTs and 2 twiddle multiplies instead of 16 matrix entries.</div>
+ <div class="box think"><span class="label">Think first</span> Roughly how much faster is the FFT than the naive DFT for $N = 2^{20} \approx 10^6$? <details class="sol"><summary>Reveal</summary><div>$N^2/(N\log_2 N) = N/\log_2 N = 2^{20}/20 \approx 52{,}000\times$. An hour of naive computation becomes a fraction of a second — the difference between "impossible in real time" and "runs on a phone."</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many levels of splitting does an $N = 1024$ FFT perform, and how many butterfly operations per level? <details class="sol"><summary>Solution</summary><div>$\log_2 1024 = 10$ levels, $N/2 = 512$ butterflies each: 5120 butterflies total versus $\sim10^6$ naive multiply-adds.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the split identity $X[k+N/2] = E[k] - W_N^kO[k]$. <details class="sol"><summary>Solution</summary><div>$X[k] = \sum_{m} x[2m]W_N^{2mk} + \sum_m x[2m{+}1]W_N^{(2m+1)k} = E[k] + W_N^kO[k]$ using $W_N^2 = W_{N/2}$. Replace $k \to k + N/2$: $W_{N/2}^{m(k+N/2)} = W_{N/2}^{mk}$ (period $N/2$), while $W_N^{k+N/2} = W_N^k\cdot W_N^{N/2} = -W_N^k$. Hence the minus sign. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Using FFT convolution, how fast can you multiply two $n$-digit integers, and why does convolution appear? <details class="sol"><summary>Solution</summary><div>Digit sequences are polynomial coefficients in base $b$; the product's coefficient sequence is their convolution (before carrying). FFT the two length-$n$ sequences zero-padded to $2n$, multiply pointwise, inverse FFT, then propagate carries: $O(n\log n)$ arithmetic operations (Schönhage–Strassen refines the precision bookkeeping; the 2019 Harvey–van der Hoeven algorithm achieves genuine $O(n\log n)$ bit complexity).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sampling-theorem">
+ <h2>Sampling theorem</h2>
+ <p>How often must you sample a continuous signal to lose nothing? Nyquist and Shannon's answer: strictly more than twice its highest frequency. Below that rate the samples pin down the signal exactly — a continuum of values recovered from a discrete list — because band-limitation is an enormously strong smoothness constraint.</p>
+ <div class="box def"><span class="label">Definition</span> If $\hat x(\omega) = 0$ for $|\omega| \ge \omega_{\max} = 2\pi B$, then samples $x(nT_s)$ at rate $f_s = 1/T_s > 2B$ (the <em>Nyquist rate</em>) determine $x$ exactly, via sinc interpolation: $$x(t) = \sum_{n=-\infty}^{\infty} x(nT_s)\,\mathrm{sinc}\!\Big(\frac{t - nT_s}{T_s}\Big),\qquad \mathrm{sinc}(u) = \frac{\sin\pi u}{\pi u}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Human hearing tops out near 20 kHz, so CD audio samples at 44.1 kHz $> 2\times20$ kHz: everything audible is captured perfectly (the extra 4.1 kHz leaves room for realizable anti-aliasing filters, which cannot cut off instantly). Telephone audio, sampled at 8 kHz, keeps only content below 4 kHz — why music on hold sounds like it's underwater but speech stays intelligible.</div>
+ <div class="box ex"><span class="label">Worked example</span> Why it works: sampling multiplies $x(t)$ by an impulse train, which in frequency convolves $\hat x$ with an impulse train of spacing $2\pi f_s$ — the spectrum gets copied at every multiple of $f_s$. If $f_s > 2B$ the copies don't overlap, and an ideal low-pass filter (the sinc) picks out the original copy untouched. If they overlap, the copies add irreversibly: aliasing (next).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Minimum sampling rate for a signal with content up to 300 Hz? <details class="sol"><summary>Solution</summary><div>Above $2\times300 = 600$ Hz (strictly greater; at exactly 600 Hz a 300 Hz sine sampled at its zeros vanishes).</div></details></li>
+  <li><span class="lvl m">MED</span> A 5 kHz-bandwidth signal is sampled at 8 kHz. Which input frequencies survive unambiguously? <details class="sol"><summary>Solution</summary><div>Only content below $f_s/2 = 4$ kHz. The 4–5 kHz band folds back into 3–4 kHz, corrupting it. Practical systems therefore low-pass filter BEFORE sampling (anti-aliasing filter).</div></details></li>
+  <li><span class="lvl h">HARD</span> Verify sinc interpolation on one point: a 1 Hz cosine sampled at $f_s = 4$ Hz; reconstruct $x(1/8)$ approximately from nearby samples and compare to $\cos(2\pi/8) \approx 0.7071$. <details class="sol"><summary>Solution</summary><div>Samples $x(n/4) = \cos(\pi n/2) = (1, 0, -1, 0, 1, \dots)$ at $n = 0, 1, 2,\dots$ and symmetric for $n&lt;0$. $x(1/8) = \sum_n x(n/4)\,\mathrm{sinc}(0.5 - n)$. With $\mathrm{sinc}(0.5-n) = \frac{\sin(\pi(0.5-n))}{\pi(0.5-n)} = \frac{(-1)^n}{\pi(0.5-n)}$: contributions from even $n$ only (odd samples are 0). $n{=}0$: $1\cdot\frac{1}{0.5\pi} = 0.6366$; $n{=}2$: $(-1)\cdot\frac{1}{\pi(0.5-2)} = \frac{1}{1.5\pi} = 0.2122$; $n{=}-2$: $(-1)\cdot\frac{1}{2.5\pi} = -0.1273$; $n{=}4$: $\frac{1}{3.5\pi}\cdot1 = 0.0909$... wait signs: $x(1)= x(4/4)=\cos(2\pi)=1$? Careful — listing terms $n=-4..4$: values $1,0,-1,0,1,0,-1,0,1$; sinc factors $\frac{(-1)^n}{\pi(0.5-n)}$ give $n{=}0: 0.6366$, $n{=}2: (-1)\frac{1}{-1.5\pi} = 0.2122$, $n{=}{-}2: (-1)\frac{1}{2.5\pi} = -0.1273$, $n{=}4: 1\cdot\frac{1}{-3.5\pi} = -0.0909$, $n{=}{-}4: 1\cdot\frac{1}{4.5\pi} = 0.0707$. Partial sum: $0.6366+0.2122-0.1273-0.0909+0.0707 = 0.7013$ — already within 0.006 of $0.7071$; more terms converge to it. Slow $1/n$ tails are why practice uses better interpolation kernels.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="aliasing">
+ <h2>Aliasing</h2>
+ <p>Sample too slowly and different frequencies become indistinguishable — a fast wave wearing a slow wave's identity. It's why wagon wheels spin backwards in old films and why unfiltered downsampling ruins images and audio alike. Once aliased, the corruption is unrecoverable: prevention (filter first) is the only cure.</p>
+ <div class="box def"><span class="label">Definition</span> Sampling at rate $f_s$ maps every frequency $f$ to its <em>alias class</em> $f + kf_s$, $k\in\mathbb Z$: all of them produce identical samples. The apparent frequency of $f$ is the representative in $[-f_s/2, f_s/2]$ (fold at the Nyquist frequency $f_s/2$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A 7 Hz sine sampled at 10 Hz: $\sin(2\pi\cdot7\,n/10)$. Since $7 = -3 + 10$, the samples equal $\sin(2\pi(-3)n/10)$ — indistinguishable from a 3 Hz sine flipped in phase. Check $n=1$: $\sin(1.4\pi) = -0.951$ and $\sin(-0.6\pi) = -0.951$ ✓. A camera at 24 fps watching a wheel spoke pattern rotating 23 times/sec sees it creep backward at 1 rev/sec — same arithmetic.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the true frequency past the Nyquist limit and watch the sampled points snap onto a slower impostor wave.</p>
+  <canvas id="cv-alias"></canvas>
+  <div class="ctl"><label>signal freq (Hz) <input type="range" id="al-f" min="0.2" max="9.8" step="0.1" value="2"></label><label>sample rate (Hz) <input type="range" id="al-fs" min="4" max="20" step="1" value="10"></label></div>
+  <div class="out" id="al-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A 60 Hz hum is sampled at 100 Hz. What frequency does it appear as? <details class="sol"><summary>Solution</summary><div>$60 - 100 = -40$: it appears as 40 Hz (folded at the 50 Hz Nyquist frequency).</div></details></li>
+  <li><span class="lvl m">MED</span> List three input frequencies that all look like 2 Hz when sampled at 10 Hz. <details class="sol"><summary>Solution</summary><div>$2$, $8$ ($= -2 + 10$, sign-flipped), $12$ ($= 2 + 10$), also 18, 22, ... — the classes $10k \pm 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Image downsampling: taking every 2nd pixel of a fine stripe pattern (period 2 pixels) produces what? What does a proper pipeline do instead? <details class="sol"><summary>Solution</summary><div>Period-2 stripes are AT the Nyquist frequency of the original grid; keeping every 2nd pixel samples them at exactly one sample per period, yielding a constant — either all-dark or all-bright depending on phase (and moiré patterns for near-period-2 textures). Proper pipelines blur first (Gaussian or area filter) to remove content above the new Nyquist, then subsample — in CNNs this is the anti-aliased downsampling / blur-pool fix, which measurably improves shift robustness.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A 6 Hz sine is sampled at 8 Hz. The reconstructed frequency is:</div><button class="opt">6 Hz</button><button class="opt">2 Hz</button><button class="opt">14 Hz</button><div class="why" hidden>Nyquist is 4 Hz; $6$ folds to $|6-8| = 2$ Hz. Frequencies above Nyquist reflect back into band.</div></div>
+</section>
+
+<section class="topic" id="filters">
+ <h2>Filters</h2>
+ <p>A filter is an LTI system designed on purpose: keep these frequencies, discard those. Low-pass smooths, high-pass finds edges and transients, band-pass isolates a channel. Digital filters come in two families — FIR (finite echo, always stable, exactly linear phase if symmetric) and IIR (feedback, cheap and sharp, but stability must be earned).</p>
+ <div class="box def"><span class="label">Definition</span> An <em>FIR</em> filter: $y[n] = \sum_{k=0}^{M} b_k\,x[n-k]$ (impulse response is the finite list $b$). An <em>IIR</em> filter adds feedback: $y[n] = \sum_k b_kx[n-k] - \sum_{j\ge1} a_jy[n-j]$. Frequency response of FIR: $H(e^{i\Omega}) = \sum_k b_ke^{-i\Omega k}$ with $\Omega\in[-\pi,\pi]$ the digital frequency ($\Omega = 2\pi f/f_s$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two-tap averager $y[n] = \frac12(x[n] + x[n-1])$: $H(\Omega) = \frac12(1 + e^{-i\Omega}) = e^{-i\Omega/2}\cos(\Omega/2)$. Gain $|\cos(\Omega/2)|$: 1 at DC, $\frac{1}{\sqrt2}$ at $\Omega = \pi/2$, 0 at Nyquist ($\Omega = \pi$) — a gentle low-pass that exactly kills the fastest alternating signal $(+1,-1,+1,\dots)$. The differencer $y[n] = \frac12(x[n] - x[n-1])$ is its mirror image: $|\sin(\Omega/2)|$, a high-pass with zero gain at DC. Their squared gains sum to 1 at every frequency.</div>
+ <div class="box link"><span class="label">Where this goes</span> Sobel edge detectors, wavelets, and the learned kernels of a CNN's first layer (Ch 21) — which reliably rediscover oriented band-pass filters — are all entries in this catalogue.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the gain of the 3-tap averager $y[n] = \frac13(x[n]+x[n-1]+x[n-2])$ at DC and at Nyquist? <details class="sol"><summary>Solution</summary><div>DC ($\Omega=0$): $\frac13(1+1+1) = 1$. Nyquist ($\Omega = \pi$, input $(+1,-1,+1)$): $\frac13(1-1+1) = \frac13$. It attenuates but does not kill Nyquist — unlike the 2-tap.</div></details></li>
+  <li><span class="lvl m">MED</span> The IIR smoother $y[n] = \alpha x[n] + (1-\alpha)y[n-1]$ ($0&lt;\alpha&lt;1$) is an exponential moving average. Find its impulse response and DC gain. <details class="sol"><summary>Solution</summary><div>Feed $\delta$: $h[n] = \alpha(1-\alpha)^n$, $n\ge0$ — an infinite exponential tail (hence IIR). DC gain: $\sum h[n] = \alpha\cdot\frac{1}{1-(1-\alpha)} = 1$. This filter is Adam's and momentum's core primitive (Ch 15).</div></details></li>
+  <li><span class="lvl h">HARD</span> For the feedback filter $y[n] = x[n] + ry[n-1]$, determine stability as a function of $r$ and connect to the geometric series. <details class="sol"><summary>Solution</summary><div>$h[n] = r^n$, $n\ge0$. BIBO stability requires $\sum|h[n]| = \sum|r|^n &lt; \infty$, i.e. $|r| &lt; 1$ — precisely the geometric series' convergence condition. At $|r|=1$ the filter integrates (marginally unstable); for $|r|&gt;1$ any input excites exponential blow-up. In pole language: the transfer function $\frac{1}{1-rz^{-1}}$ has a pole at $z=r$, and stability ⟺ poles inside the unit circle.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="spectrograms">
+ <h2>Spectrograms</h2>
+ <p>A Fourier transform of a whole song tells you which notes occur but not when. The spectrogram fixes this by transforming short windows and stacking them: time runs along one axis, frequency along the other, brightness is energy. It's the standard input representation for speech models and the visual language of audio.</p>
+ <div class="box def"><span class="label">Definition</span> The short-time Fourier transform: $\mathrm{STFT}(m, k) = \sum_n x[n]\,w[n - mH]\,e^{-2\pi ikn/N}$, with window $w$ (length $N$), hop $H$. The <em>spectrogram</em> is $|\mathrm{STFT}|^2$ (usually shown in dB; mel-spectrograms re-bin frequencies onto the perceptual mel scale). Time–frequency trade-off: a length-$N$ window has frequency resolution $f_s/N$ and time resolution $\approx N/f_s$ — sharpening one blurs the other.</div>
+ <div class="box ex"><span class="label">Worked example</span> Speech at $f_s = 16$ kHz with 25 ms windows ($N = 400$, padded to 512) and 10 ms hop ($H = 160$): frequency resolution $16000/512 \approx 31$ Hz, 100 frames per second. Vowels appear as horizontal stacks of harmonics (pitch and formants); consonants like "s" as broadband high-frequency noise; a piano note as a sharp onset followed by decaying harmonic stripes. Whisper and most ASR systems consume ~80-bin log-mel spectrograms built with almost exactly these numbers.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The spectrogram discards phase, so it is not invertible by itself: resynthesizing audio from a modified spectrogram needs phase recovery (Griffin–Lim) or a neural vocoder. Also, one window length cannot serve all content: bass notes need long windows (fine frequency), drum hits short ones (fine time) — hence wavelets and constant-Q transforms.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With a 50 ms window, can you distinguish two tones 15 Hz apart? <details class="sol"><summary>Solution</summary><div>Frequency resolution $\approx 1/0.05 = 20$ Hz $&gt; 15$ Hz: no — they blur into one peak. You'd need a window of at least ~67 ms (plus windowing margin).</div></details></li>
+  <li><span class="lvl m">MED</span> A chirp sweeps linearly from 0 to 4 kHz over 2 seconds. What does its spectrogram look like? Its plain DFT magnitude? <details class="sol"><summary>Solution</summary><div>Spectrogram: a clean rising diagonal line. Plain DFT of the whole 2 s: roughly flat energy across 0–4 kHz — the "when" is gone, and the chirp is indistinguishable from noise with the same envelope unless you look at phase.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute the STFT frame count and tensor shape for 10 s of 16 kHz audio, $N = 512$, $H = 160$, mel bins 80 — and note why hop, not window, sets the frame rate. <details class="sol"><summary>Solution</summary><div>Samples: 160,000. Frames $\approx \lfloor(160000 - 512)/160\rfloor + 1 = 997$ (padding conventions push it to ~1001). Shape: $[997..1001, 80]$ after mel projection of the $512/2+1 = 257$ linear bins. Frames advance every $H$ samples regardless of window length — windows overlap $(N-H)/N \approx 69\%$, trading redundancy for smooth time coverage.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sinusoidal-positional-encodings">
+ <h2>Sinusoidal positional encodings</h2>
+ <p>Self-attention (Ch 21) is order-blind: shuffle the tokens and the outputs shuffle identically. Transformers inject order by adding a vector to each position — and the original design chose sinusoids at geometrically spaced frequencies, a Fourier basis for "where am I in the sequence," letting relative offsets be expressed as fixed linear maps.</p>
+ <div class="box def"><span class="label">Definition</span> For position $t$ and embedding dimension $d$, the encoding pairs coordinates $(2i, 2i{+}1)$: $$\mathrm{PE}(t, 2i) = \sin(t\,\omega_i),\quad \mathrm{PE}(t, 2i{+}1) = \cos(t\,\omega_i),\qquad \omega_i = 10000^{-2i/d}.$$ Frequencies span wavelengths $2\pi$ up to $\approx 2\pi\cdot10^4$: fast dimensions resolve nearby positions, slow ones distinguish far-apart regions — a multi-scale positional ruler.</div>
+ <div class="box thm"><span class="label">Theorem</span> For each frequency pair, $\mathrm{PE}(t+\Delta)$ is a <em>linear</em> function of $\mathrm{PE}(t)$: $$\begin{pmatrix}\sin((t+\Delta)\omega)\\ \cos((t+\Delta)\omega)\end{pmatrix} = \begin{pmatrix}\cos(\Delta\omega) &amp; \sin(\Delta\omega)\\ -\sin(\Delta\omega) &amp; \cos(\Delta\omega)\end{pmatrix}\begin{pmatrix}\sin(t\omega)\\ \cos(t\omega)\end{pmatrix}$$ — a rotation by $\Delta\omega$, independent of $t$ (angle-addition, Ch 6). Attention can thus learn relative-offset patterns with fixed weights.</div>
+ <div class="box ex"><span class="label">Worked example</span> $d = 4$, so $\omega_0 = 1$ and $\omega_1 = 10000^{-1/2} = 0.01$. Position $t = 3$: $\mathrm{PE}(3) = (\sin 3, \cos 3, \sin 0.03, \cos 0.03) = (0.141, -0.990, 0.030, 1.000)$. Dot product with $\mathrm{PE}(5) = (\sin5, \cos5, \sin.05, \cos.05) = (-0.959, 0.284, 0.050, 0.999)$: $-0.135 - 0.281 + 0.0015 + 0.999 = 0.584$. In general $\mathrm{PE}(t)\cdot\mathrm{PE}(s) = \sum_i \cos((t-s)\omega_i)$ — it depends only on $t - s$: the encoding hands attention a built-in notion of relative distance. Here: $\cos 2 + \cos 0.02 = -0.416 + 1.000 = 0.584$ ✓.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Each row is one embedding dimension, each column a position; watch the multi-frequency stripes, and slide to compare two positions' encodings.</p>
+  <canvas id="cv-pe"></canvas>
+  <div class="ctl"><label>position a <input type="range" id="pe-a" min="0" max="99" step="1" value="10"></label><label>position b <input type="range" id="pe-b" min="0" max="99" step="1" value="15"></label></div>
+  <div class="out" id="pe-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why not encode position as a single scalar $t$ appended to the embedding? <details class="sol"><summary>Solution</summary><div>Unbounded magnitude (position 10,000 dwarfs the semantic features), poor extrapolation, and one dimension gives the network no easy handle on both fine and coarse offsets. Sinusoids are bounded in $[-1,1]$ and multi-scale by construction.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\|\mathrm{PE}(t)\|^2 = d/2$ for every $t$. <details class="sol"><summary>Solution</summary><div>Each frequency pair contributes $\sin^2(t\omega_i) + \cos^2(t\omega_i) = 1$, and there are $d/2$ pairs. Constant norm means adding PE shifts token embeddings on a sphere rather than rescaling them.</div></details></li>
+  <li><span class="lvl h">HARD</span> The dot product $k(\Delta)=\sum_{i}\cos(\Delta\,\omega_i)$ with $\omega_i = c^{-2i/d}$ acts like a kernel over offsets. Describe its shape for small and large $\Delta$. <details class="sol"><summary>Solution</summary><div>At $\Delta = 0$: maximum $d/2$ (all cosines equal 1). For small $\Delta$, high-frequency terms decorrelate first ($\cos(\Delta\omega_i)$ falls fastest for large $\omega_i$), so $k$ decays smoothly — near positions are most similar. For large $\Delta$ the many incommensurate frequencies average out: $k(\Delta)$ oscillates around 0 with slowly decaying envelope; only the lowest frequencies still contribute coherently, giving faint long-range structure. Effectively a multi-scale "distance bump": sharply peaked at 0, never exactly repeating.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rotary-position-embeddings">
+ <h2>Rotary position embeddings</h2>
+ <p>RoPE, the position scheme of most modern LLMs (LLaMA, Qwen, and kin), takes the rotation idea to its logical end: instead of adding sinusoids to embeddings, it rotates the query and key vectors themselves by an angle proportional to position. Attention scores then depend on relative position exactly and automatically.</p>
+ <div class="box def"><span class="label">Definition</span> Split each query/key vector into 2-D pairs; rotate pair $i$ at position $t$ by angle $t\theta_i$ with $\theta_i = 10000^{-2i/d}$: $R(t) = \bigoplus_i \begin{pmatrix}\cos t\theta_i &amp; -\sin t\theta_i\\ \sin t\theta_i &amp; \cos t\theta_i\end{pmatrix}$, and use $q_t' = R(t)q_t$, $k_s' = R(s)k_s$. Then $$\langle q_t', k_s'\rangle = q_t^\top R(t)^\top R(s)\,k_s = q_t^\top R(s - t)\,k_s$$ — the score depends on positions only through the offset $s - t$, because rotations compose by adding angles.</div>
+ <div class="box ex"><span class="label">Worked example</span> One pair, $\theta = 1$, $q = (1, 0)$ at position $t = 2$, $k = (1, 0)$ at $s = 5$. $q' = (\cos2, \sin2) = (-0.416, 0.909)$; $k' = (\cos5, \sin5) = (0.284, -0.959)$. Score: $-0.416\cdot0.284 + 0.909\cdot(-0.959) = -0.118 - 0.872 = -0.990$. Check against the theory: $q^\top R(3)k = \cos 3 = -0.990$ ✓. Slide both tokens 7 positions right ($t=9$, $s=12$): the score is still $\cos 3$ — translation invariance for free.</div>
+ <div class="box link"><span class="label">Where this goes</span> RoPE's angles are also the lever for long-context extension (Ch 23): position interpolation, NTK-aware scaling and YaRN all stretch $\theta_i$ so a model trained at 4k tokens can address 128k without retraining from scratch.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the crucial difference between sinusoidal PE and RoPE in how position enters attention? <details class="sol"><summary>Solution</summary><div>Sinusoidal PE is ADDED to token embeddings once at the input (position mixes additively with content; relative structure must be learned). RoPE MULTIPLIES (rotates) queries and keys inside every attention layer, making scores functions of relative offset by construction.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $R(t)^\top R(s) = R(s-t)$ for a single 2-D rotation block. <details class="sol"><summary>Solution</summary><div>Rotation matrices satisfy $R(a)R(b) = R(a{+}b)$ (angle addition) and $R(a)^\top = R(-a)$ (orthogonal, inverse is transpose). Hence $R(t)^\top R(s) = R(-t)R(s) = R(s-t)$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does rotating by position preserve vector norms, and why does that matter for attention stability? <details class="sol"><summary>Solution</summary><div>$\|R(t)q\| = \|q\|$ since $R$ is orthogonal: $\|Rq\|^2 = q^\top R^\top Rq = q^\top q$. Softmax attention is sensitive to logit scale (temperature); a position scheme that inflated $\|q\|$ or $\|k\|$ with $t$ would make logits — and softmax sharpness — depend on absolute position, destabilizing training and breaking length generalization. RoPE injects position purely into ANGLES, leaving the scale budget to content.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">With RoPE, moving a query token and key token both 100 positions to the right changes their attention score by:</div><button class="opt">a factor of cos(100θ)</button><button class="opt">an additive phase term</button><button class="opt">nothing at all</button><div class="why" hidden>The score depends only on the offset $s - t$, which is unchanged by a common shift: $R(t{+}100)^\top R(s{+}100) = R(s-t)$.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>Design a denoiser.</strong> A sensor signal contains content only below 5 Hz plus strong 60 Hz interference; you sample at 100 Hz. (a) Is 100 Hz a legal rate for both components? Where does 60 Hz appear? (b) You apply the 3-tap FIR $y[n] = \frac14 x[n] + \frac12 x[n-1] + \frac14 x[n-2]$. Compute its gain at 0, 5 and 40 Hz. (c) Is this filter adequate? <details class="sol"><summary>Solution</summary><div>(a) Yes: Nyquist is 50 Hz $&gt;$ both 5 and 60? No — 60 Hz EXCEEDS Nyquist and aliases to $|60 - 100| = 40$ Hz. (b) $H(\Omega) = \frac14 + \frac12 e^{-i\Omega} + \frac14 e^{-2i\Omega} = e^{-i\Omega}\cdot\frac{1+\cos\Omega}{2} = e^{-i\Omega}\cos^2(\Omega/2)$. Gains: 0 Hz: 1. 5 Hz: $\Omega = 2\pi\cdot5/100 = 0.1\pi$, $\cos^2(0.05\pi) = (0.9877)^2 = 0.9755$. 40 Hz: $\Omega = 0.8\pi$, $\cos^2(0.4\pi) = (0.309)^2 = 0.0955$. (c) Partially: the aliased hum at 40 Hz is cut to ~10% (−20 dB) while the signal band loses ~2%; but the right fix is an ANALOG anti-alias filter before sampling — once aliased into 40 Hz, the hum sits atop any genuine 40 Hz content forever.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>FFT convolution, end to end.</strong> You must convolve a 1-second audio clip ($n = 44100$ samples) with a 2-second reverb impulse response ($m = 88200$). (a) Cost of direct convolution (multiply-adds)? (b) FFT size needed and total cost, assuming $5N\log_2N$ flops per length-$N$ FFT and 3 FFTs. (c) Speedup? <details class="sol"><summary>Solution</summary><div>(a) $nm \approx 44100\times88200 \approx 3.9\times10^9$ multiply-adds. (b) Linear convolution length $n + m - 1 = 132299$; next power of two $N = 2^{18} = 262144$. Cost $\approx 3\times5N\log_2N + N = 15\cdot262144\cdot18 + 262144 \approx 7.1\times10^7 + 2.6\times10^5 \approx 7.1\times10^7$ flops. (c) $3.9\times10^9 / 7.1\times10^7 \approx 55\times$; real implementations do better with real-input FFTs (factor ~2) and overlap-save streaming.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Positional encodings as signal design.</strong> Consider sinusoidal PEs with $d = 6$, base $B$: $\omega_i = B^{-2i/6}$, $i = 0, 1, 2$. (a) For $B = 10000$, give the three wavelengths. (b) Two positions $t$ and $t + \Delta$ collide (identical encodings) iff every $\Delta\omega_i$ is a multiple of $2\pi$. Show no collision occurs for any $\Delta \le 10^4$... or find the constraint. (c) Explain the aliasing analogy: what goes wrong if all $\omega_i$ are large (only short wavelengths)? <details class="sol"><summary>Solution</summary><div>(a) Wavelengths $2\pi/\omega_i$: $i{=}0$: $2\pi \approx 6.28$; $i{=}1$: $2\pi B^{1/3} \approx 2\pi\cdot21.54 \approx 135.4$; $i{=}2$: $2\pi B^{2/3} \approx 2\pi\cdot464.2 \approx 2916$. (b) Collision needs $\Delta = 2\pi k_0/\omega_0 = 2\pi k_1/\omega_1 = 2\pi k_2/\omega_2$ with integers $k_i$, i.e. $\Delta$ a common multiple of all three wavelengths. The ratios $\omega_0/\omega_1 = B^{1/3}$ etc. are irrational (a transcendental power of 10 to the 1/3... precisely: $10000^{1/3}$ is irrational since $10^4$ is not a perfect cube), so no exact common multiple exists: encodings never exactly repeat; NEAR-collisions of the fast dims are disambiguated by slow dims out to $\sim$ the longest wavelength ($\approx2916$), after which distinct positions become hard to tell apart — the practical context-length limit of the encoding. (c) All-fast frequencies alias: positions $\Delta$ apart with $\Delta\omega_i \approx 2\pi k$ become near-identical — exactly like sampling above Nyquist. The geometric frequency ladder is an anti-aliasing design: every scale of offset is resolved by some dimension.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p><strong>Task 1 — FFT convolution vs direct.</strong> Implement linear convolution via numpy's FFT with correct zero-padding; verify against <code>np.convolve</code> and time both.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np, time
+rng = np.random.default_rng(0)
+
+def fft_conv(x, h):
+    n = len(x) + len(h) - 1
+    N = 1 &lt;&lt; (n - 1).bit_length()          # next power of two
+    y = np.fft.irfft(np.fft.rfft(x, N) * np.fft.rfft(h, N), N)
+    return y[:n]
+
+x = rng.standard_normal(40_000)
+h = rng.standard_normal(2_000)
+
+t0 = time.perf_counter(); y1 = np.convolve(x, h);  t1 = time.perf_counter()
+y2 = fft_conv(x, h);                               t2 = time.perf_counter()
+print("max |diff| =", np.abs(y1 - y2).max())        # ~1e-9
+print(f"direct {t1-t0:.3f}s   fft {t2-t1:.3f}s")</code></pre></div></details>
+ <p><strong>Task 2 — Aliasing demonstration.</strong> Sample 7 Hz and 3 Hz sines at 10 Hz and show the samples coincide; then show an anti-aliasing filter prevents the confusion.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+fs, T = 10, 2.0
+n = np.arange(int(fs*T))
+s7 = np.sin(2*np.pi*7*n/fs)     # 7 Hz, above Nyquist (5 Hz)
+s3 = np.sin(2*np.pi*3*n/fs)     # 3 Hz alias partner (7 = 10 - 3, sign flip)
+print("max |s7 + s3| =", np.abs(s7 + s3).max())   # ~1e-15: s7 == -s3
+
+# anti-aliasing: filter the *continuous* signal (simulated at 1 kHz) first
+fs_hi = 1000
+t = np.arange(int(fs_hi*T)) / fs_hi
+x = np.sin(2*np.pi*7*t) + 0.8*np.sin(2*np.pi*2*t)  # 7 Hz junk + 2 Hz signal
+X = np.fft.rfft(x)
+f = np.fft.rfftfreq(len(x), 1/fs_hi)
+X[f &gt; 5] = 0                                        # ideal low-pass at Nyquist
+x_aa = np.fft.irfft(X, len(x))
+samp = x_aa[::fs_hi//fs]                            # now sample at 10 Hz
+ref  = 0.8*np.sin(2*np.pi*2*n/fs)
+print("post-filter sampling error:", np.abs(samp - ref).max())  # small</code></pre></div></details>
+ <p><strong>Task 3 — RoPE in NumPy.</strong> Implement rotary embeddings and verify the relative-position property numerically.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+d = 64
+
+def rope(v, t, base=10000.0):
+    half = d // 2
+    theta = base ** (-np.arange(half) / half)     # ω_i
+    ang = t * theta
+    c, s = np.cos(ang), np.sin(ang)
+    v1, v2 = v[:half], v[half:]                   # pair (v1[i], v2[i])
+    return np.concatenate([v1*c - v2*s, v1*s + v2*c])
+
+q, k = rng.standard_normal(d), rng.standard_normal(d)
+
+# score depends only on offset:
+s1 = rope(q, 3)  @ rope(k, 10)     # offset 7
+s2 = rope(q, 50) @ rope(k, 57)     # offset 7, shifted by 47
+s3 = rope(q, 3)  @ rope(k, 11)     # offset 8 -- should differ
+print(s1, s2, s3)
+assert abs(s1 - s2) &lt; 1e-9 and abs(s1 - s3) &gt; 1e-6
+
+# norm preservation:
+print(np.linalg.norm(q), np.linalg.norm(rope(q, 12345)))   # equal</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.youtube.com/watch?v=spUNpyF58BY">3Blue1Brown, "But what is the Fourier Transform?"</a> — the winding-frequency visual that makes the definition inevitable.</li>
+  <li><a href="https://ocw.mit.edu/courses/res-6-007-signals-and-systems-spring-2011/">MIT OCW: Oppenheim's Signals and Systems (RES.6-007)</a> — the canonical lectures: LTI systems, Fourier, sampling, filtering.</li>
+  <li><a href="https://www.dspguide.com/">Smith, <em>The Scientist and Engineer's Guide to DSP</em> (free)</a> — practical DFT/FFT, filters and spectrograms with zero fluff.</li>
+  <li><a href="https://ccrma.stanford.edu/~jos/mdft/">Julius O. Smith, <em>Mathematics of the DFT</em> (free)</a> — the DFT as linear algebra, done properly.</li>
+  <li><a href="https://arxiv.org/abs/1706.03762">Vaswani et al., "Attention Is All You Need"</a> — §3.5 introduces sinusoidal positional encodings.</li>
+  <li><a href="https://arxiv.org/abs/2104.09864">Su et al., "RoFormer: Enhanced Transformer with Rotary Position Embedding"</a> — the RoPE paper.</li>
+  <li><a href="https://arxiv.org/abs/1904.11486">Zhang, "Making Convolutional Networks Shift-Invariant Again"</a> — aliasing inside CNNs and the blur-pool fix.</li>
+  <li><a href="https://jackschaedler.github.io/circles-sines-signals/">Schaedler, "Seeing Circles, Sines and Signals"</a> — a gorgeous interactive primer on sampling and the DFT.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch13.html">← 13 · Statistics</a>
+ <a href="ch15.html">15 · Optimization →</a>
+</div>
+
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var e=document.getElementById(id); if(e)e.addEventListener(ev,fn); return e;}
+function val(id){var e=document.getElementById(id); return e?parseFloat(e.value):0;}
+function out(id,t){var e=document.getElementById(id); if(e)e.textContent=t;}
+function axes(g,w,h,pad){g.strokeStyle=cssVar('--ink-2');g.lineWidth=1;g.beginPath();g.moveTo(pad,h-pad);g.lineTo(w-8,h-pad);g.moveTo(pad,h-pad);g.lineTo(pad,8);g.stroke();g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';}
+
+/* 1. Fourier series builder */
+var c1=document.getElementById('cv-fs');
+function drawFS(){
+ if(!c1)return; var N=Math.round(val('fs-n'));var wsel=document.getElementById('fs-w');var kind=wsel?wsel.value:'sq';
+ var st=setupCanvas(c1,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);
+ var mid=h/2;
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=1;g.beginPath();g.moveTo(pad,mid);g.lineTo(w-8,mid);g.stroke();
+ g.font='13px JetBrains Mono';g.fillStyle=cssVar('--ink-2');
+ function Y(v){return mid - v*(h/2-30);}
+ function X(i){return pad + i/600*(w-pad-16);}
+ // target wave (light)
+ g.strokeStyle=cssVar('--ink-2');g.globalAlpha=0.35;g.lineWidth=1.5;g.beginPath();
+ var i,t;
+ for(i=0;i<=600;i++){t=i/600*4*Math.PI - 2*Math.PI; var v;
+  if(kind==='sq'){var ph=((t%(2*Math.PI))+2*Math.PI)%(2*Math.PI); v=ph<Math.PI?1:-1;}
+  else {var p2=((t+Math.PI)%(2*Math.PI)+2*Math.PI)%(2*Math.PI)-Math.PI; v=p2/Math.PI;}
+  if(i===0)g.moveTo(X(i),Y(v*0.8));else g.lineTo(X(i),Y(v*0.8));}
+ g.stroke();g.globalAlpha=1;
+ // partial sum
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+ for(i=0;i<=600;i++){t=i/600*4*Math.PI - 2*Math.PI; var s=0,n;
+  if(kind==='sq'){for(n=1;n<=N;n+=2)s+=4/(Math.PI*n)*Math.sin(n*t);}
+  else {for(n=1;n<=N;n++)s+=2*Math.pow(-1,n+1)/n*Math.sin(n*t)/Math.PI;}
+  if(i===0)g.moveTo(X(i),Y(s*0.8));else g.lineTo(X(i),Y(s*0.8));}
+ g.stroke();
+ var used=(kind==='sq')?Math.ceil(N/2):N;
+ out('fs-out',(kind==='sq'?'square wave, odd harmonics used: ':'sawtooth, harmonics used: ')+used+'  — note the ~9% Gibbs overshoot at jumps');
+}
+on('fs-n','input',drawFS);on('fs-w','change',drawFS);
+
+/* 2. Convolution slider */
+var c2=document.getElementById('cv-conv');
+function fSig(x){return (x>=0&&x<=2)?1:0;}                   // box signal
+function drawConv(){
+ if(!c2)return; var t0=val('cn-t'),kw=val('cn-w');
+ var st=setupCanvas(c2,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var lo=-2,hi=6;
+ function X(v){return pad+(v-lo)/(hi-lo)*(w-pad-16);}
+ function Y(v){return h-pad - v*(h-pad-70);}
+ function ker(u){return (u>=0&&u<=kw)?1/kw:0;}               // unit-area box kernel
+ // overlap fill: f(tau)*ker(t0-tau)
+ g.fillStyle=cssVar('--cobalt');g.globalAlpha=0.25;g.beginPath();var i,tau,started=false;
+ for(i=0;i<=400;i++){tau=lo+i/400*(hi-lo);var v=fSig(tau)*ker(t0-tau)*kw; // scale for display
+  var px=X(tau),py=Y(Math.min(1,v));
+  if(!started){g.moveTo(px,Y(0));started=true;} g.lineTo(px,py);}
+ g.lineTo(X(hi),Y(0));g.closePath();g.fill();g.globalAlpha=1;
+ // signal
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();
+ for(i=0;i<=400;i++){tau=lo+i/400*(hi-lo);var py=Y(fSig(tau)*0.9);if(i===0)g.moveTo(X(tau),py);else g.lineTo(X(tau),py);}g.stroke();
+ // flipped shifted kernel
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+ for(i=0;i<=400;i++){tau=lo+i/400*(hi-lo);var py=Y(ker(t0-tau)*kw*0.9);if(i===0)g.moveTo(X(tau),py);else g.lineTo(X(tau),py);}g.stroke();
+ // convolution value curve up to t0
+ g.strokeStyle=cssVar('--ink-2');g.globalAlpha=0.8;g.lineWidth=1.5;g.beginPath();started=false;
+ for(i=0;i<=400;i++){var tt=lo+i/400*(hi-lo);if(tt>t0)break;
+  var ov=Math.max(0,Math.min(2,tt)-Math.max(0,tt-kw)); var cv=ov/kw;
+  var py=Y(cv*0.9);if(!started){g.moveTo(X(tt),py);started=true;}else g.lineTo(X(tt),py);}
+ g.stroke();g.globalAlpha=1;
+ var ov=Math.max(0,Math.min(2,t0)-Math.max(0,t0-kw));var cval=ov/kw;
+ g.fillStyle=cssVar('--ink-2');g.fillText('(f∗g)('+t0.toFixed(2)+') = '+cval.toFixed(3),pad+8,20);
+ out('cn-out','signal: box on [0,2]   kernel: box, width '+kw.toFixed(2)+', area 1   shaded = overlap integral');
+}
+on('cn-t','input',drawConv);on('cn-w','input',drawConv);
+
+/* 3. Aliasing */
+var c3=document.getElementById('cv-alias');
+function drawAlias(){
+ if(!c3)return; var f=val('al-f'),fs=val('al-fs');
+ var st=setupCanvas(c3,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);
+ var mid=h/2;g.strokeStyle=cssVar('--ink-2');g.beginPath();g.moveTo(pad,mid);g.lineTo(w-8,mid);g.stroke();
+ g.font='13px JetBrains Mono';
+ var T=2; // seconds shown
+ function X(t){return pad+t/T*(w-pad-16);}
+ function Y(v){return mid - v*(h/2-26);}
+ // true signal
+ g.strokeStyle=cssVar('--ink-2');g.globalAlpha=0.45;g.lineWidth=1.5;g.beginPath();var i;
+ for(i=0;i<=800;i++){var t=i/800*T;var y=Y(Math.sin(2*Math.PI*f*t));if(i===0)g.moveTo(X(t),y);else g.lineTo(X(t),y);}
+ g.stroke();g.globalAlpha=1;
+ // alias frequency
+ var fa=f - fs*Math.round(f/fs); // representative in [-fs/2,fs/2]
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+ for(i=0;i<=800;i++){var t=i/800*T;var y=Y(Math.sin(2*Math.PI*fa*t));if(i===0)g.moveTo(X(t),y);else g.lineTo(X(t),y);}
+ g.stroke();
+ // samples
+ g.fillStyle=cssVar('--red')||'#c33';
+ var n,Ns=Math.floor(T*fs);
+ for(n=0;n<=Ns;n++){var t=n/fs;g.beginPath();g.arc(X(t),Y(Math.sin(2*Math.PI*f*t)),4,0,7);g.fill();}
+ g.fillStyle=cssVar('--ink-2');
+ out('al-out','true f = '+f.toFixed(1)+' Hz, fs = '+fs+' Hz (Nyquist '+(fs/2)+')  →  apparent f = '+Math.abs(fa).toFixed(1)+' Hz'+(Math.abs(f)>fs/2?'  — ALIASED':''));
+}
+on('al-f','input',drawAlias);on('al-fs','input',drawAlias);
+
+/* 4. Positional encoding heatmap */
+var c4=document.getElementById('cv-pe');
+function peVec(t,d){var v=[],i;for(i=0;i<d/2;i++){var om=Math.pow(10000,-2*i/d);v.push(Math.sin(t*om));v.push(Math.cos(t*om));}return v;}
+function drawPE(){
+ if(!c4)return; var a=Math.round(val('pe-a')),b=Math.round(val('pe-b'));
+ var st=setupCanvas(c4,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);
+ var d=32,P=100,cw=(w-pad-16)/P,ch=(h-pad-24)/d;
+ var t,i;
+ for(t=0;t<P;t++){var v=peVec(t,d);
+  for(i=0;i<d;i++){var x=v[i]; var c=Math.round((x+1)/2*255);
+   g.fillStyle='rgb('+(255-c)+','+Math.round(90+ c*0.3)+','+c+')';
+   g.fillRect(pad+t*cw,16+i*ch,cw+0.5,ch+0.5);}}
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;
+ g.strokeRect(pad+a*cw,15,cw,d*ch+2);g.strokeRect(pad+b*cw,15,cw,d*ch+2);
+ g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+ g.fillText('position →',w/2-30,h-8);g.fillText('dim ↓',2,30);
+ var va=peVec(a,d),vb=peVec(b,d),dot=0;for(i=0;i<d;i++)dot+=va[i]*vb[i];
+ out('pe-out','PE('+a+')·PE('+b+') = '+dot.toFixed(2)+'  (max '+(d/2)+', depends only on |a−b| = '+Math.abs(a-b)+')');
+}
+on('pe-a','input',drawPE);on('pe-b','input',drawPE);
+
+function drawAll(){drawFS();drawConv();drawAlias();drawPE();}
+window.addEventListener('resize',drawAll);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',drawAll);else drawAll();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,703 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 20 Statistical Learning Theory</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','20')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">20</div><h1>Statistical Learning Theory</h1>
+   <p class="lede">Why learning from finite data can work at all.</p>
+   <div class="meta"><span class="chip">18 topics</span><span class="chip">needs: chapters 11, 16, 19</span><span class="chip">feeds: chapters 21, 36</span></div>
+  </div>
+
+<section class="topic" id="empirical-risk-minimization">
+ <h2>Empirical risk minimization</h2>
+ <p>Learning theory's central object is a gap: you minimized the average loss on a sample, but you will be judged on the distribution. When is the sample average a faithful stand-in for the expectation — not just for one fixed rule, but for the rule you CHOSE because it looked good? This chapter is the mathematics of that "because."</p>
+ <div class="box def"><span class="label">Definition</span> Distribution $\mathcal D$ over $\mathcal X\times\mathcal Y$; loss $\ell$ (default: 0-1). True risk $R(h) = \mathbb E_{\mathcal D}[\ell(h(x), y)]$; empirical risk $\hat R_S(h) = \frac1n\sum_i \ell(h(x_i), y_i)$ on sample $S \sim \mathcal D^n$. ERM: $\hat h = \arg\min_{h\in\mathcal H}\hat R_S(h)$. Key decomposition: $$R(\hat h) - \min_{h\in\mathcal H}R(h) \le 2\sup_{h\in\mathcal H}|R(h) - \hat R_S(h)|$$ — control the worst-case gap over the class and ERM is guaranteed near-optimal in the class.</div>
+ <div class="box ex"><span class="label">Worked example</span> Why the factor 2: let $h^* = \arg\min_{\mathcal H} R$. Then $R(\hat h) \le \hat R_S(\hat h) + \sup|\cdot| \le \hat R_S(h^*) + \sup|\cdot| \le R(h^*) + 2\sup|\cdot|$ — first inequality bounds $\hat h$'s optimism, second uses that ERM preferred $\hat h$ to $h^*$ on the sample, third bounds $h^*$'s sample luck. The gap must be controlled UNIFORMLY because $\hat h$ is data-dependent: you don't know in advance which hypothesis you'll need the guarantee for.</div>
+ <div class="box link"><span class="label">Where this goes</span> Everything below is machinery for bounding $\sup_{h\in\mathcal H}|R - \hat R|$: counting (finite classes), shattering (VC), averaging over random signs (Rademacher), or sidestepping the sup entirely (stability, PAC-Bayes).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For one FIXED classifier $h$ with true error 0.3 and $n = 100$: what distribution does $n\hat R_S(h)$ follow, and what is the standard deviation of $\hat R_S(h)$? <details class="sol"><summary>Solution</summary><div>Binomial(100, 0.3); $\mathrm{sd}(\hat R) = \sqrt{0.3\times0.7/100} \approx 0.046$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does LLN applied to $\hat h$ directly fail — where exactly does the argument "$\hat R_S(\hat h) \to R(\hat h)$ by LLN" break? <details class="sol"><summary>Solution</summary><div>LLN needs the summands $\ell(h(x_i), y_i)$ to be i.i.d. for a FIXED $h$. But $\hat h$ was chosen after seeing the sample, so the losses $\ell(\hat h(x_i), y_i)$ are not independent draws — $\hat h$ was engineered to make them small. The randomness of $\hat h$ and of the sample are entangled; uniform convergence restores the argument by covering all $h$ simultaneously, fixed before the sample in aggregate.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct a class $\mathcal H$ and distribution where $\hat R_S(\hat h) = 0$ always but $R(\hat h) = \frac12$ always (for any $n$). <details class="sol"><summary>Solution</summary><div>$\mathcal X = [0,1]$ uniform, labels $y$ = fair coin independent of $x$; $\mathcal H$ = all finite-support indicator tweaks: $h_T(x) = y_i$ if $x = x_i \in T$ else $0$ — more simply $\mathcal H$ = ALL functions $\mathcal X \to \{0,1\}$. ERM memorizes the sample: $\hat R = 0$; on a fresh point ($\ne$ any $x_i$ almost surely), the prediction (say 0) is independent of the coin label: $R = \frac12$. Uniform convergence fails: $\sup_h|R - \hat R| = \frac12$ for every $n$ — an unrestricted class learns nothing. (This is the no-free-lunch seed.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hypothesis-classes">
+ <h2>Hypothesis classes</h2>
+ <p>The hypothesis class is the learner's prior commitment: the set of functions it is willing to output. Too small and the truth isn't in it (approximation error); too rich and the data can't pin down a good member (estimation error). Learning theory measures classes not by how many parameters they have but by how many BEHAVIORS they can exhibit on finite samples.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathcal H \subseteq \{h: \mathcal X \to \mathcal Y\}$. Examples: threshold functions on $\mathbb R$ ($h_t(x) = \mathbf 1[x \ge t]$); intervals; linear separators in $\mathbb R^d$ ($2^d$-ish richness: VC dim $d{+}1$); depth-$k$ decision trees; all neural nets of a fixed architecture; all measurable functions (the no-learning extreme). Measures of size: cardinality $|\mathcal H|$; growth function; VC dimension; Rademacher complexity; covering numbers — each feeding a family of bounds.</div>
+ <div class="box ex"><span class="label">Worked example</span> Thresholds on $\mathbb R$ have infinitely many members ($t\in\mathbb R$), yet on any 5 sample points they realize at most 6 distinct labelings ($t$ below all, between each adjacent pair, above all). Behavioral count 6 ≪ $2^5 = 32$: the class is "small where it matters" — this behavioral counting, not cardinality, is what generalization bounds consume.</div>
+ <div class="box think"><span class="label">Think first</span> Two classes: (a) $\{h_\theta(x) = \mathbf 1[\sin(\theta x) &gt; 0] : \theta \in\mathbb R\}$ — ONE parameter; (b) all decision stumps on $d$ features — $O(nd)$ behaviors. Which is richer in the learning-theory sense? <details class="sol"><summary>Reveal</summary><div>(a), catastrophically: the sine family shatters arbitrarily large point sets (choose points $2^{-i}$; frequencies exist realizing every sign pattern) — infinite VC dimension from one parameter. Parameter count is not capacity; behavioral diversity is. (b) is safely learnable despite having "more parameters" naively.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many distinct labelings can threshold classifiers $\mathbf 1[x \ge t]$ produce on $n$ distinct points of $\mathbb R$? <details class="sol"><summary>Solution</summary><div>$n + 1$: the threshold falls in one of $n+1$ gaps (sorted points), each giving a distinct labeling.</div></details></li>
+  <li><span class="lvl m">MED</span> Intervals $h_{[a,b]}(x) = \mathbf 1[a \le x \le b]$: count labelings on $n$ distinct points and compare growth to $2^n$. <details class="sol"><summary>Solution</summary><div>A labeling is any consecutive run of 1s (or all 0s): $\binom{n}{2} + n + 1 = \binom{n+1}{2} + 1$ labelings ($O(n^2)$ vs $2^n$: polynomial — the class is VC-small; indeed VC dim = 2).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the class of CONVEX-set indicators in the plane realizes all $2^n$ labelings of $n$ points in "general position" on a circle — and what that implies. <details class="sol"><summary>Solution</summary><div>Points on a circle: for any subset $T$, its convex hull contains no non-member point (circle points are extreme points), so the indicator of hull($T$) labels exactly $T$ positive. All $2^n$ subsets realized for every $n$: infinite VC dimension ⟹ no distribution-free generalization guarantee for ERM over convex sets — despite "convex" sounding tame. Geometric innocence ≠ statistical innocence.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pac-learning">
+ <h2>PAC learning <span style="font-weight:400">(merged: Probably approximately correct learning)</span></h2>
+ <p>PAC learning makes "learnable" a theorem-grade word. You can't demand a perfect hypothesis (the sample is finite: "approximately") nor certainty (the sample may be unlucky: "probably"). A class is PAC-learnable if, for ANY accuracy ε and confidence δ you name, some algorithm gets within ε with probability 1−δ, using a number of samples polynomial in 1/ε and 1/δ — whatever the distribution.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathcal H$ is <em>PAC-learnable</em> if there is an algorithm $A$ and function $n_{\mathcal H}(\varepsilon, \delta)$ such that for every distribution $\mathcal D$ and every $\varepsilon, \delta \in (0,1)$: given $n \ge n_{\mathcal H}(\varepsilon,\delta)$ i.i.d. samples, with probability $\ge 1 - \delta$, $A$ outputs $h$ with $R(h) \le \min_{h'\in\mathcal H}R(h') + \varepsilon$ (<em>agnostic</em> PAC; the <em>realizable</em> version assumes some $h^*\in\mathcal H$ has $R = 0$ and demands $R(h)\le\varepsilon$). Fundamental theorem: $\mathcal H$ is PAC-learnable ⟺ VC$(\mathcal H) &lt; \infty$, with $n = \Theta\!\big(\frac{d + \log(1/\delta)}{\varepsilon^2}\big)$ (agnostic) or $\Theta\!\big(\frac{d\log(1/\varepsilon) + \log(1/\delta)}{\varepsilon}\big)$ (realizable), $d = $ VC dim.</div>
+ <div class="box ex"><span class="label">Worked example</span> Learning an unknown threshold $t^*$ on $[0,1]$ (realizable). Algorithm: output any threshold consistent with the sample. A consistent threshold errs only on the gap between $t^*$ and the nearest sample points; the gap has probability mass $&gt; \varepsilon$ only if no sample landed in an $\varepsilon$-mass region adjacent to $t^*$ — probability $\le (1-\varepsilon)^n \le e^{-\varepsilon n}$ per side. Setting $2e^{-\varepsilon n} \le \delta$: $n \ge \frac{1}{\varepsilon}\ln\frac{2}{\delta}$. For ε = 0.01, δ = 0.05: $n \ge 100\ln 40 \approx 369$ samples — concrete, distribution-free, and linear in $1/\varepsilon$ as the realizable rate promises.</div>
+ <div class="box pit"><span class="label">Pitfall</span> PAC's quantifier order matters: ONE sample size must work for EVERY distribution. It does not say your particular problem needs that many samples (real distributions are kinder than the worst case), and it says nothing about computational cost — some classes are PAC-learnable information-theoretically but NP-hard to fit (e.g. agnostic halfspaces).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Unpack "probably approximately correct" — which parameter governs each word? <details class="sol"><summary>Solution</summary><div>"Probably": confidence $1-\delta$ (over the random sample). "Approximately correct": accuracy ε (excess risk of the output). Two failure modes, two dials.</div></details></li>
+  <li><span class="lvl m">MED</span> In the agnostic bound $n \sim \frac{d + \log(1/\delta)}{\varepsilon^2}$: what does halving ε cost? Halving δ? Explain the asymmetry. <details class="sol"><summary>Solution</summary><div>Halving ε: 4× samples ($1/\varepsilon^2$ — you're fighting the CLT's $1/\sqrt n$ noise floor). Halving δ: additive $\frac{\log 2}{\varepsilon^2}$ — nearly free, because confidence improves EXPONENTIALLY in $n$ (concentration). Accuracy is expensive; confidence is cheap.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is the realizable rate $1/\varepsilon$ but the agnostic rate $1/\varepsilon^2$? <details class="sol"><summary>Solution</summary><div>Realizable: you only need to rule out hypotheses with error $&gt; \varepsilon$, and each survives a sample of consistent points with probability $\le(1-\varepsilon)^n \approx e^{-\varepsilon n}$: exponential kill rate linear in ε. Agnostic: you must ESTIMATE risks to precision ε to compare hypotheses near the optimum, and estimating a mean to ±ε from bounded samples takes $\Theta(1/\varepsilon^2)$ by CLT/Hoeffding — no shortcut exists (matching lower bounds). Deciding "is it zero?" is easier than "which is smaller?".</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">PAC-learnability of a class is equivalent to…</div><button class="opt">the class being finite</button><button class="opt">the class having finite VC dimension</button><button class="opt">the class containing the true function</button><div class="why" hidden>The fundamental theorem of statistical learning: PAC-learnable ⟺ VC dim &lt; ∞. Finiteness is sufficient but not necessary (thresholds are infinite yet learnable), and PAC makes no assumption that the truth lies in the class (that's just the realizable special case).</div></div>
+</section>
+
+<section class="topic" id="uniform-convergence">
+ <h2>Uniform convergence</h2>
+ <p>Uniform convergence upgrades the law of large numbers from one hypothesis to all of them at once: with enough data, EVERY member of the class has empirical risk close to its true risk, simultaneously. Once that holds, the training-set leaderboard is trustworthy — the empirical winner is nearly the true winner — and ERM is vindicated in one line.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathcal H$ has the <em>uniform convergence property</em> if for all $\varepsilon, \delta$ there is $n(\varepsilon,\delta)$ with $$P_{S\sim\mathcal D^n}\Big(\sup_{h\in\mathcal H}\big|R(h) - \hat R_S(h)\big| \le \varepsilon\Big) \ge 1 - \delta$$ for every $\mathcal D$. Uniform convergence ⟹ agnostic PAC-learnability of $\mathcal H$ by ERM (via the factor-2 decomposition); for 0-1 loss the converse holds too — for boolean classes, learnability, uniform convergence, and finite VC dimension are one property.</div>
+ <div class="box ex"><span class="label">Worked example</span> Class of two hypotheses, both with true risk 0.5 (useless coins), $n = 100$. Individually each has $|\hat R - R| \le 0.1$ with prob ≈ 0.95. Jointly (union bound): ≥ 0.90. Now $10^6$ hypotheses: the union bound needs each to hold with prob $1 - 5\times10^{-8}$, i.e. deviations up to $\sqrt{\frac{\ln(2\times10^6/0.05)}{2\times100}} \approx 0.30$: with only 100 samples, a million-coin class WILL contain coins looking 20–30 points better than they are. The sup is the honest object; its size grows with class richness.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch the empirical risks of many random useless classifiers scatter around 0.5: the LUCKIEST one looks skilled. Grow n and watch the illusion die at rate $\sqrt{\log|\mathcal H|/n}$.</p>
+  <canvas id="cv-unif"></canvas>
+  <div class="ctl">
+   <label>|H| (classifiers) <input type="range" id="uc-h" min="1" max="1000" step="1" value="100"></label>
+   <label>n (samples) <input type="range" id="uc-n" min="20" max="2000" step="20" value="100"></label>
+   <button class="btn" id="uc-re">Resample</button>
+  </div>
+  <div class="out" id="uc-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> State in one sentence why uniform convergence makes ERM safe. <details class="sol"><summary>Solution</summary><div>If every hypothesis's sample score is within ε of its true score, then the sample's winner is within 2ε of the class's true best — you cannot be fooled by more than 2ε.</div></details></li>
+  <li><span class="lvl m">MED</span> Uniform convergence bounds are two-sided ($\sup$ of $|R - \hat R|$). Which side protects against overfitting, and what does the other side buy? <details class="sol"><summary>Solution</summary><div>$R \le \hat R + \varepsilon$ (upper) is the anti-overfitting direction: good sample scores imply good true scores. $\hat R \le R + \varepsilon$ ensures the true best hypothesis also LOOKS good on the sample — without it, ERM might discard $h^*$ because it got unlucky. Both directions are used in the factor-2 argument.</div></details></li>
+  <li><span class="lvl h">HARD</span> For unbounded losses (squared error with heavy-tailed noise), uniform convergence can fail even for small classes. Why, and what assumptions restore it? <details class="sol"><summary>Solution</summary><div>Concentration (Hoeffding) needs bounded (or light-tailed) summands: one enormous loss value can swing $\hat R$ arbitrarily, so no finite $n$ guarantees closeness — a single hypothesis can fail LLN rates, let alone the sup. Restorations: bound the loss (clip predictions/targets), assume sub-Gaussian/sub-exponential noise (Bernstein bounds), or truncate + control tails separately. Every deep-learning bound quietly assumes bounded loss for this reason.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="finite-class-bounds">
+ <h2>Finite class bounds</h2>
+ <p>The simplest generalization theorem: if your class has $|\mathcal H|$ members, union-bound Hoeffding over all of them. The price of choosing from $K$ hypotheses is only $\sqrt{\log K}$ — logarithmic, which is why selecting among even millions of models on a decent validation set is safe, and why "log of the number of things you tried" is the master heuristic of trustworthy ML.</p>
+ <div class="box thm"><span class="label">Theorem (finite class)</span> For 0-1 loss (or any loss in $[0,1]$), with probability $\ge 1 - \delta$ over $S\sim\mathcal D^n$: $$\sup_{h\in\mathcal H}\big|R(h) - \hat R_S(h)\big| \le \sqrt{\frac{\ln(2|\mathcal H|) + \ln(1/\delta)}{2n}}.$$ Proof: Hoeffding per hypothesis ($P(|R - \hat R| &gt; \varepsilon) \le 2e^{-2n\varepsilon^2}$), union bound over $|\mathcal H|$, solve for ε. Realizable version: $R(\hat h) \le \frac{\ln|\mathcal H| + \ln(1/\delta)}{n}$ for consistent $\hat h$ — rate $1/n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> You grid-search $|\mathcal H| = 1000$ configurations on a validation set of $n = 5000$, δ = 0.05. Bound: $\sqrt{\frac{\ln 2000 + \ln 20}{10000}} = \sqrt{\frac{7.60 + 3.00}{10000}} = \sqrt{0.00106} \approx 0.033$. Every config's validation score is within ±3.3 points of truth simultaneously — the winner's score is honest to ~6.6 points worst case (in practice much better). Try $10^6$ configs instead: $\ln$ grows from 7.6 to 14.5 — the bound only worsens to ≈3.7 points. Selection is cheap; samples are dear.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\ln|\mathcal H|$ is a description length in disguise — Ch 16's MDL: hypotheses you can name in $b$ bits form a class of size $2^b$, giving gap $\sim\sqrt{b/n}$. PAC-Bayes (below) generalizes this from counting to priors.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $n = 200$, δ = 0.05, $|\mathcal H| = 10$: compute the bound. <details class="sol"><summary>Solution</summary><div>$\sqrt{\frac{\ln 20 + \ln 20}{400}} = \sqrt{\frac{5.99}{400}} \approx 0.122$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many samples for gap ≤ 0.05 with δ = 0.01 over $|\mathcal H| = 10^6$? <details class="sol"><summary>Solution</summary><div>$n \ge \frac{\ln(2\times10^6) + \ln 100}{2(0.05)^2} = \frac{14.51 + 4.61}{0.005} \approx 3824$. A few thousand validation points police a million models.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the realizable $1/n$ rate: if some $h^*\in\mathcal H$ has $R(h^*) = 0$ and ERM returns a sample-consistent $\hat h$, then $P(R(\hat h) &gt; \varepsilon) \le |\mathcal H|e^{-\varepsilon n}$. <details class="sol"><summary>Solution</summary><div>Fix any "bad" $h$ with $R(h) &gt; \varepsilon$: it survives (labels all $n$ points correctly) with probability $(1 - R(h))^n &lt; (1-\varepsilon)^n \le e^{-\varepsilon n}$. Union over at most $|\mathcal H|$ bad hypotheses: some bad one survives with prob $\le |\mathcal H|e^{-\varepsilon n}$; otherwise every consistent hypothesis — including $\hat h$ — has $R \le \varepsilon$. Set RHS $= \delta$: $n \ge \frac{\ln|\mathcal H| + \ln(1/\delta)}{\varepsilon}$. The absence of estimation noise (zero errors, not few) upgrades $1/\varepsilon^2$ to $1/\varepsilon$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vc-dimension">
+ <h2>VC dimension</h2>
+ <p>Infinite classes need a finite measure of richness. The VC dimension asks: what is the largest set of points your class can label in ALL possible ways ("shatter")? A class that shatters $d$ points but no $d+1$ has VC dimension $d$ — and that single integer controls learnability, sample complexity, and generalization for the whole class, however infinite.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathcal H$ <em>shatters</em> $\{x_1..x_m\}$ if for every labeling $b \in \{0,1\}^m$ some $h\in\mathcal H$ realizes it. $\mathrm{VC}(\mathcal H) = $ the largest $m$ such that SOME $m$-point set is shattered ($\infty$ if unbounded). Canon: thresholds on ℝ: 1; intervals: 2; halfspaces in $\mathbb R^d$: $d + 1$; axis-aligned rectangles in the plane: 4; convex polygons with $k$ vertices: $2k+1$; $\sin(\theta x)$ signs: ∞. Proving VC $= d$ requires BOTH: exhibit one shattered $d$-set, and prove NO $(d{+}1)$-set is shatterable.</div>
+ <div class="box ex"><span class="label">Worked example</span> Intervals have VC dim 2. Shatter $\{1, 2\}$: ∅ via $[5,6]$; $\{1\}$ via $[0.5, 1.5]$; $\{2\}$ via $[1.5, 2.5]$; both via $[0, 3]$. ✓ No 3 points $x_1 &lt; x_2 &lt; x_3$ can be shattered: the labeling $(1, 0, 1)$ needs an interval containing $x_1, x_3$ but not the point between them — impossible for an interval. VC = 2. ∎</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Try to shatter: pick a labeling of the points and see whether an interval (1-D) can realize it; cycle through all labelings to test shattering.</p>
+  <canvas id="cv-vc"></canvas>
+  <div class="ctl">
+   <label>points <input type="range" id="vc-m" min="2" max="4" step="1" value="3"></label>
+   <button class="btn" id="vc-next">Next labeling</button>
+  </div>
+  <div class="out" id="vc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> VC dimension is about SOME set being shattered, not all sets: three collinear points are never shattered by halfplanes, yet halfplane VC dim in the plane is 3 (use a triangle). And parameters ≠ VC: the one-parameter sine class has VC ∞, while neural nets have VC roughly $O(\text{weights}\times\log(\text{weights}))$ (piecewise-linear case) — finite but astronomically large, which is why VC bounds are vacuous for deep nets (double descent, below).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the VC dimension of the class of constant classifiers {always-0, always-1}? <details class="sol"><summary>Solution</summary><div>1: one point gets both labelings; two points can't get labeling (0,1). </div></details></li>
+  <li><span class="lvl m">MED</span> Show axis-aligned rectangles in the plane shatter some 4-point set but no 5-point set. <details class="sol"><summary>Solution</summary><div>Shatter a diamond (N, S, E, W points): any subset is cut out by a rectangle clipping the unwanted extremes (each point is the unique extreme in its direction). No 5 points: take the 5th point $p$; among the 5, pick the topmost, bottommost, leftmost, rightmost — at most 4 distinct points; some point $q$ is extreme in NO direction. The labeling "the four extremes in, $q$ out" fails: a rectangle containing all four extremes contains their bounding box, which contains $q$. VC = 4. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Halfspaces through the origin in $\mathbb R^d$ ($h_w(x) = \mathrm{sign}(w^\top x)$): show VC dimension is exactly $d$. <details class="sol"><summary>Solution</summary><div>Shatter the standard basis $e_1..e_d$: for labeling $b\in\{\pm1\}^d$ take $w = \sum b_ie_i$: $\mathrm{sign}(w^\top e_i) = b_i$ ✓. No $d+1$ points: any $x_1..x_{d+1}$ in $\mathbb R^d$ are linearly dependent: $\sum_i a_ix_i = 0$ with some $a_i \ne 0$. Try the labeling $b_i = \mathrm{sign}(a_i)$ (arbitrary for $a_i = 0$): if some $w$ realized it, then $a_iw^\top x_i \ge 0$ for all $i$ with strict inequality for $a_i \neq 0$ — but $\sum_i a_i w^\top x_i = w^\top(\sum a_ix_i) = 0$, contradiction. VC = d. ∎ (With bias: $d+1$, by lifting.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="growth-functions">
+ <h2>Growth functions</h2>
+ <p>The growth function counts behaviors: over all possible $m$-point samples, the maximum number of distinct labelings the class realizes. It is the honest effective size of an infinite class on finite data — the number that replaces $|\mathcal H|$ in bounds. The drama: either it is $2^m$ forever (shattering never stops) or it bends to a polynomial, and VC dimension marks the bend.</p>
+ <div class="box def"><span class="label">Definition</span> $\Pi_{\mathcal H}(m) = \max_{x_1..x_m}\big|\{(h(x_1), \dots, h(x_m)) : h\in\mathcal H\}\big|$. Facts: $\Pi_{\mathcal H}(m) \le 2^m$ always; $\Pi_{\mathcal H}(m) = 2^m$ iff some $m$-set is shattered, so $\mathrm{VC}(\mathcal H) = \max\{m : \Pi_{\mathcal H}(m) = 2^m\}$. The VC bound replaces cardinality by growth: with prob $\ge 1-\delta$, $\sup_h|R - \hat R| \le \sqrt{\frac{8\ln(4\Pi_{\mathcal H}(2n)/\delta)}{n}}$ (via symmetrization: compare the sample to a ghost sample, reducing the sup over $\mathcal H$ to a max over its finitely many behaviors on $2n$ points).</div>
+ <div class="box ex"><span class="label">Worked example</span> Thresholds: $\Pi(m) = m + 1$ (computed earlier). VC = 1 since $\Pi(1) = 2 = 2^1$ but $\Pi(2) = 3 &lt; 4$. Plug into the VC bound with $n = 1000$, δ = 0.05: $\sqrt{\frac{8\ln(4\times2001/20)}{1000}} = \sqrt{\frac{8\ln 400.2}{1000}} = \sqrt{\frac{8\times5.99}{1000}} \approx 0.22$ — loose constants (bounds of this family are conservative by ~an order), but FINITE for an infinite class: the point of the whole construction.</div>
+ <div class="box drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\Pi_{\mathcal H}(3)$ for intervals on ℝ. <details class="sol"><summary>Solution</summary><div>Runs of consecutive 1s among 3 sorted points, plus empty: $\binom42 + 1 = 7$ (of 8 — only (1,0,1) missing).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the symmetrization trick let a bound about infinitely many hypotheses use $\Pi_{\mathcal H}(2n)$ — where does the "2n" come from? <details class="sol"><summary>Solution</summary><div>The deviation $R(h) - \hat R_S(h)$ is compared instead to the gap between the real sample and an independent "ghost" sample $S'$ of the same size: if the sup deviation is large vs the truth, it is (with prob ≥ ½) large between the two samples too. But on the combined $2n$ points, only $\Pi_{\mathcal H}(2n)$ behaviors exist — the infinite class collapses to finitely many equivalence classes, and a union bound over those finishes it. Truth (an expectation) never appears again: only data.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $\Pi_{\mathcal H}(m)$ is polynomial, the generalization gap → 0 as $n\to\infty$, but if $\Pi_{\mathcal H}(m) = 2^m$ for all $m$, the VC bound is vacuous at every $n$. <details class="sol"><summary>Solution</summary><div>Polynomial $\Pi(2n) \le (2n)^d$: bound $\sim\sqrt{\frac{8(d\ln 2n + \ln(4/\delta))}{n}} = O(\sqrt{d\ln n / n}) \to 0$. Full shattering: $\ln\Pi(2n) = 2n\ln 2$, bound $\sim\sqrt{16\ln 2 + \cdots} &gt; 1$ — exceeding the maximum possible gap for 0-1 loss: no information. The dichotomy (Sauer, next) says these are the ONLY two regimes: learnability is an all-or-nothing phase distinction.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sauers-lemma">
+ <h2>Sauer's lemma</h2>
+ <p>Sauer's lemma is the hinge of the whole theory: once shattering stops — at VC dimension $d$ — the growth function doesn't merely dip below $2^m$; it crashes to a degree-$d$ polynomial. There is no middle ground between "exponentially rich forever" and "polynomially tame": one integer forces the collapse.</p>
+ <div class="box thm"><span class="label">Theorem (Sauer–Shelah)</span> If $\mathrm{VC}(\mathcal H) = d$, then $$\Pi_{\mathcal H}(m) \le \sum_{i=0}^{d}\binom{m}{i} \le \Big(\frac{em}{d}\Big)^{d} \text{ for } m \ge d.$$ Proof idea (induction on $m + d$): fix a point $x$; split the realized behavior set into behaviors on the remaining points, counting twice those that appear with BOTH labels of $x$ — that doubled subclass shatters-with-$x$, so it has VC ≤ $d - 1$ on the rest; apply induction to both parts and Pascal's identity $\binom{m}{i} = \binom{m-1}{i} + \binom{m-1}{i-1}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Halfspaces in the plane (VC = 3), $m = 100$ points: Sauer: $\Pi(100) \le \binom{100}{0}+\binom{100}{1}+\binom{100}{2}+\binom{100}{3} = 1 + 100 + 4950 + 161700 = 166{,}751$ — versus $2^{100} \approx 1.3\times10^{30}$: a $10^{24}$-fold collapse. The class LOOKS like it has $\sim1.7\times10^5$ members on any 100 points; that effective count is what the bound pays for.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide VC dimension d and watch $\sum_{i\le d}\binom mi$ peel away from $2^m$ at m = d — the polynomial/exponential fork, on a log scale.</p>
+  <canvas id="cv-sauer"></canvas>
+  <div class="ctl">
+   <label>VC dim d <input type="range" id="sa-d" min="1" max="12" step="1" value="3"></label>
+   <label>m max <input type="range" id="sa-m" min="10" max="60" step="5" value="30"></label>
+  </div>
+  <div class="out" id="sa-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate Sauer's bound for d = 1, and check it against the threshold class's exact $\Pi(m) = m+1$. <details class="sol"><summary>Solution</summary><div>$\binom m0 + \binom m1 = m + 1$: exactly tight — thresholds achieve Sauer's bound.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the corollary $\sum_{i\le d}\binom mi \le (em/d)^d$ numerically for m = 20, d = 4. <details class="sol"><summary>Solution</summary><div>Sum: $1 + 20 + 190 + 1140 + 4845 = 6196$. Bound: $(e\cdot20/4)^4 = (13.59)^4 \approx 34{,}134$. ✓ (loose but the right order; the $(em/d)^d$ form is what plugs into logs: $\ln\Pi \le d\ln\frac{em}{d}$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Combine Sauer with the VC bound to derive the standard sample complexity: gap $\le \varepsilon$ needs $n = O\!\big(\frac{d\ln(1/\varepsilon) + \ln(1/\delta)}{\varepsilon^2}\big)$. <details class="sol"><summary>Solution</summary><div>Gap bound $\sqrt{\frac{8(\ln(4/\delta) + d\ln\frac{2en}{d})}{n}} \le \varepsilon$ requires $n \gtrsim \frac{8d\ln(2en/d)}{\varepsilon^2}$; solving the mild self-reference $n/\ln n \gtrsim d/\varepsilon^2$ gives $n = O(\frac{d}{\varepsilon^2}\ln\frac{d}{\varepsilon^2} + \frac{\ln(1/\delta)}{\varepsilon^2})$, i.e. $\tilde O(d/\varepsilon^2)$ — samples scale LINEARLY in VC dimension (and refined chaining arguments remove the log). This is the precise cash value of "capacity": each unit of VC dimension costs $\sim1/\varepsilon^2$ samples.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="generalization-bounds">
+ <h2>Generalization bounds</h2>
+ <p>A generalization bound is a certificate: with probability $1-\delta$ over the sample, the true risk of your (data-chosen) hypothesis is at most its empirical risk plus an explicit complexity penalty. The genre has one grammar — risk ≤ fit + capacity/√n — realized by many capacity measures, each with its regime of usefulness.</p>
+ <div class="box def"><span class="label">Definition</span> Template: w.p. $\ge 1-\delta$, for all $h\in\mathcal H$: $R(h) \le \hat R_S(h) + \mathrm{cap}(\mathcal H, n, \delta)$. Instances: finite class: $\mathrm{cap} = \sqrt{\frac{\ln|\mathcal H| + \ln(1/\delta)}{2n}}$; VC: $\sqrt{\frac{8(d\ln\frac{2en}{d} + \ln\frac4\delta)}{n}}$; Rademacher: $2\mathfrak R_n(\mathcal H) + \sqrt{\frac{\ln(1/\delta)}{2n}}$; margin bounds for classifiers with real scores: risk ≤ margin-violations + $\tilde O\!\big(\frac{\text{norm capacity}}{\gamma\sqrt n}\big)$ — capacity measured by weight norms, not counts, explaining why SVMs and (partially) deep nets generalize despite huge parameter spaces.</div>
+ <div class="box ex"><span class="label">Worked example</span> A depth-limited decision tree class with $|\mathcal H| \approx 10^{12}$ effective trees, trained to $\hat R = 0.08$ on $n = 50{,}000$, δ = 0.01: gap $\le \sqrt{\frac{\ln(10^{12}) + \ln 100}{2\times50000}} = \sqrt{\frac{27.6 + 4.6}{100000}} = \sqrt{3.22\times10^{-4}} \approx 0.018$. Certificate: true error ≤ 9.8%, no test set involved. This is the (rare) regime where bounds are non-vacuous: moderate capacity, big n.</div>
+ <div class="box pit"><span class="label">Pitfall</span> For modern deep networks the classical certificates compute to risk ≤ 0.08 + 4000 — true but useless (vacuous). This is not a paradox: the bounds hold; they are just loose, because the trained network is not a worst-case member of its astronomically rich class. Non-vacuous deep bounds exist (PAC-Bayes with compression) but remain far from explaining practice. Bounds are best read as EXPLANATIONS of what drives generalization (capacity per sample, margins, stability, description length), not as numbers to ship.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which quantities in the template improve the certificate, and how fast? <details class="sol"><summary>Solution</summary><div>More samples: gap $\propto 1/\sqrt n$. Less capacity: gap $\propto \sqrt{\mathrm{cap}}$-ish (log of count / linear in VC). More confidence (smaller δ): only $\sqrt{\ln(1/\delta)}$ — cheap. Better fit lowers the first term directly.</div></details></li>
+  <li><span class="lvl m">MED</span> Your bound reads $R \le 0.02 + 0.35$. Colleague says "useless." Defend two legitimate uses. <details class="sol"><summary>Solution</summary><div>(1) Comparative/structural use: the bound's FORM identifies the levers — e.g. it scales with weight norm over margin, telling you regularization or margin-boosting shrinks it, guiding algorithm design (this is how SVMs and boosting were invented). (2) Relative model selection: comparing bound values across nested classes (SRM, below) validly selects capacity even when absolute values are loose, because looseness is shared. Vacuous ≠ uninformative about directions.</div></details></li>
+  <li><span class="lvl h">HARD</span> Margin bound intuition: for linear classifiers with $\|w\|\le B$, data in a ball of radius $X$, and empirical margin γ on all points, risk $\lesssim \tilde O\!\big(\frac{BX/\gamma}{\sqrt n}\big)$ — note NO dependence on dimension d. Why is that possible when VC dim of halfspaces is d+1? <details class="sol"><summary>Solution</summary><div>The margin restricts the class actually used: hypotheses achieving margin γ on the data form a much smaller effective class than all halfspaces — their capacity is controlled by the geometry ($BX/\gamma$, via Rademacher complexity of bounded-norm linear functions, which is $\le BX/\sqrt n$ regardless of d). Dimension-free bounds are what license kernel methods (infinite d!) and are the theoretical seed of "wide margins generalize" — capacity is what you USE, not what you HAVE.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rademacher-complexity">
+ <h2>Rademacher complexity</h2>
+ <p>Rademacher complexity measures capacity by a wonderfully direct test: hand the class random coin-flip labels and ask how well it can correlate with them. A class that can chase pure noise on your sample is a class whose good training scores mean little. Unlike VC dimension it is distribution-dependent — it measures richness where your data actually lives — and it yields the tightest general-purpose bounds.</p>
+ <div class="box def"><span class="label">Definition</span> With i.i.d. Rademacher signs $\sigma_i \in \{\pm1\}$ (fair coins), the <em>empirical Rademacher complexity</em> on sample $S = (x_1..x_n)$ is $$\hat{\mathfrak R}_S(\mathcal H) = \mathbb E_\sigma\Big[\sup_{h\in\mathcal H}\frac1n\sum_{i=1}^n \sigma_i\,h(x_i)\Big],$$ and $\mathfrak R_n = \mathbb E_S[\hat{\mathfrak R}_S]$. Bound: w.p. $\ge 1-\delta$, for all $h$: $R(h) \le \hat R_S(h) + 2\mathfrak R_n(\ell\circ\mathcal H) + \sqrt{\frac{\ln(1/\delta)}{2n}}$. Toolkit: $\mathfrak R_n \le \sqrt{\frac{2\ln\Pi_{\mathcal H}(n)}{n}}$ (Massart, recovering VC bounds); linear class $\{x\mapsto w^\top x: \|w\|_2\le B\}$ on $\|x\|\le X$: $\hat{\mathfrak R}_S \le \frac{BX}{\sqrt n}$; contraction: an $L$-Lipschitz loss multiplies it by at most $L$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two extreme classes on $n$ points. (a) A single fixed classifier: $\mathbb E_\sigma[\frac1n\sum\sigma_ih(x_i)] = 0$ — no sup, no noise-chasing, complexity 0 (plus $O(1/\sqrt n)$ if you take absolute values). (b) All functions: choose $h(x_i) = \sigma_i$: correlation 1 always — $\hat{\mathfrak R} = 1$… with $\{0,1\}$-valued $h$ and signs, sup is $\frac{\#\{+1\}}{n} \approx \frac12$ — maximal: the bound's gap term is order 1, vacuous. Real classes live between; e.g. bounded-norm linear with $B = X = 1$, $n = 10^4$: $\mathfrak R \le 0.01$ — a 2-point certificate.</div>
+ <div class="box think"><span class="label">Think first</span> Why is "ability to fit random labels" the right measure? Connect to the famous experiment where deep nets fit randomly-labeled ImageNet perfectly. <details class="sol"><summary>Reveal</summary><div>The generalization gap is literally the class's ability to make sample averages differ from expectations; symmetrization shows this equals its ability to correlate with random signs. Zhang et al. (2017) showed standard deep nets reach zero training error on RANDOMIZED labels: their empirical Rademacher complexity on those samples is ~maximal, so any bound of this uniform type is vacuous for the full class — the modern generalization puzzle in one experiment. Resolution attempts: the ALGORITHM (SGD + implicit bias) explores only a low-complexity subset — see stability, PAC-Bayes, benign overfitting below.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\hat{\mathfrak R}_S$ for the two-element class {always +1, always −1} on n points (h ∈ {±1}). <details class="sol"><summary>Solution</summary><div>$\sup$ over the two constants of $\pm\frac1n\sum\sigma_i = \frac{|\sum\sigma_i|}{n}$; $\mathbb E|\sum\sigma_i| \approx \sqrt{2n/\pi}$: $\hat{\mathfrak R} \approx \sqrt{\frac{2}{\pi n}}$ — the $1/\sqrt n$ floor that even trivial classes pay.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the linear-class bound $\hat{\mathfrak R}_S \le \frac{BX}{\sqrt n}$ using Cauchy–Schwarz and Jensen. <details class="sol"><summary>Solution</summary><div>$\sup_{\|w\|\le B}\frac1n\sum\sigma_iw^\top x_i = \frac Bn\|\sum\sigma_ix_i\|$ (sup of a linear functional over a ball). $\mathbb E\|\sum\sigma_ix_i\| \le \sqrt{\mathbb E\|\sum\sigma_ix_i\|^2} = \sqrt{\sum_i\|x_i\|^2} \le X\sqrt n$ (cross terms vanish: $\mathbb E[\sigma_i\sigma_j] = 0$). So $\hat{\mathfrak R} \le \frac{BX\sqrt n}{n} = \frac{BX}{\sqrt n}$. ∎ Dimension never appears — the geometry (norms) is the capacity.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show adding a hypothesis to $\mathcal H$ can only increase $\hat{\mathfrak R}_S$, yet averaging two classes' outputs (ensembling into the convex hull) does NOT increase it. Moral? <details class="sol"><summary>Solution</summary><div>Monotonicity: sup over a superset is ≥. Convex hull: $\sup_{h = \lambda h_1 + (1-\lambda)h_2}\frac1n\sum\sigma_ih(x_i) = \sup_{\lambda, h_1, h_2}[\lambda(\cdot) + (1-\lambda)(\cdot)]$ — a convex combination of two sups is maximized at an extreme point: $\hat{\mathfrak R}(\mathrm{conv}\,\mathcal H) = \hat{\mathfrak R}(\mathcal H)$. Moral: ensembles/averaging add NO statistical capacity — voting many models is free in generalization terms (why bagging and boosting's margins story work), even though the ensemble has more parameters than any member.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="structural-risk-minimization">
+ <h2>Structural risk minimization</h2>
+ <p>ERM needs the class fixed in advance — but choosing the class IS the hard decision. Structural risk minimization nests classes of growing capacity, $\mathcal H_1 \subset \mathcal H_2 \subset \cdots$, and picks the depth whose fit-plus-certificate is smallest: minimize the BOUND, not the training error. It is model selection with theory in the loop, and the ancestor of every "penalized fit" criterion.</p>
+ <div class="box def"><span class="label">Definition</span> Given a nested structure and per-class bounds, SRM selects $$\hat h = \arg\min_{k,\ h\in\mathcal H_k}\ \hat R_S(h) + \mathrm{cap}(\mathcal H_k, n, \delta_k),$$ with confidence split $\delta_k$ (e.g. $\delta_k = \delta 2^{-k}$, a union bound over levels). Guarantee: SRM's risk is within the best trade-off available in the structure, up to constants — it adapts to unknown problem complexity. Instances of the pattern: cost-complexity tree pruning, AIC/BIC, MDL's two-part codes (Ch 16), and — loosely — choosing architecture size by validation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Polynomial degrees as the structure; $n = 200$, per-level capacity charge (illustrative) $\sqrt{\frac{(k+1)\ln n + \ln(2^k/\delta)}{n}\cdot 8}\ldots$ use simplified $\mathrm{cap}_k = \sqrt{\frac{5(k+1) + 0.7k}{200}}$. Fits: deg 1: $\hat R = 0.30$, cap 0.17 → 0.47; deg 3: $\hat R = 0.12$, cap 0.23 → 0.35; deg 6: $\hat R = 0.10$, cap 0.29 → 0.39; deg 9: $\hat R = 0.02$, cap 0.34 → 0.36. SRM picks degree 3: it declines both the underfit line AND the interpolating degree-9 — the certificate arithmetic re-derives the validation-curve U shape without a validation set.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 16's MDL is SRM with code lengths as capacity; regularization (next) is SRM's smooth twin — a continuous dial instead of discrete nesting.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must $\delta$ be split across levels of the structure? <details class="sol"><summary>Solution</summary><div>SRM examines infinitely many classes; the certificates must hold simultaneously. Allocating $\delta_k = \delta2^{-k}$ keeps the total failure probability $\le \sum\delta_k = \delta$ while charging deeper (less-preferred) classes a slightly larger $\ln(1/\delta_k) = \ln(1/\delta) + k\ln2$ — a built-in prior favoring simplicity.</div></details></li>
+  <li><span class="lvl m">MED</span> Contrast SRM with validation-based selection: one advantage and one disadvantage each. <details class="sol"><summary>Solution</summary><div>SRM: uses ALL data for training (no held-out sacrifice) and gives a guarantee; but its capacity terms are loose, so it tends to over-penalize and select too-simple models. Validation: unbiased, tight, assumption-light estimates; but spends data, adds selection noise, and gives no a-priori guarantee. Practice overwhelmingly votes validation; theory's SRM survives inside penalties (AIC/BIC/MDL) and when data is too precious to split.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show SRM is consistent-in-spirit: if the truth lies in level $k^*$, SRM's excess risk → 0 as n → ∞, even though SRM wasn't told $k^*$. <details class="sol"><summary>Solution</summary><div>SRM's objective at the true level: $\hat R(h^*) + \mathrm{cap}_{k^*} \to R(h^*) + 0$ since $\mathrm{cap}_k(n) \to 0$ for each FIXED k. SRM's chosen value is ≤ this, and by the per-level certificates its true risk is ≤ chosen value + (its level's cap, already included). Hence $\limsup R(\hat h) \le R(h^*)$: the penalty schedule vanishes level-wise while the union bound holds uniformly, so SRM automatically pays only the complexity of the level it needed — <em>adaptivity</em>. The price versus knowing $k^*$: the $k\ln2$ confidence surcharges and slower effective rates at small n.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="regularization-theory">
+ <h2>Regularization theory</h2>
+ <p>Regularization is SRM gone smooth: instead of a ladder of classes, one continuous penalty $\lambda\Omega(h)$ carving level sets of complexity through a big class. The theory says why this works: the penalty bounds the effective capacity of the sublevel set the optimizer can reach, so bounds apply with $\Omega(\hat h)$ in place of class size — you pay for the complexity you USE.</p>
+ <div class="box def"><span class="label">Definition</span> Penalized ERM: $\hat h_\lambda = \arg\min_{h}\ \hat R_S(h) + \lambda\Omega(h)$. Equivalences: (Lagrangian duality, Ch 15) for convex problems, penalization with $\lambda$ ⟺ constrained ERM over $\{\Omega(h)\le c(\lambda)\}$ — a class whose capacity (e.g. Rademacher $\le \frac{cX}{\sqrt n}$ for $\Omega = \|w\|_2$… with $c$ the norm budget) enters bounds directly. Three faces of one object: penalty = constraint (SRM level) = prior (MAP, Ch 19). Ill-posedness view (Tikhonov): inverse problems with unstable inverses are stabilized by the penalty; λ trades data fidelity for stability of the solution map.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ridge on $n = 100$, features scaled to $\|x\|\le1$. Choosing λ to keep $\|\hat w\|_2 \le 5$: margin-free linear-class bound gives gap $\lesssim \frac{2\cdot5\cdot1}{\sqrt{100}} + \sqrt{\frac{\ln(1/\delta)}{2n}} \approx 1.0 + 0.12$ — vacuous. Same setup, $n = 10^4$: $0.10 + 0.012$ — meaningful. The bound's message survives its looseness: capacity-per-sample $\frac{B X}{\sqrt n}$ is the controlling ratio, and λ is how you set $B$ without knowing it in advance.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Regularization theory's guarantees are for the PENALIZED optimum. Deep learning's twist: even with $\lambda = 0$, gradient methods impose <em>implicit regularization</em> — e.g. gradient descent on separable logistic regression converges in direction to the max-margin (min-norm) separator, and on least squares to the min-norm interpolant. The algorithm is part of the regularizer; theory that ignores the optimizer misses where modern capacity control actually comes from.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the three equivalent readings of $\lambda\|w\|_2^2$. <details class="sol"><summary>Solution</summary><div>Penalty (soft constraint on norm); constraint (ERM over a norm ball, some radius $c(\lambda)$); Gaussian prior (MAP with $\tau^2 = \sigma^2/2\lambda$-ish scaling — Ch 19's derivation).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the constrained-class view make bounds "pay for what you use"? <details class="sol"><summary>Solution</summary><div>The bound applies to the smallest ball containing $\hat w$: capacity $\frac{\|\hat w\|X}{\sqrt n}$ depends on the SOLUTION's norm, not the ambient class. A billion-parameter model whose trained weights have small norm (or margin-normalized norm) gets a small certificate — norm-based capacity replaces parameter counting, the key step toward explaining overparameterized models. (Uniformity over the data-dependent radius costs a log factor via a union over a grid of radii.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Tikhonov view: for ill-conditioned least squares $\min\|Xw - y\|^2$, show the ridge solution's sensitivity to a data perturbation is controlled by λ. <details class="sol"><summary>Solution</summary><div>$\hat w_\lambda = (X^\top X + \lambda I)^{-1}X^\top y$: sensitivity $\frac{\partial \hat w}{\partial y} = (X^\top X + \lambda I)^{-1}X^\top$, with spectral norm $\max_i \frac{\sigma_i}{\sigma_i^2 + \lambda} \le \frac{1}{2\sqrt\lambda}$ (AM–GM: $\sigma^2 + \lambda \ge 2\sigma\sqrt\lambda$). Unregularized ($\lambda = 0$): $\frac1{\sigma_{\min}}$, unbounded as $\sigma_{\min}\to0$. Ridge caps the amplification at $\frac{1}{2\sqrt\lambda}$ whatever the spectrum: regularization IS conditioning (Ch 18), and stable solution maps are exactly what the next section shows generalize.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="algorithmic-stability">
+ <h2>Algorithmic stability</h2>
+ <p>Stability attacks generalization from the algorithm's side, ignoring the class entirely: if swapping ONE training example barely changes the learned predictor, the algorithm cannot have memorized that example — and a leave-one-out argument converts "insensitive to each point" directly into "training error ≈ true error." No sups, no shattering; capacity of the search, not of the class.</p>
+ <div class="box def"><span class="label">Definition</span> Algorithm $A$ has <em>uniform stability</em> $\beta$ if for all samples $S$, all replacements $S^{(i)}$ (swap example $i$), and all $z = (x,y)$: $|\ell(A(S), z) - \ell(A(S^{(i)}), z)| \le \beta$. Theorem (Bousquet–Elisseeff): then $\mathbb E[R(A(S)) - \hat R_S(A(S))] \le \beta$, and w.h.p. $R \le \hat R + \beta + (n\beta + 1)\sqrt{\frac{\ln(1/\delta)}{2n}}$-type bounds. Flagship: λ-strongly-convex regularized ERM with $L$-Lipschitz loss has $\beta \le \frac{2L^2}{\lambda n}$ — gap $O(\frac{1}{\lambda n})$. SGD: with step sizes $\eta_t$, few epochs, and smooth losses, stability $\beta = O(\frac{\sum\eta_t}{n})$-ish (Hardt–Recht–Singer): train fast, generalize.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ridge-regularized logistic regression ($L = 1$ after feature scaling), $\lambda = 0.01$, $n = 10^5$: $\beta \le \frac{2}{0.01\times10^5} = 2\times10^{-3}$ — expected gap ≤ 0.2%, from three numbers, with no reference to dimension (could be $10^9$ features) or VC anything. The certificate is about the PROCEDURE: strong convexity means one example can only tug the optimum $O(1/\lambda n)$ far.</div>
+ <div class="box think"><span class="label">Think first</span> 1-nearest-neighbor: stable or not? What about its true generalization? <details class="sol"><summary>Reveal</summary><div>Not uniformly stable: swapping one training point flips predictions in its whole Voronoi cell, and a test point there changes loss by 1 — β = 1, the bound is vacuous. Yet 1-NN generalizes fine asymptotically (Cover–Hart, Ch 19). Lesson: uniform stability is sufficient, never necessary; average-case stability notions (hypothesis stability) partially rescue k-NN. Each proof technique is a lens, not the phenomenon.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the $\beta \le \frac{2L^2}{\lambda n}$ bound, what happens as λ → 0, and what does that recover conceptually? <details class="sol"><summary>Solution</summary><div>β → ∞: unregularized ERM over a rich class has no stability guarantee — memorization becomes possible. Regularization buys generalization VIA stability: the two theories meet.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch why expected gap ≤ β (the leave-one-out/symmetry argument). <details class="sol"><summary>Solution</summary><div>$\mathbb E[R(A(S))] = \mathbb E_{S, z}[\ell(A(S), z)]$ with fresh $z$; by exchangeability this equals $\mathbb E_{S^{(i)}}[\ell(A(S^{(i)}), z_i)]$ — train with $z_i$ replaced, test on $z_i$. Meanwhile $\mathbb E[\hat R_S(A(S))] = \mathbb E[\ell(A(S), z_i)]$ (any i). The two differ by one swapped training set evaluated at the same point: ≤ β by definition. Averaging over i: gap ≤ β. ∎ Fresh-vs-memorized is literally one substitution.</div></details></li>
+  <li><span class="lvl h">HARD</span> Differential privacy implies generalization. Connect: a DP algorithm's output distribution changes little when one example changes. Why does that bound overfitting, even under ADAPTIVE reuse of the data? <details class="sol"><summary>Solution</summary><div>DP is a distributional stability: ε-DP means one example shifts output probabilities by factor $e^\varepsilon$ — so any downstream statistic (including "did the model fit $z_i$ well?") is nearly independent of $z_i$'s presence: expected gap $= O(\varepsilon)$ by the same swap argument, uniformly over post-processing. Because DP composes across queries, it controls even ADAPTIVE analysis (choosing the next question from previous answers) — the leaderboard-overfitting problem of Ch 19 — where classical bounds break. Stability is the common root of privacy, generalization, and reproducibility.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pac-bayes-bounds">
+ <h2>PAC-Bayes bounds</h2>
+ <p>PAC-Bayes bounds are the Bayesian's generalization certificates: fix a prior over hypotheses before seeing data; learn any posterior distribution after; then the (Gibbs) risk of sampling from the posterior exceeds its empirical risk by at most a KL-divergence tax — how far you moved from the prior, per sample. Description length returns as the universal currency of capacity, now with real-valued weights.</p>
+ <div class="box thm"><span class="label">Theorem (McAllester-style)</span> Fix prior $P$ over $\mathcal H$ (before data). W.p. $\ge 1-\delta$ over $S$, for ALL posteriors $Q$: $$\mathbb E_{h\sim Q}[R(h)] \le \mathbb E_{h\sim Q}[\hat R_S(h)] + \sqrt{\frac{\mathrm{KL}(Q\| P) + \ln\frac{2\sqrt n}{\delta}}{2n}}.$$ Finite-class recovery: $P$ uniform, $Q$ a point mass: KL $= \ln|\mathcal H|$ — the finite-class bound is the special case. The bound holds simultaneously for every $Q$: you may CHOOSE the posterior by minimizing the bound itself.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prior: Gaussian $\mathcal N(0, \sigma^2I)$ over weights; posterior: $\mathcal N(\hat w, \sigma^2I)$ around trained weights: $\mathrm{KL} = \frac{\|\hat w\|^2}{2\sigma^2}$ — the L2 regularizer appears as the exact price of information moved from prior to posterior. Numbers: $\|\hat w\|^2/2\sigma^2 = 250$, $n = 10^5$, δ = 0.01: gap $\le \sqrt{\frac{250 + \ln(2\times316/0.01)}{2\times10^5}} = \sqrt{\frac{250 + 11.06}{200000}} \approx 0.036$. Noise-robust nets (flat minima: adding weight noise doesn't hurt $\hat R$) admit broad low-KL posteriors — this route produced the first NON-VACUOUS bounds for real ImageNet-scale-ish networks (Dziugaite–Roy), and links flatness to generalization.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The prior must be chosen data-independently — tuning $\sigma$ after seeing results silently invalidates the certificate (fix: union-bound over a prior grid, paying $\ln K$). And the guarantee is for the STOCHASTIC (Gibbs) classifier averaged over Q; derandomizing to a single $\hat w$ costs extra (margin or majority-vote arguments).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Set $P$ uniform on $|\mathcal H| = 2^{20}$ hypotheses and $Q$ a point mass. What does the KL term become, in bits-speak? <details class="sol"><summary>Solution</summary><div>KL $= \ln 2^{20} = 20\ln2 \approx 13.9$ nats — exactly the 20 bits needed to NAME the chosen hypothesis: the bound charges description length.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does a BROAD posterior (high entropy around good hypotheses) beat a point mass in the bound, and what property of the loss landscape does that reward? <details class="sol"><summary>Solution</summary><div>KL(Q‖P) shrinks as Q spreads toward P (less information transmitted), while $\mathbb E_Q[\hat R]$ stays small only if a whole REGION fits well — i.e., a flat minimum. The bound thus quantitatively prefers flat minima over sharp ones of equal training loss: sharpness-generalization, certified. (Compare Ch 15's SAM.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the finite-class Occam bound from PAC-Bayes with a NON-uniform prior $P(h) = 2^{-|c(h)|}$ over hypotheses with binary descriptions $c(h)$ (prefix-free). <details class="sol"><summary>Solution</summary><div>Point-mass Q on $\hat h$: KL $= \ln\frac{1}{P(\hat h)} = |c(\hat h)|\ln2$. Bound: $R \le \hat R + \sqrt{\frac{|c(\hat h)|\ln2 + \ln(2\sqrt n/\delta)}{2n}}$ — simultaneously for ALL hypotheses, with each paying ITS OWN code length: short-to-describe hypotheses get tight certificates (Occam's razor as a theorem), and Kraft's inequality (Ch 16) is exactly what makes $P$ a valid prior. MDL, Bayes, and PAC all cash out in the same bits.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="double-descent">
+ <h2>Double descent</h2>
+ <p>The classical U-curve says test error worsens once capacity exceeds "enough." Modern practice found the plot twist: keep growing capacity PAST the point of interpolating the data, and test error comes back DOWN — often below the classical sweet spot. The peak sits exactly at the interpolation threshold, where the model has just barely enough parameters to fit everything and must contort to do it.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Model-wise double descent:</em> test risk vs capacity rises to a peak near #parameters ≈ #samples (interpolation threshold), then descends again in the overparameterized regime. Mechanism (linear/random-feature models, provable): at the threshold, the design matrix is square-ish and nearly singular — the min-norm interpolant needs huge weights along tiny singular directions (variance explosion, Ch 18's conditioning!); with many more parameters than samples, many interpolants exist and the MIN-NORM one is small and smooth. Also epoch-wise and sample-wise variants (more data can briefly HURT near the threshold).</div>
+ <div class="box ex"><span class="label">Worked example</span> Least squares with random features, $n = 40$ samples: at $p = 10$ features, bias-limited (classical underfit → good); at $p = 40$: the $40\times40$ system is near-singular — test error spikes 10–100×; at $p = 400$: min-norm solution spreads the fit over many directions with small coefficients — test error drops below the $p = 10$ value. Ridge with well-chosen λ flattens the peak entirely: the divergence is a variance phenomenon of the UNREGULARIZED interpolant, and even tiny λ caps $\frac{\sigma_i}{\sigma_i^2 + \lambda}$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Sweep model capacity through the interpolation threshold on a random-features regression and watch the test-error peak form and then descend; add ridge to tame it.</p>
+  <canvas id="cv-dd"></canvas>
+  <div class="ctl">
+   <label>ridge λ <input type="range" id="dd-l" min="0" max="3" step="1" value="0"></label>
+   <button class="btn" id="dd-re">Resample</button>
+  </div>
+  <div class="out" id="dd-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Double descent does not repeal bias-variance — it reveals that "capacity" on the x-axis was the wrong coordinate. Plotted against the right complexity measure (norm of the fitted function, effective degrees of freedom), the U-curve returns. The classical theory was incomplete, not wrong: it lacked the physics of WHICH interpolant the algorithm selects.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Where does the test-error peak sit, and what geometric fact of the design matrix causes it? <details class="sol"><summary>Solution</summary><div>At the interpolation threshold $p \approx n$: the feature matrix is square and typically ill-conditioned ($\sigma_{\min}\to0$), so the unique interpolant has exploding norm — pure variance.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the OVERparameterized regime escape the explosion — what does the min-norm interpolant do with its extra dimensions? <details class="sol"><summary>Solution</summary><div>With $p \gg n$, interpolants form an affine subspace of dimension $p - n$; gradient descent from zero (equivalently the pseudoinverse) selects the minimum-norm one, which distributes the required fit across many well-conditioned directions — small coefficients, smooth function. More parameters = more room to interpolate GENTLY. The algorithm's implicit bias (min norm) is the hidden regularizer.</div></details></li>
+  <li><span class="lvl h">HARD</span> For min-norm least squares with isotropic random features, the variance term scales like $\frac{\sigma^2 p}{n(p - n)}$-ish for $p &gt; n$ (and $\frac{\sigma^2 p}{n - p}$-ish… rather $\frac{\sigma^2 p}{n(n-p)}$ below). Read off: the divergence at $p\to n$, the recovery as $p\to\infty$, and the effect of λ. <details class="sol"><summary>Solution</summary><div>As $p \to n^{\pm}$: denominators $(p - n)$ or $(n - p)$ → 0: variance → ∞ — the peak. As $p\to\infty$: $\frac{p}{n(p-n)} \to \frac1n$: variance falls back to the well-behaved $O(\sigma^2/n)$ — descent, though bias (from the null-space's unfitted truth components) sets the floor. Ridge replaces small singular values $\sigma_i$ in $\frac{\sigma_i}{\sigma_i^2}$ by $\frac{\sigma_i}{\sigma_i^2 + \lambda} \le \frac1{2\sqrt\lambda}$: the peak is clipped at height $O(1/\lambda)$ — regularization removes double descent, confirming its variance origin.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">The double-descent test-error peak is primarily a phenomenon of…</div><button class="opt">bias — the model class is too poor near p = n</button><button class="opt">label noise only — it vanishes with clean labels</button><button class="opt">variance — the near-singular design forces a huge-norm interpolant</button><div class="why" hidden>At p ≈ n the interpolant is unique and must use enormous weights along near-null directions: variance explodes (conditioning!). Ridge or more data past the threshold fixes it. (Clean labels shrink but don't always remove the peak — model misspecification acts like noise.)</div></div>
+</section>
+
+<section class="topic" id="benign-overfitting">
+ <h2>Benign overfitting</h2>
+ <p>Interpolating noisy data — training error zero, noise memorized — should be fatal by classical lights. Benign overfitting is the proven phenomenon where it isn't: in high dimensions, an interpolating predictor can hide the memorized noise in directions that barely matter for prediction, while the signal-carrying directions stay clean. The model overfits and generalizes, because the overfitting is quarantined.</p>
+ <div class="box def"><span class="label">Definition</span> A predictor <em>benignly overfits</em> if $\hat R_S = 0$ (interpolation, noise included) yet $R \to$ near-optimal. For min-norm linear interpolation (Bartlett et al. 2020), benignity is characterized by the covariance spectrum $\lambda_1 \ge \lambda_2 \ge\cdots$: it requires (roughly) a few strong directions carrying the signal PLUS a long, flat tail of many weak directions whose total energy is spread so thin that noise absorbed there adds vanishing prediction error — quantified via effective ranks ($r_k = \frac{\sum_{i&gt;k}\lambda_i}{\lambda_{k+1}}$ large). Neither too few tail dimensions (nowhere to hide noise) nor a too-concentrated tail (noise lands on meaningful directions).</div>
+ <div class="box ex"><span class="label">Worked example</span> Caricature: signal lives on feature 1 ($\lambda_1 = 1$); noise-absorbing tail: $10^6$ features each with $\lambda_i = 10^{-6}$. The min-norm interpolant fits the signal along feature 1 and spreads each training point's noise across the million weak features — each getting a coefficient $\sim10^{-3}$-scale whose PREDICTION contribution is $\sim\lambda_i\times$coef², summing to $O(n/10^6)$… tiny. A fresh point's weak features are near-orthogonal to the training set's: the memorized noise never gets read back out. Same spectrum with a 10-feature tail: the noise has nowhere to hide and corrupts predictions — malignant.</div>
+ <div class="box think"><span class="label">Think first</span> 1-NN interpolates noisy labels too (each training point predicts its own noisy label in its cell). Is IT benign? <details class="sol"><summary>Reveal</summary><div>Partly: 1-NN's asymptotic risk is $\le 2R^*$ — bounded inflation, not consistency: the memorized noise IS read back near each training point, but each cell shrinks as $n$ grows, so the damage is local and bounded. Interpolating kernel smoothers with spiky kernels (Nadaraya–Watson with tiny bandwidth at the data points) can be fully consistent: spikes memorize noise on a measure-zero set while the smooth part predicts. The unifying picture: benignity = memorization confined to components with vanishing test-time influence.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does classical uniform convergence FAIL to explain benign overfitting, definitionally? <details class="sol"><summary>Solution</summary><div>The interpolant has $\hat R = 0$ and $R &gt; 0$ (noise level at least): the gap equals $R$, so any uniform bound tight enough to certify it would have to be ≤ noise level — but the class demonstrably contains bad interpolants too, making $\sup_h|R - \hat R|$ large. The explanation must be algorithm-specific (which interpolant), not class-uniform.</div></details></li>
+  <li><span class="lvl m">MED</span> In the spectrum characterization, what goes wrong if the tail is (a) too short, (b) too spiky (one moderately large tail eigenvalue)? <details class="sol"><summary>Solution</summary><div>(a) Few tail dimensions: noise must load onto the few available directions with non-negligible coefficients — variance shows up in predictions: malignant. (b) A spiky tail direction has real predictive weight ($\lambda$ not tiny): noise absorbed there is read back at test time — again harmful. Benignity needs MANY, UNIFORMLY tiny directions: an approximate isotropy of the junk.</div></details></li>
+  <li><span class="lvl h">HARD</span> Connect benign overfitting to double descent and to deep networks: what shared mechanism, and what remains conjectural? <details class="sol"><summary>Solution</summary><div>Shared: in overparameterized regimes the training procedure (min-norm/max-margin implicit bias of GD) selects interpolants that place the unavoidable fit-to-noise into high-dimensional, low-energy components; double descent's second descent IS entry into the benign regime. For deep nets: empirically consistent (nets fit label noise yet generalize; noise seems stored in rarely-activated directions/neurons), and NTK-linearized analyses inherit the linear theory; but a full proof for genuinely feature-learning networks — where the "spectrum" itself is learned — remains open. The frontier question of Ch 21's theory topics.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="no-free-lunch-theorem">
+ <h2>No-free-lunch theorem</h2>
+ <p>Averaged over ALL possible worlds, every learning algorithm is exactly as good as random guessing: for any learner, the problems where it beats chance are precisely balanced by problems where it loses. Learning works only because our world is not an average world — data has structure, and an algorithm's inductive bias is a bet on which structure. There is no universal learner; there are only well-placed bets.</p>
+ <div class="box thm"><span class="label">Theorem (no free lunch, learning version)</span> Let $\mathcal X$ be finite, and average over all target functions $f: \mathcal X \to \{0,1\}$ (uniformly). For ANY learner $A$ and any training set of $n$ points, the expected 0-1 risk of $A$'s hypothesis on unseen points is exactly $\frac12$. Equivalently (Shalev-Shwartz–Ben-David form): for any learner and any $n \le |\mathcal X|/2$, there EXISTS a distribution on which some hypothesis achieves risk 0, yet the learner's expected risk is $\ge \frac14$. Corollary: distribution-free learning of the class of ALL functions is impossible; VC(all functions) = ∞ is the same fact in capacity language.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathcal X = \{1,..,6\}$, you observe $f$ on $\{1,2,3\}$. The uniform average over all $2^6$ targets: the $2^3$ completions of the unseen half are equally likely regardless of what you saw — any prediction rule for points 4–6 is right on exactly half the completions. Your learner's cleverness on the observed half buys literally nothing about the unobserved half — UNLESS you shrink the world: assume $f$ is (say) monotone, and observations start constraining the rest. The assumption, not the algorithm, is what learns.</div>
+ <div class="box pit"><span class="label">Pitfall</span> NFL does not say "all algorithms perform equally in practice" — practice is one world, not the uniform average, and real data (natural images, language, physics) is spectacularly non-uniform: compressible, smooth, compositional. NFL says you cannot justify an algorithm WITHOUT naming the structure it exploits. "It works on benchmarks" is an empirical claim about our world's structure; NFL just forbids pretending it's a theorem-for-free.</div>
+ <div class="box link"><span class="label">Where this goes</span> Inductive bias becomes architecture in Ch 21 (convolutions bet on locality/translation; transformers on relational structure); Ch 36's universal-intelligence discussions (AIXI's Occam prior over computable worlds) are the attempt to make the mildest possible bet — simplicity — and NFL is why even that is a bet.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Reconcile: NFL says no learner beats chance on average, yet gradient boosting reliably wins tabular benchmarks. <details class="sol"><summary>Solution</summary><div>The average is over ALL functions, almost all of which are incompressible noise never seen in practice. Benchmarks are drawn from OUR world's structured distribution, where boosting's biases (axis-aligned interactions, smoothness in stages) are good bets. NFL constrains claims, not practice.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the toy NFL: averaging uniformly over all targets $f$, any deterministic prediction at an unseen point errs with probability exactly ½. <details class="sol"><summary>Solution</summary><div>Condition on everything observed: under the uniform prior over targets, $f$(unseen point) is an independent fair coin (the $2^{|\text{unseen}|}$ completions are equiprobable, half with each value at that point). Any prediction — however computed from the observations — matches a fair coin with probability ½. Summing over unseen points: expected off-sample error ½. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> "Cross-validation escapes NFL by CHOOSING among algorithms empirically." Does it? <details class="sol"><summary>Solution</summary><div>No — meta-algorithms are algorithms: CV-selection is itself a learner, and NFL applies to it too (on the uniform average over worlds, CV's picks do no better than anti-CV's, since validation folds are as unpredictive of unseen points as training folds — the coin argument applies to every measurement of the sample). CV works in practice because worlds where sample performance predicts out-of-sample performance — i.e., i.i.d.-ish structured worlds — are the worlds we inhabit. Even "trust validation" is an inductive bias: a bet on stationarity. There is no view from nowhere; there are only good bets, and this chapter's bounds are the mathematics of when the standard bets pay.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Certify a model zoo.</b> You will pick, by validation score, one of 200 models; the validation set has $n = 8000$ examples; δ = 0.05, 0-1 loss. (a) Give the uniform-convergence guarantee for the selection. (b) The winner scores 7.5% validation error: state the risk certificate. (c) A colleague proposes instead evaluating 2 million prompt-tuned variants; how does the certificate change, and what's the qualitative lesson? (d) Why does the TRAINING set of the winning model play no role in this particular certificate? <details class="sol"><summary>Solution</summary><div>(a) Finite-class bound over the 200 models on validation data: gap $\le \sqrt{\frac{\ln(2\times200) + \ln(1/0.05)}{2\times8000}} = \sqrt{\frac{5.99 + 3.00}{16000}} = \sqrt{5.62\times10^{-4}} \approx 0.0237$. (b) $R \le 0.075 + 0.024 = 9.9\%$ w.p. ≥ 0.95. (c) $\ln(4\times10^6) \approx 15.2$: gap $\le \sqrt{\frac{15.2 + 3.0}{16000}} \approx 0.0337$ — 2 million candidates cost only ~1 extra point: selection pressure grows logarithmically, so honest evaluation scales to enormous searches — provided the candidates were fixed before touching the validation set (adaptive rounds compound and need fresh data or reusable-holdout/DP techniques). (d) The certificate treats each candidate as a FIXED hypothesis w.r.t. the validation sample: however wildly each was trained (on separate training data), validation scores are unbiased estimates of their risks. Training complexity is somebody else's problem; the validation set only pays for the CHOICE among 200.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>VC end to end.</b> Consider axis-aligned rectangles in the plane as a concept class (realizable setting: the truth is a rectangle; points inside are positive). (a) State its VC dimension (with one-line justifications both directions, citing the earlier drill). (b) Give the PAC sample complexity for ε = 0.05, δ = 0.05 using $n = O\!\big(\frac{d\ln(1/\varepsilon) + \ln(1/\delta)}{\varepsilon}\big)$ with constant 4 for concreteness: $n = \frac{4}{\varepsilon}\big(d\ln\frac{12}{\varepsilon} + \ln\frac{2}{\delta}\big)$. (c) Exhibit the classical CLOSURE algorithm (tightest rectangle around the positives) and prove its one-sided error property. (d) Give the direct argument (no VC machinery) that the closure algorithm needs only $n \ge \frac{4}{\varepsilon}\ln\frac{4}{\delta}$ samples, and compare. <details class="sol"><summary>Solution</summary><div>(a) VC = 4: the diamond N/S/E/W set is shattered; any 5th point is trapped in the bounding box of the four extremes (drill above). (b) $n = \frac{4}{0.05}(4\ln240 + \ln40) = 80(4\times5.48 + 3.69) = 80\times25.6 \approx 2048$. (c) Closure: output the minimal rectangle containing all positive samples. It never mislabels a negative as positive incorrectly… precisely: the output rectangle ⊆ true rectangle (every positive sample is in the true one, and the minimal box around them is contained in any rectangle containing them). Hence all its errors are FALSE NEGATIVES on the four "margin strips" of the true rectangle not yet witnessed by a positive sample. (d) Carve the true rectangle's probability mass into 4 strips (one per side), each of mass ε/4, hugging each edge inward. If the sample contains a positive point in every strip, the closure box misses at most the union of partial strips: error &lt; ε … more carefully each strip's uncovered part has mass ≤ ε/4, total ≤ ε. A given strip receives no sample point with probability $(1 - \varepsilon/4)^n \le e^{-n\varepsilon/4}$; union over 4 strips: failure ≤ $4e^{-n\varepsilon/4} \le \delta$ gives $n \ge \frac4\varepsilon\ln\frac4\delta = 80\times4.38 \approx 351$. The tailored argument beats the generic VC recipe by ~6× — general theorems are safety nets, not sharp tools; but only the VC framework tells you EVERY consistent algorithm works and the class itself is learnable.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Three certificates for one predictor.</b> A logistic-regression-style model with L2 regularization λ = 0.02, 1-Lipschitz loss in [0,1], is trained on n = 50,000 samples to empirical (surrogate) risk 0.21; features satisfy ‖x‖ ≤ 1 and the trained weights ‖ŵ‖ = 3; δ = 0.01. Certify the true (surrogate) risk three independent ways: (a) Rademacher/norm bound with $\hat{\mathfrak R} \le \frac{\|\hat w\|X}{\sqrt n}$ (use the norm bound + contraction, plus the $\sqrt{\ln(1/\delta)/2n}$ term). (b) Uniform stability of strongly-convex regularized ERM, expected-gap version β = 2L²/(λn) (report the expected-risk certificate). (c) PAC-Bayes with Gaussian prior/posterior, σ chosen so KL = ‖ŵ‖²/(2σ²) with σ = 1 (use the McAllester form). Compare tightness and assumptions. <details class="sol"><summary>Solution</summary><div>(a) Gap $\le 2\cdot\frac{3\times1}{\sqrt{50000}} + \sqrt{\frac{\ln(1/0.01)}{2\times50000}} = 2\times0.0134 + \sqrt{4.61\times10^{-5}} = 0.0268 + 0.0068 = 0.034$: $R \le 0.244$. (Contraction with L = 1 leaves the factor as is.) (b) β = $\frac{2\times1}{0.02\times50000} = 0.002$: EXPECTED gap ≤ 0.002 — $\mathbb E[R] \le 0.212$: strikingly tight, but it certifies the expectation over samples, not this run (high-probability versions add $\tilde O(\sqrt{1/n})$ terms ≈ 0.01–0.02 with modern bounds). (c) KL $= \frac{9}{2} = 4.5$; gap $\le \sqrt{\frac{4.5 + \ln(2\sqrt{50000}/0.01)}{2\times50000}} = \sqrt{\frac{4.5 + \ln(44721)}{100000}} = \sqrt{\frac{4.5 + 10.71}{100000}} = \sqrt{1.52\times10^{-4}} = 0.0123$: Gibbs risk $\le \mathbb E_Q\hat R + 0.012$ — tightest, but certifies the noise-perturbed classifier and needs $\mathbb E_Q[\hat R]$ evaluated under weight noise (if the minimum is flat, ≈ 0.21; a sharp minimum inflates it). Comparison: stability leverages the strongest assumption (strong convexity of the training OBJECTIVE) and wins on expectation; PAC-Bayes converts flatness into tightness and handles non-convexity; the norm/Rademacher bound assumes least (just norms) and pays for it. Same predictor, three lenses — capacity of the class, of the algorithm, of the description: the chapter in one problem.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three experiments: watch uniform convergence beat lucky classifiers, measure a VC dimension empirically, and produce your own double-descent curve.</p>
+ <p><b>Task 1 — The lucky-coin leaderboard.</b> Simulate K useless binary classifiers (true error 0.5) evaluated on n samples; show the best-looking one's apparent skill matches the theory $\approx \sqrt{\ln K/(2n)}$, and that a fresh test set exposes it.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+def best_apparent_skill(K, n, trials=200):
+    # each classifier's correctness on each sample: fair coin
+    skills = []
+    for _ in range(trials):
+        acc = rng.binomial(n, 0.5, size=K) / n
+        skills.append(acc.max() - 0.5)
+    return np.mean(skills)
+
+for K in (10, 1000, 100000):
+    for n in (100, 1000):
+        emp = best_apparent_skill(K, n)
+        theory = np.sqrt(np.log(K) / (2 * n))
+        print(f"K={K:6d} n={n:5d}: best apparent skill {emp:.3f}  ~ sqrt(lnK/2n) {theory:.3f}")
+
+# fresh-set exposure: the 'winner' scores ~0.5 on new data
+K, n = 100000, 100
+scores = rng.binomial(n, 0.5, size=K) / n
+w = scores.argmax()
+fresh = rng.binomial(1000, 0.5) / 1000
+print(f"winner looked {scores[w]:.2f} on n=100; scores {fresh:.3f} on fresh n=1000")</code></pre></div></details>
+ <p><b>Task 2 — Empirical shattering.</b> For 1-D interval classifiers, test shattering computationally: for m = 2, 3, 4 random point sets, enumerate all labelings and check realizability; confirm VC = 2. Repeat for 2-D halfplanes on m = 3, 4 points (VC = 3).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+from itertools import product, combinations
+rng = np.random.default_rng(1)
+
+def interval_realizes(xs, labels):
+    pos = [x for x, l in zip(xs, labels) if l]
+    if not pos: return True
+    a, b = min(pos), max(pos)
+    return all(l == (a &lt;= x &lt;= b) for x, l in zip(xs, labels))
+
+def shatters_intervals(xs):
+    return all(interval_realizes(xs, lab) for lab in product([0, 1], repeat=len(xs)))
+
+for m in (2, 3):
+    xs = sorted(rng.uniform(0, 1, m))
+    print(f"intervals shatter some {m} points: {shatters_intervals(xs)}")
+# m=2: True; m=3: False (labeling 1,0,1 fails)  =&gt; VC = 2
+
+def halfplane_realizes(P, labels):
+    # exists w,b with sign(Pw+b) matching labels? try LP-ish: perceptron on augmented data
+    X = np.hstack([P, np.ones((len(P), 1))])
+    y = np.array(labels) * 2 - 1
+    w = np.zeros(3)
+    for _ in range(20000):
+        errs = [i for i in range(len(P)) if y[i] * (X[i] @ w) &lt;= 0]
+        if not errs: return True
+        i = errs[0]; w += y[i] * X[i]
+    return False
+
+def shatters_halfplanes(P):
+    return all(halfplane_realizes(P, lab) for lab in product([0, 1], repeat=len(P)))
+
+tri = np.array([[0, 0], [1, 0], [0.5, 1]])          # triangle: shattered
+quad = np.array([[0, 0], [1, 0], [1, 1], [0, 1]])   # square: XOR labeling fails
+print("halfplanes shatter triangle:", shatters_halfplanes(tri))    # True
+print("halfplanes shatter square  :", shatters_halfplanes(quad))   # False =&gt; VC = 3</code></pre></div></details>
+ <p><b>Task 3 — Double descent, homemade.</b> Random-feature (random ReLU features) least squares on a fixed dataset: sweep the number of features through n, using the pseudoinverse (min-norm) solution; plot train/test error and watch the peak at p ≈ n; show ridge removing it.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(2)
+
+n, ntest, d = 60, 500, 12
+Xtr = rng.standard_normal((n, d)); Xte = rng.standard_normal((ntest, d))
+beta = rng.standard_normal(d)
+ytr = Xtr @ beta + 0.5 * rng.standard_normal(n)
+yte = Xte @ beta + 0.5 * rng.standard_normal(ntest)
+
+def random_features(X, W): return np.maximum(X @ W, 0.0)   # ReLU features
+
+Wfull = rng.standard_normal((d, 400)) / np.sqrt(d)
+print(f"{'p':&gt;5} {'train':&gt;8} {'test(λ=0)':&gt;10} {'test(λ=1e-3)':&gt;12}")
+for p in (5, 15, 30, 45, 55, 58, 60, 62, 70, 100, 200, 400):
+    W = Wfull[:, :p]
+    Ftr, Fte = random_features(Xtr, W), random_features(Xte, W)
+    w0 = np.linalg.pinv(Ftr, rcond=1e-10) @ ytr              # min-norm interpolant
+    wr = np.linalg.solve(Ftr.T @ Ftr + 1e-3 * np.eye(p), Ftr.T @ ytr)
+    tr = np.mean((Ftr @ w0 - ytr) ** 2)
+    te0 = np.mean((Fte @ w0 - yte) ** 2)
+    ter = np.mean((Fte @ wr - yte) ** 2)
+    print(f"{p:5d} {tr:8.3f} {te0:10.2f} {ter:12.3f}")
+# test(λ=0) spikes near p = n = 60, then descends; ridge column stays flat</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.cs.huji.ac.il/~shais/UnderstandingMachineLearning/understanding-machine-learning-theory-algorithms.pdf">Shalev-Shwartz &amp; Ben-David, <em>Understanding Machine Learning</em> (free PDF)</a> — the standard textbook: PAC, VC, Sauer, Rademacher, SRM, stability, all with proofs.</li>
+  <li><a href="https://www.cs.cornell.edu/jeh/book.pdf">Blum, Hopcroft &amp; Kannan, <em>Foundations of Data Science</em> (free PDF)</a> — chapter 5 gives a friendly VC/learning-theory treatment.</li>
+  <li><a href="https://ocw.mit.edu/courses/9-520-statistical-learning-theory-and-applications-spring-2003/">MIT 9.520 Statistical Learning Theory and Applications</a> — the RKHS/regularization/stability school, with lecture notes.</li>
+  <li><a href="https://mitpress.mit.edu/9780262046824/foundations-of-machine-learning/">Mohri, Rostamizadeh &amp; Talwalkar, <em>Foundations of Machine Learning</em> (free 2nd-ed PDF at cs.nyu.edu/~mohri/mlbook/)</a> — the sharpest Rademacher-first development; margin bounds done right.</li>
+  <li><a href="https://arxiv.org/abs/1611.03530">Zhang et al., "Understanding deep learning requires rethinking generalization"</a> — the random-labels experiment that reopened the field.</li>
+  <li><a href="https://arxiv.org/abs/1912.02292">Nakkiran et al., "Deep Double Descent"</a> — model-wise, epoch-wise and sample-wise double descent, empirically mapped.</li>
+  <li><a href="https://arxiv.org/abs/1906.11300">Bartlett, Long, Lugosi &amp; Tsigler, "Benign overfitting in linear regression"</a> — the spectrum characterization behind the benign-overfitting section.</li>
+  <li><a href="https://arxiv.org/abs/1703.11008">Dziugaite &amp; Roy, "Computing Nonvacuous Generalization Bounds for Deep Networks…"</a> — PAC-Bayes made non-vacuous for real networks.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch19.html">← 19 · Machine Learning</a>
+ <a class="btn" href="ch21.html">21 · Deep Learning →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+
+/* ---------- Uniform convergence: lucky classifiers ---------- */
+(function(){
+ var c = document.getElementById('cv-unif'); if(!c) return;
+ var accs = [];
+ function resample(){
+  var K = Math.round(val('uc-h')), n = Math.round(val('uc-n'));
+  accs = [];
+  for(var k = 0; k < K; k++){
+   var correct = 0;
+   for(var i = 0; i < n; i++) if(Math.random() < 0.5) correct++;
+   accs.push(correct / n);
+  }
+ }
+ function draw(){
+  var s = setupCanvas(c, 280), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var K = Math.round(val('uc-h')), n = Math.round(val('uc-n'));
+  var pad = 50;
+  // histogram of accuracies in [0.2, 0.8]
+  var bins = 40, counts = new Array(bins).fill(0);
+  var lo = 0.2, hi = 0.8;
+  accs.forEach(function(a){
+   var b = Math.floor((a - lo) / (hi - lo) * bins);
+   if(b >= 0 && b < bins) counts[b]++;
+  });
+  var mx = Math.max.apply(null, counts.concat([1]));
+  g.strokeStyle = cssVar('--rule');
+  g.beginPath(); g.moveTo(pad, 10); g.lineTo(pad, H - 34); g.lineTo(W - 10, H - 34); g.stroke();
+  for(var b = 0; b < bins; b++){
+   var x = pad + 2 + (W - pad - 14) * b / bins;
+   var h = (H - 50) * counts[b] / mx;
+   g.fillStyle = cssVar('--cobalt');
+   g.fillRect(x, H - 34 - h, (W - pad - 14) / bins - 1, h);
+  }
+  // truth line at 0.5 and best marker
+  function X(a){ return pad + 2 + (W - pad - 14) * (a - lo) / (hi - lo); }
+  g.strokeStyle = cssVar('--ink-2'); g.setLineDash([4, 4]);
+  g.beginPath(); g.moveTo(X(0.5), 10); g.lineTo(X(0.5), H - 34); g.stroke(); g.setLineDash([]);
+  var best = Math.max.apply(null, accs);
+  g.fillStyle = cssVar('--rust');
+  g.beginPath(); g.arc(X(best), 20, 5, 0, 7); g.fill();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('true skill of every classifier: 0.5', X(0.5) + 6, 24);
+  g.fillText('accuracy →', W - 100, H - 12);
+  var theory = Math.sqrt(Math.log(Math.max(K, 2)) / (2 * n));
+  var out = document.getElementById('uc-out');
+  if(out) out.textContent = 'best of ' + K + ' useless classifiers looks ' + ((best - 0.5) >= 0 ? '+' : '') + ((best - 0.5) * 100).toFixed(1) + ' pts skilled on n=' + n + ' · theory sup-deviation ≈ √(lnK/2n) = ' + (theory * 100).toFixed(1) + ' pts';
+ }
+ on('uc-h', 'input', function(){ resample(); draw(); });
+ on('uc-n', 'input', function(){ resample(); draw(); });
+ on('uc-re', 'click', function(){ resample(); draw(); });
+ window.addEventListener('resize', draw);
+ resample(); draw();
+})();
+
+/* ---------- VC shattering with intervals ---------- */
+(function(){
+ var c = document.getElementById('cv-vc'); if(!c) return;
+ var m = 3, lab = 0;
+ function pts(){
+  var xs = [];
+  for(var i = 0; i < m; i++) xs.push(0.15 + 0.7 * i / (m - 1));
+  return xs;
+ }
+ function realizable(xs, bits){
+  // interval realizes labeling iff positives are consecutive (or none)
+  var pos = [];
+  for(var i = 0; i < xs.length; i++) if(bits[i]) pos.push(i);
+  if(!pos.length) return true;
+  return pos[pos.length - 1] - pos[0] + 1 === pos.length;
+ }
+ function draw(){
+  var s = setupCanvas(c, 220), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  m = Math.round(val('vc-m'));
+  var total = 1 << m;
+  lab = lab % total;
+  var bits = [];
+  for(var i = 0; i < m; i++) bits.push((lab >> i) & 1);
+  var xs = pts();
+  var y = H * 0.45;
+  g.strokeStyle = cssVar('--rule');
+  g.beginPath(); g.moveTo(20, y); g.lineTo(W - 20, y); g.stroke();
+  var ok = realizable(xs, bits);
+  // draw realizing interval if possible
+  if(ok){
+   var pos = [];
+   for(var i = 0; i < m; i++) if(bits[i]) pos.push(xs[i]);
+   if(pos.length){
+    var a = Math.min.apply(null, pos) - 0.04, b = Math.max.apply(null, pos) + 0.04;
+    g.fillStyle = cssVar('--moss-soft');
+    g.fillRect(20 + a * (W - 40), y - 26, (b - a) * (W - 40), 52);
+    g.strokeStyle = cssVar('--moss');
+    g.strokeRect(20 + a * (W - 40), y - 26, (b - a) * (W - 40), 52);
+   }
+  }
+  xs.forEach(function(x, i){
+   var px = 20 + x * (W - 40);
+   g.fillStyle = bits[i] ? cssVar('--moss') : cssVar('--rust');
+   g.beginPath(); g.arc(px, y, 8, 0, 7); g.fill();
+   g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+   g.fillText(bits[i] ? '+' : '−', px - 4, y - 16);
+  });
+  // count realizable labelings
+  var count = 0;
+  for(var L = 0; L < total; L++){
+   var bb = [];
+   for(var i = 0; i < m; i++) bb.push((L >> i) & 1);
+   if(realizable(xs, bb)) count++;
+  }
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('labeling ' + (lab + 1) + ' of ' + total + ': ' + (ok ? 'REALIZABLE by an interval' : 'NOT realizable — a gap in the positives'), 20, 24);
+  var out = document.getElementById('vc-out');
+  if(out) out.textContent = 'intervals realize ' + count + ' / ' + total + ' labelings on these ' + m + ' points → ' + (count === total ? 'SHATTERED (VC ≥ ' + m + ')' : 'not shattered (consistent with VC = 2)');
+ }
+ on('vc-m', 'input', function(){ lab = 0; draw(); });
+ on('vc-next', 'click', function(){ lab++; draw(); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Sauer's lemma: growth vs 2^m ---------- */
+(function(){
+ var c = document.getElementById('cv-sauer'); if(!c) return;
+ function logSauer(m, d){
+  // log2 of sum_{i<=d} C(m, i), computed stably in log space
+  var terms = [];
+  var logC = 0; // log2 C(m,0) = 0
+  terms.push(0);
+  for(var i = 1; i <= Math.min(d, m); i++){
+   logC += Math.log2(m - i + 1) - Math.log2(i);
+   terms.push(logC);
+  }
+  var mx = Math.max.apply(null, terms), sum = 0;
+  terms.forEach(function(t){ sum += Math.pow(2, t - mx); });
+  return mx + Math.log2(sum);
+ }
+ function draw(){
+  var s = setupCanvas(c, 280), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var d = Math.round(val('sa-d')), M = Math.round(val('sa-m'));
+  var pad = 50, ymax = M + 2;
+  function X(m){ return pad + (W - pad - 12) * m / M; }
+  function Y(l){ return H - 34 - (H - 54) * l / ymax; }
+  g.strokeStyle = cssVar('--rule');
+  g.beginPath(); g.moveTo(pad, 10); g.lineTo(pad, H - 34); g.lineTo(W - 8, H - 34); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('m (sample size) →', W - 150, H - 12);
+  g.save(); g.translate(14, H / 2 + 30); g.rotate(-Math.PI / 2); g.fillText('log₂ #behaviors', 0, 0); g.restore();
+  // 2^m line
+  g.strokeStyle = cssVar('--rust'); g.lineWidth = 2; g.beginPath();
+  for(var m = 1; m <= M; m++){ var p = [X(m), Y(m)]; if(m === 1) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
+  g.stroke();
+  // Sauer bound
+  g.strokeStyle = cssVar('--cobalt'); g.beginPath();
+  for(var m = 1; m <= M; m++){ var l = logSauer(m, d); var p = [X(m), Y(Math.min(l, ymax))]; if(m === 1) g.moveTo(p[0], p[1]); else g.lineTo(p[0], p[1]); }
+  g.stroke(); g.lineWidth = 1;
+  // fork marker at m = d
+  g.strokeStyle = cssVar('--plum'); g.setLineDash([4, 4]);
+  g.beginPath(); g.moveTo(X(d), Y(0)); g.lineTo(X(d), Y(ymax)); g.stroke(); g.setLineDash([]);
+  g.fillStyle = cssVar('--rust'); g.fillText('2^m (shattering)', pad + 8, 24);
+  g.fillStyle = cssVar('--cobalt'); g.fillText('Sauer: Σ C(m,i), i ≤ d', pad + 8, 42);
+  g.fillStyle = cssVar('--plum'); g.fillText('m = d', X(d) + 4, Y(ymax) + 14);
+  var atM = logSauer(M, d);
+  var out = document.getElementById('sa-out');
+  if(out) out.textContent = 'at m = ' + M + ': class shows ≤ 2^' + atM.toFixed(1) + ' behaviors vs 2^' + M + ' possible — the exponential/polynomial fork opens at m = d = ' + d;
+ }
+ ['sa-d','sa-m'].forEach(function(id){ on(id, 'input', draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Double descent on random features ---------- */
+(function(){
+ var c = document.getElementById('cv-dd'); if(!c) return;
+ var curve = null;
+ // tiny linear algebra
+ function matmulT(A, B){ // A (n x k) times B^T? -- we implement solve via normal equations with ridge
+  return null;
+ }
+ function solveRidge(F, y, lam){
+  // returns w minimizing ||Fw - y||^2 + lam ||w||^2 via normal equations (p x p), Gaussian elimination
+  var n = F.length, p = F[0].length;
+  var A = [], b = [];
+  for(var i = 0; i < p; i++){ A.push(new Array(p).fill(0)); b.push(0); }
+  for(var k = 0; k < n; k++){
+   for(var i = 0; i < p; i++){
+    b[i] += F[k][i] * y[k];
+    for(var j = i; j < p; j++) A[i][j] += F[k][i] * F[k][j];
+   }
+  }
+  for(var i = 0; i < p; i++){ for(var j = 0; j < i; j++) A[i][j] = A[j][i]; A[i][i] += lam; }
+  // gaussian elimination with partial pivoting
+  for(var k = 0; k < p; k++){
+   var piv = k;
+   for(var r = k + 1; r < p; r++) if(Math.abs(A[r][k]) > Math.abs(A[piv][k])) piv = r;
+   var t = A[k]; A[k] = A[piv]; A[piv] = t;
+   var tb = b[k]; b[k] = b[piv]; b[piv] = tb;
+   if(Math.abs(A[k][k]) < 1e-12) continue;
+   for(var r = k + 1; r < p; r++){
+    var mfac = A[r][k] / A[k][k];
+    for(var q = k; q < p; q++) A[r][q] -= mfac * A[k][q];
+    b[r] -= mfac * b[k];
+   }
+  }
+  var w = new Array(p).fill(0);
+  for(var i = p - 1; i >= 0; i--){
+   if(Math.abs(A[i][i]) < 1e-12){ w[i] = 0; continue; }
+   var sum = b[i];
+   for(var j = i + 1; j < p; j++) sum -= A[i][j] * w[j];
+   w[i] = sum / A[i][i];
+  }
+  return w;
+ }
+ function gaussR(){ return Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random()); }
+ function compute(){
+  var lamIdx = Math.round(val('dd-l'));
+  var lam = [1e-8, 1e-4, 1e-2, 1][lamIdx];
+  var n = 30, ntest = 200, d = 6;
+  var beta = []; for(var j = 0; j < d; j++) beta.push(gaussR());
+  function makeX(rows){
+   var X = [];
+   for(var i = 0; i < rows; i++){ var r = []; for(var j = 0; j < d; j++) r.push(gaussR()); X.push(r); }
+   return X;
+  }
+  var Xtr = makeX(n), Xte = makeX(ntest);
+  function target(X){ return X.map(function(r){ var s = 0; for(var j = 0; j < d; j++) s += r[j] * beta[j]; return s + 0.4 * gaussR(); }); }
+  var ytr = target(Xtr), yte = target(Xte);
+  var pmax = 90;
+  var Wf = [];
+  for(var j = 0; j < d; j++){ var r = []; for(var k = 0; k < pmax; k++) r.push(gaussR() / Math.sqrt(d)); Wf.push(r); }
+  function feats(X, p){
+   return X.map(function(r){
+    var f = [];
+    for(var k = 0; k < p; k++){
+     var s = 0;
+     for(var j = 0; j < d; j++) s += r[j] * Wf[j][k];
+     f.push(Math.max(s, 0));
+    }
+    return f;
+   });
+  }
+  var ps = [], te = [], tr = [];
+  for(var p = 3; p <= pmax; p += 3){
+   var Ftr = feats(Xtr, p), Fte = feats(Xte, p);
+   var w = solveRidge(Ftr, ytr, lam);
+   function mse(F, y){
+    var s = 0;
+    for(var i = 0; i < F.length; i++){
+     var pr = 0;
+     for(var k = 0; k < w.length; k++) pr += F[i][k] * w[k];
+     s += (pr - y[i]) * (pr - y[i]);
+    }
+    return s / F.length;
+   }
+   ps.push(p); tr.push(mse(Ftr, ytr)); te.push(mse(Fte, yte));
+  }
+  curve = { ps: ps, tr: tr, te: te, n: n, lam: lam };
+ }
+ function draw(){
+  if(!curve) compute();
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var pad = 50;
+  var cap = 20; // clip test error display
+  function X(p){ return pad + (W - pad - 12) * p / 90; }
+  function Y(e){ return H - 34 - (H - 54) * Math.min(Math.log10(Math.max(e, 0.01)) + 2, Math.log10(cap) + 2) / (Math.log10(cap) + 2); }
+  g.strokeStyle = cssVar('--rule');
+  g.beginPath(); g.moveTo(pad, 10); g.lineTo(pad, H - 34); g.lineTo(W - 8, H - 34); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('# random features p →', W - 190, H - 12);
+  g.save(); g.translate(14, H / 2 + 40); g.rotate(-Math.PI / 2); g.fillText('log MSE', 0, 0); g.restore();
+  // interpolation threshold
+  g.strokeStyle = cssVar('--plum'); g.setLineDash([4, 4]);
+  g.beginPath(); g.moveTo(X(curve.n), 10); g.lineTo(X(curve.n), H - 34); g.stroke(); g.setLineDash([]);
+  g.fillStyle = cssVar('--plum'); g.fillText('p = n = ' + curve.n, X(curve.n) + 4, 22);
+  [[curve.tr, '--moss', 'train'], [curve.te, '--rust', 'test']].forEach(function(spec, idx){
+   g.strokeStyle = cssVar(spec[1]); g.lineWidth = 2; g.beginPath();
+   curve.ps.forEach(function(p, i){
+    var px = X(p), py = Y(spec[0][i]);
+    if(i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+   });
+   g.stroke();
+   g.fillStyle = cssVar(spec[1]); g.fillText(spec[2], pad + 8, 24 + idx * 18);
+  });
+  g.lineWidth = 1;
+  var peak = Math.max.apply(null, curve.te);
+  var last = curve.te[curve.te.length - 1];
+  var out = document.getElementById('dd-out');
+  if(out) out.textContent = 'λ = ' + curve.lam + ' · test-error peak ' + peak.toFixed(1) + ' near p = n, settling to ' + last.toFixed(2) + ' when heavily overparameterized' + (curve.lam >= 1e-2 ? ' — ridge has flattened the peak' : '');
+ }
+ on('dd-l', 'input', function(){ compute(); draw(); });
+ on('dd-re', 'click', function(){ compute(); draw(); });
+ window.addEventListener('resize', draw);
+ compute(); draw();
+})();
+})();
+</script>
+
+</body></html>

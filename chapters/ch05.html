@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 05 Geometry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','05')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">05</div><h1>Geometry</h1><p class="lede">Shape, distance and direction, from triangles to vectors.</p>
+   <div class="meta"><span class="chip">29 topics</span><span class="chip">needs: chapters 01, 02, 04</span><span class="chip">feeds: chapters 06, 08, 09</span></div>
+  </div>
+
+<section class="topic" id="points">
+ <h2>Points</h2>
+ <p>A point is pure location: no size, no direction, no shape. Everything in geometry — lines, circles, vectors, the loss surfaces of chapter 15 — is built out of sets of points. In coordinate geometry we name a point by numbers: $(3, 2)$ means "3 right, 2 up from the origin".</p>
+ <div class="box def"><span class="label">Definition</span> A <em>point</em> is a location in space with zero dimension. In the Cartesian plane $\mathbb{R}^2$ a point is an ordered pair $(x, y)$; in space $\mathbb{R}^3$ it is a triple $(x,y,z)$. Two points are equal iff all their coordinates are equal.</div>
+ <div class="box ex"><span class="label">Worked example</span> Which of $A=(2,-1)$, $B=(-1,2)$, $C=(2,-1)$ are the same point? Coordinates are ordered: $A$ and $B$ differ because $2 \ne -1$ in the first slot. $A = C$ since both coordinates match. Order matters: $(2,-1) \ne (-1,2)$.</div>
+ <div class="box link"><span class="label">Where this goes</span> A point $(x_1,\dots,x_n) \in \mathbb{R}^n$ is exactly a vector or a data sample; every dataset in Ch 19 is a cloud of points.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Plot (mentally) $P=(-3,4)$. Which quadrant is it in? <details class="sol"><summary>Solution</summary><div>$x&lt;0$, $y&gt;0$: quadrant II (upper left).</div></details></li>
+  <li><span class="lvl m">MED</span> Find all points on the $y$-axis at distance 5 from the origin. <details class="sol"><summary>Solution</summary><div>Points on the $y$-axis have $x=0$, so distance is $|y|=5$: the points are $(0,5)$ and $(0,-5)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many points $(x,y)$ with integer coordinates satisfy $x^2+y^2=25$? <details class="sol"><summary>Solution</summary><div>Integer solutions of $x^2+y^2=25$: $(\pm5,0)$, $(0,\pm5)$, $(\pm3,\pm4)$, $(\pm4,\pm3)$. Count: $4 + 4\cdot2 + 4\cdot 2$... carefully: $(\pm5,0),(0,\pm5)$ gives 4; $(\pm3,\pm4)$ gives 4; $(\pm4,\pm3)$ gives 4. Total <b>12</b>.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lines">
+ <h2>Lines</h2>
+ <p>A line is the straightest possible path: infinitely thin, infinitely long, no bending. Two distinct points determine exactly one line — this is why "fit a line through the data" is such a strong statement: one wrong point moves the whole thing.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>line</em> through distinct points $P$ and $Q$ is the set of all points $P + t(Q-P)$ for $t \in \mathbb{R}$. A <em>segment</em> restricts $t\in[0,1]$; a <em>ray</em> restricts $t \ge 0$. In the plane a non-vertical line is the graph of $y = mx+b$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Parametrize the line through $P=(1,2)$ and $Q=(4,8)$. Direction: $Q-P=(3,6)$. Line: $(x,y) = (1+3t,\; 2+6t)$. At $t=0$ we get $P$, at $t=1$ we get $Q$, at $t=\tfrac12$ the midpoint $(2.5, 5)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Vertical lines like $x=3$ are not graphs of any function $y=mx+b$ — their slope is undefined, not "infinity you can compute with".</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give a parametrization of the line through $(0,0)$ and $(2,1)$. <details class="sol"><summary>Solution</summary><div>$(x,y)=(2t, t)$, $t\in\mathbb{R}$. Equivalently $y = x/2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is the point $(7,14)$ on the line through $(1,2)$ and $(4,8)$? <details class="sol"><summary>Solution</summary><div>Need $1+3t=7 \Rightarrow t=2$, then $y = 2+6\cdot2 = 14$. Yes.</div></details></li>
+  <li><span class="lvl h">HARD</span> Lines $\ell_1: (1+t, 2+2t)$ and $\ell_2: (4-s, 1+s)$. Do they intersect? Where? <details class="sol"><summary>Solution</summary><div>Set $1+t = 4-s$ and $2+2t = 1+s$. From the first, $s = 3-t$. Substitute: $2+2t = 1+3-t = 4-t \Rightarrow 3t = 2 \Rightarrow t = 2/3$. Point: $(1+\tfrac23,\, 2+\tfrac43) = (\tfrac53, \tfrac{10}3)$. Check with $s = 3-\tfrac23=\tfrac73$: $(4-\tfrac73, 1+\tfrac73) = (\tfrac53,\tfrac{10}3)$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="planes">
+ <h2>Planes</h2>
+ <p>A plane is a flat sheet extending forever in two directions — the 2D analogue of a line. Three points not on a common line pin down exactly one plane. In machine learning, a plane (or hyperplane) is a decision boundary: everything on one side is class A, the other side class B.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>plane</em> in $\mathbb{R}^3$ is the set of points $(x,y,z)$ satisfying $ax+by+cz=d$ with $(a,b,c)\ne(0,0,0)$. The vector $\mathbf{n}=(a,b,c)$ is <em>normal</em> (perpendicular) to the plane.</div>
+ <div class="box ex"><span class="label">Worked example</span> Find the plane through $(1,0,0)$ with normal $\mathbf{n}=(2,3,-1)$. Equation: $2x+3y-z = d$. Plug in the point: $2\cdot1+0-0 = 2$, so $d=2$. Plane: $2x+3y-z=2$. Check that $(0,0,-2)$ is on it: $0+0+2=2$. ✓</div>
+ <div class="box link"><span class="label">Where this goes</span> A hyperplane $\mathbf{w}^\top\mathbf{x}=b$ is the decision boundary of logistic regression and SVMs (Ch 19).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $(1,1,3)$ on the plane $2x+3y-z=2$? <details class="sol"><summary>Solution</summary><div>$2+3-3 = 2$. Yes.</div></details></li>
+  <li><span class="lvl m">MED</span> Where does the plane $x+2y+2z=6$ cross each coordinate axis? <details class="sol"><summary>Solution</summary><div>$x$-axis ($y=z=0$): $x=6 \to (6,0,0)$. $y$-axis: $2y=6 \to (0,3,0)$. $z$-axis: $2z=6 \to (0,0,3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Distance from the point $(3,1,2)$ to the plane $2x+3y-z=2$. (Formula: $\frac{|ax_0+by_0+cz_0-d|}{\sqrt{a^2+b^2+c^2}}$.) <details class="sol"><summary>Solution</summary><div>Numerator: $|2\cdot3 + 3\cdot1 - 2 - 2| = |6+3-2-2| = 5$. Denominator: $\sqrt{4+9+1}=\sqrt{14}$. Distance $= 5/\sqrt{14} \approx 1.336$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="angles">
+ <h2>Angles</h2>
+ <p>An angle measures how much you turn when you pivot from one ray to another around their common endpoint. Degrees split a full turn into 360 parts. Angles are the currency of direction: everything in trigonometry (Ch 6) is a function of an angle.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>angle</em> is formed by two rays sharing a vertex. Measures: full turn $=360^\circ$, straight angle $=180^\circ$, right angle $=90^\circ$. Angles are <em>complementary</em> if they sum to $90^\circ$, <em>supplementary</em> if they sum to $180^\circ$. <em>Vertical angles</em> (opposite angles at a crossing) are equal. When a line crosses two parallel lines, corresponding angles are equal and alternate interior angles are equal.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two lines cross, making one angle of $37^\circ$. The four angles at the crossing are: $37^\circ$ (given), its vertical angle $37^\circ$, and two supplementary angles of $180^\circ - 37^\circ = 143^\circ$ each. Check: $37+37+143+143 = 360$. ✓</div>
+ <div class="box think"><span class="label">Think first</span> A ladder leans against a wall making a $70^\circ$ angle with the ground. What angle does it make with the wall? <details class="sol"><summary>Reveal</summary><div>Ground and wall are perpendicular, so the ladder's angles with ground and wall are complementary: $90^\circ - 70^\circ = 20^\circ$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the supplement of $64^\circ$. <details class="sol"><summary>Solution</summary><div>$180^\circ - 64^\circ = 116^\circ$.</div></details></li>
+  <li><span class="lvl m">MED</span> Two parallel lines are cut by a transversal. One angle is $52^\circ$. List the measures of all eight angles. <details class="sol"><summary>Solution</summary><div>At each intersection the four angles are $52^\circ, 128^\circ, 52^\circ, 128^\circ$ (vertical pairs equal, adjacent supplementary). Corresponding angles at the second intersection are equal to the first, so all eight are four $52^\circ$'s and four $128^\circ$'s.</div></details></li>
+  <li><span class="lvl h">HARD</span> An angle is $24^\circ$ more than twice its complement. Find it. <details class="sol"><summary>Solution</summary><div>Let the angle be $x$; complement $90-x$. Then $x = 2(90-x)+24 = 204 - 2x \Rightarrow 3x = 204 \Rightarrow x = 68^\circ$. Check: complement $22^\circ$, and $2\cdot22+24 = 68$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="triangles">
+ <h2>Triangles</h2>
+ <p>The triangle is the atom of geometry: any polygon can be cut into triangles, and any surface can be approximated by a mesh of them (that is literally how 3D graphics works). Its three angles always share exactly $180^\circ$ between them.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>triangle</em> has three vertices and three sides. Angle sum: $\alpha+\beta+\gamma = 180^\circ$. Area $= \tfrac12 \times \text{base} \times \text{height}$. Triangle inequality: each side is shorter than the sum of the other two, $c &lt; a+b$. Types: equilateral (all sides equal, all angles $60^\circ$), isosceles (two sides equal), scalene (all different); acute/right/obtuse by largest angle.</div>
+ <div class="box ex"><span class="label">Worked example</span> A triangle has angles $x$, $2x$, $3x$. Then $6x = 180^\circ$, so $x=30^\circ$: angles $30^\circ, 60^\circ, 90^\circ$ — a right triangle. If its hypotenuse is 10, the side opposite $30^\circ$ is 5 (in a 30-60-90 triangle the sides are in ratio $1 : \sqrt3 : 2$), the third side $5\sqrt3 \approx 8.66$. Area $=\tfrac12\cdot 5\cdot 5\sqrt3 = \tfrac{25\sqrt3}{2}\approx 21.65$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Base × height" needs the <em>perpendicular</em> height, not the slanted side length. For sides 5, 5, 8 the height onto the base 8 is $\sqrt{5^2-4^2}=3$, so area is 12 — not $\tfrac12\cdot 8\cdot 5=20$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two angles of a triangle are $48^\circ$ and $71^\circ$. Find the third. <details class="sol"><summary>Solution</summary><div>$180 - 48 - 71 = 61^\circ$.</div></details></li>
+  <li><span class="lvl m">MED</span> Can 3, 4, 8 be side lengths of a triangle? <details class="sol"><summary>Solution</summary><div>No: $3+4 = 7 &lt; 8$ violates the triangle inequality.</div></details></li>
+  <li><span class="lvl h">HARD</span> An isosceles triangle has perimeter 36 and base 10. Find its area. <details class="sol"><summary>Solution</summary><div>Equal sides: $(36-10)/2 = 13$ each. Height onto the base: $\sqrt{13^2 - 5^2} = \sqrt{169-25} = 12$. Area $= \tfrac12 \cdot 10 \cdot 12 = 60$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="triangle-congruence">
+ <h2>Triangle congruence</h2>
+ <p>Two triangles are congruent when one is an exact copy of the other — same side lengths, same angles — possibly moved, rotated or flipped. You don't need to check all six measurements: three well-chosen ones force the rest.</p>
+ <div class="box def"><span class="label">Definition</span> Triangles $ABC$ and $DEF$ are <em>congruent</em> ($\triangle ABC \cong \triangle DEF$) if corresponding sides and angles are equal. Sufficient criteria: <b>SSS</b> (three sides), <b>SAS</b> (two sides and the angle between them), <b>ASA</b> (two angles and the side between), <b>AAS</b> (two angles and a non-included side), and <b>HL</b> for right triangles (hypotenuse + leg). <b>SSA is not</b> a valid criterion in general, and AAA gives only similarity.</div>
+ <div class="box ex"><span class="label">Worked example</span> $AB = DE = 7$, $\angle A = \angle D = 40^\circ$, $AC = DF = 5$. The equal angle sits <em>between</em> the two pairs of equal sides, so by SAS the triangles are congruent — and we get for free that $BC = EF$ and the remaining angles match.</div>
+ <div class="box pit"><span class="label">Pitfall</span> SSA fails: with two sides and a non-included angle, two different triangles can exist (the "ambiguous case" — see the law of sines in Ch 6).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which criterion applies: $\angle A=\angle D$, $\angle B=\angle E$, $AB = DE$? <details class="sol"><summary>Solution</summary><div>The side $AB$ lies between angles $A$ and $B$: ASA. Congruent.</div></details></li>
+  <li><span class="lvl m">MED</span> In an isosceles triangle $ABC$ with $AB=AC$, let $M$ be the midpoint of $BC$. Prove $\triangle ABM \cong \triangle ACM$. <details class="sol"><summary>Solution</summary><div>$AB = AC$ (given), $BM = CM$ ($M$ midpoint), $AM = AM$ (shared). SSS gives congruence. Consequence: $\angle B = \angle C$ (base angles of an isosceles triangle are equal) and $AM \perp BC$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Diagonals of a parallelogram $ABCD$ meet at $P$. Show $AP = PC$, i.e. the diagonals bisect each other. <details class="sol"><summary>Solution</summary><div>Consider $\triangle APB$ and $\triangle CPD$. $AB = CD$ (opposite sides of a parallelogram), $\angle PAB = \angle PCD$ and $\angle PBA = \angle PDC$ (alternate interior angles, $AB \parallel CD$ cut by the diagonals). ASA gives $\triangle APB \cong \triangle CPD$, so $AP = CP$ and $BP = DP$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="triangle-similarity">
+ <h2>Triangle similarity</h2>
+ <p>Similar triangles have the same shape but possibly different size: equal angles, sides scaled by one common factor. Similarity is how we measure the unmeasurable — the height of a tree from its shadow, the distance to the Moon.</p>
+ <div class="box def"><span class="label">Definition</span> $\triangle ABC \sim \triangle DEF$ if corresponding angles are equal; then corresponding sides satisfy $\frac{DE}{AB} = \frac{EF}{BC} = \frac{DF}{AC} = k$ (the scale factor). Criteria: <b>AA</b> (two equal angles), <b>SAS-similarity</b> (two sides in proportion, included angle equal), <b>SSS-similarity</b> (all sides in proportion). Areas scale by $k^2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 1.8 m person casts a 1.2 m shadow; a tree casts a 6 m shadow at the same time. Sun rays are parallel, so the two right triangles are similar (AA: right angle + same sun angle). Scale: $\frac{6}{1.2} = 5$, so the tree is $1.8 \times 5 = 9$ m tall.</div>
+ <div class="box think"><span class="label">Think first</span> If a triangle's sides are all doubled, what happens to its area? <details class="sol"><summary>Reveal</summary><div>It quadruples: area scales with $k^2 = 4$. Base doubles and height doubles.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Triangles with sides $(3,4,5)$ and $(6,8,10)$ — similar? <details class="sol"><summary>Solution</summary><div>Yes, SSS-similarity with $k = 2$: each ratio $6/3=8/4=10/5=2$.</div></details></li>
+  <li><span class="lvl m">MED</span> In $\triangle ABC$, a line through $D$ on $AB$ and $E$ on $AC$ is parallel to $BC$, with $AD = 4$, $DB = 6$, $DE = 5$. Find $BC$. <details class="sol"><summary>Solution</summary><div>$\triangle ADE \sim \triangle ABC$ (AA, parallel line makes equal corresponding angles). Ratio $AD/AB = 4/10 = 2/5$, so $BC = DE \cdot \tfrac{5}{2} = 12.5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> In a right triangle, the altitude from the right angle to the hypotenuse splits it into segments of length 4 and 9. Find the altitude. <details class="sol"><summary>Solution</summary><div>The altitude $h$ creates two triangles each similar to the whole (AA), which gives the geometric-mean relation $h^2 = 4 \cdot 9 = 36$, so $h = 6$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pythagorean-theorem">
+ <h2>Pythagorean theorem</h2>
+ <p>In a right triangle, the square built on the longest side has exactly as much area as the two smaller squares combined. This one identity generates the distance formula, vector norms, least squares, and the whole notion of "Euclidean" space.</p>
+ <div class="box def"><span class="label">Definition</span><b> (Theorem.)</b> In a right triangle with legs $a, b$ and hypotenuse $c$: $$a^2 + b^2 = c^2.$$ Converse: if $a^2+b^2=c^2$ holds for a triangle's sides, the angle opposite $c$ is right.</div>
+ <div class="box thm"><span class="label">Theorem</span> <em>Proof by rearrangement:</em> place four copies of the triangle inside a square of side $a+b$. The uncovered area is a tilted square of side $c$, so $(a+b)^2 - 4\cdot\tfrac{ab}{2} = c^2$, i.e. $a^2 + 2ab + b^2 - 2ab = c^2$, giving $a^2+b^2 = c^2$. $\blacksquare$</div>
+ <div class="box ex"><span class="label">Worked example</span> Legs 5 and 12: $c = \sqrt{25+144} = \sqrt{169} = 13$. Now the other direction: hypotenuse 25, one leg 7: other leg $= \sqrt{625 - 49} = \sqrt{576} = 24$. Common integer triples worth recognizing: $(3,4,5), (5,12,13), (8,15,17), (7,24,25)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the legs and watch the three squares rebalance: the two small areas always sum to the big one.</p>
+  <canvas id="cv-pyth"></canvas>
+  <div class="ctl">
+   <label>leg a <input type="range" id="pyth-a" min="1" max="10" step="0.1" value="3"></label>
+   <label>leg b <input type="range" id="pyth-b" min="1" max="10" step="0.1" value="4"></label>
+  </div>
+  <div class="out" id="pyth-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> $\|\mathbf{x}\|^2 = x_1^2+\cdots+x_n^2$ is the Pythagorean theorem applied $n-1$ times; it becomes the L2 norm of Ch 8 and the squared-error loss of Ch 19.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A right triangle has legs 6 and 8. Find the hypotenuse. <details class="sol"><summary>Solution</summary><div>$\sqrt{36+64} = \sqrt{100} = 10$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is a triangle with sides 9, 12, 15 right-angled? What about 8, 9, 12? <details class="sol"><summary>Solution</summary><div>$9^2+12^2 = 81+144 = 225 = 15^2$: yes (it is $3\times(3,4,5)$). $8^2+9^2 = 64+81=145 \ne 144 = 12^2$: no; since $145 &gt; 144$ the angle opposite 12 is acute.</div></details></li>
+  <li><span class="lvl h">HARD</span> A 10 m ladder leans against a wall, its foot 6 m out. The foot slides out to 8 m. How far did the top slide down? <details class="sol"><summary>Solution</summary><div>Heights: $\sqrt{100-36} = 8$ m, then $\sqrt{100-64} = 6$ m. The top slides down $8-6 = 2$ m. (Note the foot moved 2 m as well — a coincidence of this triple, not a law.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the length of the space diagonal of a box with edges 2, 3, 6. <details class="sol"><summary>Solution</summary><div>Apply Pythagoras twice: floor diagonal $\sqrt{2^2+3^2} = \sqrt{13}$, then diagonal $=\sqrt{13 + 36} = \sqrt{49} = 7$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A triangle has sides 5, 6, 8. The angle opposite the side of length 8 is…</div><button class="opt">exactly 90°</button><button class="opt">more than 90°</button><button class="opt">less than 90°</button><div class="why" hidden>$5^2+6^2 = 61 &lt; 64 = 8^2$. When the hypotenuse-candidate's square exceeds the sum, the opposite angle is obtuse.</div></div>
+</section>
+
+<section class="topic" id="circles">
+ <h2>Circles</h2>
+ <p>A circle is the set of points at one fixed distance (the radius) from a center — perfect symmetry in every direction. The ratio of any circle's circumference to its diameter is always the same number, $\pi \approx 3.14159$.</p>
+ <div class="box def"><span class="label">Definition</span> The circle with center $(h,k)$ and radius $r$ is $\{(x,y) : (x-h)^2 + (y-k)^2 = r^2\}$. Circumference $C = 2\pi r$; area $A = \pi r^2$. A <em>chord</em> joins two points on the circle; a <em>diameter</em> is a chord through the center ($d = 2r$); a <em>tangent</em> touches at one point and is perpendicular to the radius there.</div>
+ <div class="box ex"><span class="label">Worked example</span> Find center and radius of $x^2 + y^2 - 6x + 4y - 12 = 0$. Complete the square: $(x^2-6x+9) + (y^2+4y+4) = 12 + 9 + 4$, so $(x-3)^2 + (y+2)^2 = 25$. Center $(3,-2)$, radius $5$.</div>
+ <div class="box think"><span class="label">Think first</span> A pizza of radius 20 cm vs two pizzas of radius 10 cm — which is more pizza? <details class="sol"><summary>Reveal</summary><div>The big one: $\pi\cdot 20^2 = 400\pi$ vs $2 \cdot \pi \cdot 10^2 = 200\pi$. Area grows with $r^2$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Radius 7: circumference and area? <details class="sol"><summary>Solution</summary><div>$C = 14\pi \approx 43.98$; $A = 49\pi \approx 153.94$.</div></details></li>
+  <li><span class="lvl m">MED</span> Write the equation of the circle with center $(-1, 4)$ passing through $(2, 0)$. <details class="sol"><summary>Solution</summary><div>$r^2 = (2-(-1))^2 + (0-4)^2 = 9+16 = 25$. Equation: $(x+1)^2 + (y-4)^2 = 25$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A chord of length 8 sits in a circle of radius 5. How far is the chord from the center? <details class="sol"><summary>Solution</summary><div>Drop a perpendicular from the center to the chord: it bisects the chord (4 each side). Distance $= \sqrt{5^2 - 4^2} = 3$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="arc-length">
+ <h2>Arc length</h2>
+ <p>An arc is a slice of the circle's rim. Its length is just the fraction of the full turn you sweep, times the full circumference. Sweep half the circle, get half of $2\pi r$.</p>
+ <div class="box def"><span class="label">Definition</span> For central angle $\theta$ (in degrees), arc length $s = \frac{\theta}{360^\circ}\, 2\pi r$. In radians (Ch 6) this collapses to the clean $s = r\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A $120^\circ$ arc on a circle of radius 9: $s = \frac{120}{360}\cdot 2\pi\cdot 9 = \frac13 \cdot 18\pi = 6\pi \approx 18.85$.</div>
+ <div class="box link"><span class="label">Where this goes</span> $s = r\theta$ is the reason radians exist — Ch 6 builds sine and cosine on it, and it makes $\frac{d}{dx}\sin x = \cos x$ come out clean in Ch 7.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Arc length of a quarter circle of radius 4. <details class="sol"><summary>Solution</summary><div>$\frac{90}{360}\cdot 2\pi\cdot4 = 2\pi \approx 6.28$.</div></details></li>
+  <li><span class="lvl m">MED</span> An arc of length $5\pi$ sits on a circle of radius 6. What is its central angle in degrees? <details class="sol"><summary>Solution</summary><div>$5\pi = \frac{\theta}{360}\cdot 12\pi \Rightarrow \theta = 360\cdot\frac{5}{12} = 150^\circ$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The minute hand of a clock is 12 cm. How far does its tip travel between 3:00 and 3:35? <details class="sol"><summary>Solution</summary><div>35 minutes $= \frac{35}{60}$ of a full turn. Distance $= \frac{35}{60}\cdot 2\pi\cdot 12 = 14\pi \approx 43.98$ cm.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sector-area">
+ <h2>Sector area</h2>
+ <p>A sector is a pizza slice: two radii plus the arc between them. Same logic as arc length — take the fraction of the turn, but of the full area this time.</p>
+ <div class="box def"><span class="label">Definition</span> Sector with central angle $\theta$ (degrees): $A = \frac{\theta}{360^\circ}\pi r^2$. In radians: $A = \tfrac12 r^2\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A $60^\circ$ slice of a radius-12 pizza: $A = \frac{60}{360}\pi\cdot144 = 24\pi \approx 75.4$. Sanity check: six such slices tile the pizza, $6 \cdot 24\pi = 144\pi = \pi r^2$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> A <em>segment</em> (region between a chord and its arc) is not a sector: its area is sector minus triangle, $\tfrac12 r^2(\theta - \sin\theta)$ with $\theta$ in radians.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Area of a $90^\circ$ sector of radius 6. <details class="sol"><summary>Solution</summary><div>$\frac14 \pi \cdot 36 = 9\pi \approx 28.27$.</div></details></li>
+  <li><span class="lvl m">MED</span> A sector of radius 10 has area $15\pi$. Find its angle and arc length. <details class="sol"><summary>Solution</summary><div>$15\pi = \frac{\theta}{360}\cdot 100\pi \Rightarrow \theta = 54^\circ$. Arc: $\frac{54}{360}\cdot 20\pi = 3\pi$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the area of the circular segment cut off by a chord subtending $90^\circ$ in a circle of radius 4. <details class="sol"><summary>Solution</summary><div>Sector: $\frac14\pi\cdot16 = 4\pi$. Triangle (two radii with right angle between): $\tfrac12\cdot4\cdot4 = 8$. Segment $= 4\pi - 8 \approx 4.57$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="coordinate-geometry">
+ <h2>Coordinate geometry</h2>
+ <p>Descartes' great trick: put a grid over the plane so every point becomes a pair of numbers, every curve becomes an equation, and every geometry problem becomes algebra. This is the bridge on which all of machine learning stands — data lives in coordinates.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>Cartesian plane</em> assigns each point a pair $(x,y)$: signed distances to two perpendicular axes meeting at the origin $(0,0)$. The axes split the plane into quadrants I ($+,+$), II ($-,+$), III ($-,-$), IV ($+,-$). A curve is the set of points whose coordinates satisfy an equation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Show algebraically that the triangle $A=(0,0)$, $B=(4,0)$, $C=(0,3)$ is right-angled and find its area. $AB$ lies along the $x$-axis, $AC$ along the $y$-axis — perpendicular, so the right angle is at $A$. Legs 4 and 3, area $\tfrac12\cdot4\cdot3 = 6$, hypotenuse $BC = \sqrt{(4-0)^2+(0-3)^2} = 5$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which quadrant contains $(-2,-7)$? <details class="sol"><summary>Solution</summary><div>Both negative: quadrant III.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $k$ so that $(k, 2k)$ lies on the circle $x^2+y^2 = 45$. <details class="sol"><summary>Solution</summary><div>$k^2 + 4k^2 = 5k^2 = 45 \Rightarrow k = \pm3$. Points $(3,6)$ and $(-3,-6)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The points $A=(1,1)$, $B=(5,1)$, $C=(7,4)$, $D=(3,4)$ form a quadrilateral. Show it is a parallelogram and find its area. <details class="sol"><summary>Solution</summary><div>$\vec{AB} = (4,0)$ and $\vec{DC} = (7-3, 4-4) = (4,0)$: one pair of opposite sides is equal and parallel, so $ABCD$ is a parallelogram. Base $AB = 4$, height = vertical distance between the parallel sides $= 3$. Area $= 12$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="distance-formula">
+ <h2>Distance formula</h2>
+ <p>The distance between two points is the hypotenuse of the right triangle whose legs are the horizontal and vertical gaps. That's the Pythagorean theorem wearing coordinates.</p>
+ <div class="box def"><span class="label">Definition</span> $$d\big((x_1,y_1),(x_2,y_2)\big) = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2}.$$ In $\mathbb{R}^n$: $d(\mathbf{p},\mathbf{q}) = \sqrt{\sum_{i=1}^n (q_i - p_i)^2} = \|\mathbf{q}-\mathbf{p}\|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Distance from $(-1, 2)$ to $(3, -1)$: $\sqrt{(3-(-1))^2 + (-1-2)^2} = \sqrt{16 + 9} = 5$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Nearest-neighbor classification (Ch 19) and k-means (Ch 19) are nothing but this formula applied millions of times in high dimension.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Distance from $(0,0)$ to $(6,8)$. <details class="sol"><summary>Solution</summary><div>$\sqrt{36+64} = 10$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find all $y$ such that $(3, y)$ is at distance 5 from $(0, 1)$. <details class="sol"><summary>Solution</summary><div>$9 + (y-1)^2 = 25 \Rightarrow (y-1)^2 = 16 \Rightarrow y = 5$ or $y = -3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that $A=(1,2)$, $B=(4,6)$, $C=(8,3)$ form an isosceles right triangle. <details class="sol"><summary>Solution</summary><div>$AB = \sqrt{9+16} = 5$; $BC = \sqrt{16+9} = 5$; $AC = \sqrt{49+1} = \sqrt{50}$. $AB = BC$ (isosceles) and $AB^2 + BC^2 = 50 = AC^2$, so the angle at $B$ is right. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="midpoint-formula">
+ <h2>Midpoint formula</h2>
+ <p>The midpoint of a segment is the average of its endpoints, coordinate by coordinate. Averaging positions is something you will do constantly: centroids of clusters, centers of mass, interpolation between embeddings.</p>
+ <div class="box def"><span class="label">Definition</span> Midpoint of $(x_1,y_1)$ and $(x_2,y_2)$: $M = \left(\frac{x_1+x_2}{2}, \frac{y_1+y_2}{2}\right)$. More generally the point a fraction $t$ of the way is $(1-t)(x_1,y_1) + t(x_2,y_2)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Midpoint of $(-2, 5)$ and $(6, -1)$: $\left(\frac{-2+6}{2}, \frac{5-1}{2}\right) = (2, 2)$. And the point one third of the way from the first to the second: $\tfrac23(-2,5) + \tfrac13(6,-1) = \left(\tfrac{-4+6}{3}, \tfrac{10-1}{3}\right) = \left(\tfrac23, 3\right)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Midpoint of $(1,9)$ and $(7,3)$. <details class="sol"><summary>Solution</summary><div>$(4, 6)$.</div></details></li>
+  <li><span class="lvl m">MED</span> $M=(3,-2)$ is the midpoint of $AB$ with $A = (7, 4)$. Find $B$. <details class="sol"><summary>Solution</summary><div>$B = 2M - A = (6-7, -4-4) = (-1, -8)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The centroid of a triangle is the average of its three vertices. For $A=(0,0)$, $B=(6,0)$, $C=(0,9)$, verify the centroid lies on the median from $C$ to the midpoint of $AB$, two thirds of the way down. <details class="sol"><summary>Solution</summary><div>Centroid $G = \left(\frac{0+6+0}{3}, \frac{0+0+9}{3}\right) = (2,3)$. Midpoint of $AB$: $M=(3,0)$. Point $\tfrac23$ of the way from $C=(0,9)$ to $M=(3,0)$: $\tfrac13(0,9)+\tfrac23(3,0) = (2, 3) = G$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="line-equations">
+ <h2>Line equations</h2>
+ <p>A line in the plane is captured by one linear equation. Different forms of that equation expose different facts: slope-intercept shows steepness and starting height, point-slope shows a known point, general form treats vertical lines fairly.</p>
+ <div class="box def"><span class="label">Definition</span> Slope through $(x_1,y_1),(x_2,y_2)$: $m = \frac{y_2-y_1}{x_2-x_1}$ (rise over run). Forms: <em>slope-intercept</em> $y = mx+b$; <em>point-slope</em> $y - y_1 = m(x-x_1)$; <em>general</em> $Ax+By+C=0$ (handles vertical lines, $B=0$). Parallel lines: equal slopes. Perpendicular: $m_1 m_2 = -1$ (neither vertical).</div>
+ <div class="box ex"><span class="label">Worked example</span> Line through $(2,3)$ and $(6,11)$: $m = \frac{11-3}{6-2} = 2$. Point-slope: $y - 3 = 2(x-2)$, so $y = 2x - 1$. Perpendicular line through $(2,3)$: slope $-\tfrac12$, giving $y = -\tfrac12 x + 4$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $m_1m_2=-1$ fails silently for vertical/horizontal pairs: $x = 2$ and $y = 5$ are perpendicular, but the vertical line has no slope to multiply.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Slope and $y$-intercept of $3x + 2y = 12$? <details class="sol"><summary>Solution</summary><div>$y = -\tfrac32 x + 6$: slope $-\tfrac32$, intercept $(0,6)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the line through $(1, -2)$ parallel to $4x - 2y = 7$. <details class="sol"><summary>Solution</summary><div>Given line: $y = 2x - \tfrac72$, slope 2. Answer: $y + 2 = 2(x-1)$, i.e. $y = 2x - 4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the foot of the perpendicular from $P=(4, 1)$ to the line $y = 2x + 1$, and the distance from $P$ to the line. <details class="sol"><summary>Solution</summary><div>Perpendicular through $P$: slope $-\tfrac12$, $y = -\tfrac12(x-4)+1 = -\tfrac12 x + 3$. Intersect: $2x+1 = -\tfrac12 x + 3 \Rightarrow \tfrac52 x = 2 \Rightarrow x = \tfrac45$, $y = \tfrac{13}5$. Foot $(\tfrac45, \tfrac{13}5)$. Distance $= \sqrt{(4-\tfrac45)^2 + (1-\tfrac{13}5)^2} = \sqrt{(\tfrac{16}5)^2 + (-\tfrac85)^2} = \sqrt{\tfrac{256+64}{25}} = \frac{\sqrt{320}}{5} = \frac{8\sqrt5}{5} \approx 3.58$. (Check with the point-line formula: $|2\cdot4 - 1 + 1|/\sqrt{5} = 8/\sqrt5$. ✓)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="parabolas">
+ <h2>Parabolas</h2>
+ <p>A parabola is the set of points equidistant from a fixed point (focus) and a fixed line (directrix). It is also the graph of $y = ax^2$, the path of a thrown ball, and the shape of every satellite dish — parallel rays bounce off it straight into the focus.</p>
+ <div class="box def"><span class="label">Definition</span> Parabola with focus $F$ and directrix $\ell$: $\{P : d(P,F) = d(P,\ell)\}$. Standard form opening up with vertex at the origin: $x^2 = 4py$, focus $(0,p)$, directrix $y = -p$. As a function: $y = a(x-h)^2 + k$ with vertex $(h,k)$ and $a = \frac{1}{4p}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Find focus and directrix of $y = \tfrac18 x^2$. Rewrite: $x^2 = 8y$, so $4p = 8$, $p = 2$. Focus $(0, 2)$, directrix $y = -2$. Check with the point $(4,2)$ on the parabola: distance to focus $= \sqrt{16+0} = 4$; distance to directrix $= 2-(-2) = 4$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Vertex of $y = 2(x-3)^2 - 5$? Which way does it open? <details class="sol"><summary>Solution</summary><div>Vertex $(3,-5)$; $a = 2 &gt; 0$ so it opens upward.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the parabola with focus $(0,1)$ and directrix $y = -1$. <details class="sol"><summary>Solution</summary><div>$p = 1$, so $x^2 = 4y$, i.e. $y = x^2/4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A dish antenna is 2 m wide and 0.25 m deep. Where is the focus? <details class="sol"><summary>Solution</summary><div>Model as $x^2 = 4py$ with rim point $(1, 0.25)$: $1 = 4p(0.25) = p$, so $p = 1$ m. The receiver sits 1 m above the vertex, on the axis.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ellipses">
+ <h2>Ellipses</h2>
+ <p>An ellipse is a stretched circle: the set of points whose distances to two foci add to a constant. Pin a loop of string at two nails and pull a pencil taut — you draw an ellipse. Planets orbit in them.</p>
+ <div class="box def"><span class="label">Definition</span> Ellipse: $\{P : d(P,F_1) + d(P,F_2) = 2a\}$. Standard form centered at the origin, major axis on $x$: $$\frac{x^2}{a^2} + \frac{y^2}{b^2} = 1,\quad a \ge b,$$ with foci $(\pm c, 0)$, $c^2 = a^2 - b^2$. Eccentricity $e = c/a \in [0, 1)$: $e=0$ is a circle, $e \to 1$ is a cigar. Area $= \pi ab$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\frac{x^2}{25} + \frac{y^2}{9} = 1$: $a=5$, $b=3$, $c = \sqrt{25-9} = 4$. Foci $(\pm4, 0)$, eccentricity $e = 4/5$. Verify the string property at the top point $(0,3)$: distances to the foci are each $\sqrt{16+9} = 5$, summing to $10 = 2a$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> For ellipses $c^2 = a^2 - b^2$ (foci inside), for hyperbolas $c^2 = a^2 + b^2$ (foci outside). Mixing these up is the classic conic error.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Semi-axes of $\frac{x^2}{16} + \frac{y^2}{49} = 1$? Which axis is major? <details class="sol"><summary>Solution</summary><div>Semi-axes 4 (along $x$) and 7 (along $y$). Major axis is vertical since $49 &gt; 16$; foci at $(0, \pm\sqrt{33})$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the ellipse with foci $(\pm3, 0)$ passing through $(0, 4)$. <details class="sol"><summary>Solution</summary><div>$c = 3$, and $(0,4)$ gives $b = 4$; $a^2 = b^2 + c^2 = 25$. Ellipse: $\frac{x^2}{25}+\frac{y^2}{16}=1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Earth's orbit has $e \approx 0.0167$ and $a \approx 149.6$ million km. How much closer is Earth to the Sun at perihelion than at aphelion? <details class="sol"><summary>Solution</summary><div>Perihelion $= a(1-e)$, aphelion $= a(1+e)$; difference $= 2ae = 2 \cdot 149.6 \cdot 0.0167 \approx 5.0$ million km.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hyperbolas">
+ <h2>Hyperbolas</h2>
+ <p>Flip the ellipse's plus to a minus: a hyperbola is the set of points whose distances to two foci <em>differ</em> by a constant. It comes in two branches and hugs a pair of straight asymptotes far from the center — the graph of $y = 1/x$ is one, rotated 45°.</p>
+ <div class="box def"><span class="label">Definition</span> Hyperbola: $\{P : |d(P,F_1) - d(P,F_2)| = 2a\}$. Standard form: $$\frac{x^2}{a^2} - \frac{y^2}{b^2} = 1,$$ opening left-right, vertices $(\pm a, 0)$, foci $(\pm c, 0)$ with $c^2 = a^2 + b^2$, asymptotes $y = \pm\frac{b}{a}x$. Eccentricity $e = c/a &gt; 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\frac{x^2}{9} - \frac{y^2}{16} = 1$: $a = 3$, $b = 4$, $c = \sqrt{9+16} = 5$. Vertices $(\pm3,0)$, foci $(\pm5,0)$, asymptotes $y = \pm\tfrac43 x$. The point $(5, \tfrac{16}{3})$ is on it: $\tfrac{25}{9} - \tfrac{256/9}{16} = \tfrac{25}{9} - \tfrac{16}{9} = 1$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Asymptotes of $\frac{x^2}{4} - \frac{y^2}{25} = 1$? <details class="sol"><summary>Solution</summary><div>$y = \pm\frac52 x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the hyperbola with vertices $(\pm2, 0)$ and foci $(\pm3, 0)$. <details class="sol"><summary>Solution</summary><div>$a = 2$, $c = 3$, $b^2 = c^2 - a^2 = 5$: $\frac{x^2}{4} - \frac{y^2}{5} = 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two microphones 2 km apart (at $(\pm1, 0)$, km units) hear a bang; the west mic hears it $2$ s later. Sound travels 0.34 km/s. On what curve does the source lie? <details class="sol"><summary>Solution</summary><div>Distance difference $= 0.34\cdot2 = 0.68$ km $= 2a$, so $a = 0.34$. $c = 1$, $b^2 = 1 - 0.1156 = 0.8844$. Source lies on the east branch of $\frac{x^2}{0.1156} - \frac{y^2}{0.8844} = 1$ (closer to the east mic). This is how LORAN navigation worked.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conic-sections">
+ <h2>Conic sections</h2>
+ <p>Slice an infinite double cone with a plane: tilt the plane a little and you get an ellipse, tilt it parallel to the cone's side for a parabola, steeper still for a hyperbola. One family, one master equation, distinguished by eccentricity.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>conic</em> is the zero set of a quadratic $Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0$. Its type is decided by the discriminant $\Delta = B^2 - 4AC$: ellipse if $\Delta &lt; 0$ (circle if also $B = 0, A = C$), parabola if $\Delta = 0$, hyperbola if $\Delta &gt; 0$. Unified focus–directrix view: $d(P, F) = e \cdot d(P, \ell)$ with $0&lt;e&lt;1$ ellipse, $e=1$ parabola, $e&gt;1$ hyperbola.</div>
+ <div class="box ex"><span class="label">Worked example</span> Classify $x^2 + 4xy + y^2 + 2x - 3 = 0$. Here $A = 1, B = 4, C = 1$: $\Delta = 16 - 4 = 12 &gt; 0$ — a hyperbola (the $xy$ term means its axes are rotated).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the eccentricity and watch one focus-directrix curve morph from circle-like ellipse through parabola into hyperbola.</p>
+  <canvas id="cv-conic"></canvas>
+  <div class="ctl">
+   <label>eccentricity e <input type="range" id="conic-e" min="0.05" max="2.2" step="0.01" value="0.7"></label>
+  </div>
+  <div class="out" id="conic-out"></div>
+ </div>
+ <div class="quiz" data-answer="2"><div class="q">$3x^2 + 3y^2 - 6x + 12y = 0$ is a…</div><button class="opt">parabola</button><button class="opt">hyperbola</button><button class="opt">circle</button><div class="why" hidden>$B = 0$ and $A = C = 3$: divide by 3 and complete squares: $(x-1)^2 + (y+2)^2 = 5$, a circle.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify $y^2 - 4x = 0$. <details class="sol"><summary>Solution</summary><div>$A=0, B=0, C=1$: $\Delta = 0$ — parabola ($y^2 = 4x$, opening right).</div></details></li>
+  <li><span class="lvl m">MED</span> Classify $2x^2 + 3y^2 - 4x + 6y - 7 = 0$ and find its center. <details class="sol"><summary>Solution</summary><div>$\Delta = 0 - 24 &lt; 0$: ellipse. Complete squares: $2(x-1)^2 + 3(y+1)^2 = 7 + 2 + 3 = 12$. Center $(1, -1)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $xy = 1$ is a hyperbola and find its asymptotes. <details class="sol"><summary>Solution</summary><div>$A = C = 0$, $B = 1$: $\Delta = 1 &gt; 0$, hyperbola. As $x \to \pm\infty$, $y \to 0$; as $x \to 0^\pm$, $y \to \pm\infty$: asymptotes are the coordinate axes $x = 0$ and $y = 0$. (Rotating 45° turns it into $\frac{u^2}{2} - \frac{v^2}{2} = 1$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="3d-coordinates">
+ <h2>3D coordinates</h2>
+ <p>Add a third axis, $z$, sticking out of the page: every point in space is now a triple $(x, y, z)$. Nothing conceptually new happens — and that is the point. The same machinery keeps working in 3, 4, or 4096 dimensions, which is where neural network activations live.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{R}^3 = \{(x,y,z)\}$ with three mutually perpendicular axes (right-handed: curl fingers from $+x$ to $+y$, thumb points along $+z$). Coordinate planes: $xy$-plane ($z=0$), $xz$-plane ($y=0$), $yz$-plane ($x=0$). A sphere of radius $r$ centered at $(h,k,l)$: $(x-h)^2+(y-k)^2+(z-l)^2 = r^2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The point $(2, -3, 5)$: 2 along $x$, 3 back along $y$, 5 up. Its projection onto the $xy$-plane (drop the height) is $(2,-3,0)$; its distance to that plane is $|z| = 5$; its mirror image through the $xy$-plane is $(2,-3,-5)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the reflection of $(1,2,3)$ through the $yz$-plane? <details class="sol"><summary>Solution</summary><div>Flip $x$: $(-1, 2, 3)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Describe the set $x^2 + y^2 = 4$ in $\mathbb{R}^3$. <details class="sol"><summary>Solution</summary><div>No constraint on $z$: an infinite <em>cylinder</em> of radius 2 around the $z$-axis (not a circle!).</div></details></li>
+  <li><span class="lvl h">HARD</span> Where does the sphere $(x-1)^2 + y^2 + (z-2)^2 = 9$ intersect the $xy$-plane? <details class="sol"><summary>Solution</summary><div>Set $z=0$: $(x-1)^2 + y^2 + 4 = 9 \Rightarrow (x-1)^2 + y^2 = 5$ — a circle in the $xy$-plane, center $(1,0,0)$, radius $\sqrt5$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="3d-distance">
+ <h2>3D distance</h2>
+ <p>Pythagoras stacks: the distance in 3D is the square root of the sum of three squared gaps. Apply the 2D theorem on the floor, then once more up the wall.</p>
+ <div class="box def"><span class="label">Definition</span> $$d = \sqrt{(x_2-x_1)^2 + (y_2-y_1)^2 + (z_2-z_1)^2}.$$ Midpoint: average each of the three coordinates.</div>
+ <div class="box ex"><span class="label">Worked example</span> From $(1, 2, 3)$ to $(4, 6, 15)$: $d = \sqrt{3^2 + 4^2 + 12^2} = \sqrt{9+16+144} = \sqrt{169} = 13$.</div>
+ <div class="box think"><span class="label">Think first</span> The unit cube has corners $(0,0,0)$ through $(1,1,1)$. How long is its longest diagonal — and what would it be for a unit cube in 100 dimensions? <details class="sol"><summary>Reveal</summary><div>$\sqrt{1+1+1} = \sqrt3 \approx 1.73$. In $n$ dimensions: $\sqrt n$; for $n=100$ that's 10 — the corners of a high-dimensional cube are surprisingly far apart, one seed of the "curse of dimensionality".</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Distance from the origin to $(2, 3, 6)$. <details class="sol"><summary>Solution</summary><div>$\sqrt{4+9+36} = \sqrt{49} = 7$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is the triangle $(0,0,0)$, $(1,1,0)$, $(1,1,2)$ right-angled? <details class="sol"><summary>Solution</summary><div>Sides: $\sqrt2$, $2$, and $\sqrt{1+1+4}=\sqrt6$. Since $(\sqrt2)^2 + 2^2 = 6 = (\sqrt6)^2$, yes — right angle at $(1,1,0)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the point on the $z$-axis equidistant from $A = (2, 1, 0)$ and $B = (0, 3, 4)$. <details class="sol"><summary>Solution</summary><div>Point $(0,0,z)$: $4 + 1 + z^2 = 0 + 9 + (z-4)^2 = 9 + z^2 - 8z + 16$. So $5 = 25 - 8z \Rightarrow z = 2.5$. Point: $(0, 0, 2.5)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vectors">
+ <h2>Vectors</h2>
+ <p>A vector is an arrow: it has length and direction but no fixed starting point. "3 km northeast" is a vector; "the bakery" is a point. Vectors are the single most important object in this book — data, gradients, model weights, and word embeddings are all vectors.</p>
+ <div class="box def"><span class="label">Definition</span> A vector in $\mathbb{R}^n$ is a tuple $\mathbf{v} = (v_1, \dots, v_n)$, drawn as an arrow from the origin to that point (or from anywhere: only displacement matters). Its <em>magnitude</em> (length, norm) is $\|\mathbf{v}\| = \sqrt{v_1^2 + \cdots + v_n^2}$. The <em>zero vector</em> $\mathbf{0}$ has length 0 and no direction. A <em>unit vector</em> has length 1: normalize by $\hat{\mathbf{v}} = \mathbf{v}/\|\mathbf{v}\|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The displacement from $A = (1, 2)$ to $B = (4, -2)$ is $\mathbf{v} = B - A = (3, -4)$, with $\|\mathbf{v}\| = \sqrt{9+16} = 5$. Unit vector in the same direction: $\hat{\mathbf{v}} = (\tfrac35, -\tfrac45)$ — check: $\sqrt{\tfrac{9}{25}+\tfrac{16}{25}} = 1$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> A vector is not a point, even though both are tuples. The vector $(3,-4)$ drawn starting at $(10, 10)$ ends at $(13, 6)$ — same vector, different arrows on the page.</div>
+ <div class="box link"><span class="label">Where this goes</span> Chapter 8 rebuilds everything here abstractly (vector spaces); Ch 21 represents every word and image as a vector.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Magnitude of $\mathbf{v} = (2, -1, 2)$? <details class="sol"><summary>Solution</summary><div>$\sqrt{4+1+4} = 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the unit vector pointing from $(5, 1)$ toward $(2, 5)$. <details class="sol"><summary>Solution</summary><div>Displacement $(-3, 4)$, length 5: $\hat{\mathbf{u}} = (-\tfrac35, \tfrac45)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all vectors of length 10 that make equal angles with both coordinate axes in the plane. <details class="sol"><summary>Solution</summary><div>Equal angles with both axes means $|v_1| = |v_2|$. With $v_1^2 + v_2^2 = 100$: $2v_1^2 = 100$, $|v_1| = \sqrt{50} = 5\sqrt2$. Four vectors: $(\pm5\sqrt2, \pm5\sqrt2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vector-addition">
+ <h2>Vector addition</h2>
+ <p>To add vectors, walk one then the other: place the tail of the second at the head of the first. Coordinates make it trivial — add slot by slot. Forces, velocities, and gradient updates all combine this way.</p>
+ <div class="box def"><span class="label">Definition</span> $(u_1, \dots, u_n) + (v_1, \dots, v_n) = (u_1{+}v_1, \dots, u_n{+}v_n)$. Addition is commutative and associative; geometrically $\mathbf{u}+\mathbf{v}$ is the diagonal of the parallelogram with sides $\mathbf{u}, \mathbf{v}$. Triangle inequality: $\|\mathbf{u}+\mathbf{v}\| \le \|\mathbf{u}\| + \|\mathbf{v}\|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A plane flies with velocity $(200, 0)$ km/h (due east); wind blows $(0, 50)$ km/h (due north). Ground velocity: $(200, 50)$, speed $\sqrt{200^2 + 50^2} = \sqrt{42500} \approx 206.2$ km/h, tilted north of east by the angle whose tangent is $50/200 = 0.25$ ($\approx 14^\circ$).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $(1, -2, 3) + (4, 2, -3) = ?$ <details class="sol"><summary>Solution</summary><div>$(5, 0, 0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\|\mathbf{u}\| = 3$ and $\|\mathbf{v}\| = 4$. What are the largest and smallest possible values of $\|\mathbf{u}+\mathbf{v}\|$? <details class="sol"><summary>Solution</summary><div>Largest 7 (same direction), smallest 1 (opposite directions). Anything in $[1,7]$ is achievable by varying the angle.</div></details></li>
+  <li><span class="lvl h">HARD</span> Three forces act on a body: $(3, 1)$, $(-1, 2)$, and $\mathbf{F}$. The body is in equilibrium (net force zero). Find $\mathbf{F}$ and its magnitude. <details class="sol"><summary>Solution</summary><div>$\mathbf{F} = -[(3,1)+(-1,2)] = -(2,3) = (-2,-3)$; $\|\mathbf{F}\| = \sqrt{13} \approx 3.61$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vector-subtraction">
+ <h2>Vector subtraction</h2>
+ <p>$\mathbf{u} - \mathbf{v}$ is the arrow from the head of $\mathbf{v}$ to the head of $\mathbf{u}$: "what must I add to $\mathbf{v}$ to get $\mathbf{u}$?" Differences of vectors are how you measure relative position — and how word analogies like king − man + woman ≈ queen work.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf{u} - \mathbf{v} = \mathbf{u} + (-\mathbf{v})$, computed slot by slot. The distance between points $P, Q$ is $\|\mathbf{q} - \mathbf{p}\|$ — the norm of the difference of their position vectors.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{u} = (5, 2)$, $\mathbf{v} = (1, 4)$: $\mathbf{u} - \mathbf{v} = (4, -2)$. Check the definition: $\mathbf{v} + (4,-2) = (5, 2) = \mathbf{u}$. ✓ Geometrically, $(4,-2)$ is the arrow from the tip of $\mathbf{v}$ to the tip of $\mathbf{u}$ — the <em>other</em> diagonal of the parallelogram.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $(7, 0, -1) - (2, 3, -5) = ?$ <details class="sol"><summary>Solution</summary><div>$(5, -3, 4)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Points $P = (2,1)$, $Q = (6,4)$. Express the point $R$ such that $Q$ is the midpoint of $PR$, using vector arithmetic. <details class="sol"><summary>Solution</summary><div>$\mathbf{r} = \mathbf{q} + (\mathbf{q} - \mathbf{p}) = 2\mathbf{q} - \mathbf{p} = (12-2, 8-1) = (10, 7)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> In embedding land: king $=(2, 6)$, man $=(1, 2)$, woman $=(1.5, 2.5)$. Compute king − man + woman and interpret. <details class="sol"><summary>Solution</summary><div>$(2-1+1.5,\; 6-2+2.5) = (2.5, 6.5)$. The difference king − man $=(1,4)$ captures "royalty minus gender-neutral person"; adding woman transfers that offset — the resulting point is where "queen" should live. Real word2vec embeddings show exactly this arithmetic in 300 dimensions.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="scalar-multiplication">
+ <h2>Scalar multiplication</h2>
+ <p>Multiplying a vector by a number stretches or shrinks it; a negative number also flips it. The vector's direction line never changes. Learning rates in gradient descent are exactly this: scale the gradient vector before stepping.</p>
+ <div class="box def"><span class="label">Definition</span> $c\,(v_1, \dots, v_n) = (cv_1, \dots, cv_n)$. Properties: $\|c\mathbf{v}\| = |c|\,\|\mathbf{v}\|$; $c &gt; 0$ preserves direction, $c &lt; 0$ reverses it. Vectors $\mathbf{u}, \mathbf{v}$ are <em>parallel</em> (collinear) iff $\mathbf{u} = c\mathbf{v}$ for some scalar $c \ne 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{v} = (3, -4)$, $\|\mathbf{v}\| = 5$. Then $-2\mathbf{v} = (-6, 8)$ with length $|-2|\cdot 5 = 10$, pointing exactly opposite. And to get a vector of length 2 in the direction of $\mathbf{v}$: $\tfrac{2}{5}\mathbf{v} = (1.2, -1.6)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $3(2, -1) - 2(1, 4)$. <details class="sol"><summary>Solution</summary><div>$(6,-3) - (2,8) = (4, -11)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Are $(4, -6, 2)$ and $(-6, 9, -3)$ parallel? <details class="sol"><summary>Solution</summary><div>$(-6,9,-3) = -\tfrac32(4,-6,2)$. Yes — parallel, opposite directions.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gradient descent: position $\mathbf{x} = (2, 3)$, gradient $\mathbf{g} = (8, -4)$, learning rate $\eta = 0.25$. Compute the new position $\mathbf{x} - \eta\mathbf{g}$ and how far the step moved. <details class="sol"><summary>Solution</summary><div>$\eta\mathbf{g} = (2, -1)$; new position $(0, 4)$. Step length $= \|(2,-1)\| = \sqrt5 \approx 2.236$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dot-product">
+ <h2>Dot product</h2>
+ <p>The dot product multiplies two vectors into a single number that measures agreement: positive when they point roughly the same way, zero when perpendicular, negative when opposed. It is the fundamental similarity measure — attention scores in transformers are dot products.</p>
+ <div class="box def"><span class="label">Definition</span> $$\mathbf{u}\cdot\mathbf{v} = \sum_{i=1}^n u_i v_i = \|\mathbf{u}\|\,\|\mathbf{v}\|\cos\theta,$$ where $\theta$ is the angle between them. Hence $\cos\theta = \frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\|\mathbf{v}\|}$, and $\mathbf{u}\cdot\mathbf{u} = \|\mathbf{u}\|^2$. Perpendicular (orthogonal) $\iff \mathbf{u}\cdot\mathbf{v} = 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{u} = (1, 2, 2)$, $\mathbf{v} = (2, -2, 1)$. Dot: $2 - 4 + 2 = 0$ — orthogonal, even though nothing about the numbers looks special. Now $\mathbf{u} = (3, 4)$, $\mathbf{v} = (5, 0)$: $\mathbf{u}\cdot\mathbf{v} = 15$; $\cos\theta = \frac{15}{5\cdot5} = 0.6$, so $\theta = \arccos 0.6 \approx 53.13^\circ$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Rotate vector <b>v</b> and watch the dot product and angle change sign as it crosses perpendicular.</p>
+  <canvas id="cv-dot"></canvas>
+  <div class="ctl">
+   <label>angle of v <input type="range" id="dot-ang" min="0" max="360" step="1" value="40"></label>
+   <label>|v| <input type="range" id="dot-len" min="0.5" max="2" step="0.05" value="1.4"></label>
+  </div>
+  <div class="out" id="dot-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The dot product is a <em>number</em>, not a vector. $\mathbf{u}\cdot\mathbf{v}\cdot\mathbf{w}$ is ambiguous nonsense; $(\mathbf{u}\cdot\mathbf{v})\,\mathbf{w}$ is a scaled vector.</div>
+ <div class="box link"><span class="label">Where this goes</span> Attention (Ch 21) scores query–key similarity as $\mathbf{q}\cdot\mathbf{k}/\sqrt{d}$; cosine similarity ranks documents in retrieval (Ch 31).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $(2, 3)\cdot(4, -1) = ?$ <details class="sol"><summary>Solution</summary><div>$8 - 3 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $t$ so that $(t, 2, -1) \perp (3, t, 4)$. <details class="sol"><summary>Solution</summary><div>$3t + 2t - 4 = 0 \Rightarrow 5t = 4 \Rightarrow t = \tfrac45$.</div></details></li>
+  <li><span class="lvl m">MED</span> Angle between $(1, 1)$ and $(0, 1)$? <details class="sol"><summary>Solution</summary><div>$\cos\theta = \frac{1}{\sqrt2 \cdot 1} = \frac{\sqrt2}{2}$, so $\theta = 45^\circ$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the law of cosines using $\|\mathbf{u}-\mathbf{v}\|^2 = (\mathbf{u}-\mathbf{v})\cdot(\mathbf{u}-\mathbf{v})$. <details class="sol"><summary>Solution</summary><div>Expand: $\|\mathbf{u}-\mathbf{v}\|^2 = \mathbf{u}\cdot\mathbf{u} - 2\mathbf{u}\cdot\mathbf{v} + \mathbf{v}\cdot\mathbf{v} = \|\mathbf{u}\|^2 + \|\mathbf{v}\|^2 - 2\|\mathbf{u}\|\|\mathbf{v}\|\cos\theta$. With triangle sides $a = \|\mathbf{u}\|$, $b = \|\mathbf{v}\|$, $c = \|\mathbf{u}-\mathbf{v}\|$ and included angle $\theta$: $c^2 = a^2 + b^2 - 2ab\cos\theta$. $\blacksquare$</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">If $\mathbf{u}\cdot\mathbf{v} &lt; 0$, the angle between $\mathbf{u}$ and $\mathbf{v}$ is…</div><button class="opt">more than 90°</button><button class="opt">exactly 90°</button><button class="opt">less than 90°</button><div class="why" hidden>$\cos\theta &lt; 0$ exactly when $\theta \in (90^\circ, 180^\circ]$.</div></div>
+</section>
+
+<section class="topic" id="cross-product">
+ <h2>Cross product</h2>
+ <p>Only in 3D: the cross product of two vectors is a third vector perpendicular to both, whose length equals the area of the parallelogram they span. It encodes rotation and orientation — torque, angular momentum, and surface normals in graphics are cross products.</p>
+ <div class="box def"><span class="label">Definition</span> $$\mathbf{u}\times\mathbf{v} = (u_2v_3 - u_3v_2,\; u_3v_1 - u_1v_3,\; u_1v_2 - u_2v_1).$$ Properties: $\mathbf{u}\times\mathbf{v} \perp \mathbf{u}, \mathbf{v}$; $\|\mathbf{u}\times\mathbf{v}\| = \|\mathbf{u}\|\|\mathbf{v}\|\sin\theta$ = parallelogram area; direction by the right-hand rule; anticommutative: $\mathbf{v}\times\mathbf{u} = -\mathbf{u}\times\mathbf{v}$; $\mathbf{u}\times\mathbf{u} = \mathbf{0}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf{u} = (1, 0, 0)$, $\mathbf{v} = (0, 1, 0)$: $\mathbf{u}\times\mathbf{v} = (0\cdot0-0\cdot1,\; 0\cdot0-1\cdot0,\; 1\cdot1-0\cdot0) = (0,0,1)$ — $x$ cross $y$ is $z$, the right-hand rule in action. Bigger example: $\mathbf{u}=(2,1,0)$, $\mathbf{v}=(1,3,0)$: $\mathbf{u}\times\mathbf{v} = (1\cdot0-0\cdot3,\; 0\cdot1-2\cdot0,\; 2\cdot3-1\cdot1) = (0,0,5)$: parallelogram area 5, pointing up.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Order matters: swapping the arguments flips the sign. And there is no true cross product in 2D or 4D+ — for 2D use the scalar $u_1v_2 - u_2v_1$ (signed area).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $(0,0,1)\times(1,0,0) = ?$ <details class="sol"><summary>Solution</summary><div>$(0\cdot0-1\cdot0,\; 1\cdot1-0\cdot0,\; 0\cdot0-0\cdot1) = (0,1,0)$: $z \times x = y$.</div></details></li>
+  <li><span class="lvl m">MED</span> Area of the triangle with vertices $(0,0,0)$, $(2,1,0)$, $(1,3,0)$. <details class="sol"><summary>Solution</summary><div>Half the parallelogram area from the worked example: $\tfrac52 = 2.5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find a unit normal to the plane through $P=(1,0,0)$, $Q=(0,2,0)$, $R=(0,0,3)$. <details class="sol"><summary>Solution</summary><div>$\vec{PQ} = (-1,2,0)$, $\vec{PR} = (-1,0,3)$. Cross: $(2\cdot3-0\cdot0,\; 0\cdot(-1)-(-1)\cdot3,\; (-1)\cdot0-2\cdot(-1)) = (6, 3, 2)$. Length $\sqrt{36+9+4} = 7$. Unit normal: $\pm\tfrac17(6,3,2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vector-projection">
+ <h2>Vector projection</h2>
+ <p>Projection answers: how much of $\mathbf{u}$ points along $\mathbf{v}$? Shine a light perpendicular to $\mathbf{v}$; the shadow of $\mathbf{u}$ on $\mathbf{v}$'s line is the projection. The leftover part is perpendicular — splitting a vector into "along" and "across" is one of the most reused moves in mathematics.</p>
+ <div class="box def"><span class="label">Definition</span> Scalar projection (shadow length, signed): $\text{comp}_{\mathbf{v}}\mathbf{u} = \frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{v}\|}$. Vector projection: $$\text{proj}_{\mathbf{v}}\mathbf{u} = \frac{\mathbf{u}\cdot\mathbf{v}}{\mathbf{v}\cdot\mathbf{v}}\,\mathbf{v}.$$ The <em>rejection</em> $\mathbf{u} - \text{proj}_{\mathbf{v}}\mathbf{u}$ is orthogonal to $\mathbf{v}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Project $\mathbf{u} = (3, 4)$ onto $\mathbf{v} = (2, 0)$. $\mathbf{u}\cdot\mathbf{v} = 6$, $\mathbf{v}\cdot\mathbf{v} = 4$: $\text{proj}_{\mathbf{v}}\mathbf{u} = \tfrac64(2,0) = (3, 0)$ — just the horizontal part, as the picture demands. Rejection: $(3,4) - (3,0) = (0,4)$, orthogonal to $\mathbf{v}$. ✓ And $(3,0)+(0,4)$ rebuilds $\mathbf{u}$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Rotate <b>u</b> and watch its shadow on <b>v</b> stretch, shrink, and flip sign; the dashed rejection stays perpendicular.</p>
+  <canvas id="cv-proj"></canvas>
+  <div class="ctl">
+   <label>angle of u <input type="range" id="proj-ang" min="0" max="360" step="1" value="55"></label>
+   <label>angle of v <input type="range" id="proj-vang" min="0" max="180" step="1" value="10"></label>
+  </div>
+  <div class="out" id="proj-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Least squares (Ch 13) <em>is</em> projection of the data vector onto a subspace; Gram–Schmidt (Ch 8) is repeated rejection.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Project $(5, 5)$ onto $(1, 0)$. <details class="sol"><summary>Solution</summary><div>$\frac{5}{1}(1,0) = (5, 0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Project $\mathbf{u} = (4, 2)$ onto $\mathbf{v} = (3, 4)$, and give the rejection. <details class="sol"><summary>Solution</summary><div>$\mathbf{u}\cdot\mathbf{v} = 12+8 = 20$; $\|\mathbf{v}\|^2 = 25$. Projection: $\tfrac{20}{25}(3,4) = (2.4, 3.2)$. Rejection: $(4,2)-(2.4,3.2) = (1.6, -1.2)$; check $(1.6)(3) + (-1.2)(4) = 4.8-4.8=0$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> A 100 N weight rests on a ramp inclined 30°. Split gravity into components along and perpendicular to the ramp. <details class="sol"><summary>Solution</summary><div>Along-ramp component: $100\sin 30^\circ = 50$ N (pulls it downhill); perpendicular: $100\cos 30^\circ = 50\sqrt3 \approx 86.6$ N (pressed into the ramp). Check: $50^2 + (50\sqrt3)^2 = 2500 + 7500 = 100^2$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="geometric-transformations">
+ <h2>Geometric transformations</h2>
+ <p>A transformation moves every point of the plane at once: slide it (translation), spin it (rotation), mirror it (reflection), stretch it (scaling). Rotations, reflections and scalings are <em>linear</em> — they can be written as matrices, which is the door into Chapter 8. Data augmentation in vision models is exactly these operations applied to images.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Translation</em> by $\mathbf{t}$: $P \mapsto P + \mathbf{t}$. <em>Scaling</em> by $k$ about the origin: $(x,y) \mapsto (kx, ky)$. <em>Reflection</em> across the $x$-axis: $(x,y)\mapsto(x,-y)$; across $y=x$: $(x,y)\mapsto(y,x)$. <em>Rotation</em> by angle $\theta$ counterclockwise about the origin: $$(x, y) \mapsto (x\cos\theta - y\sin\theta,\; x\sin\theta + y\cos\theta).$$ Rigid motions (translations, rotations, reflections) preserve distances; scalings multiply them by $|k|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rotate $(1, 0)$ by $90^\circ$: $(\cos 90^\circ - 0, \sin 90^\circ + 0) = (0, 1)$. ✓ Rotate $(2, 1)$ by $90^\circ$: $(2\cdot 0 - 1\cdot 1,\; 2\cdot1 + 1\cdot 0) = (-1, 2)$. Note the general $90^\circ$ pattern $(x,y)\mapsto(-y,x)$, and that lengths are preserved: $\|(2,1)\| = \|(-1,2)\| = \sqrt5$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Rotate and scale a shape about the origin; the ghost shows where it started. Watch composition: scale-then-rotate equals rotate-then-scale here — but translation does not commute with either.</p>
+  <canvas id="cv-xform"></canvas>
+  <div class="ctl">
+   <label>rotation θ <input type="range" id="xf-rot" min="0" max="360" step="1" value="30"></label>
+   <label>scale k <input type="range" id="xf-scale" min="0.3" max="2" step="0.05" value="1"></label>
+   <label>reflect x-axis <input type="checkbox" id="xf-flip"></label>
+  </div>
+  <div class="out" id="xf-out"></div>
+ </div>
+ <div class="box think"><span class="label">Think first</span> Reflecting across the $x$-axis and then across the $y$-axis — what single transformation is that? <details class="sol"><summary>Reveal</summary><div>$(x,y)\to(x,-y)\to(-x,-y)$: rotation by $180^\circ$. Two reflections make a rotation.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Each linear transformation here is a $2\times2$ matrix (Ch 8, matrix representations); neural network layers are transformation-then-nonlinearity.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Translate the triangle $(0,0), (1,0), (0,2)$ by $\mathbf{t} = (3, -1)$. <details class="sol"><summary>Solution</summary><div>$(3,-1), (4,-1), (3,1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Rotate $(3, 4)$ by $180^\circ$, then reflect across $y = x$. Where does it land? <details class="sol"><summary>Solution</summary><div>$180^\circ$: $(-3,-4)$. Reflect across $y=x$: swap → $(-4, -3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Rotate the point $(1, 1)$ by $45^\circ$ counterclockwise about the origin. Give exact coordinates. <details class="sol"><summary>Solution</summary><div>$\cos 45^\circ = \sin 45^\circ = \tfrac{\sqrt2}{2}$. New point: $\big(1\cdot\tfrac{\sqrt2}{2} - 1\cdot\tfrac{\sqrt2}{2},\; 1\cdot\tfrac{\sqrt2}{2} + 1\cdot\tfrac{\sqrt2}{2}\big) = (0, \sqrt2)$. Makes sense: $(1,1)$ sits at $45^\circ$ with length $\sqrt2$; rotating 45° more puts it on the $y$-axis at height $\sqrt2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A scaling by 2 about the point $(1, 1)$ (not the origin). Where does $(3, 2)$ go? <details class="sol"><summary>Solution</summary><div>Translate so the center is the origin: $(3,2)-(1,1) = (2,1)$. Scale: $(4,2)$. Translate back: $(5, 3)$. General recipe: conjugate the linear map with translations.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">Which transformation does NOT preserve distances between points?</div><button class="opt">rotation by 37°</button><button class="opt">scaling by 3</button><button class="opt">reflection across y = x</button><div class="why" hidden>Scaling by 3 triples every distance. Rotations and reflections are rigid motions.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> A circle passes through $A=(0,0)$, $B=(6,0)$ and $C=(0,8)$. Find its center, radius, and area. <details class="sol"><summary>Solution</summary><div>Angle at $A$ between $AB$ (along $x$) and $AC$ (along $y$) is right, so $BC$ is a diameter (Thales). Center = midpoint of $BC$ = $(3,4)$; radius $=\tfrac12\|BC\| = \tfrac12\sqrt{36+64} = 5$. Area $= 25\pi$. Check: distance from $(3,4)$ to $(0,0)$ is 5. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Let $\mathbf{u} = (2, 1, -2)$ and $\mathbf{v} = (1, 2, 2)$. (a) Show they are orthogonal. (b) Compute $\mathbf{w} = \mathbf{u}\times\mathbf{v}$. (c) Show $\{\mathbf{u}, \mathbf{v}, \mathbf{w}\}$ are mutually orthogonal and compute all three lengths. (d) Project $\mathbf{a} = (3, 3, 3)$ onto each and verify the three projections sum to $\mathbf{a}$. <details class="sol"><summary>Solution</summary><div>(a) $2+2-4 = 0$. ✓ (b) $\mathbf{w} = (1\cdot2-(-2)\cdot2,\; (-2)\cdot1-2\cdot2,\; 2\cdot2-1\cdot1) = (6, -6, 3)$. (c) $\mathbf{w}\cdot\mathbf{u} = 12-6-6 = 0$; $\mathbf{w}\cdot\mathbf{v} = 6-12+6 = 0$. Lengths: $\|\mathbf{u}\| = \|\mathbf{v}\| = 3$, $\|\mathbf{w}\| = \sqrt{36+36+9} = 9$ (equals $\|\mathbf{u}\|\|\mathbf{v}\|\sin 90^\circ = 9$ ✓). (d) $\mathbf{a}\cdot\mathbf{u} = 6+3-6 = 3$, proj $= \tfrac{3}{9}\mathbf{u} = (\tfrac23,\tfrac13,-\tfrac23)$. $\mathbf{a}\cdot\mathbf{v} = 3+6+6 = 15$, proj $= \tfrac{15}{9}\mathbf{v} = (\tfrac53,\tfrac{10}3,\tfrac{10}3)$. $\mathbf{a}\cdot\mathbf{w} = 18-18+9 = 9$, proj $= \tfrac{9}{81}\mathbf{w} = (\tfrac23,-\tfrac23,\tfrac13)$. Sum: $(\tfrac23+\tfrac53+\tfrac23,\; \tfrac13+\tfrac{10}3-\tfrac23,\; -\tfrac23+\tfrac{10}3+\tfrac13) = (3,3,3) = \mathbf{a}$. ✓ Orthogonal bases make decomposition trivial — the seed of Ch 8 and Fourier analysis (Ch 14).</div></details></li>
+  <li><span class="lvl h">HARD</span> A satellite dish's cross-section is the parabola $y = \tfrac{1}{4}x^2$ for $-2 \le x \le 2$. A ray comes straight down and hits the dish at $x = 1$. Using the reflection law (angle in = angle out about the tangent line), show the reflected ray passes through the focus. <details class="sol"><summary>Solution</summary><div>Focus: $x^2 = 4y$ gives $4p = 4$, $p = 1$: focus $F = (0, 1)$. Hit point $P = (1, \tfrac14)$. Tangent slope at $x=1$: $y' = \tfrac{x}{2} = \tfrac12$. Incoming direction: $(0,-1)$. Tangent direction: $\mathbf{t} = (2,1)/\sqrt5$; normal: $\mathbf{n} = (-1,2)/\sqrt5$. Reflect $\mathbf{d} = (0,-1)$: $\mathbf{d}' = \mathbf{d} - 2(\mathbf{d}\cdot\mathbf{n})\mathbf{n}$. $\mathbf{d}\cdot\mathbf{n} = (0)(-1)/\sqrt5 + (-1)(2)/\sqrt5 = -2/\sqrt5$. $\mathbf{d}' = (0,-1) + \tfrac{4}{\sqrt5}\cdot\tfrac{(-1,2)}{\sqrt5} = (0,-1) + (-\tfrac45, \tfrac85) = (-\tfrac45, \tfrac35)$. Ray from $P$: $(1,\tfrac14) + s(-\tfrac45,\tfrac35)$. At $s = \tfrac54$: $(1 - 1, \tfrac14 + \tfrac34) = (0, 1) = F$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Implement the chapter's geometry in NumPy. Everything here becomes a one-liner you will reuse for the rest of the book.</p>
+ <p><b>Task 1 — Vector toolkit.</b> Write functions <code>norm</code>, <code>angle_between</code>, <code>project</code> (vector projection of u onto v), and verify on the worked examples: angle between (3,4) and (5,0) ≈ 53.13°, proj of (4,2) onto (3,4) = (2.4, 3.2).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def norm(v):
+    return float(np.sqrt(np.dot(v, v)))
+
+def angle_between(u, v, degrees=True):
+    c = np.dot(u, v) / (norm(u) * norm(v))
+    c = np.clip(c, -1.0, 1.0)          # guard float error
+    a = np.arccos(c)
+    return float(np.degrees(a)) if degrees else float(a)
+
+def project(u, v):
+    v = np.asarray(v, float)
+    return (np.dot(u, v) / np.dot(v, v)) * v
+
+print(angle_between([3, 4], [5, 0]))    # 53.1301...
+print(project([4, 2], [3, 4]))          # [2.4 3.2]
+r = np.array([4, 2]) - project([4, 2], [3, 4])
+print(np.dot(r, [3, 4]))                # ~0: rejection is orthogonal</code></pre></div></details>
+ <p><b>Task 2 — Rotation and rigidity.</b> Build the 2D rotation as a function <code>rotate(points, theta)</code> applied to an N×2 array of points. Rotate a random point cloud by 73° and verify numerically that all pairwise distances are unchanged (max absolute change &lt; 1e-9).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def rotate(P, theta):
+    c, s = np.cos(theta), np.sin(theta)
+    R = np.array([[c, -s], [s, c]])
+    return P @ R.T                       # rotate each row
+
+def pairwise_dists(P):
+    d = P[:, None, :] - P[None, :, :]
+    return np.sqrt((d ** 2).sum(-1))
+
+rng = np.random.default_rng(0)
+P = rng.normal(size=(50, 2))
+Q = rotate(P, np.radians(73))
+print(np.abs(pairwise_dists(P) - pairwise_dists(Q)).max())  # ~1e-15</code></pre></div></details>
+ <p><b>Task 3 — Point in a triangle via cross products.</b> Using 2D cross products (signed areas), write <code>in_triangle(p, a, b, c)</code> that returns True iff p lies inside triangle abc. Test with the centroid (inside) and a far point (outside).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def cross2(o, a, b):
+    """Signed area x2 of triangle o-a-b (positive = counterclockwise)."""
+    return (a[0]-o[0])*(b[1]-o[1]) - (a[1]-o[1])*(b[0]-o[0])
+
+def in_triangle(p, a, b, c):
+    s1 = cross2(a, b, p)
+    s2 = cross2(b, c, p)
+    s3 = cross2(c, a, p)
+    has_neg = (s1 &lt; 0) or (s2 &lt; 0) or (s3 &lt; 0)
+    has_pos = (s1 &gt; 0) or (s2 &gt; 0) or (s3 &gt; 0)
+    return not (has_neg and has_pos)   # all same sign (or zero: on edge)
+
+a, b, c = (0, 0), (6, 0), (0, 8)
+centroid = (2, 8/3)
+print(in_triangle(centroid, a, b, c))  # True
+print(in_triangle((10, 10), a, b, c))  # False</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.khanacademy.org/math/geometry">Khan Academy — Geometry</a>: full course with exercises covering triangles, circles, transformations and coordinate proofs.</li>
+  <li><a href="https://www.khanacademy.org/math/precalculus/x9e81a4f98389efdf:vectors">Khan Academy — Vectors (Precalculus)</a>: vector arithmetic, dot product, projections, with practice.</li>
+  <li><a href="https://openstax.org/books/precalculus-2e/pages/1-introduction-to-functions">OpenStax Precalculus 2e</a>: free textbook; chapters 8 (analytic geometry / conics) and 8.8 (vectors) match this chapter.</li>
+  <li><a href="https://www.youtube.com/playlist?list=PLZHQObOWTQDPD3MizzM2xVFitgF8hE_ab">3Blue1Brown — Essence of Linear Algebra</a>: the first episodes give the geometric picture of vectors and transformations this chapter opens.</li>
+  <li><a href="https://www.geogebra.org/geometry">GeoGebra Geometry</a>: free interactive tool to construct and drag every figure in this chapter.</li>
+  <li><a href="https://mathworld.wolfram.com/ConicSection.html">Wolfram MathWorld — Conic Section</a>: reference for every conic formula and derivation.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-02sc-multivariable-calculus-fall-2010/pages/1.-vectors-and-matrices/">MIT OCW 18.02SC — Vectors and Matrices</a>: vectors, dot and cross products, planes, with videos and solved problems.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch04.html">← 04 Functions</a>
+ <a class="btn" href="ch06.html">06 Trigonometry →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function on(id, ev, fn){var el=document.getElementById(id); if(el) el.addEventListener(ev, fn);}
+ function val(id){var el=document.getElementById(id); return el?parseFloat(el.value):0;}
+ function axes(g,s,cx,cy,scale){
+  g.strokeStyle=cssVar('--ink-2'); g.lineWidth=1; g.globalAlpha=0.5;
+  g.beginPath(); g.moveTo(0,cy); g.lineTo(s.w,cy); g.moveTo(cx,0); g.lineTo(cx,s.h); g.stroke();
+  g.globalAlpha=1; g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+ }
+ function arrow(g,x0,y0,x1,y1,color,w){
+  g.strokeStyle=color; g.fillStyle=color; g.lineWidth=w||2;
+  g.beginPath(); g.moveTo(x0,y0); g.lineTo(x1,y1); g.stroke();
+  var a=Math.atan2(y1-y0,x1-x0);
+  g.beginPath(); g.moveTo(x1,y1);
+  g.lineTo(x1-9*Math.cos(a-0.4), y1-9*Math.sin(a-0.4));
+  g.lineTo(x1-9*Math.cos(a+0.4), y1-9*Math.sin(a+0.4));
+  g.closePath(); g.fill();
+ }
+
+ /* ---- Pythagoras explorer ---- */
+ var cp=document.getElementById('cv-pyth');
+ function drawPyth(){
+  if(!cp) return;
+  var s=setupCanvas(cp,300), g=s.g;
+  var a=val('pyth-a'), b=val('pyth-b'), c=Math.sqrt(a*a+b*b);
+  var u=Math.min(s.w,300)/ (a+b+4);           // px per unit, fit a+b squares
+  u=Math.min(u,(s.h-40)/(Math.max(a,b)+Math.min(a,b)+2));
+  var ox=s.w/2 - (a*u)/2, oy=s.h/2 + (a>b? a: b)*u*0.25;
+  // right triangle: right angle at origin (ox,oy); leg a along x, leg b up
+  var A=[ox,oy], B=[ox+a*u,oy], C=[ox,oy-b*u];
+  // squares on legs
+  g.globalAlpha=0.25;
+  g.fillStyle=cssVar('--cobalt');
+  g.fillRect(ox, oy, a*u, a*u);                         // square on leg a (below)
+  g.fillStyle=cssVar('--amber')||'#e8a13c';
+  g.fillRect(ox-b*u, oy-b*u, b*u, b*u);                 // square on leg b (left)
+  // square on hypotenuse: from B to C, extend outward (to upper right)
+  var hx=(C[0]-B[0])/ (c*u), hy=(C[1]-B[1])/(c*u);      // unit along hyp
+  var nx=-hy, ny=hx;                                     // outward normal
+  var B2=[B[0]+nx*c*u, B[1]+ny*c*u], C2=[C[0]+nx*c*u, C[1]+ny*c*u];
+  g.fillStyle=cssVar('--rose')||'#d35d7e';
+  g.beginPath(); g.moveTo(B[0],B[1]); g.lineTo(C[0],C[1]); g.lineTo(C2[0],C2[1]); g.lineTo(B2[0],B2[1]); g.closePath(); g.fill();
+  g.globalAlpha=1;
+  // triangle
+  g.strokeStyle=cssVar('--ink'); g.lineWidth=2;
+  g.beginPath(); g.moveTo(A[0],A[1]); g.lineTo(B[0],B[1]); g.lineTo(C[0],C[1]); g.closePath(); g.stroke();
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('a='+a.toFixed(1), ox+a*u/2-20, oy+16);
+  g.fillText('b='+b.toFixed(1), ox-b*u-8, oy-b*u/2);
+  g.fillText('c='+c.toFixed(2), (B[0]+C[0])/2+8, (B[1]+C[1])/2-6);
+  var out=document.getElementById('pyth-out');
+  if(out) out.textContent='a² + b² = '+(a*a).toFixed(2)+' + '+(b*b).toFixed(2)+' = '+(a*a+b*b).toFixed(2)+' = c²   (c = '+c.toFixed(3)+')';
+ }
+ on('pyth-a','input',drawPyth); on('pyth-b','input',drawPyth);
+
+ /* ---- Conic (focus-directrix) explorer ---- */
+ var cc=document.getElementById('cv-conic');
+ function drawConic(){
+  if(!cc) return;
+  var s=setupCanvas(cc,300), g=s.g;
+  var e=val('conic-e');
+  var cx=s.w*0.42, cy=s.h/2, scale=60;
+  axes(g,s,cx,cy,scale);
+  // directrix at x=-d (d=1 unit left of focus at origin); r = e*d/(1 - e cosθ) polar about focus
+  var d=1.2;
+  var dxpix=cx - d*scale;
+  g.strokeStyle=cssVar('--ink-2'); g.setLineDash([5,4]);
+  g.beginPath(); g.moveTo(dxpix,0); g.lineTo(dxpix,s.h); g.stroke(); g.setLineDash([]);
+  g.fillText('directrix', dxpix-70, 18);
+  // focus
+  g.fillStyle=cssVar('--cobalt'); g.beginPath(); g.arc(cx,cy,4,0,7); g.fill();
+  g.fillStyle=cssVar('--ink-2'); g.fillText('focus', cx+8, cy-8);
+  // curve: r(θ) = e d / (1 - e cos θ), directrix left of focus
+  g.strokeStyle=cssVar('--cobalt'); g.lineWidth=2;
+  g.beginPath(); var started=false;
+  for(var t=-Math.PI; t<=Math.PI; t+=0.005){
+   var den=1 - e*Math.cos(t);
+   if(den <= 0.02){ started=false; continue; }
+   var r=e*d/den;
+   if(r>20){ started=false; continue; }
+   var x=cx - r*Math.cos(t)*scale, y=cy - r*Math.sin(t)*scale;
+   if(!started){ g.moveTo(x,y); started=true; } else g.lineTo(x,y);
+  }
+  g.stroke();
+  var kind = e<0.999 ? 'ellipse' : (e<=1.001 ? 'parabola' : 'hyperbola (one branch shown)');
+  var out=document.getElementById('conic-out');
+  if(out) out.textContent='e = '+e.toFixed(2)+'  →  '+kind;
+ }
+ on('conic-e','input',drawConic);
+
+ /* ---- Dot product explorer ---- */
+ var cd=document.getElementById('cv-dot');
+ function drawDot(){
+  if(!cd) return;
+  var s=setupCanvas(cd,300), g=s.g;
+  var cx=s.w/2, cy=s.h/2, scale=90;
+  axes(g,s,cx,cy,scale);
+  var u=[1.3,0.5];
+  var ang=val('dot-ang')*Math.PI/180, L=val('dot-len');
+  var v=[L*Math.cos(ang), L*Math.sin(ang)];
+  arrow(g,cx,cy,cx+u[0]*scale,cy-u[1]*scale,cssVar('--cobalt'));
+  arrow(g,cx,cy,cx+v[0]*scale,cy-v[1]*scale,cssVar('--rose')||'#d35d7e');
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('u', cx+u[0]*scale+8, cy-u[1]*scale);
+  g.fillText('v', cx+v[0]*scale+8, cy-v[1]*scale);
+  var dot=u[0]*v[0]+u[1]*v[1];
+  var nu=Math.hypot(u[0],u[1]), nv=Math.hypot(v[0],v[1]);
+  var cos=dot/(nu*nv), th=Math.acos(Math.max(-1,Math.min(1,cos)))*180/Math.PI;
+  var out=document.getElementById('dot-out');
+  if(out) out.textContent='u·v = '+dot.toFixed(3)+'   cos θ = '+cos.toFixed(3)+'   θ = '+th.toFixed(1)+'°'+(Math.abs(dot)<0.02?'  ⟂!':'');
+ }
+ on('dot-ang','input',drawDot); on('dot-len','input',drawDot);
+
+ /* ---- Projection explorer ---- */
+ var cj=document.getElementById('cv-proj');
+ function drawProj(){
+  if(!cj) return;
+  var s=setupCanvas(cj,300), g=s.g;
+  var cx=s.w/2, cy=s.h/2, scale=90;
+  axes(g,s,cx,cy,scale);
+  var ua=val('proj-ang')*Math.PI/180, va=val('proj-vang')*Math.PI/180;
+  var u=[1.3*Math.cos(ua), 1.3*Math.sin(ua)];
+  var v=[1.2*Math.cos(va), 1.2*Math.sin(va)];
+  // line of v
+  g.strokeStyle=cssVar('--ink-2'); g.globalAlpha=0.4;
+  g.beginPath(); g.moveTo(cx-v[0]*scale*2, cy+v[1]*scale*2); g.lineTo(cx+v[0]*scale*2, cy-v[1]*scale*2); g.stroke(); g.globalAlpha=1;
+  var dv=v[0]*v[0]+v[1]*v[1], du=u[0]*v[0]+u[1]*v[1];
+  var p=[du/dv*v[0], du/dv*v[1]];
+  // rejection dashes
+  g.strokeStyle=cssVar('--ink-2'); g.setLineDash([4,4]);
+  g.beginPath(); g.moveTo(cx+u[0]*scale, cy-u[1]*scale); g.lineTo(cx+p[0]*scale, cy-p[1]*scale); g.stroke(); g.setLineDash([]);
+  arrow(g,cx,cy,cx+v[0]*scale,cy-v[1]*scale,cssVar('--ink-2'));
+  arrow(g,cx,cy,cx+u[0]*scale,cy-u[1]*scale,cssVar('--cobalt'));
+  arrow(g,cx,cy,cx+p[0]*scale,cy-p[1]*scale,cssVar('--rose')||'#d35d7e',3);
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('u', cx+u[0]*scale+8, cy-u[1]*scale);
+  g.fillText('v', cx+v[0]*scale+8, cy-v[1]*scale+14);
+  g.fillText('proj', cx+p[0]*scale+6, cy-p[1]*scale+18);
+  var out=document.getElementById('proj-out');
+  if(out) out.textContent='proj_v(u) = ('+p[0].toFixed(2)+', '+p[1].toFixed(2)+')   shadow length = '+(du/Math.sqrt(dv)).toFixed(3);
+ }
+ on('proj-ang','input',drawProj); on('proj-vang','input',drawProj);
+
+ /* ---- Transformation explorer ---- */
+ var cx2=document.getElementById('cv-xform');
+ function drawXf(){
+  if(!cx2) return;
+  var s=setupCanvas(cx2,300), g=s.g;
+  var cX=s.w/2, cY=s.h/2, scale=55;
+  axes(g,s,cX,cY,scale);
+  var shape=[[0.4,0.4],[2,0.4],[2,1.1],[1,1.1],[1,1.9],[0.4,1.9]]; // L-shape (chiral)
+  function plot(pts, color, alpha){
+   g.globalAlpha=alpha; g.strokeStyle=color; g.fillStyle=color; g.lineWidth=2;
+   g.beginPath();
+   pts.forEach(function(p,i){ var X=cX+p[0]*scale, Y=cY-p[1]*scale; i?g.lineTo(X,Y):g.moveTo(X,Y); });
+   g.closePath(); g.stroke(); g.globalAlpha=alpha*0.3; g.fill(); g.globalAlpha=1;
+  }
+  plot(shape, cssVar('--ink-2'), 0.6);
+  var th=val('xf-rot')*Math.PI/180, k=val('xf-scale');
+  var flip=document.getElementById('xf-flip'); flip=flip&&flip.checked;
+  var t=shape.map(function(p){
+   var x=p[0], y=p[1];
+   if(flip) y=-y;
+   x*=k; y*=k;
+   return [x*Math.cos(th)-y*Math.sin(th), x*Math.sin(th)+y*Math.cos(th)];
+  });
+  plot(t, cssVar('--cobalt'), 1);
+  var out=document.getElementById('xf-out');
+  if(out) out.textContent='(x,y) ↦ '+(flip?'reflect, then ':'')+'scale '+k.toFixed(2)+', rotate '+val('xf-rot')+'°.  Areas scale by k² = '+(k*k).toFixed(2);
+ }
+ on('xf-rot','input',drawXf); on('xf-scale','input',drawXf); on('xf-flip','change',drawXf);
+
+ function drawAll(){ drawPyth(); drawConic(); drawDot(); drawProj(); drawXf(); }
+ window.addEventListener('resize', drawAll);
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', drawAll);
+ else drawAll();
+})();
+</script>
+
+</body></html>

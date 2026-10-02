@@ -1,0 +1,858 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 18 Numerical Mathematics</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','18')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">18</div><h1>Numerical Mathematics</h1>
+   <p class="lede">How real computers actually compute.</p>
+   <div class="meta"><span class="chip">28 topics</span><span class="chip">needs: chapters 7, 8, 9</span><span class="chip">feeds: chapters 21, 23</span></div>
+  </div>
+
+<section class="topic" id="floating-point-representation">
+ <h2>Floating-point representation</h2>
+ <p>A computer stores a real number the way scientific notation does: a sign, a few significant digits (the mantissa), and an exponent that slides the decimal point. The catch: only finitely many digits fit, so the representable numbers are a finite set of ticks on the real line — dense near zero, sparse far away. Everything in numerical computing follows from that picture.</p>
+ <div class="box def"><span class="label">Definition</span> An IEEE-754 binary floating-point number is $x = (-1)^s \cdot (1.m_1m_2\dots m_p)_2 \cdot 2^{e}$ with sign bit $s$, $p$ mantissa bits, and exponent $e$ in a fixed range. <b>float64</b>: $p=52$, $e \in [-1022, 1023]$; <b>float32</b>: $p=23$, $e\in[-126,127]$; <b>float16</b>: $p=10$, $e\in[-14,15]$; <b>bfloat16</b>: $p=7$, $e\in[-126,127]$. Special values: $\pm 0$, $\pm\infty$, NaN, and subnormals (leading 0 instead of 1) filling the gap near zero. <em>Machine epsilon</em> $\varepsilon = 2^{-p}$ is half the gap between 1 and the next float ($2^{-52}\approx 2.2\times10^{-16}$ for float64).</div>
+ <div class="box ex"><span class="label">Worked example</span> Represent $0.1$ in binary: $0.1 = (0.0001100110011\overline{0011})_2$ — infinitely repeating, so no binary float stores it exactly. float64 rounds it to $0.1000000000000000055511151231257827\ldots$, which is why <code>0.1 + 0.2 == 0.3</code> is false: the stored $0.1+0.2$ rounds to $0.30000000000000004$, but the stored $0.3$ rounds to $0.29999999999999998\ldots$ — different floats.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the mantissa bits and watch the representable numbers tick along the number line: gaps double at every power of 2.</p>
+  <canvas id="cv-fp"></canvas>
+  <div class="ctl">
+   <label>mantissa bits p <input type="range" id="fp-p" min="1" max="6" step="1" value="3"></label>
+   <label>window max <input type="range" id="fp-max" min="4" max="16" step="1" value="8"></label>
+  </div>
+  <div class="out" id="fp-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Never compare floats with <code>==</code>; use a tolerance mixing absolute and relative parts: <code>abs(a-b) &lt;= atol + rtol*abs(b)</code>. Purely relative tolerance fails near zero; purely absolute fails for large magnitudes.</div>
+ <div class="box link"><span class="label">Where this goes</span> bfloat16's wide exponent / short mantissa trade-off is exactly why it is the default for training LLMs — see mixed precision below and Ch 23.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the gap between consecutive float64 numbers just above 1? Just above $2^{20}$? <details class="sol"><summary>Solution</summary><div>Above 1: $2^{-52}\approx 2.22\times10^{-16}$. Above $2^{20}$: $2^{20-52} = 2^{-32}\approx 2.33\times10^{-10}$ — the gap scales with magnitude.</div></details></li>
+  <li><span class="lvl m">MED</span> What is the largest integer $n$ such that all integers $0..n$ are exactly representable in float32? In float64? <details class="sol"><summary>Solution</summary><div>Integers are exact until the gap exceeds 1, i.e. up to $2^{p+1}$: float32: $2^{24} = 16{,}777{,}216$; float64: $2^{53} \approx 9.0\times10^{15}$. Above that, adding 1 can be a no-op: in float32, $2^{24} + 1$ rounds back to $2^{24}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> bfloat16 and float16 both use 16 bits. Compute each format's machine epsilon and largest finite value, and say which failure mode each risks in deep learning. <details class="sol"><summary>Solution</summary><div>float16: $\varepsilon = 2^{-10} \approx 9.8\times10^{-4}$; max $= (2-2^{-10})\cdot 2^{15} = 65504$. bfloat16: $\varepsilon = 2^{-7} \approx 7.8\times10^{-3}$; max $\approx 3.4\times10^{38}$ (same exponent range as float32). float16 risks overflow/underflow (loss scaling needed: gradients above 65504 become inf); bfloat16 risks precision loss (only ~2-3 decimal digits) but almost never overflows — the trade Google made for TPUs.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="floating-point-error">
+ <h2>Floating-point error</h2>
+ <p>Every arithmetic operation on floats rounds its true result to the nearest representable number. One rounding is tiny — a relative error of at most $\varepsilon$ — but errors accumulate, cancel catastrophically, or get amplified by later steps. The discipline is to track relative error through a computation.</p>
+ <div class="box def"><span class="label">Definition</span> The standard model of floating-point arithmetic: for each basic operation $\circ \in \{+,-,\times,\div\}$, the computed result satisfies $\mathrm{fl}(x\circ y) = (x\circ y)(1+\delta)$ with $|\delta| \le \varepsilon$ (unit roundoff, $2^{-53}$ for float64 round-to-nearest). The <em>relative error</em> of $\hat x$ approximating $x\ne0$ is $|\hat x - x|/|x|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Catastrophic cancellation: compute $f(x) = \sqrt{x+1}-\sqrt{x}$ at $x = 10^{12}$ in float64. $\sqrt{10^{12}+1} \approx 10^6 + 5\times10^{-7}$; both square roots are $\approx 10^6$ and agree to 12 digits, so their difference keeps only ~4 significant digits. The rewrite $f(x) = \frac{1}{\sqrt{x+1}+\sqrt{x}}$ computes the same value with full precision: $\approx 5.0\times10^{-7}$ with ~16 good digits. Same math, wildly different arithmetic.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Subtracting nearly equal numbers does not <em>create</em> error — it <em>exposes</em> error already present in the operands by stripping away the agreeing leading digits. The subtraction itself is exact (Sterbenz: if $y/2 \le x \le 2y$, $x - y$ is exactly representable). Blame the upstream roundings.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In float arithmetic with $\varepsilon = 10^{-16}$, roughly what relative error can $\mathrm{fl}(a+b)$ have? What absolute error if $a+b \approx 10^8$? <details class="sol"><summary>Solution</summary><div>Relative: up to $\sim 10^{-16}$. Absolute: $10^8 \times 10^{-16} = 10^{-8}$.</div></details></li>
+  <li><span class="lvl m">MED</span> The quadratic formula root $x = \frac{-b + \sqrt{b^2-4ac}}{2a}$ loses precision when $b > 0$ and $|4ac| \ll b^2$. Why, and what is the fix? <details class="sol"><summary>Solution</summary><div>$\sqrt{b^2-4ac}\approx |b|$, so the numerator subtracts nearly equal quantities. Fix: compute the well-conditioned root first, $x_1 = \frac{-b-\mathrm{sign}(b)\sqrt{b^2-4ac}}{2a}$ (an addition of like signs), then get the other from Vieta: $x_2 = \frac{c}{a x_1}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Summing $n$ floats left-to-right gives worst-case relative error $\approx n\varepsilon$ (times a condition factor). Kahan compensated summation gets $O(\varepsilon)$ independent of $n$. Explain its trick: <code>y = x - c; t = s + y; c = (t - s) - y; s = t</code>. <details class="sol"><summary>Solution</summary><div>After $t = s + y$, the quantity $(t - s)$ recovers the part of $y$ that actually made it into the sum (exactly, by Sterbenz-type arguments when magnitudes are comparable); subtracting $y$ yields the negative of the lost low-order bits. Storing that in $c$ and subtracting it from the next addend re-injects the lost tail each step. Errors no longer accumulate linearly; the computed sum is accurate to $O(\varepsilon)$ plus a tiny $O(n\varepsilon^2)$ term.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rounding-error">
+ <h2>Rounding error</h2>
+ <p>Rounding error is the error from squeezing a true value onto the float grid. IEEE default is round-to-nearest-even: pick the closest float, and on an exact tie pick the one with even last bit (so ties don't drift upward). Each rounding is bounded and unbiased-ish; the game is how roundings compound.</p>
+ <div class="box def"><span class="label">Definition</span> Round-to-nearest gives $|\mathrm{fl}(x) - x| \le \tfrac12 \mathrm{ulp}(x)$, i.e. relative error $\le u = \tfrac12 \cdot 2^{-p} = \varepsilon/2$ where ulp is the "unit in the last place" (the local grid spacing). Accumulation: computing $\prod_{i=1}^n x_i$ by repeated multiplication yields $\hat P = P\prod (1+\delta_i)$, so relative error $\lesssim n u$ for $nu \ll 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> With a 3-decimal-digit toy format, round $2.3456$: nearest is $2.35$ (error $0.0044$, relative $\approx 0.19\%$, within half of the last-digit unit $0.005/2.35$). Now compute $(2.35)^2 = 5.5225 \to 5.52$: two roundings so far. True $(2.3456)^2 = 5.5018\ldots$ — the computed $5.52$ carries both the input rounding (amplified by squaring: doubles the relative error) and the output rounding.</div>
+ <div class="box think"><span class="label">Think first</span> You add $10^7$ copies of $0.1$ in float32 ($u \approx 6\times10^{-8}$). Roughly how far from $10^6$ can the naive left-to-right sum be? <details class="sol"><summary>Reveal</summary><div>Relative error can reach $\sim n u \approx 10^7 \times 6\times10^{-8} = 0.6$, i.e. tens of percent — and in practice the sum stalls: once the running total is large, each new $0.1$ is below half an ulp and rounds to nothing. Actual experiment: the float32 sum plateaus near $1.09\times10^6$'s wrong-neighborhood (classic result $\approx 1{,}087{,}937$ in some orders) — pairwise or Kahan summation fixes it.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Round to 4 significant digits with round-to-nearest-even: $3.14159$, $2.71828$, $1.0005$ (tie). <details class="sol"><summary>Solution</summary><div>$3.142$; $2.718$; the tie $1.0005$ goes to the even last digit: $1.000$ (not $1.001$).</div></details></li>
+  <li><span class="lvl m">MED</span> Why round-to-nearest-even rather than round-half-up? <details class="sol"><summary>Solution</summary><div>Half-up rounds every tie in the same direction, injecting a systematic upward bias that accumulates over many operations (e.g. financial totals, long simulations). Ties-to-even alternates direction statistically, canceling the bias to first order.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for $nu &lt; 0.1$, $\prod_{i=1}^n (1+\delta_i)$ with $|\delta_i|\le u$ satisfies $|\prod(1+\delta_i) - 1| \le 1.06\, nu$ (the "$\gamma_n$" bound). <details class="sol"><summary>Solution</summary><div>$\left|\prod(1+\delta_i)-1\right| \le (1+u)^n - 1 = e^{n\ln(1+u)}-1 \le e^{nu}-1$. For $x = nu \le 0.1$: $e^x - 1 \le x\frac{e^{0.1}-1}{0.1} \approx 1.0517x \le 1.06\,nu$ (using convexity of $e^x-1$: the chord from 0 to 0.1 lies above). Hence relative error grows at most (essentially) linearly in the number of roundings.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="truncation-error">
+ <h2>Truncation error</h2>
+ <p>Truncation (discretization) error comes from the <em>algorithm</em>, not the arithmetic: you replaced an infinite process — a limit, a series, an integral — by a finite one. A finite difference instead of a derivative, a Riemann sum instead of an integral, ten Taylor terms instead of all of them. It exists even with exact real arithmetic.</p>
+ <div class="box def"><span class="label">Definition</span> If a method with step $h$ produces $A(h)$ approximating the true $A$, the truncation error is $A(h) - A$; the method has <em>order $p$</em> if $A(h) - A = O(h^p)$ as $h\to0$. Taylor's theorem is the universal source: $f(x+h) = f(x) + hf'(x) + \tfrac{h^2}{2}f''(x) + \dots + \tfrac{h^k}{k!}f^{(k)}(\xi)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Forward difference $D_h = \frac{f(x+h)-f(x)}{h}$. Taylor: $f(x+h) = f(x) + hf'(x) + \frac{h^2}{2}f''(\xi)$, so $D_h = f'(x) + \frac h2 f''(\xi)$: truncation error $\approx \frac h2 f''(x)$, order 1. For $f = e^x$ at $x=0$, $h = 0.1$: $D_h = \frac{e^{0.1}-1}{0.1} = 1.05171$, error $0.0517 \approx \frac{0.1}{2}\cdot 1$. ✓ Halving $h$ halves the error.</div>
+ <div class="box link"><span class="label">Where this goes</span> Truncation vs rounding is THE trade-off of numerical differentiation (below): shrinking $h$ kills truncation error but feeds cancellation. Euler vs Runge-Kutta in Ch 10 is order-1 vs order-4 truncation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Approximating $e = \sum_{k\ge0} 1/k!$ by the first 5 terms (through $1/4!$): compute the truncation error. <details class="sol"><summary>Solution</summary><div>$S_5 = 1+1+\tfrac12+\tfrac16+\tfrac1{24} = 2.708\overline{3}$; $e = 2.718281\ldots$; error $\approx 0.00995$ — about the next term $1/5! = 0.008\overline{3}$ (plus tail).</div></details></li>
+  <li><span class="lvl m">MED</span> Show the central difference $\frac{f(x+h)-f(x-h)}{2h}$ has truncation error $\frac{h^2}{6}f'''(x) + O(h^4)$ — order 2. <details class="sol"><summary>Solution</summary><div>Taylor both ways: $f(x\pm h) = f \pm hf' + \frac{h^2}2 f'' \pm \frac{h^3}6 f''' + O(h^4)$. Subtracting kills the even terms: $f(x+h)-f(x-h) = 2hf' + \frac{h^3}{3}f''' + O(h^5)$. Divide by $2h$: $f' + \frac{h^2}{6}f''' + O(h^4)$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> A method has error $E(h) = c h^p$ with unknown $c, p$. You measure $E(0.1) = 4\times10^{-3}$ and $E(0.05) = 1\times10^{-3}$. Estimate $p$, and the $h$ needed for $E = 10^{-6}$. <details class="sol"><summary>Solution</summary><div>$E(h)/E(h/2) = 2^p = 4 \Rightarrow p = 2$. Then $c = E(0.1)/0.01 = 0.4$. Need $0.4 h^2 = 10^{-6} \Rightarrow h = \sqrt{2.5\times10^{-6}} \approx 1.58\times10^{-3}$. (This halving-comparison is Richardson's technique for estimating order empirically.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="error-propagation">
+ <h2>Error propagation</h2>
+ <p>Errors flow through functions like signals through amplifiers: a function with a big derivative amplifies input error, one with a small derivative damps it. First-order error propagation is nothing but the linearization of Ch 9 applied to uncertainty.</p>
+ <div class="box def"><span class="label">Definition</span> If $\hat x = x + \Delta x$ and $y = f(x)$, then to first order $\Delta y \approx f'(x)\,\Delta x$; the relative errors relate by $\frac{\Delta y}{y} \approx \underbrace{\frac{x f'(x)}{f(x)}}_{\text{condition number } \kappa_f(x)} \cdot \frac{\Delta x}{x}$. For several inputs, $\Delta y \approx \sum_i \frac{\partial f}{\partial x_i}\Delta x_i$; for independent random errors, variances add: $\sigma_y^2 \approx \sum_i \left(\frac{\partial f}{\partial x_i}\right)^2 \sigma_{x_i}^2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = x_1 x_2$ with 1% relative error in each input. $\frac{\Delta y}{y} = \frac{\Delta x_1}{x_1} + \frac{\Delta x_2}{x_2}$ (to first order): worst case 2%. But $y = x_1 - x_2$ with $x_1 = 1.00$, $x_2 = 0.99$, each known to $\pm 0.01$ (1%): $\Delta y = \pm0.02$ on $y = 0.01$ — a <b>200%</b> relative error. Subtraction of close values is an error amplifier with gain $\frac{|x_1|+|x_2|}{|x_1-x_2|}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Adding relative errors is for products/quotients; adding absolute errors is for sums/differences. Mixing them up is the standard lab-course blunder. And first-order propagation lies when $f$ is strongly curved over the error interval — check $|f''|\Delta x^2$ against $|f'|\Delta x$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $y = x^3$, with $x$ known to 2% relative error. Relative error in $y$? <details class="sol"><summary>Solution</summary><div>$\kappa = \frac{x\cdot 3x^2}{x^3} = 3$: about 6%.</div></details></li>
+  <li><span class="lvl m">MED</span> $z = \frac{a b^2}{\sqrt c}$ with independent relative standard errors 1%, 2%, 4%. Find the relative standard error of $z$ (variance rule). <details class="sol"><summary>Solution</summary><div>Powers scale relative errors: contributions $1\%, 2\times2\% = 4\%, \tfrac12\times4\% = 2\%$. Independent ⟹ add in quadrature: $\sqrt{1 + 16 + 4}\% = \sqrt{21}\% \approx 4.6\%$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f(x) = \ln x$ near $x = 1$: compute $\kappa_f(x)$ and explain the blow-up. Then explain why the function <code>log1p(t)</code> $= \ln(1+t)$ exists in every numerical library. <details class="sol"><summary>Solution</summary><div>$\kappa = \frac{x \cdot (1/x)}{\ln x} = \frac{1}{\ln x} \to \infty$ as $x\to1$: near 1, tiny relative input error swamps the tiny output $\ln x$. If you compute $\ln(1+t)$ for small $t$ by first forming $1+t$ (which rounds away digits of $t$: for $t=10^{-12}$, $1+t$ keeps only 4 digits of $t$ in float64) and then taking log, you inherit that damage. <code>log1p</code> takes $t$ directly and evaluates a series/rational approximation in $t$, giving full relative accuracy. Same story for <code>expm1</code>.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditioning">
+ <h2>Conditioning</h2>
+ <p>Conditioning is a property of the <em>problem</em>: how much does the exact answer move when the input wiggles? An ill-conditioned problem amplifies input uncertainty no matter how the answer is computed. Distinguish this fiercely from stability, which is a property of the <em>algorithm</em>.</p>
+ <div class="box def"><span class="label">Definition</span> The (relative) condition number of problem $x \mapsto f(x)$ is $\kappa = \lim_{\delta\to0}\sup_{\|\Delta x\|\le\delta\|x\|} \frac{\|f(x+\Delta x)-f(x)\|/\|f(x)\|}{\|\Delta x\|/\|x\|}$. For solving $Ax = b$: $\kappa(A) = \|A\|\,\|A^{-1}\|$; in the 2-norm, $\kappa_2(A) = \sigma_{\max}/\sigma_{\min}$ (ratio of singular values, Ch 8). Rule of thumb: with data accurate to $10^{-16}$ and $\kappa = 10^k$, expect no more than $\sim16-k$ correct digits in the answer.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 & 1\\ 1 & 1.0001\end{pmatrix}$, $b = (2,\ 2.0001)^\top$: solution $x = (1,1)^\top$. Perturb $b$ to $(2,\ 2.0002)^\top$ — a relative change of $\sim 3.5\times10^{-5}$: new solution $x = (0, 2)^\top$, a relative change of order 1. Amplification $\sim 3\times10^4 \approx \kappa_2(A) \approx 4\times10^4$. The rows are nearly parallel lines; their intersection slides wildly.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the condition number: watch the unit circle map to an ellipse under $A$, and two near-parallel constraint lines whose intersection (the solution) becomes hypersensitive.</p>
+  <canvas id="cv-cond"></canvas>
+  <div class="ctl">
+   <label>log₁₀ κ <input type="range" id="cd-k" min="0" max="4" step="0.1" value="1"></label>
+   <label>perturb b <input type="range" id="cd-p" min="-1" max="1" step="0.05" value="0"></label>
+  </div>
+  <div class="out" id="cd-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> $\kappa$ of the Hessian controls gradient descent's speed (Ch 15's conditioning topic); preconditioning and normalization layers (Ch 21) exist to shrink effective condition numbers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $A = \mathrm{diag}(100, 1)$. Compute $\kappa_2(A)$. <details class="sol"><summary>Solution</summary><div>$\sigma_{\max}=100$, $\sigma_{\min}=1$: $\kappa_2 = 100$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is $\kappa(A) \ge 1$ always, and what does $\kappa = 1$ mean geometrically? Which matrices achieve it? <details class="sol"><summary>Solution</summary><div>$1 = \|I\| = \|AA^{-1}\| \le \|A\|\|A^{-1}\| = \kappa$. $\kappa_2 = 1$ means the map stretches all directions equally — spheres to spheres: exactly the (nonzero) scalar multiples of orthogonal matrices. This is why orthogonal transforms (QR, rotations) are numerically beloved: they amplify nothing.</div></details></li>
+  <li><span class="lvl h">HARD</span> The Hilbert matrix $H_{ij} = 1/(i+j-1)$ has $\kappa_2(H_5) \approx 4.8\times10^5$. Solving $H_5 x = b$ in float64, how many digits of $x$ can you trust? Would computing in float32 and a "better algorithm" help? <details class="sol"><summary>Solution</summary><div>$16 - \log_{10}(4.8\times10^5) \approx 16 - 5.7 \approx 10$ digits at best. float32 (7 digits) leaves $\sim1$ digit. No algorithm helps: conditioning bounds what ANY algorithm can do given rounded inputs — the problem itself is the amplifier. The only fixes change the problem: more input precision, or reformulation (e.g. use an orthogonal polynomial basis instead of the monomials that generate Hilbert matrices in least squares).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A problem has κ = 10⁸. You solve it with a perfectly stable algorithm in float64 (u ≈ 10⁻¹⁶). What accuracy should you expect?</div><button class="opt">~16 digits — stability guarantees full precision</button><button class="opt">~8 digits — conditioning caps accuracy regardless of algorithm</button><button class="opt">~0 digits — 10⁸ is hopeless</button><div class="why" hidden>A stable algorithm returns the exact answer to a nearby problem (backward error ~u); the condition number then amplifies that ~10⁻¹⁶ input-level error by 10⁸, leaving ~10⁻⁸ relative error: about 8 digits. Stability delivers everything conditioning permits — no more.</div></div>
+</section>
+
+<section class="topic" id="numerical-stability">
+ <h2>Numerical stability</h2>
+ <p>Stability is the algorithm's side of the bargain: a stable algorithm does not add drama of its own. The gold standard is backward stability — the computed answer is the exact answer to a slightly perturbed question. Then the total error is neatly split: error ≈ (condition number of problem) × (backward error of algorithm).</p>
+ <div class="box def"><span class="label">Definition</span> An algorithm for $f$ is <em>backward stable</em> if for every input $x$ it returns $\hat y = f(\tilde x)$ for some $\tilde x$ with $\frac{\|\tilde x - x\|}{\|x\|} = O(u)$. Consequence (forward error bound): $\frac{\|\hat y - f(x)\|}{\|f(x)\|} \lesssim \kappa_f(x)\cdot O(u)$. Weaker notions: <em>forward stable</em> (error comparable to what a backward stable method would make), <em>mixed stability</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two ways to compute the variance of $x = (10^8+1,\ 10^8+2,\ 10^8+3)$ (true variance 1, mean $10^8+2$). Textbook one-pass formula $\frac1n\sum x_i^2 - \bar x^2$: both terms $\approx 10^{16}$, agreeing in their first ~16 digits — float64 cancellation leaves garbage (often 0.0 or negative!). Two-pass formula $\frac1n\sum(x_i-\bar x)^2$: subtract first ($-1, 0, 1$ exactly, by Sterbenz), then square: exactly $2/3\cdot\ldots$ — precisely $\frac{1+0+1}{3}$ if using population variance $\frac1n$, $=0.666\ldots$, or 1 with the $\frac1{n-1}$ convention. Identical math; only one is stable.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Unstable" does not mean "always wrong": the one-pass variance formula is fine when $\bar x$ is small relative to the spread. Instability means there EXIST reasonable inputs where the algorithm needlessly destroys accuracy. Test numerics at the edges, not the center.</div>
+ <div class="box link"><span class="label">Where this goes</span> Softmax and log-sum-exp (next) are the deep-learning face of stability; attention implementations (Ch 21/23) are one long exercise in keeping exponentials tame.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which is stable for computing $e^{-x}$ at large $x$: (a) $1/e^x$, (b) the alternating series $\sum (-x)^k/k!$? <details class="sol"><summary>Solution</summary><div>(a). The series alternates with huge terms (for $x=20$, terms reach $\sim 4\times10^7$ while the answer is $2\times10^{-9}$): cancellation annihilates all correct digits. $1/e^x$ involves no cancellation (until $e^x$ overflows; then compute in log space).</div></details></li>
+  <li><span class="lvl m">MED</span> Solving $Ax=b$ by explicitly forming $A^{-1}$ then $x = A^{-1}b$ is discouraged versus LU-based solve. Give two reasons. <details class="sol"><summary>Solution</summary><div>(1) Cost: inversion is $\sim 2n^3$ flops vs $\sim \frac23 n^3$ for LU solve — 3× more. (2) Stability/accuracy: LU with partial pivoting is backward stable in practice for the solve; forming $A^{-1}$ compounds rounding across $n$ solves and the product $A^{-1}b$ loses the residual-smallness guarantee. (Also inverses of sparse matrices are dense.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Gaussian elimination WITHOUT pivoting on $A = \begin{pmatrix} 10^{-20} & 1\\ 1 & 1\end{pmatrix}$, $b = (1, 2)^\top$, in float64: trace what happens and compare with partial pivoting. <details class="sol"><summary>Solution</summary><div>Multiplier $m = 1/10^{-20} = 10^{20}$. Row 2 becomes $(0,\ 1 - 10^{20})$; in float64, $1 - 10^{20}$ rounds to $-10^{20}$; RHS: $2 - 10^{20} \to -10^{20}$. Back-substitute: $x_2 = 1$; then $10^{-20}x_1 + 1 = 1 \Rightarrow x_1 = 0$. True solution $\approx (1, 1)$: $x_1$ is 100% wrong. With partial pivoting (swap rows): multiplier $10^{-20}$, no blow-up: $x \approx (1,1)$ to full precision. Tiny pivots manufacture huge multipliers that swamp the data — pivoting is a stability device, not a formality.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="log-sum-exp-trick">
+ <h2>Log-sum-exp trick</h2>
+ <p>Probabilities multiply into underflow ($10^{-5000}$ is a perfectly ordinary likelihood) and exponentials overflow at a mere $x \approx 709$ in float64. The cure: live in log space, and whenever you must sum probabilities, use log-sum-exp with the max factored out. It is the single most-used stability trick in machine learning.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathrm{LSE}(x_1..x_n) = \log\sum_i e^{x_i}$. Stable evaluation: with $M = \max_i x_i$, $$\mathrm{LSE}(x) = M + \log\sum_i e^{x_i - M}.$$ Every exponent $x_i - M \le 0$: no overflow, and at least one term is $e^0 = 1$: the log's argument lies in $[1, n]$ — perfectly conditioned. Softmax follows: $\mathrm{softmax}(x)_i = e^{x_i - \mathrm{LSE}(x)} = \frac{e^{x_i - M}}{\sum_j e^{x_j - M}}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Logits $x = (1000, 1001, 1002)$. Naive: $e^{1000}$ overflows to inf; softmax = inf/inf = NaN. Stable: $M = 1002$, shifted $(-2,-1,0)$, exponentials $(0.1353, 0.3679, 1)$, sum $= 1.5032$, $\log = 0.4076$; $\mathrm{LSE} = 1002.4076$. Softmax $= (0.0900, 0.2447, 0.6652)$ — the same answer $(e^{-2},e^{-1},1)/1.5032$ that logits $(0,1,2)$ give: softmax is shift-invariant, and the trick just exploits that.</div>
+ <div class="box think"><span class="label">Think first</span> Cross-entropy loss needs $\log(\mathrm{softmax}(x)_y)$. Why is computing softmax first and then taking log a bad idea, and what is the right formula? <details class="sol"><summary>Reveal</summary><div>For a badly-losing class, softmax$_y$ underflows to exactly 0 (e.g. $e^{-800}$), then $\log 0 = -\infty$ and the gradient NaNs. Fuse them: $\log\mathrm{softmax}(x)_y = x_y - \mathrm{LSE}(x)$, computed with the stable LSE — always finite. This is why frameworks ship <code>log_softmax</code> and <code>cross_entropy</code>-from-logits and warn against feeding probabilities.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\mathrm{LSE}(-1200, -1201)$ stably. <details class="sol"><summary>Solution</summary><div>$M = -1200$: $-1200 + \log(1 + e^{-1}) = -1200 + \log(1.3679) = -1200 + 0.3133 = -1199.6867$. Naive evaluation: both $e^{-1200}$ underflow to 0, $\log 0 = -\infty$: wrong.</div></details></li>
+  <li><span class="lvl m">MED</span> An HMM's likelihood is a product of 10,000 per-step probabilities averaging 0.1. Show why you must work in log space, and give the log-likelihood. <details class="sol"><summary>Solution</summary><div>Product $\approx 10^{-10000}$, far below float64's smallest subnormal ($\approx 5\times10^{-324}$): underflows to 0 within ~320 factors. Log space: $\sum \log p_t \approx 10^4\ln 0.1 \approx -23{,}026$ — a perfectly comfortable float.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the bounds $M \le \mathrm{LSE}(x) \le M + \log n$ and $\mathrm{LSE}(x) \ge \frac{1}{n}\sum_i x_i$… prove the first pair, and show LSE is a smooth approximation to max with error $\to 0$ as logits spread. <details class="sol"><summary>Solution</summary><div>Lower: $\sum e^{x_i} \ge e^M$, so LSE $\ge M$. Upper: $\sum e^{x_i} \le n e^M$, so LSE $\le M + \log n$. Thus $|\mathrm{LSE}(x) - \max_i x_i| \le \log n$ always; when the max leads the runner-up by gap $g$, $\mathrm{LSE} = M + \log(1 + \sum_{i\ne\arg\max} e^{x_i - M}) \le M + \log(1 + (n{-}1)e^{-g}) \to M$. LSE (scaled: $\tau\,\mathrm{LSE}(x/\tau)$) is the softmax temperature story of Ch 23.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mixed-precision">
+ <h2>Mixed precision</h2>
+ <p>Modern accelerators do half-precision matrix multiplies several times faster than float32, at half the memory. Mixed-precision training spends the cheap format where errors wash out (the giant matmuls) and keeps the expensive format where errors accumulate (accumulations, weight updates, normalizations). Getting this split right is a pure numerical-analysis exercise, done at datacenter scale.</p>
+ <div class="box def"><span class="label">Definition</span> A standard mixed-precision recipe: store activations/weights for compute in fp16/bf16; accumulate matmul partial sums in fp32 (tensor cores do this natively); keep a <em>master copy</em> of weights in fp32 for the optimizer update; compute reductions (norms, softmax sums, losses) in fp32. With fp16 (narrow exponent), add <em>loss scaling</em>: multiply the loss by $s$ (e.g. $2^{14}$) so gradients shift up into representable range, then divide by $s$ before the update; skip steps whose gradients contain inf/NaN and lower $s$ ("dynamic loss scaling").</div>
+ <div class="box ex"><span class="label">Worked example</span> Why the fp32 master weights: a weight $w = 1.0$ receives update $\eta g = 10^{-4}$ each step… wait, in bf16 the gap at 1.0 is $2^{-7}\cdot\ldots$ precisely $2^{-7} \approx 0.0078$: adding $10^{-4}$ rounds to no change — the weight never moves, learning silently stops. In fp32 the gap at 1.0 is $\approx 1.2\times10^{-7}$, so $10^{-4}$ registers fine. Update in fp32, then round the result to bf16 for the next forward pass.</div>
+ <div class="box pit"><span class="label">Pitfall</span> bf16 and fp16 fail differently: fp16 overflows (max 65504 — attention logits and gradient spikes exceed it), bf16 loses precision (3 decimal digits — long sums drift). So bf16 largely removes the need for loss scaling but demands fp32 accumulation even more. Variance-type statistics in normalization layers are the classic place half precision quietly corrupts training.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 23's training-at-scale and quantization topics push this further: int8/fp8 inference, quantization-aware schemes — all built on this chapter's error model.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A 7B-parameter model: weight memory in fp32 vs bf16? <details class="sol"><summary>Solution</summary><div>fp32: $7\times10^9\times4$ B = 28 GB; bf16: 14 GB. (Training also stores gradients + optimizer states; Adam in mixed precision is ~16 bytes/param ≈ 112 GB before activations.)</div></details></li>
+  <li><span class="lvl m">MED</span> Gradients in a run have typical magnitude $10^{-6}$. In fp16, what fraction of the representable range is wasted, and what loss scale fixes it? fp16's smallest normal is $\approx 6.1\times10^{-5}$. <details class="sol"><summary>Solution</summary><div>$10^{-6}$ is below fp16's normal range — such gradients land in subnormals (few significant bits) or flush to zero: massive information loss. Scale by $s = 2^{10} = 1024$: gradients become $\sim10^{-3}$, comfortably normal; unscale in fp32 before the update. Dynamic scaling probes for the largest $s$ that avoids inf.</div></details></li>
+  <li><span class="lvl h">HARD</span> Summing $n = 10^6$ values of similar magnitude in bf16 ($u \approx 2^{-8}$ per-op relative error, worst case) versus fp32 accumulation: bound the worst-case relative error of each and conclude. <details class="sol"><summary>Solution</summary><div>Sequential summation worst case $\sim n u$: bf16: $10^6 \times 2^{-8} \approx 3900$ — i.e. potentially 100%+ error: meaningless. fp32: $10^6\times 2^{-24} \approx 0.06$ — a few percent worst case, and $O(\sqrt n u)\sim 10^{-4}$ under random rounding; pairwise/tree summation (what GPUs actually do) improves worst case to $u\log_2 n \approx 1.2\times10^{-6}$. Hence the rule: multiply in half precision, ACCUMULATE in fp32.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="numerical-differentiation">
+ <h2>Numerical differentiation</h2>
+ <p>Approximate a derivative by a difference quotient and you face a beautiful tug-of-war: truncation error shrinks with $h$, but cancellation error grows as $1/h$ — the two curves cross at an optimal $h$, and pushing beyond it makes things worse. This U-shaped error curve is the signature plot of numerical analysis.</p>
+ <div class="box def"><span class="label">Definition</span> Forward difference: $\frac{f(x+h)-f(x)}{h} = f'(x) + O(h)$. Central: $\frac{f(x+h)-f(x-h)}{2h} = f'(x) + O(h^2)$. With rounding error $\sim u|f(x)|$ in each evaluation, total error for central differences $\approx \frac{h^2}{6}|f'''| + \frac{u|f|}{h}$, minimized at $h^* \sim (3u|f|/|f'''|)^{1/3} \sim u^{1/3}$ — about $6\times10^{-6}$ in float64 — giving error $\sim u^{2/3} \approx 10^{-11}$, never full precision. (Forward: $h^*\sim u^{1/2}\approx10^{-8}$, error $\sim u^{1/2}\approx10^{-8}$.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = e^x$ at $x = 0$ (true $f' = 1$), central differences in float64: $h = 10^{-1}$: error $\approx 1.7\times10^{-3}$; $h = 10^{-5}$: error $\approx 10^{-11}$ (near optimum); $h = 10^{-13}$: $e^{\pm h}$ agree to 13 digits, difference has ~3 good digits: error $\approx 10^{-4}$. Smaller $h$ made it 10 million times worse.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $\log_{10} h$ and watch truncation and rounding error trade places on the log-log error curve for $f'(x)$ of $e^x$ at $x=0$.</p>
+  <canvas id="cv-fd"></canvas>
+  <div class="ctl">
+   <label>log₁₀ h <input type="range" id="fd-h" min="-15" max="-1" step="0.25" value="-5"></label>
+   <label>scheme <select id="fd-s"><option value="f">forward O(h)</option><option value="c" selected>central O(h²)</option></select></label>
+  </div>
+  <div class="out" id="fd-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> This ceiling is why deep learning does NOT use finite differences: automatic differentiation (end of this chapter) is exact to rounding. Finite differences survive as gradient checkers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Estimate $f'(2)$ for $f(x)=x^2$ with forward difference, $h = 0.1$. Error? <details class="sol"><summary>Solution</summary><div>$\frac{(2.1)^2 - 4}{0.1} = \frac{0.41}{0.1} = 4.1$; true 4; error $0.1 = \frac h2 f'' = \frac{0.1}{2}\cdot2$. ✓ exact match since $f'''=0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Same $f, x$, central difference with $h = 0.1$. Explain the result. <details class="sol"><summary>Solution</summary><div>$\frac{(2.1)^2-(1.9)^2}{0.2} = \frac{4.41-3.61}{0.2} = 4$ exactly: central differencing is exact on quadratics (its error term carries $f'''$, which vanishes).</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the optimal $h$ for the forward difference: total error $E(h) = \frac h2 |f''| + \frac{2u|f|}{h}$. <details class="sol"><summary>Solution</summary><div>$E'(h) = \frac{|f''|}2 - \frac{2u|f|}{h^2} = 0 \Rightarrow h^* = 2\sqrt{\frac{u|f|}{|f''|}}$, giving $E(h^*) = 2\sqrt{u|f||f''|}$. For $|f|\sim|f''|\sim1$, $h^* \approx 2\sqrt u \approx 3\times10^{-8}$ and $E \approx 2\sqrt u \approx 3\times10^{-8}$: you lose half your digits, unavoidably.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="numerical-integration">
+ <h2>Numerical integration</h2>
+ <p>To integrate numerically, sample the function and weight the samples. The classical ladder — midpoint, trapezoid, Simpson — comes from integrating interpolating polynomials of rising degree; Gaussian quadrature chooses even the sample points optimally; and in high dimensions all of it collapses and Monte Carlo takes over.</p>
+ <div class="box def"><span class="label">Definition</span> On $[a,b]$ split into $n$ panels of width $h = (b-a)/n$: <b>Trapezoid</b> $T_n = h\left(\frac{f_0}2 + f_1 + \dots + f_{n-1} + \frac{f_n}2\right)$, error $-\frac{(b-a)h^2}{12}f''(\xi) = O(h^2)$. <b>Simpson</b> (even $n$): $S_n = \frac h3(f_0 + 4f_1 + 2f_2 + 4f_3 + \dots + f_n)$, error $O(h^4)$, exact on cubics. <b>Gauss–Legendre</b> with $n$ nodes: exact on polynomials of degree $2n-1$. <b>Monte Carlo</b>: $\frac{b-a}{N}\sum f(X_i)$, $X_i$ uniform: error $O(N^{-1/2})$ in any dimension.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int_0^1 e^x dx = e - 1 = 1.718282$. Trapezoid, $n=2$ ($h=\tfrac12$): $\tfrac12(\tfrac{1}{2} + e^{0.5} + \tfrac{e}{2}) = \tfrac12(0.5 + 1.648721 + 1.359141) = 1.753931$; error $+0.03565$. Simpson, $n=2$: $\frac{1/2}{3}(1 + 4e^{0.5} + e) = \frac16(1 + 6.594885 + 2.718282) = 1.718861$; error $+0.00058$ — 60× better from the same three samples.</div>
+ <div class="box pit"><span class="label">Pitfall</span> High-order rules assume smoothness: on a kinked integrand like $\int_0^1 |x - \tfrac13| dx$, Simpson degrades to $O(h^2)$-ish unless you split the interval at the kink. And the curse of dimensionality: a product grid with $m$ points per axis costs $m^d$ evaluations — in $d = 100$, hopeless; Monte Carlo's $N^{-1/2}$ doesn't care about $d$, which is why Ch 13's estimators run the show in ML.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Approximate $\int_0^2 x^2 dx$ with the trapezoid rule, $n = 2$. <details class="sol"><summary>Solution</summary><div>$h=1$: $1\cdot(\frac{0}{2} + 1 + \frac{4}{2}) = 3$. True: $8/3 \approx 2.667$; error $+1/3$ (matches $-\frac{2\cdot1}{12}\cdot2 = -\frac13$ with sign convention: computed − true $= +\frac13$).</div></details></li>
+  <li><span class="lvl m">MED</span> Simpson on the same integral with $n=2$: result and moral? <details class="sol"><summary>Solution</summary><div>$\frac13(0 + 4\cdot1 + 4) = \frac83$ — exact: Simpson integrates cubics (a fortiori quadratics) exactly.</div></details></li>
+  <li><span class="lvl m">MED</span> Trapezoid error scales as $h^2$. You got error $10^{-3}$ with $n = 50$. What $n$ for error $10^{-7}$, and what does Simpson need from a comparable starting point? <details class="sol"><summary>Solution</summary><div>Need error ÷ $10^4$, so $h$ ÷ $10^2$: $n = 5000$. Simpson ($h^4$): $h$ ÷ $10^{7/4}\approx 56$; starting from error $10^{-3}$ at some $n_0=50$: $n \approx 2800$… more to the point, its exponent means each doubling of $n$ buys 16× — high order pays exponentially in digits per sample (for smooth $f$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the 2-point Gauss–Legendre rule on $[-1,1]$: find nodes $\pm t$ and weights $w$ making $\int_{-1}^1 p = w\,p(-t)+w\,p(t)$ exact for $p = 1, x, x^2, x^3$. <details class="sol"><summary>Solution</summary><div>$p=1$: $2w = 2 \Rightarrow w = 1$. $p=x$: automatic by symmetry. $p=x^2$: $2t^2 = \frac23 \Rightarrow t = 1/\sqrt3$. $p=x^3$: automatic. Rule: $f(-1/\sqrt3)+f(1/\sqrt3)$, exact through cubics with only two evaluations. Check on $x^2$: $\frac13+\frac13 = \frac23$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="root-finding">
+ <h2>Root finding</h2>
+ <p>Root finding — solve $f(x) = 0$ — is the primitive that optimization, equilibrium computation, and implicit equations all reduce to. The methods form a speed/safety spectrum: bisection (slow, bulletproof), fixed-point iteration (simple, conditional), Newton (blazing, temperamental), with hybrids like Brent's method taking the best of each.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>root</em> (zero) of $f$ is $x^*$ with $f(x^*) = 0$; it is <em>simple</em> if $f'(x^*) \ne 0$. Convergence of an iteration $x_{k+1} = \Phi(x_k)$ with errors $e_k = |x_k - x^*|$: <em>linear</em> if $e_{k+1} \le \rho e_k$ ($\rho&lt;1$), <em>quadratic</em> if $e_{k+1} \le C e_k^2$ (digits double), order $q$ if $e_{k+1}\le Ce_k^q$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 - 2$ (root $\sqrt2 \approx 1.41421356$). Compare from the bracket $[1,2]$ / start 1.5: bisection gains 1 bit per step, needs ~50 steps for float64 accuracy; Newton (next sections show the mechanics) reaches full precision in 4 steps. But on $f(x) = \mathrm{sign}(x)\sqrt{|x|}$, Newton oscillates forever while bisection strolls to the root. Speed and robustness are different axes; production solvers (Brent) bracket with bisection and pounce with fast steps when safe.</div>
+ <div class="box link"><span class="label">Where this goes</span> Optimization is root finding on the gradient: Ch 15's Newton method solves $\nabla f = 0$. Implicit layers and deep-equilibrium models solve root problems inside networks.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How do you know $f(x) = x^3 + x - 1$ has a root in $[0,1]$, and exactly one? <details class="sol"><summary>Solution</summary><div>$f(0) = -1 &lt; 0 &lt; 1 = f(1)$: IVT (Ch 7) gives a root. $f'(x) = 3x^2 + 1 &gt; 0$: strictly increasing, so at most one.</div></details></li>
+  <li><span class="lvl m">MED</span> An iteration has errors $10^{-2}, 10^{-4}, 10^{-8}, 10^{-16}$. Another has $10^{-2}, 3\times10^{-3}, 10^{-3}, 3\times10^{-4}$. Classify each. <details class="sol"><summary>Solution</summary><div>First: $e_{k+1} = e_k^2$ — quadratic (digits double: 2, 4, 8, 16). Second: ratio $\approx 0.3$ each step — linear with rate $\rho \approx 0.3$ (steady digits per step).</div></details></li>
+  <li><span class="lvl h">HARD</span> Near a DOUBLE root ($f(x^*) = f'(x^*) = 0$, $f''(x^*)\ne0$), why do root-finding problems become ill-conditioned? Quantify: if $|f|$ can only be evaluated to absolute error $\epsilon$, how accurately can the root be located? <details class="sol"><summary>Solution</summary><div>Near a double root $f(x) \approx \frac{f''}{2}(x - x^*)^2$: the function is flat, so $|f(x)| \le \epsilon$ for all $|x - x^*| \le \sqrt{2\epsilon/|f''|}$ — the root is only locatable to $O(\sqrt\epsilon)$: with $\epsilon = 10^{-16}$, just $10^{-8}$, half the digits. (Simple roots: $|x-x^*| \approx \epsilon/|f'|$, full precision.) Multiplicity also degrades Newton from quadratic to linear (rate $\frac{m-1}{m}$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bisection">
+ <h2>Bisection</h2>
+ <p>Bisection is binary search on a sign change: if $f$ is continuous and changes sign on $[a,b]$, the root cannot escape; halve the interval, keep the half with the sign change, repeat. It gains exactly one binary digit per iteration — slow, but with an ironclad guarantee no other method matches.</p>
+ <div class="box def"><span class="label">Definition</span> Given $f$ continuous with $f(a)f(b) &lt; 0$: set $m = (a+b)/2$; if $f(a)f(m) \le 0$ set $b = m$ else $a = m$. After $k$ steps the bracket has width $(b-a)/2^k$ and always contains a root (IVT). Iterations to tolerance $\tau$: $k = \lceil \log_2\frac{b-a}{\tau}\rceil$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3 + x - 1$ on $[0,1]$. $m=0.5$: $f = -0.375 &lt; 0$ → root in $[0.5, 1]$. $m = 0.75$: $f = 0.171875 &gt; 0$ → $[0.5, 0.75]$. $m = 0.625$: $f = -0.130859$ → $[0.625, 0.75]$. $m = 0.6875$: $f = 0.012451$ → $[0.625, 0.6875]$. Four steps: root pinned to width $1/16$; true root $\approx 0.682328$. ✓ in bracket.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Bisection needs a sign change, so it cannot find roots of even multiplicity ($x^2$ touches zero without crossing) and it can be fooled by discontinuities: $f(x) = 1/x$ on $[-1, 1]$ has $f(-1)f(1) &lt; 0$ and no root — bisection converges confidently to the pole at 0. Continuity is a hypothesis, not a decoration. Also compute $m = a + (b-a)/2$, not $(a+b)/2$, to dodge overflow/rounding at extreme magnitudes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many bisection steps to shrink $[0, 1]$ to width $\le 10^{-6}$? <details class="sol"><summary>Solution</summary><div>$2^{-k} \le 10^{-6} \Rightarrow k \ge 6\log_2 10 \approx 19.9$: 20 steps.</div></details></li>
+  <li><span class="lvl m">MED</span> Run 3 bisection steps for $f(x) = \cos x - x$ on $[0, 1]$ (values: $f(0.5)\approx0.3776$, $f(0.75)\approx-0.0183$, $f(0.625)\approx0.1860$). <details class="sol"><summary>Solution</summary><div>$f(0)=1&gt;0$, $f(1)\approx-0.4597&lt;0$. $m=0.5$: $+$ → $[0.5,1]$. $m=0.75$: $-$ → $[0.5,0.75]$. $m=0.625$: $+$ → $[0.625, 0.75]$. (True root: the "Dottie number" 0.739085.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove bisection's midpoints satisfy $|m_k - x^*| \le \frac{b-a}{2^{k+1}}$, and explain why no bracketing method can do better than one bit per function evaluation in the worst case. <details class="sol"><summary>Solution</summary><div>After $k$ halvings the bracket $[a_k,b_k]\ni x^*$ has width $(b-a)/2^k$; the midpoint is within half of that. Optimality: each evaluation yields one sign — one bit of information; an adversary can always answer signs so as to keep the feasible root-set at least half its size. So worst case, $k$ evaluations can only shrink uncertainty by $2^k$: bisection is information-optimal among sign-query methods. Newton beats it only by using more information per query ($f$'s value AND derivative, plus smoothness).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="newtons-method">
+ <h2>Newton's method</h2>
+ <p>Newton's method rides the tangent line: at your current guess, replace $f$ by its linearization and jump to where THAT hits zero. Near a simple root the linearization is nearly perfect, so the error squares each step — six correct digits become twelve. Far from a root, the tangent can fling you anywhere.</p>
+ <div class="box def"><span class="label">Definition</span> $$x_{k+1} = x_k - \frac{f(x_k)}{f'(x_k)}.$$ If $f$ is $C^2$, $x^*$ is a simple root, and $x_0$ is close enough, convergence is quadratic: $e_{k+1} \approx \frac{|f''(x^*)|}{2|f'(x^*)|}e_k^2$. The <em>secant method</em> replaces $f'(x_k)$ by the finite difference through the last two iterates: order $\varphi \approx 1.618$, one $f$-evaluation per step.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 - 2$, $x_0 = 1.5$: iteration $x_{k+1} = \frac{x_k}{2} + \frac{1}{x_k}$ (Heron's rule). $x_1 = 0.75 + 0.6\overline{6} = 1.41\overline{6}$; $x_2 = 0.7083\overline{3} + 0.7058824 = 1.4142157$; $x_3 = 1.4142135624$ — errors: $8.6\times10^{-2} \to 2.5\times10^{-3} \to 2.1\times10^{-6} \to 1.6\times10^{-12}$. Digits double. ✓</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the starting point and step Newton's tangent-line dance on $f(x) = x^3 - 2x - 2$; some starts converge in 5 steps, others tour the landscape first.</p>
+  <canvas id="cv-newt"></canvas>
+  <div class="ctl">
+   <label>x₀ <input type="range" id="nw-x0" min="-2.5" max="3" step="0.05" value="2.5"></label>
+   <button class="btn" id="nw-step">Step</button>
+   <button class="btn" id="nw-reset">Reset</button>
+  </div>
+  <div class="out" id="nw-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Newton's failure gallery: $f'(x_k) \approx 0$ launches the iterate to infinity; cycles exist ($f(x)=x^3-2x+2$ from $x_0 = 0$: hops $0 \to 1 \to 0 \to \cdots$ forever); multiple roots demote convergence to linear. Production code guards Newton with a bracket (fall back to bisection when the Newton step leaves it) — that is Brent's method and the heart of every serious 1-D solver.</div>
+ <div class="box link"><span class="label">Where this goes</span> In $n$ dimensions the derivative becomes the Jacobian and the update solves $J\,\Delta x = -F(x)$ — a linear system per step (solvers below). On gradients it becomes Ch 15's Newton optimization with the Hessian.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Derive Newton's update for computing $\sqrt a$ via $f(x) = x^2 - a$. <details class="sol"><summary>Solution</summary><div>$x_{k+1} = x_k - \frac{x_k^2 - a}{2x_k} = \frac{x_k}{2} + \frac{a}{2x_k}$: average the guess with $a/$guess.</div></details></li>
+  <li><span class="lvl m">MED</span> Newton for $1/a$ WITHOUT division: use $f(x) = \frac1x - a$. Derive the update and run two steps for $a = 3$, $x_0 = 0.3$. <details class="sol"><summary>Solution</summary><div>$f' = -1/x^2$: $x_{k+1} = x_k + x_k^2(\frac1{x_k} - a) = x_k(2 - a x_k)$ — multiplications only (this is how hardware computes reciprocals). $x_1 = 0.3(2 - 0.9) = 0.33$; $x_2 = 0.33(2 - 0.99) = 0.3333$; errors $3.3\times10^{-2}, 3.3\times10^{-3}\ldots$ wait: $\frac13 - 0.33 = 3.3\times10^{-3}$, then $\frac13 - 0.3333 = 3.3\times10^{-5}$… let's verify: $x_2 = 0.33\times1.01 = 0.3333$; error $3.3\times10^{-5}$: squared each time (relative error exactly squares: $1 - ax_{k+1} = (1-ax_k)^2$). ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the quadratic convergence estimate: for a simple root, $x_{k+1} - x^* = \frac{f''(\xi)}{2f'(x_k)}(x_k - x^*)^2$. <details class="sol"><summary>Solution</summary><div>Taylor with remainder about $x_k$: $0 = f(x^*) = f(x_k) + f'(x_k)(x^* - x_k) + \frac{f''(\xi)}2 (x^* - x_k)^2$. Divide by $f'(x_k)$: $0 = \frac{f(x_k)}{f'(x_k)} + x^* - x_k + \frac{f''(\xi)}{2f'(x_k)}(x^*-x_k)^2$. The first two terms are $x^* - x_{k+1}$ by the update rule, so $x_{k+1} - x^* = \frac{f''(\xi)}{2f'(x_k)}(x_k - x^*)^2$. ∎ Near the root the prefactor is $\approx \frac{f''(x^*)}{2f'(x^*)}$: bounded, hence $e_{k+1} = O(e_k^2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fixed-point-iteration">
+ <h2>Fixed-point iteration</h2>
+ <p>Rewrite $f(x)=0$ as $x = g(x)$ and just iterate: $x_{k+1} = g(x_k)$. Whether this spirals into the fixed point or flees it depends on one number: the slope of $g$ there. $|g'| &lt; 1$ contracts, $|g'| &gt; 1$ repels. The Banach fixed-point theorem turns this into the most reusable convergence tool in analysis.</p>
+ <div class="box thm"><span class="label">Theorem (Banach fixed point)</span> If $g:[a,b]\to[a,b]$ is a contraction — $|g(x)-g(y)| \le L|x-y|$ with $L&lt;1$ — then $g$ has a unique fixed point $x^*$ in $[a,b]$, the iteration $x_{k+1}=g(x_k)$ converges to it from ANY start in $[a,b]$, and $|x_k - x^*| \le \frac{L^k}{1-L}|x_1 - x_0|$. If $g$ is differentiable, $L = \max|g'|$ works, and asymptotically $e_{k+1} \approx |g'(x^*)|\,e_k$: linear with rate $|g'(x^*)|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $x = \cos x$. $g = \cos$: on $[0,1]$, $|g'| = |\sin x| \le \sin 1 \approx 0.841 &lt; 1$: contraction. Iterate from $x_0 = 1$: $1 \to 0.5403 \to 0.8576 \to 0.6543 \to 0.7935 \to 0.7014 \to \cdots \to 0.739085$. Converges, slowly (rate $\sin(0.739) \approx 0.674$: each step multiplies the error by ~0.67, needing ~6 steps per digit). Newton on $\cos x - x$ gets there in 4 steps total.</div>
+ <div class="box think"><span class="label">Think first</span> To solve $x^2 - 2 = 0$ you could iterate $g_1(x) = 2/x$ or $g_2(x) = \frac x2 + \frac 1x$. One fails, one is Newton. Predict which and why. <details class="sol"><summary>Reveal</summary><div>$g_1'(x) = -2/x^2$, at $\sqrt2$: $g_1' = -1$ — borderline, and indeed $g_1$ just flips forever between $x$ and $2/x$ (a 2-cycle). $g_2'(x) = \frac12 - \frac1{x^2}$, at $\sqrt2$: $\frac12-\frac12 = 0$ — slope zero is superlinear convergence: Newton IS fixed-point iteration engineered so that $g'(x^*)=0$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $x_{k+1} = \frac12 x_k + 1$ converge? To what, at what rate? <details class="sol"><summary>Solution</summary><div>$g' = \frac12$: contraction. Fixed point $x = \frac x2 + 1 \Rightarrow x^* = 2$; linear, error halves each step.</div></details></li>
+  <li><span class="lvl m">MED</span> $x = e^{-x}$ has a root near 0.567. Check the contraction condition on $[0.5, 0.69]$ and estimate iterations for $10^{-6}$ accuracy from $x_0 = 0.5$. <details class="sol"><summary>Solution</summary><div>$g = e^{-x}$ maps $[0.5,0.69]$ into $[e^{-0.69}, e^{-0.5}] = [0.502, 0.607] \subset$ interval ✓; $|g'| = e^{-x} \le e^{-0.5} \approx 0.607 = L$. Error $\lesssim L^k \cdot 0.07$; need $0.607^k \le 1.4\times10^{-5}$: $k \ge \frac{\ln(1.4\times10^{-5})}{\ln 0.607} \approx \frac{-11.2}{-0.5} \approx 23$ iterations.</div></details></li>
+  <li><span class="lvl h">HARD</span> <em>Aitken acceleration:</em> for linearly convergent $x_k \approx x^* + c\rho^k$, show $\hat x_k = x_k - \frac{(x_{k+1}-x_k)^2}{x_{k+2} - 2x_{k+1} + x_k}$ recovers $x^*$ exactly in the model, and apply it to $x_0=1, x_1 = 0.5403, x_2 = 0.8576$ from the cosine example. <details class="sol"><summary>Solution</summary><div>With $x_k = x^* + c\rho^k$: $x_{k+1}-x_k = c\rho^k(\rho-1)$ and $x_{k+2}-2x_{k+1}+x_k = c\rho^k(\rho-1)^2$, so the correction is $\frac{c^2\rho^{2k}(\rho-1)^2}{c\rho^k(\rho-1)^2} = c\rho^k$, and $\hat x_k = x^*$. Numbers: $\Delta_0 = -0.4597$, $\Delta^2 = x_2 - 2x_1 + x_0 = 0.8576 - 1.0806 + 1 = 0.7770$; $\hat x_0 = 1 - \frac{0.2113}{0.7770} = 1 - 0.2720 = 0.7280$ — from three crude iterates, already within 0.011 of 0.739085, better than $x_5$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-system-solvers">
+ <h2>Linear system solvers</h2>
+ <p>Solving $Ax = b$ is the inner loop of scientific computing and of second-order optimization. The menu: <em>direct</em> methods factor $A$ once (LU, QR, Cholesky) and solve exactly-up-to-rounding in predictable time; <em>iterative</em> methods (Jacobi, Gauss–Seidel, conjugate gradient) multiply by $A$ repeatedly and converge, winning when $A$ is huge and sparse.</p>
+ <div class="box def"><span class="label">Definition</span> Direct: factor $A$ into triangular/orthogonal pieces, then solve by substitution; cost $O(n^3)$ to factor, $O(n^2)$ per extra right-hand side. Iterative: generate $x_k \to A^{-1}b$ using only matvecs ($O(\text{nnz})$ each). A <em>triangular</em> system $Lx = b$ (lower) solves by forward substitution: $x_i = \big(b_i - \sum_{j&lt;i} L_{ij}x_j\big)/L_{ii}$, cost $\sim n^2$ flops.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $\begin{pmatrix}2 & 0 & 0\\ 1 & 3 & 0\\ -1 & 2 & 4\end{pmatrix}x = \begin{pmatrix}4\\5\\1\end{pmatrix}$ by forward substitution: $x_1 = 2$; $x_2 = (5 - 1\cdot2)/3 = 1$; $x_3 = (1 - (-1)\cdot2 - 2\cdot1)/4 = 1/4$. Triangular structure makes it a cascade, no elimination needed — which is exactly why factorizations aim at triangles.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Never solve least squares $\min\|Ax-b\|$ by the normal equations $A^\top A x = A^\top b$ when conditioning matters: $\kappa(A^\top A) = \kappa(A)^2$ — you square the amplifier. QR (below) works with $\kappa(A)$ itself.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve the upper-triangular system $\begin{pmatrix}3&1\\0&2\end{pmatrix}x = \begin{pmatrix}5\\4\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>Back substitution: $x_2 = 2$; $x_1 = (5-1\cdot2)/3 = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> You must solve $Ax = b_i$ for 500 different right-hand sides with the same dense $1000\times1000$ $A$. Compare: elimination from scratch each time vs factor once. <details class="sol"><summary>Solution</summary><div>From scratch: $500 \times \frac23 n^3 \approx 3.3\times10^{11}$ flops. Factor once ($\frac23 n^3 \approx 6.7\times10^8$) + 500 triangular solve pairs ($500\times 2n^2 = 10^9$): $\approx 1.7\times10^9$ flops — ~200× cheaper. Moral: keep the factorization, reuse it.</div></details></li>
+  <li><span class="lvl h">HARD</span> When does an iterative method beat a direct one? Compare a sparse $n = 10^6$ system with 10 nonzeros/row solved by CG in 300 iterations vs dense LU. <details class="sol"><summary>Solution</summary><div>CG: 300 matvecs × $2\cdot10^7$ flops = $6\times10^9$ flops and $O(10^7)$ memory. Dense LU: $\frac23 (10^6)^3 \approx 7\times10^{17}$ flops and $8\times10^{12}$ bytes — physically impossible. (Sparse LU helps but fill-in can still explode.) Iterative + sparsity is the only game at this scale — the same reason deep learning uses only matvec-like operations.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gaussian-elimination">
+ <h2>Gaussian elimination</h2>
+ <p>Gaussian elimination clears the unknowns column by column: subtract multiples of a pivot row from the rows below until the system is triangular, then back-substitute. It is grade-school equation-juggling made systematic, and with row swaps for safety (partial pivoting) it is the workhorse behind every dense <code>solve()</code>.</p>
+ <div class="box def"><span class="label">Definition</span> For $k = 1..n{-}1$: choose pivot row (partial pivoting: swap up the row with the largest $|a_{ik}|$, guaranteeing multipliers $|m_{ik}|\le1$), then for each $i &gt; k$: $m_{ik} = a_{ik}/a_{kk}$, row$_i \mathrel{-}= m_{ik}\,$row$_k$ (and same to $b$). Cost: $\frac{2}{3}n^3 + O(n^2)$ flops. Then back substitution.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\begin{aligned} 2x + y - z &= 3\\ 4x + y &= 6 \\ -2x + 2y + 2z &= 2\end{aligned}$. Eliminate col 1 (pivot 4 after swap — but let's keep pivot 2 for readability; multipliers 2 and −1): R2 ← R2 − 2·R1: $(0, -1, 2 \mid 0)$; R3 ← R3 + R1: $(0, 3, 1 \mid 5)$. Eliminate col 2 (pivot −1, multiplier −3): R3 ← R3 + 3·R2: $(0, 0, 7 \mid 5)$. Back substitute: $z = \frac57$; $-y + 2z = 0 \Rightarrow y = \frac{10}7$; $2x = 3 - y + z = 3 - \frac{10}7 + \frac57 = \frac{16}7 \Rightarrow x = \frac87$. Check eq. 2: $4\cdot\frac87 + \frac{10}7 = \frac{42}{7} = 6$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> Recording the multipliers instead of discarding them IS the LU decomposition, next.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve by elimination: $x + 2y = 5$, $3x + 4y = 11$. <details class="sol"><summary>Solution</summary><div>R2 ← R2 − 3R1: $-2y = -4 \Rightarrow y = 2$, then $x = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Count: how many flops (mult+add) does eliminating one column $k$ take, and sum over $k$ to get the $\frac23 n^3$ total. <details class="sol"><summary>Solution</summary><div>Column $k$: $(n-k)$ rows, each needing 1 division + $(n-k)$ multiply-adds on the matrix (+1 on $b$): $\approx 2(n-k)^2$ flops. Sum: $2\sum_{j=1}^{n-1} j^2 \approx \frac{2n^3}{3}$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Elimination without pivoting breaks on $\begin{pmatrix}0&1\\1&0\end{pmatrix}$ and is unstable for tiny pivots, yet is provably backward stable if $A$ is diagonally dominant or symmetric positive definite. Why do tiny pivots not arise in the SPD case? <details class="sol"><summary>Solution</summary><div>For SPD $A$, every leading principal submatrix is SPD, and the pivot at step $k$ equals $\frac{\det A_k}{\det A_{k-1}} &gt; 0$; moreover each elimination step leaves the trailing submatrix SPD (it is a Schur complement, $S = A_{22} - A_{21}A_{11}^{-1}A_{12}$, again SPD), and its diagonal entries — the future pivots — satisfy $0 &lt; s_{ii} \le a_{ii}$: pivots stay positive and bounded, element growth is bounded by 1. Hence no swaps needed — the basis for Cholesky.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lu-decomposition">
+ <h2>LU decomposition</h2>
+ <p>LU is Gaussian elimination remembered: the multipliers you used to clear each column, filed into a unit lower-triangular $L$, and the triangle you ended with as $U$. Then $A = LU$, and any future $Ax=b$ is two quick triangular solves. Factor once, solve forever.</p>
+ <div class="box def"><span class="label">Definition</span> $PA = LU$ with $P$ a permutation (the pivoting row swaps), $L$ unit lower triangular ($L_{ik} = m_{ik}$, ones on the diagonal), $U$ upper triangular. Solve $Ax=b$: permute $Pb$, forward-solve $Ly = Pb$, back-solve $Ux = y$. Determinant for free: $\det A = \pm\prod_i U_{ii}$ (sign from $P$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2 & 1\\ 6 & 4\end{pmatrix}$ (no pivoting needed): multiplier $m_{21} = 3$; $U = \begin{pmatrix}2 & 1\\ 0 & 1\end{pmatrix}$, $L = \begin{pmatrix}1 & 0\\ 3 & 1\end{pmatrix}$. Check: $LU = \begin{pmatrix}2&1\\6&4\end{pmatrix}$ ✓. Solve $Ax = (4, 14)^\top$: $Ly = b$: $y = (4, 2)^\top$; $Ux = y$: $x_2 = 2$, $x_1 = (4-2)/2 = 1$. Verify: $(2\cdot1+1\cdot2,\ 6+8) = (4,14)$ ✓. And $\det A = 2\cdot1 = 2$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Not every invertible matrix has a plain LU ($a_{11}=0$ kills it instantly); with partial pivoting, $PA=LU$ always exists for invertible $A$ and is stable in practice (worst-case element growth $2^{n-1}$ exists but is pathological). Never skip the $P$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Factor $A = \begin{pmatrix}4 & 2\\ 2 & 5\end{pmatrix}$ as LU. <details class="sol"><summary>Solution</summary><div>$m = \frac12$: $L = \begin{pmatrix}1&0\\ 0.5&1\end{pmatrix}$, $U = \begin{pmatrix}4&2\\0&4\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Using that factorization, compute $\det A$ and solve $Ax = (10, 11)^\top$. <details class="sol"><summary>Solution</summary><div>$\det = 4\cdot4 = 16$. $Ly = b$: $y_1 = 10$, $y_2 = 11 - 5 = 6$. $Ux = y$: $x_2 = 1.5$, $x_1 = (10 - 3)/4 = 1.75$. Check: $4(1.75)+2(1.5) = 10$ ✓, $2(1.75)+5(1.5) = 11$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Factor with partial pivoting: $A = \begin{pmatrix}1 & 2 & 0 \\ 4 & 4 & 1\\ 2 & 1 & 3 \end{pmatrix}$ — give $P, L, U$. <details class="sol"><summary>Solution</summary><div>Col 1: largest is 4 → swap R1,R2. Pivot rows now (4,4,1),(1,2,0),(2,1,3); multipliers $\frac14, \frac12$: R2 → $(0, 1, -\frac14)$, R3 → $(0, -1, \frac52)$. Col 2: $|{-1}| = |1|$, keep pivot 1 (no swap). Multiplier $-1$: R3 → $(0, 0, \frac94)$. So $P$ swaps rows 1,2; $L = \begin{pmatrix}1&0&0\\ \frac14&1&0\\ \frac12&-1&1\end{pmatrix}$, $U = \begin{pmatrix}4&4&1\\ 0&1&-\frac14\\ 0&0&\frac94\end{pmatrix}$. Check $LU$ row 3: $(\frac12\cdot4,\ \frac12\cdot4 - 1,\ \frac12 + \frac14 + \frac94) = (2, 1, 3)$ ✓ $= (PA)_{3}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="qr-decomposition">
+ <h2>QR decomposition</h2>
+ <p>QR writes $A$ as an orthogonal matrix times a triangle: Gram–Schmidt (Ch 8) in matrix clothing. Because orthogonal matrices amplify nothing ($\kappa_2(Q) = 1$), QR is the stable route to least squares — the reason <code>lstsq</code> beats the normal equations.</p>
+ <div class="box def"><span class="label">Definition</span> For $A \in \mathbb R^{m\times n}$, $m \ge n$, full rank: $A = QR$ with $Q\in\mathbb R^{m\times n}$ having orthonormal columns ($Q^\top Q = I$) and $R\in\mathbb R^{n\times n}$ upper triangular (thin QR). Least squares $\min_x \|Ax - b\|_2$: since $\|Ax-b\|^2 = \|Rx - Q^\top b\|^2 + \|(I - QQ^\top)b\|^2$, the minimizer solves $Rx = Q^\top b$ by back substitution. In practice $Q$ is built from Householder reflections, not classical Gram–Schmidt (which loses orthogonality in floating point; use modified G-S or Householder).</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}1 & 1\\ 1 & 0 \\ 0 & 1\end{pmatrix}$. G-S: $q_1 = \frac{1}{\sqrt2}(1,1,0)^\top$. $a_2 = (1,0,1)^\top$; $\langle a_2, q_1\rangle = \frac1{\sqrt2}$; residual $a_2 - \frac1{\sqrt2}q_1 = (1,0,1)^\top - (\tfrac12,\tfrac12,0)^\top = (\tfrac12, -\tfrac12, 1)^\top$, norm $\sqrt{\tfrac32} = \frac{\sqrt6}{2}$: $q_2 = \frac1{\sqrt6}(1,-1,2)^\top$. $R = \begin{pmatrix}\sqrt2 & \frac{1}{\sqrt2}\\ 0 & \frac{\sqrt6}{2}\end{pmatrix}$. Check $QR$ col 2: $\frac1{\sqrt2}\cdot\frac1{\sqrt2}(1,1,0)+\frac{\sqrt6}{2}\cdot\frac{1}{\sqrt6}(1,-1,2) = (\tfrac12+\tfrac12, \tfrac12-\tfrac12, 1) = (1,0,1)$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> QR is the engine of the QR eigenvalue algorithm (below) and the stable core of linear regression (Ch 13, Ch 19).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is $\|Qv\|_2 = \|v\|_2$ for orthonormal-column $Q$… and what does that buy numerically? <details class="sol"><summary>Solution</summary><div>$\|Qv\|^2 = v^\top Q^\top Q v = v^\top v$. Errors passing through $Q$ are not amplified — orthogonal steps are condition-number-1 operations.</div></details></li>
+  <li><span class="lvl m">MED</span> Use the worked example's QR to solve least squares with $b = (2, 1, 1)^\top$. <details class="sol"><summary>Solution</summary><div>$Q^\top b = (\frac{2+1}{\sqrt2}, \frac{2-1+2}{\sqrt6})^\top = (\frac{3}{\sqrt2}, \frac{3}{\sqrt6})^\top$. Solve $Rx = Q^\top b$: $\frac{\sqrt6}{2}x_2 = \frac{3}{\sqrt6} \Rightarrow x_2 = \frac{6}{6} = 1$; $\sqrt2 x_1 + \frac{1}{\sqrt2}\cdot 1 = \frac{3}{\sqrt2} \Rightarrow 2x_1 + 1 = 3 \Rightarrow x_1 = 1$. Fit $\hat b = A(1,1)^\top = (2,1,1)^\top = b$: exact fit, residual 0. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> A Householder reflection is $H = I - 2vv^\top/(v^\top v)$. Find $v$ so that $H(3,4)^\top = (5, 0)^\top$ and verify. <details class="sol"><summary>Solution</summary><div>Reflect $x$ to $\|x\|e_1$: $v = x - \|x\|e_1 = (3-5, 4)^\top = (-2, 4)^\top$. $v^\top v = 20$; $v^\top x = -6+16 = 10$; $Hx = x - 2\frac{10}{20}v = (3,4) - (-2,4) = (5, 0)^\top$ ✓. Householder QR applies such reflections column by column — each exactly orthogonal, hence backward stable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cholesky-decomposition">
+ <h2>Cholesky decomposition</h2>
+ <p>Symmetric positive definite matrices — covariance matrices, Hessians at minima, kernel matrices — admit a factorization twice as fast as LU and needing no pivoting: $A = LL^\top$, a "square root" of the matrix. If Cholesky fails, your matrix wasn't positive definite; running it is in fact the standard PD test.</p>
+ <div class="box def"><span class="label">Definition</span> For SPD $A$: $A = LL^\top$ with $L$ lower triangular, $L_{ii} &gt; 0$, unique. Entries: $$L_{jj} = \sqrt{A_{jj} - \sum_{k&lt;j}L_{jk}^2}, \qquad L_{ij} = \frac{A_{ij} - \sum_{k&lt;j}L_{ik}L_{jk}}{L_{jj}}\ (i&gt;j).$$ Cost $\frac13 n^3$ flops — half of LU. Applications: solving SPD systems, sampling $\mathcal N(\mu, \Sigma)$ via $x = \mu + Lz$ with $z\sim\mathcal N(0, I)$, log-determinants $\log\det A = 2\sum_i \log L_{ii}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}4 & 2\\ 2 & 10\end{pmatrix}$: $L_{11} = 2$; $L_{21} = 2/2 = 1$; $L_{22} = \sqrt{10 - 1} = 3$. $L = \begin{pmatrix}2&0\\1&3\end{pmatrix}$; check $LL^\top = \begin{pmatrix}4&2\\2&10\end{pmatrix}$ ✓. Sample from $\mathcal N(0, A)$: draw $z = (0.5, -1)^\top \Rightarrow x = Lz = (1, -2.5)^\top$; indeed $\mathrm{Cov}(Lz) = L\,I\,L^\top = A$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Numerically near-singular covariance matrices make $L_{jj}$'s radicand go negative from rounding alone. Standard fix: add <em>jitter</em> $\epsilon I$ ($\epsilon \sim 10^{-6}$·scale) before factoring — every Gaussian-process library does this, and it is a Bayesian prior in disguise.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Cholesky-factor $A = \begin{pmatrix}9 & 3\\ 3 & 5\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$L_{11}=3$, $L_{21}=1$, $L_{22} = \sqrt{5-1} = 2$: $L = \begin{pmatrix}3&0\\1&2\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Factor $A = \begin{pmatrix}1 & 2\\ 2 & 3\end{pmatrix}$ — what happens and what does it mean? <details class="sol"><summary>Solution</summary><div>$L_{11}=1$, $L_{21}=2$, $L_{22} = \sqrt{3 - 4} = \sqrt{-1}$: fails. $A$ is not positive definite (eigenvalues $2\pm\sqrt5$, one negative; $\det = -1$). Cholesky's failure certifies it.</div></details></li>
+  <li><span class="lvl h">HARD</span> Factor the 3×3 SPD matrix $A = \begin{pmatrix}4 & 2 & -2\\ 2 & 5 & 3\\ -2 & 3 & 14\end{pmatrix}$ and compute $\log\det A$. <details class="sol"><summary>Solution</summary><div>$L_{11}=2$; $L_{21}=1$; $L_{31}=-1$. $L_{22} = \sqrt{5-1}=2$; $L_{32} = (3 - (-1)(1))/2 = 2$. $L_{33} = \sqrt{14 - 1 - 4} = 3$. $L = \begin{pmatrix}2&0&0\\1&2&0\\-1&2&3\end{pmatrix}$. Check $(LL^\top)_{32} = -1\cdot1 + 2\cdot2 = 3$ ✓. $\det A = (2\cdot2\cdot3)^2 = 144$; $\log\det = 2(\ln2+\ln2+\ln3) = \ln 144 \approx 4.9698$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="iterative-solvers">
+ <h2>Iterative solvers</h2>
+ <p>When $A$ is a million-by-million sparse matrix, factorizations drown in fill-in; iterative solvers only ever touch $A$ through matrix-vector products. The classical splittings (Jacobi, Gauss–Seidel) polish a guess by cycling through equations; Krylov methods (CG, GMRES) are smarter, building the best answer in a growing subspace of matvec results.</p>
+ <div class="box def"><span class="label">Definition</span> Split $A = M - N$ with $M$ easy to invert; iterate $Mx_{k+1} = Nx_k + b$, i.e. $x_{k+1} = M^{-1}Nx_k + M^{-1}b$. Converges for every start iff $\rho(M^{-1}N) &lt; 1$ (spectral radius). <b>Jacobi</b>: $M = D$ (diagonal): $x^{new}_i = \frac{1}{a_{ii}}(b_i - \sum_{j\ne i} a_{ij}x_j)$. <b>Gauss–Seidel</b>: $M = $ lower triangle including diagonal — uses updated values immediately. Both converge if $A$ is strictly diagonally dominant; G-S also for SPD $A$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\begin{pmatrix}4 & 1\\ 2 & 5\end{pmatrix}x = \begin{pmatrix}9\\ 12\end{pmatrix}$ (solution $x = (\frac{33}{18}, \frac{30}{18})\ldots$ compute: from 2nd eq $x_2 = (12-2x_1)/5$; substitute: $4x_1 + \frac{12-2x_1}{5} = 9 \Rightarrow 20x_1 + 12 - 2x_1 = 45 \Rightarrow x_1 = \frac{33}{18} = 1.8\overline3$, $x_2 = \frac{12 - 3.6\overline6}{5} = 1.6\overline6$). Jacobi from $(0,0)$: $x^{(1)} = (\frac94, \frac{12}5) = (2.25, 2.4)$; $x^{(2)} = (\frac{9-2.4}{4}, \frac{12-4.5}{5}) = (1.65, 1.5)$; $x^{(3)} = (\frac{9-1.5}{4}, \frac{12-3.3}{5}) = (1.875, 1.74)$ — pinballing toward $(1.833, 1.667)$, error shrinking ~3× per two sweeps. Gauss–Seidel from $(0,0)$: $x_1 = 2.25$, then $x_2 = (12-4.5)/5 = 1.5$; next sweep $x_1 = (9-1.5)/4 = 1.875$, $x_2 = (12-3.75)/5 = 1.65$ — noticeably faster.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\begin{pmatrix}5 & 2 & 1\\ 1 & 6 & 2\\ 0 & 3 & 4\end{pmatrix}$ strictly diagonally dominant? What follows? <details class="sol"><summary>Solution</summary><div>Rows: $5 &gt; 3$, $6 &gt; 3$, $4 &gt; 3$ ✓. Jacobi and Gauss–Seidel both converge from any start.</div></details></li>
+  <li><span class="lvl m">MED</span> For Jacobi on $A = \begin{pmatrix}2 & 1\\ 1 & 2\end{pmatrix}$, compute the iteration matrix and its spectral radius. How many iterations per decimal digit? <details class="sol"><summary>Solution</summary><div>$M^{-1}N = -D^{-1}(A - D) = \begin{pmatrix}0 & -\frac12\\ -\frac12 & 0\end{pmatrix}$; eigenvalues $\pm\frac12$: $\rho = \frac12$. Error ×½ per sweep: $\log_{10}2 \approx 0.30$ digits/iteration ⟹ ~3.3 iterations per digit.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show Jacobi diverges for $A = \begin{pmatrix}1 & 2\\ 2 & 1\end{pmatrix}$ even though $A$ is symmetric and invertible. <details class="sol"><summary>Solution</summary><div>Iteration matrix $\begin{pmatrix}0 & -2\\ -2 & 0\end{pmatrix}$, $\rho = 2 &gt; 1$: any error component along the eigenvector doubles each sweep. (Also $A$ is indefinite — eigenvalues 3, −1.) Convergence of splittings is about the SPLITTING's spectral radius, not invertibility of $A$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conjugate-gradient">
+ <h2>Conjugate gradient</h2>
+ <p>For SPD systems, conjugate gradient is the aristocrat of iterative solvers. It reads $Ax = b$ as minimizing the quadratic $\phi(x) = \frac12 x^\top Ax - b^\top x$ and takes steps that are $A$-orthogonal to all previous ones — so it never undoes earlier progress and, in exact arithmetic, finishes in at most $n$ steps. In practice it gets close in far fewer, at one matvec per step.</p>
+ <div class="box def"><span class="label">Definition</span> CG iterates: $r_0 = b - Ax_0$, $p_0 = r_0$; then $\alpha_k = \frac{r_k^\top r_k}{p_k^\top A p_k}$, $x_{k+1} = x_k + \alpha_k p_k$, $r_{k+1} = r_k - \alpha_k Ap_k$, $\beta_k = \frac{r_{k+1}^\top r_{k+1}}{r_k^\top r_k}$, $p_{k+1} = r_{k+1} + \beta_k p_k$. Convergence: $\|x_k - x^*\|_A \le 2\left(\frac{\sqrt\kappa - 1}{\sqrt\kappa + 1}\right)^k \|x_0 - x^*\|_A$ — the error decays with $\sqrt{\kappa}$, vs $\kappa$ for plain gradient descent. <em>Preconditioning</em> solves $M^{-1}Ax = M^{-1}b$ with $M \approx A$ cheaply invertible, shrinking the effective $\kappa$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}4 & 1\\ 1 & 3\end{pmatrix}$, $b = (1, 2)^\top$, $x_0 = 0$. $r_0 = p_0 = (1,2)^\top$. $Ap_0 = (6, 7)^\top$; $\alpha_0 = \frac{5}{1\cdot6 + 2\cdot7} = \frac5{20} = \frac14$. $x_1 = (0.25, 0.5)$; $r_1 = (1,2) - \frac14(6,7) = (-0.5, 0.25)$. $\beta_0 = \frac{0.3125}{5} = 0.0625$; $p_1 = (-0.5,0.25) + 0.0625(1,2) = (-0.4375, 0.375)$. $Ap_1 = (-1.375, 0.6875)$; $\alpha_1 = \frac{0.3125}{(-0.4375)(-1.375) + 0.375\cdot0.6875} = \frac{0.3125}{0.859375} = \frac{4}{11}$. $x_2 = (0.25 - \frac{4}{11}\cdot0.4375,\ 0.5 + \frac4{11}\cdot 0.375) = (\frac1{11}, \frac{7}{11})$. Check: $Ax_2 = (\frac{4+7}{11}, \frac{1+21}{11}) = (1, 2)$ ✓ — exact in $n = 2$ steps, as promised.</div>
+ <div class="box link"><span class="label">Where this goes</span> CG's $\sqrt\kappa$ vs GD's $\kappa$ is the same acceleration story as momentum (Ch 15); CG with Hessian-vector products powers "Hessian-free" second-order training and trust-region RL methods (Ch 25).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must $A$ be SPD for CG — what does $p^\top A p$ appear as, and what would go wrong otherwise? <details class="sol"><summary>Solution</summary><div>$\alpha_k$ divides by $p_k^\top A p_k$; SPD guarantees it is positive (a genuine squared $A$-norm and a descent step on $\phi$). Indefinite $A$ can make it zero or negative: division blows up or steps ascend. (Nonsymmetric/indefinite systems use GMRES or MINRES.)</div></details></li>
+  <li><span class="lvl m">MED</span> $\kappa = 10^4$. Estimate iterations for error reduction $10^{-6}$: CG vs steepest descent. <details class="sol"><summary>Solution</summary><div>CG rate $\frac{\sqrt\kappa-1}{\sqrt\kappa+1} = \frac{99}{101}$, per-step factor $\approx 0.9802$: need $k \approx \frac{\ln(2\times10^{6})}{-\ln 0.9802} \approx \frac{14.5}{0.02} \approx 725$. GD rate $\frac{\kappa-1}{\kappa+1} \approx 1 - 2\times10^{-4}$: $k \approx \frac{13.8}{2\times10^{-4}} \approx 69{,}000$ — a 100× gap, i.e. exactly $\sqrt\kappa$-fold.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that CG's iterate $x_k$ minimizes $\|x - x^*\|_A$ over the Krylov space $x_0 + \mathrm{span}\{r_0, Ar_0, \dots, A^{k-1}r_0\}$, and use the eigendecomposition to explain why clustered eigenvalues make CG finish early. <details class="sol"><summary>Solution</summary><div>By construction $x_k = x_0 + q_{k-1}(A)r_0$ for some degree-$(k{-}1)$ polynomial $q$, and the error is $e_k = p_k(A)e_0$ where $p_k(t) = 1 - t\,q_{k-1}(t)$ is ANY degree-$k$ polynomial with $p_k(0)=1$; CG's orthogonality conditions make it the $A$-norm-minimal choice. Expanding $e_0$ in eigenvectors: $\|e_k\|_A^2 = \sum_i \lambda_i p_k(\lambda_i)^2 c_i^2$, so it suffices to find a polynomial small on the SPECTRUM. If eigenvalues cluster into $m$ groups, a degree-$m$ polynomial with roots at the clusters is tiny there: CG converges in ≈$m$ steps regardless of $n$. Preconditioning works by clustering the spectrum.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eigenvalue-algorithms">
+ <h2>Eigenvalue algorithms</h2>
+ <p>You cannot compute eigenvalues by solving the characteristic polynomial — for $n \ge 5$ no formula exists (Abel), and the polynomial route is numerically disastrous anyway. Real algorithms iterate: power-type methods peel off one eigenpair; the QR algorithm — factor, swap, repeat — converges to all of them and is among the most beautiful ideas in numerical analysis.</p>
+ <div class="box def"><span class="label">Definition</span> <b>QR algorithm</b>: $A_0 = A$; repeat $A_k = Q_kR_k$ (QR factorization), $A_{k+1} = R_kQ_k$. Each step is a similarity: $A_{k+1} = Q_k^\top A_k Q_k$ — same eigenvalues; under mild conditions $A_k \to$ (quasi-)triangular with the eigenvalues on the diagonal (a Schur form). Practical version: reduce to Hessenberg form first ($O(n^3)$ once, then $O(n^2)$/iteration), add shifts for cubic-in-practice convergence. Symmetric case: tridiagonal + Wilkinson shifts. Total $O(n^3)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> One QR step on $A = \begin{pmatrix}2 & 1\\ 1 & 2\end{pmatrix}$ (eigenvalues 3, 1). QR: columns $(2,1), (1,2)$; $q_1 = \frac1{\sqrt5}(2,1)^\top$; $r_{11} = \sqrt5$, $r_{12} = q_1^\top(1,2) = \frac{4}{\sqrt5}$; residual $(1,2) - \frac45(2,1) = (-\frac35, \frac65)$, $q_2 = \frac1{\sqrt5}(-1,2)^\top$, $r_{22} = \frac{3}{\sqrt5}$. $RQ = \frac15\begin{pmatrix}5 & 4\\ 0 & 3\end{pmatrix}\begin{pmatrix}2 & -1\\ 1 & 2\end{pmatrix} = \frac15\begin{pmatrix}14 & 3\\ 3 & 6\end{pmatrix} = \begin{pmatrix}2.8 & 0.6\\ 0.6 & 1.2\end{pmatrix}$. Diagonal moved from (2,2) toward (3,1); off-diagonal shrank $1 \to 0.6$; trace still 4, det still 3. ✓ A few more sweeps: off-diagonal $\to 0$, diagonal $\to (3,1)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Eigenvalues of nonsymmetric matrices can be violently ill-conditioned (a $10^{-10}$ perturbation of a Jordan-ish block moves eigenvalues by $10^{-1}$); symmetric matrices are perfectly conditioned ($|\lambda_i(A+E) - \lambda_i(A)| \le \|E\|_2$, Weyl). Know which case you're in before trusting digits. Never compute eigenvalues via $\det(A - \lambda I)$ root-finding: polynomial coefficients are an unstable intermediate (Wilkinson's polynomial).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does $A_{k+1} = R_kQ_k$ have the same eigenvalues as $A_k$? <details class="sol"><summary>Solution</summary><div>$A_k = Q_kR_k \Rightarrow R_k = Q_k^\top A_k$, so $A_{k+1} = Q_k^\top A_k Q_k$: a similarity transform, which preserves the characteristic polynomial.</div></details></li>
+  <li><span class="lvl m">MED</span> For symmetric $A$, the QR algorithm preserves symmetry and (after tridiagonalization) tridiagonal form. Why does that matter for cost? <details class="sol"><summary>Solution</summary><div>QR of a tridiagonal matrix costs $O(n)$ (a sequence of $n{-}1$ Givens rotations) instead of $O(n^3)$; with shifts, deflation happens in $O(1)$ iterations per eigenvalue: all eigenvalues in $O(n^2)$ after the one-time $O(n^3)$ reduction. Structure exploitation is the difference between usable and not.</div></details></li>
+  <li><span class="lvl h">HARD</span> Verify Weyl's bound in action: $A = \mathrm{diag}(3, 1)$, $E = \begin{pmatrix}0 & 0.1\\ 0.1 & 0\end{pmatrix}$. Compute eigenvalues of $A + E$ exactly and compare shifts to $\|E\|_2$. <details class="sol"><summary>Solution</summary><div>$A + E = \begin{pmatrix}3 & 0.1\\ 0.1 & 1\end{pmatrix}$: $\lambda = 2 \pm \sqrt{1 + 0.01} = 2 \pm 1.004987...$: $\{3.004987, 0.995013\}$. Shifts: $\approx 0.005$ each, well within $\|E\|_2 = 0.1$ — in fact $O(\|E\|^2)$ here because the unperturbed eigenvalues are far apart (second-order perturbation $\frac{|E_{12}|^2}{\lambda_1-\lambda_2} = \frac{0.01}{2} = 0.005$ ✓ exactly).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="power-iteration">
+ <h2>Power iteration</h2>
+ <p>Multiply a random vector by $A$ again and again: whatever direction $A$ stretches most takes over, exponentially. That is power iteration — three lines of code for the dominant eigenpair, and the mathematical heart of PageRank, of PCA-at-scale, and of spectral-norm estimates in deep learning.</p>
+ <div class="box def"><span class="label">Definition</span> $v_{k+1} = \frac{Av_k}{\|Av_k\|}$. If $|\lambda_1| &gt; |\lambda_2| \ge \dots$ and $v_0$ has a component along the dominant eigenvector $u_1$, then $v_k \to \pm u_1$ with error $O(|\lambda_2/\lambda_1|^k)$; the Rayleigh quotient $\lambda^{(k)} = v_k^\top A v_k$ (for symmetric $A$) estimates $\lambda_1$ with error $O(|\lambda_2/\lambda_1|^{2k})$. Variants: <em>inverse iteration</em> (apply $(A - \sigma I)^{-1}$: converges to the eigenvalue nearest the shift $\sigma$), <em>Rayleigh-quotient iteration</em> (update the shift each step: cubic convergence), <em>deflation</em> or block/Lanczos methods for several eigenpairs.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \begin{pmatrix}2 & 1\\ 1 & 2\end{pmatrix}$ ($\lambda = 3$ at $u_1 = \frac{1}{\sqrt2}(1,1)$; $\lambda_2 = 1$). Start $v_0 = (1, 0)^\top$: $Av_0 = (2,1)$, normalize (÷$\sqrt5$); $A(2,1) = (5, 4)$; $A(5,4) = (14, 13)$; $A(14,13) = (41, 40)$. Direction ratios: $0.5, 0.8, 0.929, 0.976 \to 1$ — the gap $1 - $ratio shrinks by $\lambda_2/\lambda_1 = 1/3$ each step. ✓ Rayleigh quotient at $(14,13)/\|\cdot\|$: $\frac{(14,13)A(14,13)^\top}{14^2+13^2} = \frac{2(196+169) + 2\cdot14\cdot13\cdot\ldots}{365}$ — compute directly: $A(14,13) = (41,40)$, numerator $14\cdot41 + 13\cdot40 = 574+520 = 1094$, so $\lambda \approx 1094/365 = 2.9973$: three digits after 3 multiplications.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch a cloud of unit vectors get herded onto the dominant eigenvector as you apply $A$ repeatedly; adjust the eigenvalue gap and see convergence speed change.</p>
+  <canvas id="cv-pow"></canvas>
+  <div class="ctl">
+   <label>λ₂/λ₁ <input type="range" id="pw-r" min="0.05" max="0.95" step="0.05" value="0.5"></label>
+   <button class="btn" id="pw-step">Apply A</button>
+   <button class="btn" id="pw-reset">Reset</button>
+  </div>
+  <div class="out" id="pw-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> PageRank runs power iteration on the web's transition matrix (its stationary distribution, Ch 12); spectral normalization of GAN discriminators (Ch 22) estimates $\sigma_{\max}$ by one power step per update.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Power iteration on $\mathrm{diag}(5, 2, 1)$ from $v_0 = \frac{1}{\sqrt3}(1,1,1)$: what's the ratio of the second to first component after $k$ steps (unnormalized)? <details class="sol"><summary>Solution</summary><div>$A^k v_0 \propto (5^k, 2^k, 1)$: ratio $(2/5)^k$ — geometric decay at $\lambda_2/\lambda_1 = 0.4$.</div></details></li>
+  <li><span class="lvl m">MED</span> What breaks power iteration when $\lambda_1 = -\lambda_2$ (e.g. eigenvalues $3, -3$)? What still converges? <details class="sol"><summary>Solution</summary><div>The two components' magnitudes stay in a fixed ratio and the iterate oscillates between two directions: no convergence of $v_k$. But $\|Av_k\|/\|v_k\| \to 3 = |\lambda_1|$ (norm growth still reveals the spectral radius), and one step of $A^2$ (eigenvalues 9, 9…) — better: shift to $A + \sigma I$ to break the tie.</div></details></li>
+  <li><span class="lvl h">HARD</span> Inverse iteration with shift $\sigma = 0.9$ on $A = \mathrm{diag}(3, 1, 0.5)$: which eigenvalue does it find, and at what rate compared to plain power iteration for the same eigenvalue? <details class="sol"><summary>Solution</summary><div>$(A - 0.9I)^{-1} = \mathrm{diag}(\frac1{2.1}, \frac1{0.1}, \frac1{-0.4}) = \mathrm{diag}(0.476, 10, -2.5)$: dominant is $10$, belonging to eigenvalue $1$ — the one nearest 0.9. Rate: next-largest/largest $= 2.5/10 = 0.25$ per step. Plain power iteration cannot find λ=1 at all (it finds 3). Shift close to a target eigenvalue ⟹ ratio near 0 ⟹ ferocious convergence: with $\sigma$ from a Rayleigh quotient the rate improves every step — cubic.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">Power iteration converges slowly when…</div><button class="opt">|λ₂|/|λ₁| is close to 1</button><button class="opt">the matrix is large</button><button class="opt">the start vector is random</button><div class="why" hidden>The error contracts by |λ₂/λ₁| per step — a narrow spectral gap means slow convergence. Size only sets per-step cost, and a random start almost surely has a component along u₁, which is all that's needed.</div></div>
+</section>
+
+<section class="topic" id="automatic-differentiation">
+ <h2>Automatic differentiation</h2>
+ <p>Automatic differentiation is the third way, neither symbolic nor numerical-approximate: run the program, but propagate derivative information through every elementary operation using the chain rule. The result is EXACT to floating point, costs a small constant times the original program, and needs no formula for the function — just its code. It is the technology that makes deep learning trainable.</p>
+ <div class="box def"><span class="label">Definition</span> Any numeric program is a composition of primitives (+, ×, exp, sin, …) whose derivatives are known. Autodiff applies the chain rule mechanically across the composition, in one of two orders: <em>forward mode</em> (propagate $\frac{\partial(\text{everything})}{\partial(\text{one input})}$ alongside values) or <em>reverse mode</em> (record the computation, then propagate $\frac{\partial(\text{one output})}{\partial(\text{everything})}$ backward). It is NOT finite differences (no $h$, no truncation error) and NOT symbolic algebra (no expression swell; control flow, loops and branches differentiate for free along the taken path).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x\cdot\sin(x^2)$ at $x = 1$: the program computes $a = x^2 = 1$, $b = \sin a = 0.84147$, $f = x b = 0.84147$. True derivative: $f' = \sin(x^2) + 2x^2\cos(x^2) = 0.84147 + 2(0.54030) = 1.92207$. Autodiff (either mode) produces exactly this from the chain rule on the three-step program — no $10^{-8}$ fudge, no symbolic expansion.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Autodiff differentiates the PROGRAM, not the ideal function: <code>abs</code> at 0, <code>relu</code> at 0, branches like <code>if x == 0: return 0</code> produce subgradient-ish or plain wrong answers at kinks ($\frac{d}{dx}\sqrt{x^2}$ at 0 gives NaN). And $\sqrt{\cdot}$ at 0, division created by the chain rule, can NaN a whole training run through one dead branch — the infamous <code>torch.where</code> NaN-gradient trap.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the error sources of (a) finite differences, (b) symbolic differentiation, (c) autodiff. <details class="sol"><summary>Solution</summary><div>(a) truncation + cancellation ($\sim u^{2/3}$ at best); (b) none numerically, but expression swell makes it infeasible for programs, and it can't handle loops/branches naturally; (c) only ordinary floating-point rounding of the derivative program — machine-precision exact.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x,y) = \exp(xy) + y^2$ at $(2, 1)$. Compute $f, \partial f/\partial x, \partial f/\partial y$ as autodiff would (chain rule on primitives). <details class="sol"><summary>Solution</summary><div>$t = xy = 2$; $u = e^t = 7.389$; $v = y^2 = 1$; $f = 8.389$. $\partial t = (y, x) = (1, 2)$; $\partial u = e^t\partial t = (7.389, 14.778)$; $\partial v = (0, 2y) = (0,2)$; $\nabla f = (7.389, 16.778)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gradient checking: you verify an autodiff gradient against central differences and see relative disagreement $10^{-3}$ in float32. Bug or expected? What about $10^{-7}$ in float64? <details class="sol"><summary>Solution</summary><div>float32: $u \approx 6\times10^{-8}$; central differences achieve $\sim u^{2/3} \approx 10^{-5}$ at the optimal $h$; $10^{-3}$ is 100× worse — suspicious but possible with bad $h$, poor scaling, or a kink nearby; rerun in float64 before declaring a bug. float64 disagreement $10^{-7}$: right at the expected $u^{2/3} \approx 4\times10^{-11}$…? No: $u^{2/3} = (10^{-16})^{2/3} \approx 2\times10^{-11}$, so $10^{-7}$ is 5000× too big — with a good $h$ that's a genuine bug (or a nondifferentiable point). Always check at several random points and use $h \approx 10^{-6}\max(1,|x|)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="forward-mode-autodiff">
+ <h2>Forward-mode autodiff</h2>
+ <p>Forward mode pushes derivatives along with values: every intermediate quantity carries a "tangent" — its sensitivity to one chosen input. The cleanest implementation is dual numbers: compute with $x + \dot x\,\epsilon$ where $\epsilon^2 = 0$, and the $\epsilon$-coefficient of the output IS the derivative. One pass per input direction.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>dual number</em> is $a + b\epsilon$ with $\epsilon^2 = 0$: $(a + b\epsilon)+(c+d\epsilon) = (a+c)+(b+d)\epsilon$; $(a+b\epsilon)(c+d\epsilon) = ac + (ad+bc)\epsilon$; $f(a + b\epsilon) = f(a) + f'(a)b\,\epsilon$ for smooth primitives. Seeding input $x_i$ with tangent 1 (others 0) and running the program yields $\frac{\partial f}{\partial x_i}$ for every output. Cost: one forward pass per input direction — a full gradient of $f:\mathbb R^n \to \mathbb R$ costs $n$ passes; a full Jacobian column ($Jv$, a <em>JVP</em>) costs one.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \frac{x^2 + 1}{x}$ at $x = 2$, seed $\dot x = 1$: compute with $2 + \epsilon$. $x^2 = 4 + 4\epsilon$; $+1$: $5 + 4\epsilon$; divide by $2 + \epsilon$: $\frac{5+4\epsilon}{2+\epsilon} = (5+4\epsilon)\cdot\frac12(1 - \frac\epsilon2) = \frac52 + (2 - \frac54)\epsilon = 2.5 + 0.75\epsilon$. So $f(2) = 2.5$, $f'(2) = 0.75$. Check: $f' = 1 - x^{-2} = 1 - \frac14 = 0.75$ ✓.</div>
+ <div class="box think"><span class="label">Think first</span> A network has $n = 10^9$ parameters and one scalar loss. How many forward-mode passes for the full gradient? Reverse-mode passes? <details class="sol"><summary>Reveal</summary><div>Forward: $10^9$ passes (one per parameter) — years of compute. Reverse: ONE backward pass, cost a small multiple of the forward pass. The shape $\mathbb R^{10^9}\to\mathbb R$ is maximally reverse-friendly; that asymmetry is why backprop won. Forward mode wins in the transposed case ($\mathbb R\to\mathbb R^m$) and for Hessian-vector products (forward-over-reverse).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Using dual numbers, differentiate $f(x) = x^3$ at $x = 2$. <details class="sol"><summary>Solution</summary><div>$(2+\epsilon)^3 = 8 + 3\cdot4\epsilon = 8 + 12\epsilon$ ($\epsilon^2$ terms vanish): $f' = 12$ ✓.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the dual-number rule for division: $(a + b\epsilon)/(c + d\epsilon)$. <details class="sol"><summary>Solution</summary><div>Multiply by $\frac{c - d\epsilon}{c - d\epsilon}$: numerator $(ac + (bc - ad)\epsilon)$, denominator $c^2$ ($\epsilon^2 = 0$): $\frac ac + \frac{bc - ad}{c^2}\epsilon$ — exactly the quotient rule.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f(x, y) = \sin(xy) + x^2$: compute the directional derivative (JVP) along $v = (1, 2)$ at $(x,y) = (1, \pi)$ with ONE forward pass. <details class="sol"><summary>Solution</summary><div>Seed $\dot x = 1, \dot y = 2$. $t = xy = \pi$, $\dot t = \dot x y + x\dot y = \pi + 2$. $s = \sin t = 0$, $\dot s = \cos(\pi)\dot t = -(\pi + 2)$. $u = x^2 = 1$, $\dot u = 2$. $f = 1$, $\dot f = 2 - \pi - 2 = -\pi$. Check: $\nabla f = (y\cos(xy) + 2x,\ x\cos(xy)) = (-\pi + 2, -1)$; $\nabla f\cdot v = -\pi + 2 - 2 = -\pi$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reverse-mode-autodiff">
+ <h2>Reverse-mode autodiff</h2>
+ <p>Reverse mode runs the movie backward: first execute the program and remember every intermediate, then sweep from the output to the inputs, asking each step "how much did you influence the loss?" One backward sweep prices the influence of EVERY input simultaneously — the whole gradient for the cost of a few forward passes. Backpropagation is precisely this, applied to neural network losses.</p>
+ <div class="box def"><span class="label">Definition</span> For each intermediate $v_i$, define the <em>adjoint</em> $\bar v_i = \frac{\partial f}{\partial v_i}$. Initialize $\bar f = 1$; process nodes in reverse topological order, and for each operation $v_k = \phi(v_{i_1}, \dots)$ accumulate into its parents: $\bar v_{i_j} \mathrel{+}= \bar v_k\,\frac{\partial \phi}{\partial v_{i_j}}$. One reverse sweep yields $\nabla_x f$ for scalar $f$ at cost $\le c\times$(forward cost), $c \approx 2\text{–}3$ in flops — but requires storing (or recomputing: <em>checkpointing</em>) the forward intermediates. Computes vector-Jacobian products $v^\top J$ (<em>VJP</em>s) in general.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f = (x + y)\, x y$ at $x = 2, y = 3$. Forward: $a = x + y = 5$; $b = xy = 6$; $f = ab = 30$. Backward: $\bar f = 1$. $f = ab$: $\bar a = b = 6$, $\bar b = a = 5$. $b = xy$: $\bar x \mathrel{+}= \bar b\,y = 15$, $\bar y \mathrel{+}= \bar b\,x = 10$. $a = x + y$: $\bar x \mathrel{+}= \bar a = 6 \Rightarrow \bar x = 21$; $\bar y \mathrel{+}= 6 \Rightarrow \bar y = 16$. Check symbolically: $f = x^2y + xy^2$, $f_x = 2xy + y^2 = 12 + 9 = 21$ ✓, $f_y = x^2 + 2xy = 4 + 12 = 16$ ✓. Note the $\mathrel{+}=$: $x$ influences $f$ through two paths, and adjoints ADD across paths.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Forgetting that adjoints accumulate over fan-out is the classic hand-rolled-backprop bug (variables reused in two places get half their gradient). The other cost trap: reverse mode's memory is proportional to the forward computation's length — hence gradient checkpointing, which stores every $\sqrt T$-th activation and recomputes the rest, trading ~30% compute for ~$\sqrt T$ memory.</div>
+ <div class="box link"><span class="label">Where this goes</span> Reverse mode over a network's computational graph IS backpropagation — Ch 9 set up the chain rule; Ch 21 applies this machinery layer by layer; Ch 23's training systems checkpoint and shard exactly these intermediates.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Reverse-differentiate $f = \sin(x) + x$ at $x = 0$. <details class="sol"><summary>Solution</summary><div>Forward: $s = \sin x = 0$, $f = s + x = 0$. Backward: $\bar s = 1$, $\bar x = \bar s\cos(0) + 1 = 2$. ($f' = \cos x + 1 = 2$ ✓.)</div></details></li>
+  <li><span class="lvl m">MED</span> $f = \exp(u)$, $u = x^2 + y^2$, at $(1, 2)$: run the reverse sweep. <details class="sol"><summary>Solution</summary><div>Forward: $u = 5$, $f = e^5 \approx 148.41$. Backward: $\bar u = e^5$; $\bar x = \bar u\cdot 2x = 2e^5 \approx 296.8$; $\bar y = \bar u\cdot 2y = 4e^5 \approx 593.7$. One sweep, both partials.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the backward rule for matrix multiplication $C = AB$: given $\bar C = \frac{\partial f}{\partial C}$, find $\bar A, \bar B$. <details class="sol"><summary>Solution</summary><div>$f$'s differential: $df = \langle \bar C, dC\rangle = \mathrm{tr}(\bar C^\top(dA\,B + A\,dB)) = \mathrm{tr}((B\bar C^\top)dA) + \mathrm{tr}((\bar C^\top A)dB)$. Matching $df = \langle\bar A, dA\rangle + \langle \bar B, dB\rangle$: $\bar A = \bar C B^\top$, $\bar B = A^\top\bar C$. Sanity: shapes $(m{\times}p) = (m{\times}n)(n{\times}p)^{...}$ — with $A: m{\times}k$, $B: k{\times}n$: $\bar A = \bar C B^\top$ is $(m{\times}n)(n{\times}k) = m\times k$ ✓. These two formulas ARE the backward pass of every linear layer.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="computational-graphs">
+ <h2>Computational graphs</h2>
+ <p>A computational graph makes a program's dataflow explicit: nodes are operations, edges carry values, and the whole thing is a DAG (Ch 17). Forward evaluation is a topological-order sweep; reverse-mode autodiff is the same sweep backward. Frameworks differ mainly in when they build this graph: ahead of time (static — XLA, TorchScript) or as the code runs (dynamic tape — PyTorch eager, JAX tracing).</p>
+ <div class="box def"><span class="label">Definition</span> A computational graph for $f$ is a DAG whose leaves are inputs/constants and whose internal nodes are primitive ops; each node's value is a function of its parents'. Evaluation: any topological order. Reverse sweep: reverse topological order, adjoint accumulation along every edge: $\bar v_i = \sum_{k:\ i \to k} \bar v_k\,\frac{\partial v_k}{\partial v_i}$ — a sum over paths when unrolled, computed efficiently by sharing. The graph also drives optimization (fusion, common-subexpression elimination) and parallel scheduling.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \mathrm{sigmoid}(wx + b)$ as a graph: $x, w, b \to m = wx \to s = m + b \to y = \sigma(s)$. Forward at $w=2, x=1, b=-1$: $m=2$, $s=1$, $y = \sigma(1) = 0.7311$. Reverse with $\bar y = 1$: $\bar s = \sigma(1)(1-\sigma(1)) = 0.7311\times0.2689 = 0.1966$; $\bar b = 0.1966$; $\bar m = 0.1966$; $\bar w = \bar m\,x = 0.1966$; $\bar x = \bar m\,w = 0.3932$. Every deep learning framework does exactly this, node by node, a billion nodes at a time.</div>
+ <div class="box think"><span class="label">Think first</span> Count paths: in a chain of $L$ layers where each layer's output feeds the next, how many terms does the unrolled chain rule have? What if each layer ALSO has a skip connection to the output? <details class="sol"><summary>Reveal</summary><div>A chain has one path: the chain rule is a single product of $L$ Jacobians. With skip connections, paths multiply: each layer either participates or is skipped, giving up to $2^{L}$-ish paths (ResNets as "ensembles of paths") — yet reverse mode still computes the total in $O(L)$ by summing adjoints at each merge node. Dynamic programming over the DAG beats path enumeration exponentially.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Draw (describe) the graph of $f = (x+y)^2$ and give one valid evaluation order and its reverse. <details class="sol"><summary>Solution</summary><div>$x, y \to a = x+y \to f = a^2$. Forward: $a$, then $f$. Reverse: $\bar f = 1 \to \bar a = 2a \to \bar x = \bar y = 2a = 2(x+y)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must the graph be a DAG for a single forward pass to be well-defined, and how do RNNs (which look cyclic) fit? <details class="sol"><summary>Solution</summary><div>A cycle means a value depends on itself with no base case: no topological order, no evaluation. RNNs are cyclic only as a diagram shorthand; training UNROLLS them through time into a DAG (a copy per timestep, shared weights) — backprop-through-time is reverse mode on the unrolled DAG, with adjoints of the shared weights summed across copies.</div></details></li>
+  <li><span class="lvl h">HARD</span> Node $s$ is used by $k$ downstream nodes. Show its adjoint requires $k$ accumulations, and relate to why <code>y = x; z = x</code> then $f(y, z)$ gives $\bar x = \bar y + \bar z$ — then explain what goes wrong with in-place mutation of $x$ after it was used. <details class="sol"><summary>Solution</summary><div>$f$ depends on $s$ through each consumer: $\bar s = \sum_{j=1}^k \bar c_j \frac{\partial c_j}{\partial s}$ — the multivariate chain rule over fan-out; aliasing a variable is fan-out with identity Jacobians, so $\bar x = \bar y + \bar z$. In-place mutation breaks the tape: the backward rule for a consumer of the OLD value needs that old value, but memory now holds the new one — the framework either errors ("a variable needed for gradient computation has been modified by an inplace operation") or silently produces wrong gradients if it can't detect it. The graph abstraction assumes values are immutable once produced.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>The unstable softmax postmortem.</b> A training run NaNs. The suspect line computes attention weights via <code>exp(s) / sum(exp(s))</code> on fp16 scores $s$ that have grown to $\approx 90$. (a) Show why this NaNs in fp16 but not fp64. (b) Fix it with the LSE shift and verify the fix is exact (not approximate). (c) The fixed version still returns some weights that are exactly 0 in fp16 — is that a bug? (d) Where should the sum be accumulated and why? <details class="sol"><summary>Solution</summary><div>(a) fp16 max ≈ 65504 $&lt; e^{90}\approx 1.2\times10^{39}$: $e^{90}$ = inf, inf/inf = NaN. fp64 max $\approx1.8\times10^{308}$: fine (until $s &gt; 709$). (b) Softmax$(s) = $ softmax$(s - M)$ for any constant $M$ — shift-invariance is an algebraic identity, since $e^{s_i - M}/\sum e^{s_j - M} = (e^{s_i}/e^{M})/(\sum e^{s_j}/e^{M})$; with $M = \max s$, all exponents $\le 0$: no overflow, mathematically identical. (c) Not a bug: a score 12 below the max gives $e^{-12}\approx 6\times10^{-6}$, below fp16's ~$10^{-3}$ resolution near these sums — underflow to 0 is a faithful rounding of a genuinely negligible weight. (d) In fp32: the sum of up-to-thousands of fp16 terms accumulates $\sim nu$ error in fp16 ($n\cdot10^{-3}$ — fatal), but $n\cdot10^{-7}$ in fp32; this is the standard "compute fp16, reduce fp32" rule.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>One system, four solvers.</b> Let $A = \begin{pmatrix}4 & 2\\ 2 & 3\end{pmatrix}$, $b = (2, 3)^\top$. (a) Solve via LU. (b) Solve via Cholesky. (c) Do two CG iterations from $x_0 = 0$ and compare. (d) Compute $\kappa_2(A)$ exactly and state how many digits you'd expect to lose solving this system in float64. <details class="sol"><summary>Solution</summary><div>(a) $m = \frac12$: $U = \begin{pmatrix}4 & 2\\ 0 & 2\end{pmatrix}$, $L = \begin{pmatrix}1&0\\\frac12&1\end{pmatrix}$. $Ly = b$: $y = (2, 2)$. $Ux = y$: $x_2 = 1$, $x_1 = (2-2)/4 = 0$. $x = (0, 1)$. Check: $A(0,1)^\top = (2,3)^\top$ ✓. (b) $L_{11}=2, L_{21}=1, L_{22}=\sqrt2$: $Ly = b \Rightarrow y = (1, \sqrt2)$; $L^\top x = y \Rightarrow x_2 = 1, x_1 = (1-1)/2 = 0$ ✓ same. (c) CG: $r_0 = p_0 = (2,3)$. $Ap_0 = (14, 13)$; $\alpha_0 = \frac{13}{2\cdot14+3\cdot13} = \frac{13}{67}$. $x_1 = \frac{13}{67}(2,3) \approx (0.388, 0.582)$. $r_1 = (2,3) - \frac{13}{67}(14,13) = (\frac{134-182}{67}, \frac{201-169}{67}) = (-\frac{48}{67}, \frac{32}{67}) \approx (-0.716, 0.478)$. $\beta_0 = \frac{r_1^\top r_1}{13} = \frac{(48^2+32^2)/67^2}{13} = \frac{3328/4489}{13} = 0.05703$; $p_1 = r_1 + \beta_0 p_0 \approx (-0.602, 0.649)$. $Ap_1 \approx (-1.110, 0.743)$; $\alpha_1 = \frac{0.7414}{(-0.602)(-1.110)+0.649\cdot0.743} = \frac{0.7414}{1.1505} \approx 0.6444$. $x_2 \approx (0.388 - 0.388, 0.582 + 0.418) = (0.000, 1.000)$ ✓ exact in 2 steps ($n=2$). (d) Eigenvalues: $\lambda = \frac{7 \pm \sqrt{1 + 16}}{2} = \frac{7\pm\sqrt{17}}{2}$: $\lambda_1 \approx 5.562$, $\lambda_2 \approx 1.438$; SPD so $\kappa_2 = \lambda_1/\lambda_2 \approx 3.87$. $\log_{10}3.87 \approx 0.6$: lose under one digit — beautifully conditioned.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Build the tape.</b> For $f(w_1, w_2) = \big(\sigma(w_1) - 1\big)^2 + w_1 w_2$ with $\sigma(t) = 1/(1+e^{-t})$, at $(w_1, w_2) = (0, 3)$: (a) list the forward tape (every primitive and value). (b) Run the reverse sweep by hand to get $\nabla f$. (c) Verify $\partial f/\partial w_1$ with a central difference at $h = 10^{-5}$ symbolically-numerically. (d) If $\sigma$ were replaced by ReLU, what would autodiff report at $w_1 = 0$ and what is the honest mathematical status of that number? <details class="sol"><summary>Solution</summary><div>(a) $t_1 = \sigma(w_1) = 0.5$; $t_2 = t_1 - 1 = -0.5$; $t_3 = t_2^2 = 0.25$; $t_4 = w_1w_2 = 0$; $f = t_3 + t_4 = 0.25$. (b) $\bar t_3 = \bar t_4 = 1$. $\bar t_2 = 2t_2 = -1$. $\bar t_1 = \bar t_2 = -1$. $\bar w_1 \mathrel{+}= \bar t_1\,\sigma'(0) = -1\times0.25 = -0.25$; from $t_4$: $\bar w_1 \mathrel{+}= w_2 = 3 \Rightarrow \bar w_1 = 2.75$. $\bar w_2 = w_1 = 0$. $\nabla f = (2.75, 0)$. (c) $f(\pm h, 3) = (\sigma(\pm h)-1)^2 \pm 3h$; $\sigma(h) \approx 0.5 + 0.25h$, so $(\sigma(h)-1)^2 \approx 0.25 - 0.25h$ (first order, since $(-0.5+0.25h)^2 = 0.25 - 0.25h + O(h^2)$); difference quotient: $\frac{(0.25 - 0.25h + 3h) - (0.25 + 0.25h - 3h)}{2h} = \frac{2h(2.75)}{2h} = 2.75$ ✓. (d) ReLU$(0) = 0$; frameworks define ReLU'(0) := 0 (or sometimes 1), so autodiff reports $\bar w_1 = -1\cdot\text{ReLU}'(0)\cdot\ldots$ — with the convention 0: $\bar w_1 = 0 + 3 = 3$. Honest status: the function is not differentiable at 0; the reported value is A subgradient element chosen by convention (the true subdifferential of the ReLU term at 0 spans $[-1\cdot1, -1\cdot0]$-scaled values). At a single point of measure zero this almost never matters in training — but it is a convention, not a derivative.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: witness floating-point pathologies, race the linear solvers, and write a reverse-mode autodiff engine in 60 lines.</p>
+ <p><b>Task 1 — Floating-point forensics.</b> Demonstrate: (a) the failure of associativity, (b) catastrophic cancellation in the naive quadratic formula vs the stable one, (c) naive vs shifted softmax on logits around 1000 (use NumPy float32/float64 to show both failure and fix).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+# (a) associativity fails
+a, b, c = 1e16, -1e16, 1.0
+print((a + b) + c, a + (b + c))          # 1.0 vs 0.0
+
+# (b) quadratic x^2 - 1e8 x + 1 = 0
+bq, cq = -1e8, 1.0
+disc = np.sqrt(bq*bq - 4*cq)
+naive_small = (-bq - disc) / 2           # cancellation!
+x1 = (-bq + disc) / 2                    # stable root
+vieta_small = cq / x1                    # stable via Vieta
+print(naive_small, vieta_small)          # ~7.45e-9 (wrong digits) vs 1.0000000000e-8
+print("true check:", vieta_small * x1)   # = c = 1
+
+# (c) softmax
+def softmax_naive(s): e = np.exp(s); return e / e.sum()
+def softmax_safe(s):  e = np.exp(s - s.max()); return e / e.sum()
+s = np.array([1000., 1001., 1002.], dtype=np.float64)
+print(softmax_naive(s))                  # [nan nan nan] + overflow warning
+print(softmax_safe(s))                   # [0.09003057 0.24472847 0.66524096]</code></pre></div></details>
+ <p><b>Task 2 — Solver bake-off.</b> Implement Gaussian elimination with partial pivoting, Cholesky, and conjugate gradient from scratch; verify all three on a random SPD system against <code>np.linalg.solve</code>, and plot (print) CG's residual decay for a well- vs ill-conditioned matrix.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def lu_pp_solve(A, b):
+    A = A.astype(float).copy(); b = b.astype(float).copy(); n = len(b)
+    for k in range(n - 1):
+        p = k + np.argmax(np.abs(A[k:, k]))
+        A[[k, p]], b[[k, p]] = A[[p, k]], b[[p, k]]
+        for i in range(k + 1, n):
+            m = A[i, k] / A[k, k]
+            A[i, k:] -= m * A[k, k:]; b[i] -= m * b[k]
+    x = np.zeros(n)
+    for i in range(n - 1, -1, -1):
+        x[i] = (b[i] - A[i, i+1:] @ x[i+1:]) / A[i, i]
+    return x
+
+def cholesky(A):
+    n = len(A); L = np.zeros_like(A, dtype=float)
+    for j in range(n):
+        L[j, j] = np.sqrt(A[j, j] - L[j, :j] @ L[j, :j])
+        for i in range(j + 1, n):
+            L[i, j] = (A[i, j] - L[i, :j] @ L[j, :j]) / L[j, j]
+    return L
+
+def chol_solve(A, b):
+    L = cholesky(A)
+    y = np.zeros_like(b, dtype=float)
+    for i in range(len(b)): y[i] = (b[i] - L[i, :i] @ y[:i]) / L[i, i]
+    x = np.zeros_like(b, dtype=float)
+    for i in range(len(b) - 1, -1, -1):
+        x[i] = (y[i] - L[i+1:, i] @ x[i+1:]) / L[i, i]
+    return x
+
+def cg(A, b, tol=1e-10, log=None):
+    x = np.zeros_like(b, dtype=float); r = b - A @ x; p = r.copy()
+    rs = r @ r
+    for k in range(len(b) * 10):
+        Ap = A @ p; alpha = rs / (p @ Ap)
+        x += alpha * p; r -= alpha * Ap
+        rs_new = r @ r
+        if log is not None: log.append(np.sqrt(rs_new))
+        if np.sqrt(rs_new) &lt; tol: break
+        p = r + (rs_new / rs) * p; rs = rs_new
+    return x
+
+rng = np.random.default_rng(0)
+M = rng.standard_normal((60, 60)); A = M @ M.T + 60 * np.eye(60)
+b = rng.standard_normal(60); xref = np.linalg.solve(A, b)
+for name, x in [("LU", lu_pp_solve(A, b)), ("Chol", chol_solve(A, b)), ("CG", cg(A, b))]:
+    print(name, np.max(np.abs(x - xref)))   # all ~1e-12 or better
+
+for cond in (10, 1e6):                       # conditioning vs CG speed
+    d = np.linspace(1, cond, 60); Ad = np.diag(d); log = []
+    cg(Ad, np.ones(60), log=log)
+    print(f"kappa={cond:.0e}: {len(log)} iters, final residual {log[-1]:.1e}")</code></pre></div></details>
+ <p><b>Task 3 — A micro autodiff engine.</b> Build a scalar reverse-mode <code>Value</code> class (à la micrograd) supporting +, *, tanh and exp; train nothing — just verify gradients of $f = (a b + \tanh(a))\cdot e^{b}$ against central differences.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import math
+
+class Value:
+    def __init__(self, data, children=(), op=''):
+        self.data = data; self.grad = 0.0
+        self._backward = lambda: None; self._prev = set(children)
+    def __add__(self, o):
+        o = o if isinstance(o, Value) else Value(o)
+        out = Value(self.data + o.data, (self, o), '+')
+        def _b(): self.grad += out.grad; o.grad += out.grad
+        out._backward = _b; return out
+    def __mul__(self, o):
+        o = o if isinstance(o, Value) else Value(o)
+        out = Value(self.data * o.data, (self, o), '*')
+        def _b(): self.grad += o.data * out.grad; o.grad += self.data * out.grad
+        out._backward = _b; return out
+    def tanh(self):
+        t = math.tanh(self.data); out = Value(t, (self,), 'tanh')
+        def _b(): self.grad += (1 - t * t) * out.grad
+        out._backward = _b; return out
+    def exp(self):
+        e = math.exp(self.data); out = Value(e, (self,), 'exp')
+        def _b(): self.grad += e * out.grad
+        out._backward = _b; return out
+    def backward(self):
+        topo, seen = [], set()
+        def build(v):
+            if v not in seen:
+                seen.add(v)
+                for c in v._prev: build(c)
+                topo.append(v)
+        build(self); self.grad = 1.0
+        for v in reversed(topo): v._backward()
+
+def f(a, b): return (a * b + a.tanh()) * b.exp()
+
+a, b = Value(0.5), Value(-1.2)
+y = f(a, b); y.backward()
+print("autodiff:", a.grad, b.grad)
+
+def fnum(av, bv): return (av*bv + math.tanh(av)) * math.exp(bv)
+h = 1e-6
+ga = (fnum(0.5+h, -1.2) - fnum(0.5-h, -1.2)) / (2*h)
+gb = (fnum(0.5, -1.2+h) - fnum(0.5, -1.2-h)) / (2*h)
+print("numeric :", ga, gb)   # agree to ~1e-10</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://docs.oracle.com/cd/E19957-01/806-3568/ncg_goldberg.html">Goldberg, "What Every Computer Scientist Should Know About Floating-Point Arithmetic"</a> — the canonical floating-point reference, free and readable.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-335j-introduction-to-numerical-methods-spring-2019/">MIT OCW 18.335 Introduction to Numerical Methods</a> — conditioning, stability, LU/QR/eigenvalues, in the Trefethen &amp; Bau spirit, with notes and problem sets.</li>
+  <li><a href="https://people.maths.ox.ac.uk/trefethen/text.html">Trefethen &amp; Bau, <em>Numerical Linear Algebra</em> (sample chapters + lectures)</a> — the classic conditioning/stability/QR treatment this chapter leans on.</li>
+  <li><a href="https://www.cs.cornell.edu/courses/cs4220/2020sp/">Cornell CS 4220 Numerical Analysis course notes</a> — free lecture notes covering root finding, linear solvers, iterations.</li>
+  <li><a href="https://arxiv.org/abs/1502.05767">Baydin et al., "Automatic Differentiation in Machine Learning: a Survey" (JMLR)</a> — the definitive forward/reverse-mode survey.</li>
+  <li><a href="https://colah.github.io/posts/2015-08-Backprop/">Olah, "Calculus on Computational Graphs: Backpropagation"</a> — the clearest pictures of adjoints flowing through a graph.</li>
+  <li><a href="https://arxiv.org/abs/1710.03740">Micikevicius et al., "Mixed Precision Training" (ICLR 2018)</a> — loss scaling, master weights: the paper behind the mixed-precision recipe.</li>
+  <li><a href="https://www.cs.cmu.edu/~quake-papers/painless-conjugate-gradient.pdf">Shewchuk, "An Introduction to the Conjugate Gradient Method Without the Agonizing Pain"</a> — the beloved free CG tutorial.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch17.html">← 17 · Discrete Mathematics and Computation</a>
+ <a class="btn" href="ch19.html">19 · Machine Learning →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+
+/* ---------- Floating point grid ---------- */
+(function(){
+ var c = document.getElementById('cv-fp'); if(!c) return;
+ function draw(){
+  var s = setupCanvas(c, 220), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var p = Math.round(val('fp-p')), xmax = Math.round(val('fp-max'));
+  var y = H/2, pad = 30;
+  function X(x){ return pad + (W - pad - 12) * x / xmax; }
+  g.strokeStyle = cssVar('--rule'); g.beginPath(); g.moveTo(pad, y); g.lineTo(W-8, y); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  for(var t = 0; t <= xmax; t += (xmax > 8 ? 2 : 1)){
+   g.fillText(String(t), X(t)-4, y + 34);
+   g.strokeStyle = cssVar('--rule'); g.beginPath(); g.moveTo(X(t), y-4); g.lineTo(X(t), y+4); g.stroke();
+  }
+  var count = 0;
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 1.5;
+  for(var e = -2; Math.pow(2, e) <= xmax * 2; e++){
+   var base = Math.pow(2, e);
+   for(var m = 0; m < Math.pow(2, p); m++){
+    var xv = base * (1 + m / Math.pow(2, p));
+    if(xv > xmax) break;
+    if(xv < 0.2) continue;
+    g.beginPath(); g.moveTo(X(xv), y - 14); g.lineTo(X(xv), y); g.stroke(); count++;
+   }
+  }
+  // highlight gap sizes at 1 and at xmax/2's power of two
+  g.fillStyle = cssVar('--rust'); g.font = '13px JetBrains Mono';
+  var gap1 = Math.pow(2, -p), gapBig = Math.pow(2, Math.floor(Math.log2(xmax/2))) * Math.pow(2, -p);
+  g.fillText('gap near 1: ' + gap1, pad, 24);
+  g.fillText('gap near ' + Math.pow(2, Math.floor(Math.log2(xmax/2))) + ': ' + gapBig, pad, 44);
+  var out = document.getElementById('fp-out');
+  if(out) out.textContent = count + ' representable numbers drawn in [0.25, ' + xmax + '] with p=' + p + ' mantissa bits — spacing doubles at each power of 2 (relative spacing constant)';
+ }
+ ['fp-p','fp-max'].forEach(function(id){ on(id, 'input', draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Conditioning: ellipse + near-parallel lines ---------- */
+(function(){
+ var c = document.getElementById('cv-cond'); if(!c) return;
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var kappa = Math.pow(10, val('cd-k')), pert = val('cd-p') * 0.02;
+  // A = diag-ish with sigma1 = 1, sigma2 = 1/kappa rotated 30deg
+  var th = Math.PI/6, ct = Math.cos(th), st = Math.sin(th);
+  var s1 = 1, s2 = 1 / kappa;
+  // Left: unit circle -> ellipse
+  var cx1 = W * 0.27, cy = H * 0.45, R = Math.min(W * 0.2, 90);
+  g.strokeStyle = cssVar('--rule'); g.beginPath(); g.arc(cx1, cy, R * 0.5, 0, 7); g.stroke();
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2; g.beginPath();
+  for(var i = 0; i <= 100; i++){
+   var a = i / 100 * 2 * Math.PI, ux = Math.cos(a), uy = Math.sin(a);
+   var ex = s1 * ux, ey = s2 * uy;
+   var rx = ct * ex - st * ey, ry = st * ex + ct * ey;
+   var px = cx1 + R * rx, py = cy - R * ry;
+   if(i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.stroke(); g.lineWidth = 1;
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('unit circle → A·circle', cx1 - R, cy + R + 24);
+  // Right: two near-parallel lines x+y=2 and x+(1+eps)y = 2+eps(1+pert-ish)
+  var cx2 = W * 0.72, scale = R;
+  var eps = 2 / kappa; // angle between lines shrinks with kappa
+  function toPx(x, yv){ return [cx2 + scale * (x - 1) * 0.9, cy - scale * (yv - 1) * 0.9]; }
+  // line1: x + y = 2 ; line2: x + (1+eps) y = 2 + eps + delta  (delta = perturbation of b2)
+  var delta = pert * 2;
+  g.strokeStyle = cssVar('--moss');
+  g.beginPath(); var p1 = toPx(-1, 3), p2 = toPx(3, -1); g.moveTo(p1[0], p1[1]); g.lineTo(p2[0], p2[1]); g.stroke();
+  g.strokeStyle = cssVar('--rust');
+  // line2: y = (2 + eps + delta - x)/(1+eps)
+  g.beginPath();
+  var q1 = toPx(-1, (3 + eps + delta) / (1 + eps)), q2 = toPx(3, (eps + delta - 1) / (1 + eps));
+  g.moveTo(q1[0], q1[1]); g.lineTo(q2[0], q2[1]); g.stroke();
+  // solution: subtract: eps*y = eps + delta -> y = 1 + delta/eps ; x = 2 - y
+  var ysol = 1 + delta / eps, xsol = 2 - ysol;
+  var sp = toPx(xsol, ysol);
+  g.fillStyle = cssVar('--plum'); g.beginPath(); g.arc(sp[0], sp[1], 5, 0, 7); g.fill();
+  g.fillStyle = cssVar('--ink-2');
+  g.fillText('two near-parallel constraints', cx2 - R, cy + R + 24);
+  var out = document.getElementById('cd-out');
+  if(out) out.innerHTML = 'κ ≈ ' + kappa.toFixed(0) + ' · ellipse axes ratio ' + kappa.toFixed(0) + ':1 · b perturbed by ' + (pert).toFixed(3) + ' moves solution to (' + xsol.toFixed(2) + ', ' + ysol.toFixed(2) + ') — amplification ×' + (Math.abs(delta) > 1e-12 ? Math.abs(delta/eps/delta*2).toFixed(0) : (1/eps*2).toFixed(0));
+ }
+ ['cd-k','cd-p'].forEach(function(id){ on(id, 'input', draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Finite difference error curve ---------- */
+(function(){
+ var c = document.getElementById('cv-fd'); if(!c) return;
+ function fdError(logh, scheme){
+  var h = Math.pow(10, logh);
+  var d = (scheme === 'f') ? (Math.exp(h) - 1) / h : (Math.exp(h) - Math.exp(-h)) / (2 * h);
+  return Math.abs(d - 1);
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var scheme = document.getElementById('fd-s') ? document.getElementById('fd-s').value : 'c';
+  var pad = 56;
+  function X(lh){ return pad + (W - pad - 12) * (lh + 15) / 14; }
+  function Y(le){ return 16 + (H - 56) * (0 - le) / 17; } // log10 err from 0 down to -17
+  g.strokeStyle = cssVar('--rule'); g.beginPath(); g.moveTo(pad, 10); g.lineTo(pad, H - 40); g.lineTo(W - 8, H - 40); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('log₁₀ h →', W - 90, H - 16);
+  g.save(); g.translate(16, H/2); g.rotate(-Math.PI/2); g.fillText('log₁₀ error', 0, 0); g.restore();
+  for(var t = -15; t <= -1; t += 2){ g.fillText(String(t), X(t) - 10, H - 22); }
+  // measured error curve
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2; g.beginPath();
+  var first = true;
+  for(var lh = -15; lh <= -1; lh += 0.05){
+   var e = fdError(lh, scheme); if(e <= 0) e = 1e-17;
+   var px = X(lh), py = Y(Math.max(-17, Math.log10(e)));
+   if(first){ g.moveTo(px, py); first = false; } else g.lineTo(px, py);
+  }
+  g.stroke(); g.lineWidth = 1;
+  // theory lines: truncation and rounding
+  g.setLineDash([4, 4]);
+  g.strokeStyle = cssVar('--moss'); g.beginPath();
+  for(var lh = -15; lh <= -1; lh += 0.5){
+   var le = (scheme === 'f') ? (lh - Math.log10(2)) : (2 * lh - Math.log10(6));
+   var px = X(lh), py = Y(Math.max(-17, Math.min(0, le)));
+   if(lh === -15) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.stroke();
+  g.strokeStyle = cssVar('--rust'); g.beginPath();
+  for(var lh = -15; lh <= -1; lh += 0.5){
+   var le = -16 - lh; // u/h
+   var px = X(lh), py = Y(Math.max(-17, Math.min(0, le)));
+   if(lh === -15) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.stroke(); g.setLineDash([]);
+  g.fillStyle = cssVar('--moss'); g.fillText('truncation ~ h' + (scheme === 'c' ? '²' : ''), W - 190, 26);
+  g.fillStyle = cssVar('--rust'); g.fillText('rounding ~ u/h', W - 190, 44);
+  // marker at chosen h
+  var lh0 = val('fd-h'), e0 = fdError(lh0, scheme);
+  g.fillStyle = cssVar('--plum'); g.beginPath(); g.arc(X(lh0), Y(Math.max(-17, Math.log10(Math.max(e0, 1e-17)))), 5, 0, 7); g.fill();
+  var out = document.getElementById('fd-out');
+  if(out) out.textContent = 'h = 1e' + lh0.toFixed(2) + ' → error ' + e0.toExponential(2) + (scheme === 'c' ? ' · optimum near h ≈ 6e-6 (u^{1/3})' : ' · optimum near h ≈ 1e-8 (u^{1/2})');
+ }
+ on('fd-h', 'input', draw); on('fd-s', 'change', draw);
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Newton's method tangent dance ---------- */
+(function(){
+ var c = document.getElementById('cv-newt'); if(!c) return;
+ function f(x){ return x*x*x - 2*x - 2; }
+ function fp(x){ return 3*x*x - 2; }
+ var iters = [];
+ function reset(){ iters = [val('nw-x0')]; draw(); }
+ function step(){
+  var x = iters[iters.length - 1];
+  if(Math.abs(fp(x)) < 1e-9) return;
+  iters.push(x - f(x) / fp(x));
+  if(iters.length > 12) iters.shift();
+  draw();
+ }
+ var xmin = -3, xmax = 3.4;
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var ymin = -8, ymax = 12;
+  function X(x){ return (x - xmin) / (xmax - xmin) * (W - 20) + 10; }
+  function Y(y){ return H - 30 - (y - ymin) / (ymax - ymin) * (H - 44); }
+  g.strokeStyle = cssVar('--rule');
+  g.beginPath(); g.moveTo(X(xmin), Y(0)); g.lineTo(X(xmax), Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(0), Y(ymin)); g.lineTo(X(0), Y(ymax)); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('f(x) = x³ − 2x − 2', 14, 20);
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2; g.beginPath();
+  for(var i = 0; i <= 200; i++){
+   var x = xmin + i / 200 * (xmax - xmin), y = Math.max(ymin, Math.min(ymax, f(x)));
+   if(i === 0) g.moveTo(X(x), Y(y)); else g.lineTo(X(x), Y(y));
+  }
+  g.stroke(); g.lineWidth = 1;
+  // iterates and tangents
+  for(var k = 0; k < iters.length; k++){
+   var x = iters[k];
+   if(x < xmin || x > xmax) continue;
+   var alpha = (k + 1) / iters.length;
+   g.globalAlpha = 0.3 + 0.7 * alpha;
+   if(k < iters.length - 1){
+    g.strokeStyle = cssVar('--rust');
+    var x2 = iters[k + 1];
+    g.beginPath(); g.moveTo(X(x), Y(Math.max(ymin, Math.min(ymax, f(x))))); g.lineTo(X(Math.max(xmin, Math.min(xmax, x2))), Y(0)); g.stroke();
+    g.setLineDash([3,3]); g.beginPath(); g.moveTo(X(x), Y(0)); g.lineTo(X(x), Y(Math.max(ymin, Math.min(ymax, f(x))))); g.stroke(); g.setLineDash([]);
+   }
+   g.fillStyle = cssVar('--plum'); g.beginPath(); g.arc(X(x), Y(0), 4, 0, 7); g.fill();
+  }
+  g.globalAlpha = 1;
+  var xl = iters[iters.length - 1], root = 1.7692923542386314;
+  var out = document.getElementById('nw-out');
+  if(out) out.textContent = 'iterate ' + (iters.length - 1) + ': x = ' + xl.toFixed(10) + ' · |error| = ' + Math.abs(xl - root).toExponential(2) + ' (root ≈ 1.7692923542)';
+ }
+ on('nw-x0', 'input', reset);
+ on('nw-step', 'click', step);
+ on('nw-reset', 'click', reset);
+ window.addEventListener('resize', draw); reset();
+})();
+
+/* ---------- Power iteration herd ---------- */
+(function(){
+ var c = document.getElementById('cv-pow'); if(!c) return;
+ var vecs = [], steps = 0;
+ function reset(){
+  vecs = []; steps = 0;
+  for(var i = 0; i < 24; i++){ var a = i / 24 * 2 * Math.PI; vecs.push([Math.cos(a), Math.sin(a)]); }
+  draw();
+ }
+ function apply(){
+  var r = val('pw-r');
+  // A with eigvec u1 at 30deg (lambda 1) and orthogonal (lambda r)
+  var th = Math.PI / 6, ct = Math.cos(th), st = Math.sin(th);
+  vecs = vecs.map(function(v){
+   // rotate into eigenbasis, scale, rotate back
+   var e1 = ct * v[0] + st * v[1], e2 = -st * v[0] + ct * v[1];
+   e1 *= 1; e2 *= r;
+   var w = [ct * e1 - st * e2, st * e1 + ct * e2];
+   var n = Math.hypot(w[0], w[1]) || 1;
+   return [w[0] / n, w[1] / n];
+  });
+  steps++; draw();
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var cx = W / 2, cy = H / 2 - 8, R = Math.min(W, H) / 2 - 30;
+  g.strokeStyle = cssVar('--rule'); g.beginPath(); g.arc(cx, cy, R, 0, 7); g.stroke();
+  // eigen directions
+  var th = Math.PI / 6;
+  g.strokeStyle = cssVar('--moss'); g.setLineDash([5, 4]);
+  g.beginPath(); g.moveTo(cx - R * Math.cos(th), cy + R * Math.sin(th)); g.lineTo(cx + R * Math.cos(th), cy - R * Math.sin(th)); g.stroke();
+  g.setLineDash([]);
+  g.fillStyle = cssVar('--moss'); g.font = '13px JetBrains Mono';
+  g.fillText('u₁ (dominant)', cx + R * Math.cos(th) - 100, cy - R * Math.sin(th) - 8);
+  vecs.forEach(function(v){
+   g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 1.5;
+   g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + R * v[0], cy - R * v[1]); g.stroke();
+   g.fillStyle = cssVar('--cobalt'); g.beginPath(); g.arc(cx + R * v[0], cy - R * v[1], 3, 0, 7); g.fill();
+  });
+  g.lineWidth = 1;
+  var out = document.getElementById('pw-out');
+  if(out) out.textContent = steps + ' application(s) of A · off-axis components shrink by λ₂/λ₁ = ' + val('pw-r').toFixed(2) + ' per step (expect ~' + Math.ceil(-3 / Math.log10(val('pw-r'))) + ' steps for 10⁻³ alignment)';
+ }
+ on('pw-step', 'click', apply);
+ on('pw-reset', 'click', reset);
+ on('pw-r', 'input', draw);
+ window.addEventListener('resize', draw); reset();
+})();
+})();
+</script>
+
+</body></html>

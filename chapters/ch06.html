@@ -1,0 +1,672 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 06 Trigonometry</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','06')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">06</div><h1>Trigonometry</h1><p class="lede">Circles, waves and rotation.</p>
+   <div class="meta"><span class="chip">28 topics</span><span class="chip">needs: chapters 02, 04, 05</span><span class="chip">feeds: chapters 07, 14, 21</span></div>
+  </div>
+
+<section class="topic" id="degree-measure">
+ <h2>Degree measure</h2>
+ <p>Degrees chop one full turn into 360 equal slices — a Babylonian convention that survived because 360 divides so nicely (by 2, 3, 4, 5, 6, 8, 9, 10, 12…). An angle in <em>standard position</em> starts on the positive $x$-axis and opens counterclockwise. Nothing in mathematics prefers 360 — it is a unit choice, like meters versus feet. The real object is a point on a circle: an angle names a direction, and any label that pins down the direction up to whole turns will do. Keep that picture; it is what makes "coterminal" obvious rather than a rule to memorize.</p>
+ <div class="box def"><span class="label">Definition</span> Full turn $= 360^\circ$; straight angle $=180^\circ$; right angle $=90^\circ$. Negative angles turn clockwise. Angles differing by a multiple of $360^\circ$ are <em>coterminal</em> — same terminal ray. One degree splits into 60 minutes ($'$), one minute into 60 seconds ($''$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Find the angle in $[0^\circ, 360^\circ)$ coterminal with $-750^\circ$. Add turns: $-750 + 360 = -390$; $-390 + 360 = -30$; $-30 + 360 = 330^\circ$. So $-750^\circ$ points the same way as $330^\circ$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Coterminal is not equal. $-30^\circ$ and $330^\circ$ point the same way, but as numbers they differ by a full turn. Anything that depends only on the terminal ray (sine, cosine, the direction a robot faces) treats them identically; anything that counts rotation (a motor that has spun five times, an unwound cable) does not. Decide which kind of quantity you have before you reduce mod $360^\circ$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which angle in $[0^\circ,360^\circ)$ is coterminal with $400^\circ$? <details class="sol"><summary>Solution</summary><div>$400 - 360 = 40^\circ$.</div></details></li>
+  <li><span class="lvl m">MED</span> Convert $12.3^\circ$ to degrees-minutes-seconds. <details class="sol"><summary>Solution</summary><div>$0.3^\circ = 0.3 \times 60' = 18'$, so $12^\circ 18' 0''$.</div></details></li>
+  <li><span class="lvl m">MED</span> Convert $48^\circ 36' 45''$ to decimal degrees. <details class="sol"><summary>Solution</summary><div>$36' = \tfrac{36}{60} = 0.6^\circ$ and $45'' = \tfrac{45}{3600} = 0.0125^\circ$, so $48.6125^\circ$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The hour and minute hands at 3:20 — what is the angle between them? <details class="sol"><summary>Solution</summary><div>Minute hand: $20/60 \cdot 360 = 120^\circ$ from 12. Hour hand: $3$ h $20$ min $= \tfrac{10}{3}$ h; $\tfrac{10}{3}\cdot 30^\circ = 100^\circ$ from 12. Angle $= 120 - 100 = 20^\circ$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Through how many degrees does the Earth rotate while the minute hand of a clock sweeps one full turn? Which turns faster? <details class="sol"><summary>Solution</summary><div>The minute hand takes 1 hour per turn; the Earth takes 24 hours per turn, so in that hour the Earth rotates $\tfrac{360^\circ}{24} = 15^\circ$. The minute hand is 24 times faster — and the hour hand ($360^\circ$ per 12 h $= 30^\circ$/h) is still twice as fast as the Earth.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="radian-measure">
+ <h2>Radian measure</h2>
+ <p>A radian measures an angle by the arc it cuts on a unit circle: walk a distance of one radius along the rim and you've turned one radian. It is the natural unit — with radians, arc length is just $r\theta$ and calculus formulas lose all their ugly conversion factors. The deep reason: a radian is a ratio of two lengths (arc over radius), so it is dimensionless — a pure number. That is why you can feed it to a power series like $\theta - \tfrac{\theta^3}{6} + \cdots$ without units getting tangled, and why every library function, every derivative rule, and every formula from here to the end of the book silently assumes it.</p>
+ <div class="box def"><span class="label">Definition</span> $\theta$ (in radians) $= \dfrac{\text{arc length}}{\text{radius}}$. Full circle: $2\pi$ rad $= 360^\circ$, so $$1 \text{ rad} = \frac{180^\circ}{\pi} \approx 57.30^\circ, \qquad x^\circ = x\cdot\frac{\pi}{180}\ \text{rad}.$$ Key values: $30^\circ = \tfrac\pi6$, $45^\circ = \tfrac\pi4$, $60^\circ = \tfrac\pi3$, $90^\circ = \tfrac\pi2$, $180^\circ = \pi$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Convert $135^\circ$: $135\cdot\frac{\pi}{180} = \frac{3\pi}{4}$ rad. Convert $\frac{5\pi}{6}$ rad: $\frac{5\pi}{6}\cdot\frac{180}{\pi} = 150^\circ$.</div>
+ <div class="box think"><span class="label">Think first</span> Without a calculator: is one radian bigger or smaller than $60^\circ$? By roughly how much? <details class="sol"><summary>Reveal</summary><div>Smaller. $1$ rad $= \tfrac{180^\circ}{\pi} \approx \tfrac{180}{3.14159} \approx 57.3^\circ$ — a radian is a $60^\circ$ slice trimmed by about $2.7^\circ$. Picture it: the arc has the same length as the radius, and an equilateral triangle ($60^\circ$) would need a straight chord of that length, so the angle must be slightly less than $60^\circ$.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> Every formula in calculus ($\frac{d}{dx}\sin x = \cos x$, $\sin x \approx x$) assumes radians. Feed degrees into <code>np.sin</code> and you get garbage: <code>np.sin(90)</code> is $\sin(90\text{ rad}) \approx 0.894$, not 1.</div>
+ <div class="box link"><span class="label">Where this goes</span> The small-angle approximation $\sin x \approx x$ (radians only!) powers linearization in Ch 7 and the harmonic oscillator in Ch 10.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Convert $270^\circ$ to radians. <details class="sol"><summary>Solution</summary><div>$270\cdot\frac{\pi}{180} = \frac{3\pi}{2}$ — three quarters of a full turn.</div></details></li>
+  <li><span class="lvl m">MED</span> Convert 2 radians to degrees (decimal). <details class="sol"><summary>Solution</summary><div>$2\cdot\frac{180}{\pi} \approx 114.59^\circ$.</div></details></li>
+  <li><span class="lvl m">MED</span> Which is larger: $\sin(1)$ or $\sin(1^\circ)$? <details class="sol"><summary>Solution</summary><div>$\sin(1 \text{ rad}) \approx 0.8415$ while $\sin(1^\circ) = \sin(0.01745\text{ rad}) \approx 0.01745$. The radian value is nearly 50 times larger — a vivid reminder that the argument's unit matters enormously.</div></details></li>
+  <li><span class="lvl h">HARD</span> A wheel of radius 0.3 m rolls at 5 m/s without slipping. What is its angular speed in rad/s and rev/min? <details class="sol"><summary>Solution</summary><div>$\omega = v/r = 5/0.3 = \tfrac{50}{3} \approx 16.67$ rad/s. In rev/min: $\frac{50/3}{2\pi}\cdot 60 = \frac{1000}{2\pi} \approx 159.2$ rpm.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="arc-length-trig">
+ <h2>Arc length</h2>
+ <p>In radians, the arc-length formula collapses to a product: distance along the rim equals radius times angle. This is <em>why</em> radians are the right unit — the circle's geometry becomes multiplication by one number. Double the angle, double the arc; double the radius, double the arc. Everything from odometry (how far did the wheel's rim travel?) to navigation (how long is a degree of latitude?) is this one product.</p>
+ <div class="box def"><span class="label">Definition</span> For central angle $\theta$ in radians on a circle of radius $r$: $$s = r\theta.$$ Sector area: $A = \tfrac12 r^2\theta$. (Compare the degree versions in Ch 5 — the $\frac{\theta}{360}\cdot 2\pi$ fraction is exactly the radian measure.)</div>
+ <div class="box ex"><span class="label">Worked example</span> A pendulum of length 2 m swings through $0.3$ rad. Arc traveled by the bob: $s = 2 \times 0.3 = 0.6$ m. Sector swept: $A = \tfrac12\cdot 4 \cdot 0.3 = 0.6$ m².</div>
+ <div class="box link"><span class="label">Where this goes</span> $s = r\theta$ is the baby case of arc length for general curves, which Ch 7 computes with the integral $\int\sqrt{1 + (y')^2}\,dx$ — for a circle that integral collapses back to $r\theta$. The sector area $\tfrac12 r^2\theta$ reappears as the polar-coordinates area element in Ch 9.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Arc for $r = 5$, $\theta = \tfrac{\pi}{5}$. <details class="sol"><summary>Solution</summary><div>$s = r\theta = 5\cdot\tfrac\pi5 = \pi \approx 3.14$.</div></details></li>
+  <li><span class="lvl m">MED</span> An arc of length 7 subtends an angle of 1.4 rad. Find the radius and the sector area. <details class="sol"><summary>Solution</summary><div>$r = s/\theta = 7/1.4 = 5$. $A = \tfrac12\cdot 25\cdot 1.4 = 17.5$.</div></details></li>
+  <li><span class="lvl m">MED</span> A nautical mile is one minute of arc of latitude on the Earth ($R \approx 6371$ km). How long is it? <details class="sol"><summary>Solution</summary><div>$\theta = \tfrac{1}{60}\cdot\tfrac{\pi}{180} = \tfrac{\pi}{10800}$ rad. $s = 6371 \cdot \tfrac{\pi}{10800} \approx 1.853$ km — the official value is 1.852 km.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two gears mesh: radii 6 cm and 4 cm. The large gear turns $\tfrac{\pi}{3}$ rad. Through what angle does the small one turn? <details class="sol"><summary>Solution</summary><div>Meshed gears share rim distance: $s = 6\cdot\tfrac\pi3 = 2\pi$ cm. Small gear: $\theta = s/r = 2\pi/4 = \tfrac{\pi}{2}$ rad (90°), turning the opposite way.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="unit-circle">
+ <h2>Unit circle</h2>
+ <p>The unit circle — radius 1, centered at the origin — is the master diagram of trigonometry. Walk counterclockwise from $(1,0)$ by angle $\theta$; wherever you stand, your coordinates <em>are</em> $(\cos\theta, \sin\theta)$. Every identity in this chapter is a statement about this picture. Read the symmetries off the circle directly: reflect across the $x$-axis and $\theta \mapsto -\theta$ flips the height but not the width (sine odd, cosine even); reflect across the $y$-axis and $\theta \mapsto \pi - \theta$ keeps the height (that is why $\sin\theta = \sin(\pi-\theta)$); a quarter-turn swaps the two coordinates (the cofunction identities). Fluency here means never memorizing a sign rule again — you just look.</p>
+ <div class="box def"><span class="label">Definition</span> The unit circle is $x^2 + y^2 = 1$. For any real $\theta$, the terminal point of angle $\theta$ (standard position) is $P(\theta) = (\cos\theta, \sin\theta)$. Immediate consequences: $\cos^2\theta + \sin^2\theta = 1$; both functions are periodic with period $2\pi$; $\cos(-\theta) = \cos\theta$ (even), $\sin(-\theta) = -\sin\theta$ (odd). The <em>reference angle</em> of θ is the acute angle its ray makes with the $x$-axis: it fixes the magnitudes of $\cos$ and $\sin$, and the quadrant fixes the signs. This two-step recipe — magnitude from the reference angle, sign from the quadrant — evaluates any special angle in seconds.</div>
+ <div class="box ex"><span class="label">Worked example</span> The key first-quadrant points: $\theta = \tfrac\pi6$: $(\tfrac{\sqrt3}{2}, \tfrac12)$; $\theta = \tfrac\pi4$: $(\tfrac{\sqrt2}{2}, \tfrac{\sqrt2}{2})$; $\theta = \tfrac\pi3$: $(\tfrac12, \tfrac{\sqrt3}{2})$. For $\theta = \tfrac{2\pi}{3}$ (quadrant II): reference angle $\tfrac\pi3$, cosine negative there, so $\big({-\tfrac12}, \tfrac{\sqrt3}{2}\big)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag θ around the circle; watch the coordinates become cos θ (green, horizontal) and sin θ (blue, vertical).</p>
+  <canvas id="cv-unit"></canvas>
+  <div class="ctl"><label>θ (degrees) <input type="range" id="uc-th" min="0" max="360" step="1" value="50"></label></div>
+  <div class="out" id="uc-out"></div>
+ </div>
+ <div class="box think"><span class="label">Think first</span> Without computing: is $\sin 200^\circ$ positive or negative? Cosine? <details class="sol"><summary>Reveal</summary><div>$200^\circ$ is in quadrant III (below, left): both are negative. Mnemonic "All Students Take Calculus": All +, Sine + (QII), Tangent + (QIII), Cosine + (QIV).</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> This circle is the stage for the whole book's rotation story: at the end of this chapter it becomes the range of $e^{i\theta}$, in Ch 8 walking around it becomes multiplication by a rotation matrix, and in Ch 14 the $n$-th roots of unity spaced evenly around it index the discrete Fourier transform.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Terminal point of $\theta = \pi$? <details class="sol"><summary>Solution</summary><div>$(-1, 0)$: $\cos\pi = -1$, $\sin\pi = 0$ — half-way around the circle from $(1,0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Exact coordinates for $\theta = \tfrac{7\pi}{6}$. <details class="sol"><summary>Solution</summary><div>Reference angle $\tfrac\pi6$; quadrant III (both negative): $\big({-\tfrac{\sqrt3}{2}}, {-\tfrac12}\big)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\sin\theta = \tfrac35$ and $\theta$ is in quadrant II. Find $\cos\theta$ exactly. <details class="sol"><summary>Solution</summary><div>$\cos^2\theta = 1 - \tfrac{9}{25} = \tfrac{16}{25}$, so $\cos\theta = \pm\tfrac45$; quadrant II makes cosine negative: $\cos\theta = -\tfrac45$.</div></details></li>
+  <li><span class="lvl e">EASY</span> In which quadrants is $\tan\theta$ positive? <details class="sol"><summary>Solution</summary><div>Where sine and cosine share a sign: quadrants I (both $+$) and III (both $-$).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">If $\cos\theta = 0.3$, what is $\cos(-\theta)$?</div><button class="opt">$-0.3$</button><button class="opt">$0.3$</button><button class="opt">Need to know $\theta$</button><div class="why" hidden>Cosine is even: reflecting $\theta$ across the $x$-axis leaves the $x$-coordinate unchanged, so $\cos(-\theta) = \cos\theta = 0.3$.</div></div>
+</section>
+
+<section class="topic" id="sine">
+ <h2>Sine</h2>
+ <p>Sine is <em>height on the unit circle</em>: how far above the horizontal axis you are after turning through θ. In a right triangle, that same ratio is opposite over hypotenuse. As θ runs, sine traces the wave that describes sound, light, springs, and alternating current. Why does one shape rule all of physics? Because anything that oscillates near a stable equilibrium feels a restoring pull proportional to its displacement, and the function whose acceleration is proportional to minus itself is exactly the sine wave (Ch 7 makes this precise). Sine is not one wave among many — it is the wave that all small oscillations become.</p>
+ <div class="box def"><span class="label">Definition</span> $\sin\theta = y$-coordinate of the terminal point on the unit circle. Right-triangle version (acute $\theta$): $\sin\theta = \dfrac{\text{opposite}}{\text{hypotenuse}}$. Range $[-1, 1]$; period $2\pi$; odd function; zeros at integer multiples of $\pi$; maximum 1 at $\theta = \tfrac\pi2 + 2k\pi$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A ramp rises at $\theta$ with $\sin\theta = \tfrac{3}{10}$ and length 10 m: vertical rise $= 10\sin\theta = 3$ m. And exact values to memorize: $\sin 0 = 0$, $\sin\tfrac\pi6 = \tfrac12$, $\sin\tfrac\pi4 = \tfrac{\sqrt2}{2}$, $\sin\tfrac\pi3 = \tfrac{\sqrt3}{2}$, $\sin\tfrac\pi2 = 1$ — the pattern $\tfrac{\sqrt{0}}2, \tfrac{\sqrt1}2, \tfrac{\sqrt2}2, \tfrac{\sqrt3}2, \tfrac{\sqrt4}2$ — five values that, with symmetry, cover every special angle on the circle.</div>
+ <div class="box link"><span class="label">Where this goes</span> Sinusoids are the atoms of Fourier analysis (Ch 14): every signal decomposes into sines and cosines. The same chapter builds sinusoidal positional encodings — a transformer tells token 17 from token 18 by a bank of sines at geometrically spaced frequencies — and RoPE, which encodes position by rotating embedding pairs through position-proportional angles.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\sin\tfrac{3\pi}{2} = ?$ <details class="sol"><summary>Solution</summary><div>Bottom of the circle, $(0,-1)$: the $y$-coordinate is $-1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\sin\theta = \tfrac12$ for $\theta \in [0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>$\theta = \tfrac\pi6$ and $\theta = \pi - \tfrac\pi6 = \tfrac{5\pi}{6}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Order $\sin 1$, $\sin 2$, $\sin 3$ (radians) from smallest to largest, without a calculator. <details class="sol"><summary>Solution</summary><div>All three angles lie in $(0, \pi)$, where sine is positive, rising until $\tfrac\pi2 \approx 1.571$ and falling after. $\sin 3$ is nearly at the zero at $\pi \approx 3.14$, so it is small ($\approx 0.141$). Between $\sin 1$ and $\sin 2$: use symmetry, $\sin 2 = \sin(\pi - 2) = \sin(1.14)$, and $1.14 &gt; 1$ on the rising part, so $\sin 2 &gt; \sin 1$. Order: $\sin 3 &lt; \sin 1 &lt; \sin 2$ ($0.141 &lt; 0.841 &lt; 0.909$).</div></details></li>
+  <li><span class="lvl h">HARD</span> A Ferris wheel of radius 20 m, center 22 m up, turns once per 60 s starting at the bottom. Write the rider's height $h(t)$ and find $h(10)$. <details class="sol"><summary>Solution</summary><div>Height: $h(t) = 22 - 20\cos\!\big(\tfrac{2\pi t}{60}\big)$ (cosine starts at the bottom). $h(10) = 22 - 20\cos\tfrac{\pi}{3} = 22 - 10 = 12$ m.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cosine">
+ <h2>Cosine</h2>
+ <p>Cosine is <em>horizontal position on the unit circle</em> — sine's twin, a quarter turn ahead. In a right triangle it is adjacent over hypotenuse. Cosine measures alignment, which is why the dot product formula of Ch 5 runs on it. Think of it as a "same-direction score": $+1$ for parallel, $0$ for perpendicular, $-1$ for opposite — a dimmer switch for how much of one direction lives inside another. Whenever a model asks "how similar are these two things?", there is usually a cosine underneath.</p>
+ <div class="box def"><span class="label">Definition</span> $\cos\theta = x$-coordinate of the terminal point. Right-triangle version: $\cos\theta = \dfrac{\text{adjacent}}{\text{hypotenuse}}$. Range $[-1,1]$; period $2\pi$; even function; zeros at $\tfrac\pi2 + k\pi$. Cofunction identity: $\cos\theta = \sin(\tfrac\pi2 - \theta)$, and $\cos\theta = \sin(\theta + \tfrac\pi2)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 6 m ladder makes $\theta = 65^\circ$ with the ground. Foot-to-wall distance $= 6\cos 65^\circ \approx 6 \times 0.4226 = 2.54$ m; height reached $= 6\sin 65^\circ \approx 5.44$ m. Check: $2.54^2 + 5.44^2 \approx 6.45 + 29.6 \approx 36$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Adjacent over hypotenuse" only makes sense for acute angles — there is no right triangle with a $150^\circ$ corner. The unit-circle definition ($x$-coordinate) is the real one; the triangle ratio is its special case. When an angle leaves $(0^\circ, 90^\circ)$, reason from the circle, not the triangle.</div>
+ <div class="box link"><span class="label">Where this goes</span> Cosine similarity $\frac{\mathbf{u}\cdot\mathbf{v}}{\|\mathbf{u}\|\|\mathbf{v}\|}$ ranks embeddings in retrieval systems (Ch 31); positional encodings (Ch 14) are interleaved sines and cosines.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\cos\tfrac{2\pi}{3} = ?$ <details class="sol"><summary>Solution</summary><div>Reference $\tfrac\pi3$, quadrant II: $-\tfrac12$.</div></details></li>
+  <li><span class="lvl e">EASY</span> $\cos(-\tfrac\pi3) = ?$ <details class="sol"><summary>Solution</summary><div>Cosine is even: $\cos(-\tfrac\pi3) = \cos\tfrac\pi3 = \tfrac12$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\cos\theta = -\tfrac{\sqrt2}{2}$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>Cosine is negative in quadrants II and III; reference angle $\tfrac\pi4$: $\theta = \pi - \tfrac\pi4 = \tfrac{3\pi}{4}$ and $\pi + \tfrac\pi4 = \tfrac{5\pi}{4}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two unit vectors have dot product $-0.5$. What is the angle between them, and what is $\|\mathbf{u} - \mathbf{v}\|$? <details class="sol"><summary>Solution</summary><div>$\cos\theta = -0.5 \Rightarrow \theta = 120^\circ$. $\|\mathbf{u}-\mathbf{v}\|^2 = 1 + 1 - 2(-0.5) = 3$, so $\|\mathbf{u}-\mathbf{v}\| = \sqrt3$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tangent">
+ <h2>Tangent</h2>
+ <p>Tangent is slope: the ratio of rise (sine) to run (cosine) of the ray at angle θ. A line making angle θ with the $x$-axis has slope exactly $\tan\theta$. It blows up where cosine dies — at vertical. That blow-up is honest: as a ramp tilts toward vertical, its rise-per-unit-run really does grow without bound, and no finite slope describes a vertical line. Tangent is the bridge between angles (bounded, periodic) and slopes (unbounded) — and its inverse, arctan, is the bridge back.</p>
+ <div class="box def"><span class="label">Definition</span> $\tan\theta = \dfrac{\sin\theta}{\cos\theta} = \dfrac{\text{opposite}}{\text{adjacent}}$, defined for $\cos\theta \ne 0$ (undefined at $\theta = \tfrac\pi2 + k\pi$, where the graph has vertical asymptotes). Period $\pi$ (not $2\pi$); odd; range all of $\mathbb{R}$. Values: $\tan\tfrac\pi6 = \tfrac{1}{\sqrt3}$, $\tan\tfrac\pi4 = 1$, $\tan\tfrac\pi3 = \sqrt3$. Near zero, $\tan\theta \approx \theta$ (radians) — like sine, but approaching from above rather than below.</div>
+ <div class="box ex"><span class="label">Worked example</span> From 50 m away, the top of a tower sits at an elevation angle of $32^\circ$. Height $= 50\tan 32^\circ \approx 50 \times 0.6249 = 31.2$ m (plus eye height). This is the surveyor's whole trade: an angle you can measure plus one distance you can pace off gives the length you cannot reach.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\tan$ has period $\pi$: $\tan(\theta + \pi) = \tan\theta$. Solving $\tan\theta = 1$ on $[0, 2\pi)$ gives <em>two</em> answers, $\tfrac\pi4$ and $\tfrac{5\pi}{4}$ — not just one.</div>
+ <div class="box link"><span class="label">Where this goes</span> The derivative of Ch 7 is a limit of slopes, i.e. of tangents of tilt angles — the name "tangent line" is this function's geometry. And $\tan$'s inverse arctan, with its S-shaped graph squashing $\mathbb{R}$ into a bounded interval, is a close cousin of the sigmoid squashing functions of Ch 21.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\tan\tfrac{3\pi}{4} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{\sin(3\pi/4)}{\cos(3\pi/4)} = \frac{\sqrt2/2}{-\sqrt2/2} = -1$.</div></details></li>
+  <li><span class="lvl m">MED</span> A road climbs 8 m per 100 m horizontal. What angle does it make with the horizontal? <details class="sol"><summary>Solution</summary><div>$\tan\theta = 0.08 \Rightarrow \theta = \arctan 0.08 \approx 4.57^\circ$.</div></details></li>
+  <li><span class="lvl m">MED</span> For which $\theta \in [0, 2\pi)$ is $\tan\theta$ undefined, and what does the graph do there? <details class="sol"><summary>Solution</summary><div>Where $\cos\theta = 0$: $\theta = \tfrac\pi2$ and $\tfrac{3\pi}2$. The graph has vertical asymptotes: $\tan\theta \to +\infty$ approaching from the left, $-\infty$ from the right.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $\tan\theta = \tfrac{5}{12}$ with $\theta$ in quadrant III, find $\sin\theta$ and $\cos\theta$. <details class="sol"><summary>Solution</summary><div>Reference triangle 5-12-13. Quadrant III: both negative. $\sin\theta = -\tfrac{5}{13}$, $\cos\theta = -\tfrac{12}{13}$. Check: ratio $= \tfrac{5}{12}$ ✓, squares sum to 1 ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cosecant">
+ <h2>Cosecant</h2>
+ <p>Cosecant is the reciprocal of sine — big when sine is small. Where sine crosses zero, cosecant shoots off to infinity, producing a graph of repeating U-shapes riding the sine wave's peaks and valleys. You will rarely meet cosecant in machine learning, but it earns its keep in calculus (certain integrals) and in any formula where "one over a projection" appears — the length of a ladder that must reach a given height at angle θ is $h\csc\theta$.</p>
+ <div class="box def"><span class="label">Definition</span> $\csc\theta = \dfrac{1}{\sin\theta}$ (undefined at $\theta = k\pi$). Range: $(-\infty, -1] \cup [1, \infty)$; period $2\pi$; odd. Right triangle: hypotenuse/opposite.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\csc\tfrac\pi6 = \dfrac{1}{\sin(\pi/6)} = \dfrac{1}{1/2} = 2$ — a ladder leaning at only $30^\circ$ must be twice as long as the height it reaches. And $\csc\tfrac\pi2 = 1$ — the smallest positive value cosecant ever takes, at sine's peak.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\csc x$ is $\dfrac{1}{\sin x}$, but the calculator button $\sin^{-1}$ is <em>not</em> it — that button is arcsin, the inverse <em>function</em>. The notation $\sin^{-1}x$ collides with the reciprocal reading; this book writes $\arcsin$ for the inverse and $\csc$ for the reciprocal and never uses $\sin^{-1}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\csc\tfrac{\pi}{4} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{1}{\sqrt2/2} = \sqrt2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is there no $\theta$ with $\csc\theta = \tfrac12$? <details class="sol"><summary>Solution</summary><div>That would need $\sin\theta = 2$, impossible since $|\sin\theta| \le 1$. Cosecant never enters $(-1, 1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> On the interval $(0, \pi)$, where does $\csc\theta$ attain its minimum, and what is it? <details class="sol"><summary>Solution</summary><div>On $(0,\pi)$, $\sin\theta$ is positive and peaks at $\theta = \tfrac\pi2$ with value 1, so its reciprocal bottoms out there: minimum $\csc\tfrac\pi2 = 1$. This is the "shortest ladder" fact: to reach a fixed height, the ladder $h\csc\theta$ is shortest when vertical.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $\csc\theta = -\tfrac{13}{5}$ and $\cos\theta &gt; 0$, find $\tan\theta$. <details class="sol"><summary>Solution</summary><div>$\sin\theta = -\tfrac{5}{13}$; sine negative, cosine positive → quadrant IV, $\cos\theta = \tfrac{12}{13}$. $\tan\theta = -\tfrac{5}{12}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="secant">
+ <h2>Secant</h2>
+ <p>Secant is the reciprocal of cosine. Its name comes from the Latin for "cutting" — geometrically it is the length of the line from the origin, along angle θ, out to where it cuts the vertical tangent line at $x=1$. So $\sec\theta$ answers "how much longer than the radius is the slanted reach?" — at $\theta = 0$ no longer at all ($\sec 0 = 1$), and as θ tilts toward $90^\circ$ the reach grows without bound.</p>
+ <div class="box def"><span class="label">Definition</span> $\sec\theta = \dfrac{1}{\cos\theta}$ (undefined at $\theta = \tfrac\pi2 + k\pi$). Range $(-\infty,-1]\cup[1,\infty)$; period $2\pi$; even. Identity preview: $1 + \tan^2\theta = \sec^2\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\sec\tfrac\pi3 = \dfrac{1}{1/2} = 2$; $\sec\pi = \dfrac{1}{-1} = -1$; $\sec 0 = 1$.</div>
+ <div class="box think"><span class="label">Think first</span> True or false: $\sec\theta \ge 1$ for every θ where it is defined. <details class="sol"><summary>Reveal</summary><div>False. Only $|\sec\theta| \ge 1$ is true. Wherever cosine is negative (quadrants II and III), secant is $\le -1$ — e.g. $\sec\pi = -1$, $\sec\tfrac{2\pi}3 = -2$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\sec\tfrac{\pi}{4} = ?$ <details class="sol"><summary>Solution</summary><div>$\sqrt2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\sec\theta = 2$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>$\cos\theta = \tfrac12$: $\theta = \tfrac\pi3$ and $\tfrac{5\pi}3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $1 + \tan^2\tfrac\pi3 = \sec^2\tfrac\pi3$ numerically. <details class="sol"><summary>Solution</summary><div>$1 + (\sqrt3)^2 = 4$ and $\sec^2\tfrac\pi3 = 2^2 = 4$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> A wall of height 1 stands at $x = 1$. A ray from the origin at angle $\theta$ hits the wall's line $x=1$ at height $\tan\theta$, at distance $\sec\theta$ from the origin. Prove it. <details class="sol"><summary>Solution</summary><div>The ray is $(t\cos\theta, t\sin\theta)$. It reaches $x = 1$ when $t\cos\theta = 1$, i.e. $t = \sec\theta$ — and $t$ is exactly the distance from the origin. Height there: $t\sin\theta = \frac{\sin\theta}{\cos\theta} = \tan\theta$. $\blacksquare$ (This picture is where the names tangent and secant come from.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cotangent">
+ <h2>Cotangent</h2>
+ <p>Cotangent is tangent flipped: run over rise, cosine over sine. It measures the slope's reciprocal, blows up where sine vanishes, and completes the six-pack of trig functions. Its graph mirrors tangent's: the same repeating branches between vertical asymptotes, but <em>decreasing</em> on each branch, with asymptotes where tangent has zeros and zeros where tangent has asymptotes.</p>
+ <div class="box def"><span class="label">Definition</span> $\cot\theta = \dfrac{\cos\theta}{\sin\theta} = \dfrac{1}{\tan\theta}$ (undefined at $\theta = k\pi$). Period $\pi$; odd; range $\mathbb{R}$. Identity: $1 + \cot^2\theta = \csc^2\theta$. Cofunction: $\cot\theta = \tan(\tfrac\pi2 - \theta)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\cot\tfrac\pi6 = \frac{\cos(\pi/6)}{\sin(\pi/6)} = \frac{\sqrt3/2}{1/2} = \sqrt3$ — the reciprocal of $\tan\tfrac\pi6 = \tfrac{1}{\sqrt3}$, and equal to $\tan\tfrac\pi3$, its cofunction partner.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\cot\theta = \tfrac1{\tan\theta}$ fails where $\tan\theta = 0$ or is undefined. At $\theta = \tfrac\pi2$: $\tan$ is undefined but $\cot\tfrac\pi2 = 0$ is perfectly fine. Use $\cos/\sin$ as the real definition.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\cot\tfrac{\pi}{4} = ?$ <details class="sol"><summary>Solution</summary><div>$1$.</div></details></li>
+  <li><span class="lvl e">EASY</span> $\cot\tfrac{\pi}{2} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{\cos(\pi/2)}{\sin(\pi/2)} = \frac{0}{1} = 0$ — defined, even though $\tan\tfrac\pi2$ is not.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\cot\theta = -\sqrt3$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>$\tan\theta = -\tfrac{1}{\sqrt3}$: reference $\tfrac\pi6$, quadrants II and IV: $\theta = \tfrac{5\pi}{6}, \tfrac{11\pi}{6}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\cot\theta + \tan\theta = \dfrac{2}{\sin 2\theta}$ (you may use $\sin 2\theta = 2\sin\theta\cos\theta$). <details class="sol"><summary>Solution</summary><div>$\cot\theta + \tan\theta = \frac{\cos\theta}{\sin\theta} + \frac{\sin\theta}{\cos\theta} = \frac{\cos^2\theta + \sin^2\theta}{\sin\theta\cos\theta} = \frac{1}{\sin\theta\cos\theta} = \frac{2}{2\sin\theta\cos\theta} = \frac{2}{\sin 2\theta}$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="trigonometric-graphs">
+ <h2>Trigonometric graphs</h2>
+ <p>Unroll the unit circle along the horizontal axis and sine's height traces a wave; cosine is the same wave shifted left by a quarter period. Tangent draws repeating S-curves between vertical asymptotes. Reading these graphs — where they peak, cross zero, repeat — is reading the behavior of any oscillating system. Train the reflexes: a solution count is an intersection count between a wave and a horizontal line; a sign question is "which side of the axis is the wave on here?"; a symmetry claim is a fold of the paper. Most trig "computations" dissolve into a five-second glance at the right graph.</p>
+ <div class="box def"><span class="label">Definition</span> $y = \sin x$: wave through the origin, peaks at $\tfrac\pi2 + 2k\pi$, period $2\pi$. $y = \cos x$: starts at its peak $(0,1)$; $\cos x = \sin(x + \tfrac\pi2)$. $y = \tan x$: period $\pi$, zeros at $k\pi$, vertical asymptotes at $\tfrac\pi2 + k\pi$, increasing on each branch. Sine and cosine are bounded, continuous, and infinitely smooth everywhere; tangent is smooth on each branch but unbounded — the qualitative split that decides which is safe inside a numerical model.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sketch $y = \sin x$ on $[0, 2\pi]$ from five anchor points: $(0,0)$, $(\tfrac\pi2, 1)$, $(\pi, 0)$, $(\tfrac{3\pi}{2}, -1)$, $(2\pi, 0)$ — then connect with the smooth S-curves. Cosine uses the same five heights shifted: starts at 1, hits 0 at $\tfrac\pi2$, $-1$ at $\pi$.</div>
+ <div class="box think"><span class="label">Think first</span> How many times do the graphs of $\sin x$ and $\cos x$ cross on $[0, 2\pi)$, and where? <details class="sol"><summary>Reveal</summary><div>Crossings solve $\sin x = \cos x$, i.e. $\tan x = 1$: twice, at $x = \tfrac\pi4$ (both $\tfrac{\sqrt2}2$) and $x = \tfrac{5\pi}4$ (both $-\tfrac{\sqrt2}2$). One crossing per period of tangent.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> These graphs are the entire alphabet of Fourier analysis (Ch 14): any periodic signal — square wave, sawtooth, a note from a cello — is a sum of scaled and shifted copies of exactly these sinusoids, and "reading a spectrum" means reading which copies are present.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> On $[0, 2\pi]$, where is $\cos x$ negative? <details class="sol"><summary>Solution</summary><div>Between its zeros: $(\tfrac\pi2, \tfrac{3\pi}{2})$ — the left half of the unit circle, where the $x$-coordinate is negative.</div></details></li>
+  <li><span class="lvl m">MED</span> How many solutions does $\sin x = 0.3$ have on $[0, 4\pi]$? <details class="sol"><summary>Solution</summary><div>Two per period, two periods: 4 solutions.</div></details></li>
+  <li><span class="lvl m">MED</span> What is the period of $y = |\sin x|$? Sketch it mentally. <details class="sol"><summary>Solution</summary><div>The absolute value flips every trough up into a hump, so the graph is a train of identical humps of width $\pi$. Period $\pi$, not $2\pi$.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many solutions does $\tan x = x$ have on $[0, 10]$? Argue from the graphs. <details class="sol"><summary>Solution</summary><div>On each branch of $\tan$, the curve runs from $-\infty$ to $+\infty$ continuously, so it crosses the line $y = x$ exactly once per branch. Branches meeting $[0,10]$: $[0, \tfrac\pi2)$, $(\tfrac\pi2, \tfrac{3\pi}2)$, $(\tfrac{3\pi}2, \tfrac{5\pi}2)$, $(\tfrac{5\pi}2, \tfrac{7\pi}2)$ — since $\tfrac{7\pi}2 \approx 11.0 &gt; 10$ the last crossing (near $x \approx 10.9$... actually near the asymptote) must be checked: on $(\tfrac{5\pi}2, 10]$, $\tan x$ climbs from $-\infty$ toward $\tan 10 \approx 0.65 &lt; 10$, so no crossing there. Crossings: $x = 0$, one in $(\tfrac\pi2, \tfrac{3\pi}2)$ (near 4.49), one in $(\tfrac{3\pi}2, \tfrac{5\pi}2)$ (near 7.73). Total <b>3</b>.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="amplitude">
+ <h2>Amplitude</h2>
+ <p>Amplitude is how tall the wave is: the distance from the midline to a peak. Turn up a speaker's volume and you scale the sound wave's amplitude; the pitch (period) doesn't change. Amplitude, period, phase, midline — the four knobs $A, B, C, D$ of $A\sin(Bx+C)+D$ — are independent: each moves one visual feature of the wave and leaves the others alone. This section and the next two take them one at a time.</p>
+ <div class="box def"><span class="label">Definition</span> For $y = A\sin(Bx + C) + D$ or the cosine version, the <em>amplitude</em> is $|A|$: the graph oscillates between $D - |A|$ and $D + |A|$ around midline $y = D$. Negative $A$ flips the wave upside down. Physically, amplitude carries the energy: a wave's power scales with the amplitude <em>squared</em>, so doubling amplitude quadruples power.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = -3\sin x + 1$: amplitude $|-3| = 3$, midline $y = 1$, range $[-2, 4]$, and the flip means it starts heading <em>down</em> from $(0, 1)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Amplitude is the distance from the <em>midline</em> to a peak — half the peak-to-trough distance — not the maximum value. A wave living between $-7$ and $3$ has amplitude 5, not 3, because its midline sits at $-2$. Find the midline first, always.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Amplitude and range of $y = 5\cos x$? <details class="sol"><summary>Solution</summary><div>Amplitude 5, range $[-5, 5]$.</div></details></li>
+  <li><span class="lvl m">MED</span> A wave oscillates between $-7$ and $3$. Find its amplitude and midline. <details class="sol"><summary>Solution</summary><div>Midline $D = \frac{-7+3}{2} = -2$; amplitude $= 3 - (-2) = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> A tide oscillates sinusoidally between 0.8 m and 3.2 m. Write one possible height function with period 12 h, high tide at $t = 0$. <details class="sol"><summary>Solution</summary><div>Midline $\frac{0.8+3.2}{2} = 2$ m, amplitude $1.2$ m, $B = \frac{2\pi}{12} = \frac\pi6$. High tide at $t=0$ wants a cosine: $h(t) = 2 + 1.2\cos\frac{\pi t}{6}$. Check: $h(0) = 3.2$ ✓, $h(6) = 2 - 1.2 = 0.8$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the maximum value of $f(x) = 3\sin x + 4\cos x$ and where it occurs. <details class="sol"><summary>Solution</summary><div>Write as $R\sin(x+\varphi)$ with $R = \sqrt{3^2+4^2} = 5$, $\cos\varphi = \tfrac35, \sin\varphi = \tfrac45$. Max value <b>5</b>, at $x + \varphi = \tfrac\pi2$, i.e. $x = \tfrac\pi2 - \arctan\tfrac43 \approx 0.6435$ rad. (Check: $3\sin(0.6435)+4\cos(0.6435) = 3(0.6)+4(0.8) = 5$. ✓)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">What is the maximum value of $y = -2\sin x + 3$?</div><button class="opt">5</button><button class="opt">3</button><button class="opt">2</button><div class="why" hidden>Amplitude $|-2| = 2$ around midline 3: the wave lives in $[1, 5]$, peaking at 5 (where $\sin x = -1$).</div></div>
+</section>
+
+<section class="topic" id="period">
+ <h2>Period</h2>
+ <p>The period is how long the wave takes to repeat. The factor $B$ inside $\sin(Bx)$ compresses time: bigger $B$, faster oscillation, shorter period. Frequency is the reciprocal — cycles per unit. Get the three vocabularies straight once: period $T$ (seconds per cycle), frequency $f = 1/T$ (cycles per second, hertz), angular frequency $\omega = 2\pi f$ (radians per second). They carry the same information; physics prefers $\omega$ because formulas stay clean in radians.</p>
+ <div class="box def"><span class="label">Definition</span> $y = A\sin(Bx + C) + D$ has period $T = \dfrac{2\pi}{|B|}$ (for tangent: $\pi/|B|$). Frequency $f = 1/T$; angular frequency $\omega = B = 2\pi f$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Mains electricity: $V(t) = 325\sin(100\pi t)$ volts. Period $T = \frac{2\pi}{100\pi} = 0.02$ s, so frequency $= 50$ Hz. Amplitude 325 V (the "230 V" rating is the RMS value $325/\sqrt2 \approx 230$ — root-mean-square, computed from the average of $\sin^2$ being $\tfrac12$, a double-angle fact from two sections ahead).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Period $2\pi/B$, not $2\pi B$. Check with $B=2$: $\sin 2x$ wiggles twice as fast, so its period must be <em>smaller</em>, $\pi$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Frequency is the axis of the Fourier transform (Ch 14): a spectrum is a plot of "how much of each frequency" a signal contains. Sinusoidal positional encodings (Ch 14) use a geometric ladder of periods — from a few tokens to tens of thousands — so that every pair of positions is distinguished by <em>some</em> frequency in the bank.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Period of $y = \cos 4x$? <details class="sol"><summary>Solution</summary><div>$\frac{2\pi}{4} = \frac\pi2$.</div></details></li>
+  <li><span class="lvl e">EASY</span> Frequency (in Hz) of $y = \sin(6\pi t)$, $t$ in seconds? <details class="sol"><summary>Solution</summary><div>$T = \frac{2\pi}{6\pi} = \frac13$ s, so $f = 3$ Hz.</div></details></li>
+  <li><span class="lvl m">MED</span> Write a sine with amplitude 2 and period 6. <details class="sol"><summary>Solution</summary><div>$B = \frac{2\pi}{6} = \frac\pi3$: $y = 2\sin\frac{\pi x}{3}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> What is the period of $f(x) = \sin 2x + \cos 3x$? <details class="sol"><summary>Solution</summary><div>Periods $\pi$ and $\frac{2\pi}{3}$; the sum repeats at the least common multiple: $\text{lcm}(\pi, \tfrac{2\pi}3) = 2\pi$ (check: $\pi\cdot2 = 2\pi = \tfrac{2\pi}3\cdot 3$). Period $2\pi$. (When the two periods have an <em>irrational</em> ratio — say $\sin x + \sin \pi x$ — no common multiple exists and the sum never repeats at all: it is "quasiperiodic".)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="phase-shift">
+ <h2>Phase shift</h2>
+ <p>Phase shift slides the wave left or right without changing its shape. Two waves with the same period but different phases are the same song started at different moments — and their interference (add them!) depends entirely on the phase gap. In phase (gap 0), crests meet crests and the sum doubles; out of phase (gap $\pi$), crests meet troughs and the waves annihilate — that is how noise-cancelling headphones work. Phase is the invisible coordinate: two signals can look identical on a spectrum and behave completely differently because of it.</p>
+ <div class="box def"><span class="label">Definition</span> $y = A\sin(B(x - \varphi)) + D$ is the basic wave shifted <em>right</em> by $\varphi$. In the expanded form $A\sin(Bx + C)$, the shift is $\varphi = -C/B$ (factor out $B$ first!).</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = \sin(2x - \tfrac{\pi}{3}) = \sin\!\big(2(x - \tfrac\pi6)\big)$: period $\pi$, shifted right by $\tfrac\pi6$ — <em>not</em> by $\tfrac\pi3$. The first peak sits where $2x - \tfrac\pi3 = \tfrac\pi2$, i.e. $x = \tfrac{5\pi}{12}$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Phase is exactly what RoPE (Ch 14) manipulates: each token's query/key pair is a tiny wave, and position $p$ shifts its phase by $p\theta_k$. Two tokens' dot product then depends only on their phase <em>difference</em> — i.e. their relative position — which is the whole trick.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Shape the wave y = A sin(Bx + C) + D and watch amplitude, period, phase and midline act independently.</p>
+  <canvas id="cv-wave"></canvas>
+  <div class="ctl">
+   <label>A <input type="range" id="wv-a" min="-3" max="3" step="0.1" value="1.5"></label>
+   <label>B <input type="range" id="wv-b" min="0.5" max="5" step="0.1" value="1"></label>
+   <label>C <input type="range" id="wv-c" min="-3.14" max="3.14" step="0.01" value="0"></label>
+   <label>D <input type="range" id="wv-d" min="-2" max="2" step="0.1" value="0"></label>
+  </div>
+  <div class="out" id="wv-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Phase shift of $y = \cos(x - \tfrac\pi4)$? <details class="sol"><summary>Solution</summary><div>Right by $\tfrac\pi4$.</div></details></li>
+  <li><span class="lvl m">MED</span> By what shift does cosine become sine? <details class="sol"><summary>Solution</summary><div>$\sin x = \cos(x - \tfrac\pi2)$: shift cosine <em>right</em> by $\tfrac\pi2$. (Check at $x = \tfrac\pi2$: $\cos 0 = 1 = \sin\tfrac\pi2$. ✓) Every sinusoid is every other sinusoid in disguise — amplitude, period, phase are the only degrees of freedom.</div></details></li>
+  <li><span class="lvl m">MED</span> Phase shift and period of $y = 4\sin(3x + \pi)$? <details class="sol"><summary>Solution</summary><div>$y = 4\sin(3(x + \tfrac\pi3))$: period $\tfrac{2\pi}3$, shift <em>left</em> $\tfrac\pi3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two speakers play $\sin(\omega t)$ and $\sin(\omega t + \varphi)$. For what phase gaps $\varphi$ is the combined sound loudest, and when does it vanish? <details class="sol"><summary>Solution</summary><div>Sum-to-product: $\sin(\omega t) + \sin(\omega t + \varphi) = 2\cos\tfrac{\varphi}{2}\sin(\omega t + \tfrac{\varphi}{2})$ — a wave of amplitude $2|\cos\tfrac\varphi2|$. Loudest (amplitude 2) at $\varphi = 2k\pi$ (in phase); silence at $\varphi = \pi + 2k\pi$ (crests cancel troughs).</div></details></li>
+  <li><span class="lvl h">HARD</span> Daylight in some city: minimum 8 h on Dec 21 (day 355), maximum 16 h on Jun 21 (day 172). Model daylight $L(d)$ with a cosine. <details class="sol"><summary>Solution</summary><div>Midline 12, amplitude 4, period 365. Peak at $d = 172$: $L(d) = 12 + 4\cos\!\big(\tfrac{2\pi}{365}(d - 172)\big)$. Check Dec 21: $d - 172 = 183 \approx$ half a period, cosine $\approx -1$, $L \approx 8$. ✓</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">The graph of $y = \sin(2x - \pi)$ is $y = \sin 2x$ shifted…</div><button class="opt">left by π</button><button class="opt">right by π</button><button class="opt">right by π/2</button><div class="why" hidden>Factor: $\sin(2(x - \pi/2))$ — the shift is $C$ divided by $B$.</div></div>
+</section>
+
+<section class="topic" id="trigonometric-identities">
+ <h2>Trigonometric identities</h2>
+ <p>An identity is an equation true for <em>every</em> allowed angle — a statement about the functions themselves, not a puzzle to solve for θ. Identities let you rewrite trig expressions into whatever form the problem wants, the way algebra lets you factor and expand. Strategy beats memorization here: convert everything to sines and cosines, look for a Pythagorean substitution, and work from the messier side toward the cleaner one. A quick numeric spot-check (plug in $x = 0.7$, say) catches most wrong "identities" before you waste ten minutes proving something false — one random angle where the two sides disagree is a complete disproof, while agreement at a few random angles is strong (though not conclusive) evidence.</p>
+ <div class="box def"><span class="label">Definition</span> Core toolkit: reciprocal ($\csc = 1/\sin$, $\sec = 1/\cos$, $\cot = 1/\tan$), quotient ($\tan = \sin/\cos$), Pythagorean ($\sin^2 + \cos^2 = 1$ and friends), even–odd ($\cos(-x) = \cos x$, $\sin(-x) = -\sin x$), and cofunction ($\sin(\tfrac\pi2 - x) = \cos x$). To <em>prove</em> an identity, transform one side into the other using known identities — never assume the equation and manipulate both sides.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prove $\dfrac{\sin x}{1 + \cos x} = \dfrac{1 - \cos x}{\sin x}$. Start left, multiply by $\frac{1-\cos x}{1-\cos x}$: $$\frac{\sin x (1-\cos x)}{(1+\cos x)(1-\cos x)} = \frac{\sin x(1-\cos x)}{1 - \cos^2 x} = \frac{\sin x (1-\cos x)}{\sin^2 x} = \frac{1-\cos x}{\sin x}. \; \blacksquare$$</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\sin^2 x$ means $(\sin x)^2$, never $\sin(x^2)$ — and $\sin(a+b) \ne \sin a + \sin b$. Sine is not linear; the addition formulas below give the true expansion.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify $\sin x \cot x$. <details class="sol"><summary>Solution</summary><div>$\sin x \cdot \frac{\cos x}{\sin x} = \cos x$.</div></details></li>
+  <li><span class="lvl e">EASY</span> Simplify $(1 - \cos x)(1 + \cos x)$. <details class="sol"><summary>Solution</summary><div>Difference of squares: $1 - \cos^2 x = \sin^2 x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $\sec^2 x + \csc^2 x = \sec^2 x \csc^2 x$. <details class="sol"><summary>Solution</summary><div>Left $= \frac{1}{\cos^2} + \frac{1}{\sin^2} = \frac{\sin^2 + \cos^2}{\sin^2\cos^2} = \frac{1}{\sin^2 x\cos^2 x} = \sec^2 x\csc^2 x$. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\dfrac{1 + \sin x}{\cos x} = \dfrac{\cos x}{1 - \sin x}$ and state where both sides are defined. <details class="sol"><summary>Solution</summary><div>Cross-multiplied claim: $(1+\sin x)(1-\sin x) = \cos^2 x$, i.e. $1 - \sin^2 x = \cos^2 x$ — Pythagorean, true. To keep the proof one-directional: $\frac{1+\sin x}{\cos x} = \frac{(1+\sin x)(1-\sin x)}{\cos x (1-\sin x)} = \frac{\cos^2 x}{\cos x(1-\sin x)} = \frac{\cos x}{1-\sin x}$. Defined when $\cos x \ne 0$ and $\sin x \ne 1$: all $x \ne \tfrac\pi2 + k\pi$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="pythagorean-identities">
+ <h2>Pythagorean identities</h2>
+ <p>The equation of the unit circle, $x^2 + y^2 = 1$, read with $x = \cos\theta$, $y = \sin\theta$, becomes the most-used identity in mathematics. Dividing it by $\cos^2$ or $\sin^2$ spawns two siblings. Its power is a trade: it converts between $\sin^2$ and $\cos^2$ at will, so knowing one trig value of an angle (plus a quadrant) unlocks all six. It is also why "a point on the unit circle" and "a pair $(c, s)$ with $c^2 + s^2 = 1$" are the same thing — the algebraic passport of the circle.</p>
+ <div class="box def"><span class="label">Definition</span> $$\sin^2\theta + \cos^2\theta = 1, \qquad 1 + \tan^2\theta = \sec^2\theta, \qquad 1 + \cot^2\theta = \csc^2\theta.$$ Rearrangements you'll constantly use: $\sin^2\theta = 1 - \cos^2\theta$, $\cos^2\theta = 1 - \sin^2\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Given $\tan\theta = 2$ with $\theta$ in quadrant III, find all six values. $\sec^2\theta = 1 + 4 = 5 \Rightarrow \sec\theta = -\sqrt5$ (cosine negative in QIII), $\cos\theta = -\tfrac{1}{\sqrt5}$. $\sin\theta = \tan\theta\cos\theta = -\tfrac{2}{\sqrt5}$. Then $\csc\theta = -\tfrac{\sqrt5}{2}$, $\cot\theta = \tfrac12$. Check: $\sin^2\theta + \cos^2\theta = \tfrac45 + \tfrac15 = 1$. ✓ The workflow generalizes: one value plus one quadrant determines everything, and the Pythagorean identities are the conversion machinery.</div>
+ <div class="box think"><span class="label">Think first</span> What is $\sin^4\theta - \cos^4\theta$ in terms of $\cos 2\theta$-free simple functions? Try factoring first. <details class="sol"><summary>Reveal</summary><div>$(\sin^2 - \cos^2)(\sin^2 + \cos^2) = \sin^2\theta - \cos^2\theta$ (which also equals $-\cos 2\theta$).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $\cos\theta = \tfrac{1}{3}$, find $\sin^2\theta$. <details class="sol"><summary>Solution</summary><div>$1 - \tfrac19 = \tfrac89$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\dfrac{1 - \cos^2 x}{\tan x \, \cos x}$ (assume all defined). <details class="sol"><summary>Solution</summary><div>Numerator $=\sin^2 x$; denominator $= \frac{\sin x}{\cos x}\cos x = \sin x$. Result: $\sin x$.</div></details></li>
+  <li><span class="lvl m">MED</span> If $\tan\theta + \cot\theta = 3$, find $\sin\theta\cos\theta$. <details class="sol"><summary>Solution</summary><div>$\tan\theta + \cot\theta = \frac{\sin^2\theta + \cos^2\theta}{\sin\theta\cos\theta} = \frac{1}{\sin\theta\cos\theta} = 3$, so $\sin\theta\cos\theta = \tfrac13$.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $\sin\theta + \cos\theta = \tfrac{7}{5}$, find $\sin\theta\cos\theta$ and $\sin^3\theta + \cos^3\theta$. <details class="sol"><summary>Solution</summary><div>Square: $1 + 2\sin\theta\cos\theta = \tfrac{49}{25} \Rightarrow \sin\theta\cos\theta = \tfrac{12}{25}$. Sum of cubes: $(\sin+\cos)(\sin^2 - \sin\cos + \cos^2) = \tfrac75\big(1 - \tfrac{12}{25}\big) = \tfrac75\cdot\tfrac{13}{25} = \tfrac{91}{125}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="angle-addition-formulas">
+ <h2>Angle addition formulas</h2>
+ <p>What is the sine of a sum of two angles? Not the sum of the sines — rotation composes in a twisted way, and these formulas are the exact bookkeeping. They are secretly matrix multiplication of two rotations (Ch 8), and every later identity falls out of them. Here is the picture: rotate the plane by $b$, then by $a$. The point that started at angle 0 ends at angle $a+b$, but its coordinates got there by two successive coordinate mixings — and "mixing coordinates twice" is precisely what the right-hand sides compute. Once you own these two formulas, double-angle, half-angle, and product-to-sum are all two-line corollaries, not new facts.</p>
+ <div class="box def"><span class="label">Definition</span> $$\sin(a \pm b) = \sin a\cos b \pm \cos a \sin b$$ $$\cos(a \pm b) = \cos a \cos b \mp \sin a \sin b$$ $$\tan(a \pm b) = \frac{\tan a \pm \tan b}{1 \mp \tan a \tan b}.$$ Mind the sign flip in the cosine formula.</div>
+ <div class="box ex"><span class="label">Worked example</span> Exact $\sin 75^\circ$: $75 = 45 + 30$, so $$\sin 75^\circ = \sin45\cos30 + \cos45\sin30 = \tfrac{\sqrt2}{2}\cdot\tfrac{\sqrt3}{2} + \tfrac{\sqrt2}{2}\cdot\tfrac12 = \frac{\sqrt6 + \sqrt2}{4} \approx 0.9659.$$ (Calculator check: $\sin 75^\circ = 0.96593$. ✓)</div>
+ <div class="box think"><span class="label">Think first</span> Use an addition formula to explain the cofunction identity $\sin(\tfrac\pi2 - x) = \cos x$. <details class="sol"><summary>Reveal</summary><div>$\sin(\tfrac\pi2 - x) = \sin\tfrac\pi2\cos x - \cos\tfrac\pi2\sin x = 1\cdot\cos x - 0\cdot\sin x = \cos x$. The "co" in cosine literally means "complement's sine".</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Rotary position embeddings (Ch 14) rotate query/key pairs by position-dependent angles; the addition formulas are why relative position emerges from their dot products.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\cos 15^\circ$ exactly using $45 - 30$. <details class="sol"><summary>Solution</summary><div>$\cos45\cos30 + \sin45\sin30 = \frac{\sqrt6+\sqrt2}{4} \approx 0.9659$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\sin(x + \pi)$. <details class="sol"><summary>Solution</summary><div>$\sin x\cos\pi + \cos x \sin\pi = -\sin x$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Given $\tan a = \tfrac12$, $\tan b = \tfrac13$, both acute. Find $a + b$ exactly. <details class="sol"><summary>Solution</summary><div>$\tan(a+b) = \frac{\frac12 + \frac13}{1 - \frac16} = \frac{5/6}{5/6} = 1$. Both acute and each less than $45^\circ$, so $a + b = \tfrac\pi4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\cos(a-b) - \cos(a+b) = 2\sin a\sin b$. <details class="sol"><summary>Solution</summary><div>$(\cos a\cos b + \sin a\sin b) - (\cos a\cos b - \sin a\sin b) = 2\sin a\sin b$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="double-angle-formulas">
+ <h2>Double-angle formulas</h2>
+ <p>Rotating by $a$ twice is rotating by $2a$: set $b = a$ in the addition formulas and you get the double-angle formulas — the workhorses for integrating $\sin^2$, for halving frequencies, and for the power-reduction tricks of calculus. Read $\cos 2a = 1 - 2\sin^2 a$ as a frequency statement: squaring a wave doubles its frequency and adds a constant offset. That is why a squared signal has a DC component — and why the average of $\sin^2$ over a period is exactly $\tfrac12$.</p>
+ <div class="box def"><span class="label">Definition</span> $$\sin 2a = 2\sin a\cos a$$ $$\cos 2a = \cos^2 a - \sin^2 a = 2\cos^2 a - 1 = 1 - 2\sin^2 a$$ $$\tan 2a = \frac{2\tan a}{1 - \tan^2 a}.$$ Power reduction (solve the $\cos 2a$ forms): $\cos^2 a = \frac{1 + \cos 2a}{2}$, $\sin^2 a = \frac{1 - \cos 2a}{2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\sin\theta = \tfrac35$, $\theta$ acute. Then $\cos\theta = \tfrac45$ and: $\sin 2\theta = 2\cdot\tfrac35\cdot\tfrac45 = \tfrac{24}{25}$; $\cos 2\theta = 1 - 2\cdot\tfrac9{25} = \tfrac7{25}$. Check: $\big(\tfrac{24}{25}\big)^2 + \big(\tfrac7{25}\big)^2 = \tfrac{576+49}{625} = 1$. ✓</div>
+ <div class="box think"><span class="label">Think first</span> If $\sin\theta = \tfrac12$, is $\sin 2\theta = 1$? <details class="sol"><summary>Reveal</summary><div>No — doubling the angle does not double (or otherwise simply scale) the sine. With $\theta = \tfrac\pi6$: $\sin 2\theta = 2\sin\theta\cos\theta = 2\cdot\tfrac12\cdot\tfrac{\sqrt3}2 = \tfrac{\sqrt3}2 \approx 0.866$, not 1. The cosine factor is the correction that memory tends to drop.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Power reduction $\sin^2 a = \frac{1-\cos 2a}{2}$ is how Ch 7 integrates $\sin^2$ and how RMS values of AC signals are computed; the "squaring doubles frequency" fact resurfaces in Ch 14 whenever a nonlinearity creates harmonics.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $\cos a = \tfrac1{\sqrt2}$ (acute $a$), compute $\cos 2a$. <details class="sol"><summary>Solution</summary><div>$2\cdot\tfrac12 - 1 = 0$ (of course: $a = 45^\circ$, $2a = 90^\circ$).</div></details></li>
+  <li><span class="lvl m">MED</span> Express $\sin^2 x \cos^2 x$ with no powers of trig functions. <details class="sol"><summary>Solution</summary><div>$(\sin x\cos x)^2 = \tfrac14\sin^2 2x = \tfrac14\cdot\frac{1 - \cos 4x}{2} = \frac{1 - \cos 4x}{8}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $\sin 2x = \sin x$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>$2\sin x\cos x - \sin x = 0 \Rightarrow \sin x(2\cos x - 1) = 0$. $\sin x = 0$: $x = 0, \pi$. $\cos x = \tfrac12$: $x = \tfrac\pi3, \tfrac{5\pi}3$. Four solutions: $\{0, \tfrac\pi3, \pi, \tfrac{5\pi}3\}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Given $\cos 2\theta = \tfrac{7}{25}$ with $\theta$ acute, find $\sin\theta$ and $\cos\theta$. <details class="sol"><summary>Solution</summary><div>$\sin^2\theta = \frac{1 - \cos 2\theta}{2} = \frac{18/25}{2} = \frac{9}{25}$ and $\cos^2\theta = \frac{1 + 7/25}{2} = \frac{16}{25}$. Acute θ: $\sin\theta = \tfrac35$, $\cos\theta = \tfrac45$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="half-angle-formulas">
+ <h2>Half-angle formulas</h2>
+ <p>Run power reduction backwards: knowing $\cos\theta$, you can get the sine and cosine of half the angle. This is how ancient astronomers built trig tables down to fractions of a degree, doubling precision by halving angles. Ptolemy's table, computed by hand in the second century, reached half-degree steps this way: start from the exact values you know, halve to get new exact values, and interpolate the gaps. The square roots stack up ($\cos 22.5^\circ$ has one, $\cos 11.25^\circ$ has two nested), but nothing beyond arithmetic is ever needed.</p>
+ <div class="box def"><span class="label">Definition</span> $$\sin\frac{a}{2} = \pm\sqrt{\frac{1 - \cos a}{2}}, \quad \cos\frac{a}{2} = \pm\sqrt{\frac{1 + \cos a}{2}}, \quad \tan\frac{a}{2} = \frac{\sin a}{1 + \cos a} = \frac{1 - \cos a}{\sin a}.$$ The $\pm$ is fixed by which quadrant $\tfrac a2$ lands in (the tangent forms need no sign choice).</div>
+ <div class="box ex"><span class="label">Worked example</span> Exact $\cos 22.5^\circ$: half of $45^\circ$. $$\cos 22.5^\circ = \sqrt{\frac{1 + \cos 45^\circ}{2}} = \sqrt{\frac{1 + \tfrac{\sqrt2}2}{2}} = \sqrt{\frac{2+\sqrt2}{4}} = \frac{\sqrt{2+\sqrt2}}{2} \approx 0.9239.$$ (Positive root: $22.5^\circ$ is in quadrant I.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> The $\pm$ sign is decided by the quadrant of $\tfrac a2$, <em>not</em> of $a$. Take $a = 300^\circ$ (quadrant IV, $\cos a = \tfrac12$): $\tfrac a2 = 150^\circ$ is in quadrant II, so $\sin\tfrac a2 = +\sqrt{\tfrac{1 - 1/2}{2}} = \tfrac12$ but $\cos\tfrac a2 = -\sqrt{\tfrac{1+1/2}{2}} = -\tfrac{\sqrt3}2$. Locate the half-angle first, then pick signs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\sin 15^\circ$ via half-angle of $30^\circ$. <details class="sol"><summary>Solution</summary><div>$\sqrt{\frac{1 - \cos 30^\circ}{2}} = \sqrt{\frac{1 - \sqrt3/2}{2}} = \frac{\sqrt{2-\sqrt3}}{2} \approx 0.2588$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\cos a = -\tfrac13$ with $a \in (\pi/2, \pi)$. Find $\sin\tfrac a2$ and $\cos\tfrac a2$. <details class="sol"><summary>Solution</summary><div>$\tfrac a2 \in (\tfrac\pi4, \tfrac\pi2)$: both positive. $\sin\tfrac a2 = \sqrt{\frac{1+\frac13}{2}} = \sqrt{\tfrac23} = \tfrac{\sqrt6}{3}$; $\cos\tfrac a2 = \sqrt{\frac{1-\frac13}{2}} = \sqrt{\tfrac13} = \tfrac{\sqrt3}{3}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\tan\tfrac a2 = \dfrac{\sin a}{1 + \cos a}$ from the double-angle formulas. <details class="sol"><summary>Solution</summary><div>Let $t = \tfrac a2$. $\frac{\sin a}{1+\cos a} = \frac{2\sin t\cos t}{1 + 2\cos^2 t - 1} = \frac{2\sin t\cos t}{2\cos^2 t} = \frac{\sin t}{\cos t} = \tan t$. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\tan 22.5^\circ$ exactly using the fraction form. <details class="sol"><summary>Solution</summary><div>$\tan\frac{45^\circ}{2} = \frac{1 - \cos 45^\circ}{\sin 45^\circ} = \frac{1 - \frac{\sqrt2}{2}}{\frac{\sqrt2}{2}} = \frac{2 - \sqrt2}{\sqrt2} = \sqrt2 - 1 \approx 0.4142$. (Calculator: $\tan 22.5^\circ = 0.41421$. ✓)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="product-to-sum-identities">
+ <h2>Product-to-sum identities</h2>
+ <p>Multiplying two waves produces a sum of two new waves at the sum and difference frequencies — the beat you hear when two guitar strings are slightly out of tune. These identities are Fourier analysis (Ch 14) in miniature: they are why frequencies mix the way they do. Multiply waves at frequencies $a$ and $b$ and you do not get "a wave at frequency $ab$" — you get equal parts $a-b$ and $a+b$. Every radio receiver, every audio effect called "ring modulation", and every aliasing artifact in a sampled signal is this one identity acting in the world.</p>
+ <div class="box def"><span class="label">Definition</span> $$\sin a\sin b = \tfrac12[\cos(a-b) - \cos(a+b)]$$ $$\cos a\cos b = \tfrac12[\cos(a-b) + \cos(a+b)]$$ $$\sin a\cos b = \tfrac12[\sin(a+b) + \sin(a-b)]$$ Sum-to-product (the reverse direction): $\sin a + \sin b = 2\sin\frac{a+b}{2}\cos\frac{a-b}{2}$, $\cos a + \cos b = 2\cos\frac{a+b}{2}\cos\frac{a-b}{2}$. None of these need memorizing under pressure: add and subtract the two angle-addition formulas and each one falls out in two lines.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two tuning forks at 440 Hz and 444 Hz: $\sin(2\pi\cdot440 t) + \sin(2\pi\cdot444 t) = 2\sin(2\pi\cdot 442 t)\cos(2\pi \cdot 2t)$ — a 442 Hz tone whose loudness envelope $|\cos(2\pi\cdot2t)|$ pulses at 4 beats per second (the envelope peaks twice per cosine cycle).</div>
+ <div class="box link"><span class="label">Where this goes</span> Orthogonality of sinusoids — the fact that $\int_0^{2\pi}\sin mx \sin nx\,dx = 0$ for $m \ne n$ — is proved in Ch 14 by product-to-sum: the product becomes two cosines that each average to zero over a full period. That orthogonality is what lets Fourier coefficients be read off one at a time.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $\cos 5x\cos 3x$ as a sum. <details class="sol"><summary>Solution</summary><div>$\tfrac12[\cos 2x + \cos 8x]$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\cos 75^\circ\cos 15^\circ$ exactly. <details class="sol"><summary>Solution</summary><div>$\tfrac12[\cos 60^\circ + \cos 90^\circ] = \tfrac12[\tfrac12 + 0] = \tfrac14$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\sin 75^\circ \sin 15^\circ$ exactly. <details class="sol"><summary>Solution</summary><div>$\tfrac12[\cos 60^\circ - \cos 90^\circ] = \tfrac12[\tfrac12 - 0] = \tfrac14$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $\sin 3x + \sin x = 0$ on $[0, \pi]$. <details class="sol"><summary>Solution</summary><div>$2\sin 2x\cos x = 0$. $\sin 2x = 0$: $x = 0, \tfrac\pi2, \pi$. $\cos x = 0$: $x = \tfrac\pi2$ (already have it). Solutions $\{0, \tfrac\pi2, \pi\}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inverse-trigonometric-functions">
+ <h2>Inverse trigonometric functions</h2>
+ <p>"Which angle has sine 0.6?" has infinitely many answers, so to build an inverse function we agree on one canonical window of angles. Arcsine, arccosine and arctangent return the angle in that window — they turn ratios back into angles. The windows are chosen so each function is one-to-one there and covers every possible ratio: for sine and tangent a half-turn straddling zero, for cosine the top half of the circle. Everything confusing about inverse trig traces back to one fact: the trig function forgets which copy of the angle you started with, and the inverse can only hand back the canonical one.</p>
+ <div class="box def"><span class="label">Definition</span> $\arcsin x$: the $\theta \in [-\tfrac\pi2, \tfrac\pi2]$ with $\sin\theta = x$ (domain $[-1,1]$). $\arccos x$: the $\theta \in [0, \pi]$ with $\cos\theta = x$ (domain $[-1,1]$). $\arctan x$: the $\theta \in (-\tfrac\pi2, \tfrac\pi2)$ with $\tan\theta = x$ (domain $\mathbb{R}$). Note $\sin(\arcsin x) = x$ always, but $\arcsin(\sin\theta) = \theta$ only when $\theta$ is already in the window.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\arcsin\tfrac12 = \tfrac\pi6$; $\arccos(-\tfrac12) = \tfrac{2\pi}3$; $\arctan(-1) = -\tfrac\pi4$. And a compound: $\cos(\arcsin\tfrac35)$ — draw the right triangle with opposite 3, hypotenuse 5: adjacent 4, answer $\tfrac45$ (positive, since arcsin outputs lie in quadrants I/IV where cosine ≥ 0).</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\arcsin(\sin\tfrac{5\pi}6) \ne \tfrac{5\pi}6$. Since $\sin\tfrac{5\pi}6 = \tfrac12$, the answer is $\tfrac\pi6$ — the inverse function snaps to its window.</div>
+ <div class="box link"><span class="label">Where this goes</span> In Ch 7 the inverse trig functions pay off spectacularly: $\frac{d}{dx}\arctan x = \frac{1}{1+x^2}$ and $\frac{d}{dx}\arcsin x = \frac{1}{\sqrt{1-x^2}}$, so these "angle recovery" functions are the antiderivatives of plain algebraic expressions — the reason $\int\frac{dx}{1+x^2}$ has an answer at all.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\arctan\sqrt3 = ?$ <details class="sol"><summary>Solution</summary><div>$\tfrac\pi3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\tan(\arccos x)$ for $0 &lt; x \le 1$. <details class="sol"><summary>Solution</summary><div>Triangle: adjacent $x$, hypotenuse 1, opposite $\sqrt{1-x^2}$: $\tan = \frac{\sqrt{1-x^2}}{x}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\arccos(\cos 5)$ (radians). <details class="sol"><summary>Solution</summary><div>$5$ rad lies in $(\pi, 2\pi)$, outside arccos's window $[0,\pi]$. Cosine is even and $2\pi$-periodic: $\cos 5 = \cos(-5) = \cos(2\pi - 5)$, and $2\pi - 5 \approx 1.283 \in [0, \pi]$. Answer: $2\pi - 5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\arcsin x + \arccos x = \tfrac\pi2$ for all $x \in [-1,1]$. <details class="sol"><summary>Solution</summary><div>Let $\alpha = \arcsin x \in [-\tfrac\pi2,\tfrac\pi2]$. Then $\cos(\tfrac\pi2 - \alpha) = \sin\alpha = x$, and $\tfrac\pi2 - \alpha \in [0, \pi]$ — exactly arccos's window. So $\arccos x = \tfrac\pi2 - \alpha$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="trigonometric-equations">
+ <h2>Trigonometric equations</h2>
+ <p>Unlike identities, equations hold only for special angles — your job is to find all of them. The method: isolate one trig function, find the solutions in one period using the unit circle, then add the period's multiples. A sanity habit worth building: before solving, sketch the wave and the horizontal line and <em>count</em> the crossings — you then know exactly how many answers to hunt for, and a missing or extra solution announces itself immediately.</p>
+ <div class="box def"><span class="label">Definition</span> General solutions: $\sin\theta = s$ ($|s|\le1$) $\Rightarrow \theta = \alpha + 2k\pi$ or $\theta = \pi - \alpha + 2k\pi$ where $\alpha = \arcsin s$. $\cos\theta = c \Rightarrow \theta = \pm\alpha + 2k\pi$, $\alpha = \arccos c$. $\tan\theta = t \Rightarrow \theta = \arctan t + k\pi$. ($k \in \mathbb{Z}$.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $2\cos^2 x - \cos x - 1 = 0$ on $[0, 2\pi)$. Factor as a quadratic in $\cos x$: $(2\cos x + 1)(\cos x - 1) = 0$. $\cos x = 1$: $x = 0$. $\cos x = -\tfrac12$: $x = \tfrac{2\pi}3, \tfrac{4\pi}3$. Solutions: $\{0, \tfrac{2\pi}3, \tfrac{4\pi}3\}$. Graph check: the parabola-in-$\cos x$ view says $\cos x$ hits $1$ once per period (a tangency at the peak) and $-\tfrac12$ twice — three crossings, matching the three answers.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Never divide both sides by a trig factor that could be zero. In $\sin 2x = \sin x$, dividing by $\sin x$ silently deletes the solutions $x = 0, \pi$. Move everything to one side and <em>factor</em> instead — factoring keeps every root, division throws some away.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 7's optimization sets derivatives to zero, and for anything oscillatory the resulting equation is a trig equation — finding the peak of $3\sin x + 4\cos x$ means solving $3\cos x = 4\sin x$, i.e. $\tan x = \tfrac34$, with exactly the machinery of this section.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $2\sin x - \sqrt3 = 0$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>$\sin x = \tfrac{\sqrt3}2$: $x = \tfrac\pi3, \tfrac{2\pi}3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\tan x = -1$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>Reference $\tfrac\pi4$; tangent negative in quadrants II and IV: $x = \tfrac{3\pi}4, \tfrac{7\pi}4$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\sin 3x = 1$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>$3x = \tfrac\pi2 + 2k\pi \Rightarrow x = \tfrac\pi6 + \tfrac{2k\pi}{3}$: $x = \tfrac\pi6, \tfrac{5\pi}6, \tfrac{3\pi}2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $\sin x + \cos x = 1$ on $[0, 2\pi)$. <details class="sol"><summary>Solution</summary><div>Write left side as $\sqrt2\sin(x + \tfrac\pi4)$. Then $\sin(x+\tfrac\pi4) = \tfrac{1}{\sqrt2}$: $x + \tfrac\pi4 = \tfrac\pi4 + 2k\pi$ or $\tfrac{3\pi}4 + 2k\pi$, so $x = 0$ or $x = \tfrac\pi2$. Check both: $0+1 = 1$ ✓, $1+0 = 1$ ✓.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">How many solutions does $\cos 2x = \tfrac12$ have on $[0, 2\pi)$?</div><button class="opt">2</button><button class="opt">4</button><button class="opt">8</button><div class="why" hidden>$2x$ sweeps $[0, 4\pi)$: two solutions per $2\pi$, so 4. ($x = \tfrac\pi6, \tfrac{5\pi}6, \tfrac{7\pi}6, \tfrac{11\pi}6$.)</div></div>
+</section>
+
+<section class="topic" id="law-of-sines">
+ <h2>Law of sines</h2>
+ <p>In any triangle, each side is proportional to the sine of the angle staring at it. Big angle, big opposite side — the law of sines makes that exact, and lets you solve triangles that have no right angle. The shared constant $2R$ gives the picture: inscribe the triangle in its circumscribed circle, and each ratio $a/\sin A$ measures the same circle's diameter — three different windows onto one hidden quantity.</p>
+ <div class="box def"><span class="label">Definition</span> In a triangle with sides $a, b, c$ opposite angles $A, B, C$: $$\frac{a}{\sin A} = \frac{b}{\sin B} = \frac{c}{\sin C} = 2R,$$ where $R$ is the circumradius. Use it given ASA/AAS (two angles + a side) or SSA — but SSA is the <em>ambiguous case</em>: zero, one, or two triangles may fit. (Why ambiguous? Because $\sin B = \sin(180^\circ - B)$: the sine ratio cannot tell an acute angle from its obtuse supplement.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = 40^\circ$, $B = 60^\circ$, $a = 10$. Then $C = 80^\circ$ and $$b = \frac{a\sin B}{\sin A} = \frac{10 \times 0.8660}{0.6428} \approx 13.47, \qquad c = \frac{10\times\sin 80^\circ}{0.6428} = \frac{9.848}{0.6428} \approx 15.32.$$</div>
+ <div class="box pit"><span class="label">Pitfall</span> Ambiguous case: given $a = 7$, $b = 10$, $A = 40^\circ$, we get $\sin B = \frac{b \sin A}{a} = \frac{10(0.643)}{7} \approx 0.918$ — and <em>both</em> $B \approx 66.7^\circ$ and $B \approx 113.3^\circ$ give valid triangles. Always test the obtuse candidate: write down both $B = \arcsin(\cdot)$ and $180^\circ - \arcsin(\cdot)$, and keep each one whose angles still sum below $180^\circ$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $A = 30^\circ$, $a = 5$, $B = 90^\circ$. Find $b$. <details class="sol"><summary>Solution</summary><div>$b = \frac{5\sin 90^\circ}{\sin 30^\circ} = \frac{5}{0.5} = 10$.</div></details></li>
+  <li><span class="lvl m">MED</span> $a = 3$, $b = 10$, $A = 40^\circ$. How many triangles fit? <details class="sol"><summary>Solution</summary><div>$\sin B = \frac{10\sin 40^\circ}{3} = \frac{10(0.643)}{3} \approx 2.14 &gt; 1$ — impossible. <b>Zero</b> triangles: side $a$ is too short to reach across from that angle.</div></details></li>
+  <li><span class="lvl m">MED</span> $a = 8$, $A = 35^\circ$, $b = 12$. How many triangles exist? <details class="sol"><summary>Solution</summary><div>$\sin B = \frac{12\sin 35^\circ}{8} = \frac{12(0.5736)}{8} \approx 0.860$: $B \approx 59.4^\circ$ or $120.6^\circ$. Both give positive $C$ ($85.6^\circ$ or $24.4^\circ$): <b>two</b> triangles.</div></details></li>
+  <li><span class="lvl m">MED</span> A triangle has $a = 6$, $A = 30^\circ$. What is the diameter of its circumscribed circle? <details class="sol"><summary>Solution</summary><div>The extended law of sines gives it directly: $2R = \frac{a}{\sin A} = \frac{6}{1/2} = 12$. No other side or angle needed — one side and its opposite angle pin down the circle.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two observers 1 km apart both see a balloon between them. Elevation angles: $55^\circ$ and $70^\circ$. How high is the balloon? <details class="sol"><summary>Solution</summary><div>Triangle with base 1 km, base angles $55^\circ, 70^\circ$, apex $180-125 = 55^\circ$. Side opposite the $70^\circ$ angle (from the first observer to balloon): $d = \frac{1\cdot\sin 70^\circ}{\sin 55^\circ} = \frac{0.9397}{0.8192} \approx 1.147$ km. Height $= d\sin 55^\circ = 1.147\times 0.8192 \approx 0.940$ km. (Or directly $h = \frac{\sin 70^\circ \sin 55^\circ}{\sin 55^\circ} = \sin 70^\circ \approx 0.940$ km — a neat coincidence here because apex $=55^\circ$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="law-of-cosines">
+ <h2>Law of cosines</h2>
+ <p>The Pythagorean theorem with a correction term for non-right angles: the $-2ab\cos C$ term punishes wide angles and rewards narrow ones. We proved it with dot products in Ch 5; here it solves SAS and SSS triangles. Watch the correction term work: $C &lt; 90^\circ$ makes $\cos C$ positive and shortens $c$ below the Pythagorean value; $C &gt; 90^\circ$ makes it negative and stretches $c$ beyond. The formula is the dot product $\|\mathbf{a}-\mathbf{b}\|^2 = \|\mathbf{a}\|^2 + \|\mathbf{b}\|^2 - 2\,\mathbf{a}\cdot\mathbf{b}$ wearing triangle clothes.</p>
+ <div class="box def"><span class="label">Definition</span> $$c^2 = a^2 + b^2 - 2ab\cos C,$$ and cyclically for the other sides. Solve for an angle: $\cos C = \dfrac{a^2 + b^2 - c^2}{2ab}$. When $C = 90^\circ$ the correction vanishes — Pythagoras is the special case.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sides $a = 5$, $b = 8$, included angle $C = 60^\circ$: $c^2 = 25 + 64 - 2\cdot5\cdot8\cdot\tfrac12 = 89 - 40 = 49$, so $c = 7$. Then the angle opposite $a$: $\cos A = \frac{64 + 49 - 25}{2\cdot8\cdot7} = \frac{88}{112} = \tfrac{11}{14}$, $A \approx 38.2^\circ$.</div>
+ <div class="box think"><span class="label">Think first</span> Can a triangle have sides 2, 3, and 7? What does the law of cosines say if you try? <details class="sol"><summary>Reveal</summary><div>No: $2 + 3 &lt; 7$ violates the triangle inequality. The formula agrees loudly: $\cos C = \frac{4 + 9 - 49}{2\cdot2\cdot3} = \frac{-36}{12} = -3$, and no angle has cosine $-3$. The law of cosines contains the triangle inequality as the statement $|\cos C| \le 1$.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Solving $\cos C = \frac{a^2+b^2-c^2}{2ab}$ is exactly the angle-between-vectors computation of Ch 8's inner-product spaces — and in high dimensions, cosine of the angle between random vectors concentrates near 0, a fact Ch 12 uses constantly.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $a = 3$, $b = 4$, $C = 90^\circ$. Find $c$. <details class="sol"><summary>Solution</summary><div>$c^2 = 9 + 16 - 0 = 25$, $c = 5$: Pythagoras recovered.</div></details></li>
+  <li><span class="lvl m">MED</span> Triangle with sides 7, 8, 13. Find the largest angle. <details class="sol"><summary>Solution</summary><div>Opposite 13: $\cos C = \frac{49+64-169}{2\cdot7\cdot8} = \frac{-56}{112} = -\tfrac12$: $C = 120^\circ$.</div></details></li>
+  <li><span class="lvl m">MED</span> A parallelogram has sides 4 and 6 with a $60^\circ$ angle between them. Find both diagonals. <details class="sol"><summary>Solution</summary><div>Short diagonal (opposite the $60^\circ$ angle): $d_1^2 = 16 + 36 - 2\cdot4\cdot6\cos 60^\circ = 52 - 24 = 28$, $d_1 = 2\sqrt7 \approx 5.29$. Long diagonal (opposite the $120^\circ$ angle): $d_2^2 = 52 - 48\cos 120^\circ = 52 + 24 = 76$, $d_2 = 2\sqrt{19} \approx 8.72$. Check: $d_1^2 + d_2^2 = 104 = 2(16+36)$, the parallelogram law. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Two ships leave port at noon: one at 20 km/h bearing N30°E, one at 15 km/h bearing S80°E. How far apart at 2 pm? <details class="sol"><summary>Solution</summary><div>Distances: 40 km and 30 km. Angle between the tracks: from N30°E to S80°E is $180 - 30 - 80 = 70^\circ$. $d^2 = 40^2 + 30^2 - 2\cdot40\cdot30\cos 70^\circ = 2500 - 2400(0.3420) = 2500 - 820.8 = 1679.2$; $d \approx 41.0$ km.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="polar-coordinates">
+ <h2>Polar coordinates</h2>
+ <p>Instead of "how far east, how far north", polar coordinates say "how far, and in what direction": a distance $r$ and an angle $\theta$. Anything circular, spiral, or rotational is simpler in polar — and complex numbers wear polar form as their native dress. The two systems are a division of labor: Cartesian makes translation easy and rotation awkward; polar makes rotation trivial (add to θ) and translation awkward. Choosing coordinates to match a problem's symmetry is one of the oldest and best tricks in applied mathematics.</p>
+ <div class="box def"><span class="label">Definition</span> Polar $(r, \theta)$ ↔ Cartesian $(x, y)$: $$x = r\cos\theta, \quad y = r\sin\theta; \qquad r = \sqrt{x^2 + y^2}, \quad \theta = \operatorname{atan2}(y, x).$$ Representation is not unique: $(r, \theta) = (r, \theta + 2\pi k)$, and $(-r, \theta) = (r, \theta + \pi)$. A polar curve $r = f(\theta)$ plots a radius for each direction. Here $\operatorname{atan2}(y,x)$ is the two-argument arctangent every math library provides: it returns the angle in $(-\pi, \pi]$, using the signs of $x$ and $y$ separately to pick the correct quadrant.</div>
+ <div class="box ex"><span class="label">Worked example</span> Convert $(x,y) = (-3, 3)$: $r = \sqrt{9+9} = 3\sqrt2$; the point is in quadrant II, $\theta = \pi - \tfrac\pi4 = \tfrac{3\pi}4$. So $(3\sqrt2, \tfrac{3\pi}4)$. Beware: $\arctan\frac{3}{-3} = \arctan(-1) = -\tfrac\pi4$ is the <em>wrong quadrant</em> — this is exactly why atan2 exists.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 9's change of variables turns double integrals over disks into polar form with the Jacobian factor $r\,dr\,d\theta$ — the move that cracks the Gaussian integral $\int e^{-x^2}dx = \sqrt\pi$, the normalizing constant of every normal distribution in Ch 11.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Plot the rose r = cos(kθ) and the spiral r = aθ; slide k and watch petals appear (odd k: k petals, even k: 2k petals).</p>
+  <canvas id="cv-polar"></canvas>
+  <div class="ctl">
+   <label>k <input type="range" id="pl-k" min="1" max="7" step="1" value="3"></label>
+   <label>curve <select id="pl-kind"><option value="rose">rose r=cos(kθ)</option><option value="spiral">spiral r=0.15θ</option><option value="cardioid">cardioid r=1+cos θ</option></select></label>
+  </div>
+  <div class="out" id="pl-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Convert polar $(2, \tfrac\pi6)$ to Cartesian. <details class="sol"><summary>Solution</summary><div>$(2\cos\tfrac\pi6, 2\sin\tfrac\pi6) = (\sqrt3, 1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> What is the polar equation of the Cartesian line $y = x$? <details class="sol"><summary>Solution</summary><div>$r\sin\theta = r\cos\theta \Rightarrow \tan\theta = 1$: the line $\theta = \tfrac\pi4$ (with $r$ ranging over all reals, negative $r$ covering the third-quadrant half).</div></details></li>
+  <li><span class="lvl m">MED</span> What Cartesian curve is $r = 4\cos\theta$? <details class="sol"><summary>Solution</summary><div>Multiply by $r$: $r^2 = 4r\cos\theta \Rightarrow x^2 + y^2 = 4x \Rightarrow (x-2)^2 + y^2 = 4$: a circle of radius 2 centered at $(2,0)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all intersection points of $r = 1 + \cos\theta$ (cardioid) and $r = \tfrac32$. <details class="sol"><summary>Solution</summary><div>$1 + \cos\theta = \tfrac32 \Rightarrow \cos\theta = \tfrac12 \Rightarrow \theta = \pm\tfrac\pi3$. Points: $(\tfrac32, \pm\tfrac\pi3)$, i.e. Cartesian $(\tfrac34, \pm\tfrac{3\sqrt3}{4})$. (The origin is not shared: the cardioid reaches $r=0$ only at $\theta=\pi$, where the circle has $r=\tfrac32$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="parametric-equations">
+ <h2>Parametric equations</h2>
+ <p>Instead of $y$ as a function of $x$, let both coordinates be functions of a clock variable $t$: a moving point tracing a path. Parametric curves can loop, cross themselves, and go vertical — everything function graphs cannot do. Every trajectory in physics and every generated sampling path is parametric. The mental upgrade: stop asking "what is $y$ at this $x$?" and start asking "where is the point at this <em>time</em>?" — one degree of freedom driving two (or a thousand) coordinates. A curve in embedding space traced during optimization, the path of a diffusion sample, a robot arm's motion: all parametric curves with $t$ as the clock.</p>
+ <div class="box def"><span class="label">Definition</span> A parametric curve is $(x, y) = (f(t), g(t))$ for $t$ in an interval. The circle: $(\cos t, \sin t)$, $t \in [0, 2\pi)$. The ellipse: $(a\cos t, b\sin t)$. Eliminating $t$ (when possible) recovers a Cartesian equation, but loses the direction and speed of travel.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Eliminating the parameter can silently enlarge the curve. $x = t^2$, $y = t^4$ satisfies $y = x^2$, but the parametric curve is only the right half of that parabola ($x \ge 0$ always). After eliminating $t$, go back and ask which part of the Cartesian curve the parameter actually reaches.</div>
+ <div class="box ex"><span class="label">Worked example</span> A projectile: $x = 20t$, $y = 15t - 4.9t^2$. Eliminate $t = x/20$: $y = \tfrac{15}{20}x - 4.9\tfrac{x^2}{400} = 0.75x - 0.01225x^2$ — a parabola. It lands when $y = 0$: $t(15 - 4.9t) = 0 \Rightarrow t \approx 3.06$ s, at $x \approx 61.2$ m.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 7 differentiates parametric curves componentwise: velocity $(x'(t), y'(t))$, speed $\sqrt{x'^2 + y'^2}$. Ch 27's diffusion models generate images by following a parametric path through pixel space — the "curve" is the denoising trajectory and $t$ is the noise level.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Lissajous curves (cos at, sin bt): slide the two frequencies and watch the knot change; equal frequencies give a circle.</p>
+  <canvas id="cv-liss"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="ls-a" min="1" max="7" step="1" value="3"></label>
+   <label>b <input type="range" id="ls-b" min="1" max="7" step="1" value="2"></label>
+   <label>phase <input type="range" id="ls-p" min="0" max="3.14" step="0.01" value="0"></label>
+  </div>
+  <div class="out" id="ls-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What curve is $x = 3\cos t$, $y = 3\sin t$? <details class="sol"><summary>Solution</summary><div>$x^2 + y^2 = 9$: circle of radius 3, traversed counterclockwise.</div></details></li>
+  <li><span class="lvl m">MED</span> Parametrize the line segment from $(1,2)$ to $(5,4)$. <details class="sol"><summary>Solution</summary><div>Start plus $t$ times the displacement: $(x,y) = (1 + 4t,\; 2 + 2t)$ for $t \in [0,1]$. At $t=0$: $(1,2)$; at $t=1$: $(5,4)$. (This is exactly the interpolation formula $(1-t)P_0 + tP_1$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Eliminate the parameter: $x = t + 1$, $y = t^2 - 1$. <details class="sol"><summary>Solution</summary><div>$t = x - 1$: $y = (x-1)^2 - 1 = x^2 - 2x$ — a parabola, all of it, since $t$ ranges over $\mathbb{R}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The cycloid $(t - \sin t,\; 1 - \cos t)$ traces the path of a point on a rolling wheel of radius 1. Where is the point when the wheel has made half a turn, and what is its height at quarter turn? <details class="sol"><summary>Solution</summary><div>Half turn $t = \pi$: $(\pi - 0, 1-(-1)) = (\pi, 2)$ — top of the arch. Quarter turn $t = \tfrac\pi2$: height $1 - \cos\tfrac\pi2 = 1$, at $x = \tfrac\pi2 - 1 \approx 0.571$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eulers-formula">
+ <h2>Euler's formula</h2>
+ <p>Euler's formula says the exponential function, fed an imaginary number, walks around the unit circle: $e^{i\theta}$ <em>is</em> the point at angle θ. Suddenly all of trigonometry becomes exponent algebra — the addition formulas are just $e^{ia}e^{ib} = e^{i(a+b)}$. The right mental model: multiplying by $e^{i\theta}$ <em>is</em> rotating by θ. That one sentence converts every rotation problem into multiplication, every wave into a spinning arrow whose shadow on the real axis is the cosine you see, and every trig identity into bookkeeping you could rediscover in the margin.</p>
+ <div class="box def"><span class="label">Definition</span> $$e^{i\theta} = \cos\theta + i\sin\theta.$$ Consequences: $|e^{i\theta}| = 1$; $\cos\theta = \frac{e^{i\theta} + e^{-i\theta}}{2}$, $\sin\theta = \frac{e^{i\theta} - e^{-i\theta}}{2i}$; De Moivre: $(\cos\theta + i\sin\theta)^n = \cos n\theta + i\sin n\theta$; any complex number: $z = re^{i\theta}$ (polar form, Ch 2). Justification: the Taylor series of $e^x$ (Ch 7) at $x = i\theta$ splits into cosine's and sine's series.</div>
+ <div class="box ex"><span class="label">Worked example</span> Derive the angle-addition formulas in one line: $$e^{i(a+b)} = e^{ia}e^{ib} = (\cos a + i\sin a)(\cos b + i\sin b) = (\cos a\cos b - \sin a\sin b) + i(\sin a\cos b + \cos a\sin b).$$ Matching real and imaginary parts against $\cos(a+b) + i\sin(a+b)$ gives both formulas at once.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $e^{i\theta}$ never grows: $|e^{i\theta}| = 1$ for every real θ. The exponential explodes only along the real direction — in general $e^{a+ib} = e^a(\cos b + i\sin b)$, so the real part of the exponent sets the magnitude and the imaginary part only sets the direction. "Exponential growth" and "rotation" are the two faces of one function.</div>
+ <div class="box link"><span class="label">Where this goes</span> Complex exponentials are the basis functions of the Fourier transform (Ch 14) and the reason rotary position embeddings (Ch 14) are phase rotations. Multiplication by $e^{i\theta}$ is also the $2\times 2$ rotation matrix of Ch 8 in disguise: the map $z \mapsto e^{i\theta}z$ acts on $(x,y)$ exactly as $\begin{pmatrix}\cos\theta &amp; -\sin\theta\\ \sin\theta &amp; \cos\theta\end{pmatrix}$ does.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $e^{i\pi/2}$. <details class="sol"><summary>Solution</summary><div>$\cos\tfrac\pi2 + i\sin\tfrac\pi2 = i$ — a quarter turn from 1. Multiplying by $i$ <em>is</em> rotating by $90^\circ$, which is why $i^2 = -1$: two quarter turns make a half turn.</div></details></li>
+  <li><span class="lvl m">MED</span> Use De Moivre to find $\cos 3\theta$ in terms of $\cos\theta$. <details class="sol"><summary>Solution</summary><div>$(\cos\theta + i\sin\theta)^3$: real part $= \cos^3\theta - 3\cos\theta\sin^2\theta = \cos^3\theta - 3\cos\theta(1-\cos^2\theta) = 4\cos^3\theta - 3\cos\theta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $(1 + i)^{10}$ using polar form. <details class="sol"><summary>Solution</summary><div>$1 + i = \sqrt2 e^{i\pi/4}$. Tenth power: $(\sqrt2)^{10} e^{i10\pi/4} = 32\, e^{i5\pi/2} = 32 e^{i\pi/2} = 32i$.</div></details></li>
+  <li><span class="lvl m">MED</span> Using $\cos\theta = \frac{e^{i\theta}+e^{-i\theta}}{2}$, prove the power-reduction identity $\cos^2\theta = \frac{1+\cos 2\theta}{2}$. <details class="sol"><summary>Solution</summary><div>$\cos^2\theta = \Big(\frac{e^{i\theta}+e^{-i\theta}}{2}\Big)^2 = \frac{e^{2i\theta} + 2 + e^{-2i\theta}}{4} = \frac{2\cos 2\theta + 2}{4} = \frac{1 + \cos 2\theta}{2}$. $\blacksquare$ Squaring in the exponential picture visibly creates the frequencies $2\theta$, $0$, $-2\theta$ — nothing else.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="eulers-identity">
+ <h2>Euler's identity</h2>
+ <p>Set $\theta = \pi$ in Euler's formula and five of the most fundamental constants in mathematics — $e$, $i$, $\pi$, 1, 0 — collapse into one equation. It is not magic once you see it as geometry: walking half-way around the unit circle lands you at $-1$. The equation is a summary of everything this chapter built — angle measure (π radians is half a turn), the unit circle (where the walk happens), and Euler's formula (why an exponential does the walking). If you can explain to someone <em>why</em> it is true in one sentence, the chapter has done its job.</p>
+ <div class="box def"><span class="label">Definition</span> $$e^{i\pi} + 1 = 0.$$ Read: rotating by $\pi$ radians is multiplication by $-1$. More generally $e^{i\pi k} = (-1)^k$, and the $n$-th roots of unity $e^{2\pi i k/n}$, $k = 0,\dots,n-1$, sit at the vertices of a regular $n$-gon on the unit circle.</div>
+ <div class="box ex"><span class="label">Worked example</span> The cube roots of unity: $e^{2\pi i k/3}$ for $k=0,1,2$: $1$, $-\tfrac12 + \tfrac{\sqrt3}{2}i$, $-\tfrac12 - \tfrac{\sqrt3}{2}i$. Their sum: $1 - \tfrac12 - \tfrac12 + i(\tfrac{\sqrt3}2 - \tfrac{\sqrt3}2) = 0$ — the vertices of a regular polygon always balance at the center.</div>
+ <div class="box think"><span class="label">Think first</span> What is $i^i$? (Yes, it's a real number.) <details class="sol"><summary>Reveal</summary><div>$i = e^{i\pi/2}$, so $i^i = e^{i\cdot i\pi/2} = e^{-\pi/2} \approx 0.2079$. (One value; other branches give $e^{-\pi/2 + 2\pi k}$.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $e^{2\pi i}$. <details class="sol"><summary>Solution</summary><div>Full turn: $1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find all solutions of $z^4 = 1$ and plot them mentally. <details class="sol"><summary>Solution</summary><div>$z = e^{2\pi ik/4}$: $1, i, -1, -i$ — the corners of a square on the unit circle.</div></details></li>
+  <li><span class="lvl m">MED</span> What is $\ln(-1)$, if we allow complex answers? <details class="sol"><summary>Solution</summary><div>We need $e^z = -1$. Euler's identity gives $e^{i\pi} = -1$, so $z = i\pi$ works — and so does $i\pi + 2\pi i k$ for any integer $k$, since a full extra turn changes nothing. The principal value is $\ln(-1) = i\pi$: the logarithm of a negative number is not "undefined", it is imaginary.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that $\sum_{k=0}^{n-1} e^{2\pi i k/n} = 0$ for $n \ge 2$. <details class="sol"><summary>Solution</summary><div>Geometric series with ratio $\omega = e^{2\pi i/n} \ne 1$: sum $= \frac{\omega^n - 1}{\omega - 1} = \frac{1 - 1}{\omega - 1} = 0$. $\blacksquare$ (This orthogonality is the engine of the discrete Fourier transform, Ch 14.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">$e^{i\pi/3}$ equals…</div><button class="opt">$\tfrac12 + \tfrac{\sqrt3}{2}i$</button><button class="opt">$\tfrac{\sqrt3}{2} + \tfrac12 i$</button><button class="opt">$-\tfrac12 + \tfrac{\sqrt3}{2}i$</button><div class="why" hidden>$e^{i\pi/3} = \cos\tfrac\pi3 + i\sin\tfrac\pi3 = \tfrac12 + \tfrac{\sqrt3}{2}i$: the point at $60^\circ$ on the unit circle. The second option is the $30^\circ$ point, the third is $120^\circ$.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> A drone flies from the origin 100 m at bearing N40°E (40° east of north), then 80 m at bearing S70°E. Find its final position (east, north) and straight-line distance from start. <details class="sol"><summary>Solution</summary><div>Leg 1: east $100\sin 40^\circ \approx 64.28$, north $100\cos 40^\circ \approx 76.60$. Leg 2 (S70°E: 70° east of south): east $80\sin 70^\circ \approx 75.18$, north $-80\cos 70^\circ \approx -27.36$. Total: east $\approx 139.46$, north $\approx 49.25$. Distance $= \sqrt{139.46^2 + 49.25^2} = \sqrt{19449 + 2426} \approx \sqrt{21875} \approx 147.9$ m.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that for any triangle inscribed in a circle of radius $R$, the area is $\dfrac{abc}{4R}$. <details class="sol"><summary>Solution</summary><div>Area $= \tfrac12 ab\sin C$ (two sides and the included angle: height from $B$ onto side $b$... concretely, height $= a\sin C$ onto base $b$). Law of sines: $\frac{c}{\sin C} = 2R \Rightarrow \sin C = \frac{c}{2R}$. Substitute: Area $= \tfrac12 ab\cdot\frac{c}{2R} = \frac{abc}{4R}$. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Signal mixing: an AM radio multiplies a message $m(t) = \cos(2\pi\cdot 1000\, t)$ with a carrier $c(t) = \cos(2\pi \cdot 500000\, t)$. (a) Which frequencies does $m(t)c(t)$ contain? (b) At the receiver we multiply again by the carrier. Show the result contains the original 1000 Hz tone (plus high-frequency junk a filter removes), with amplitude reduced. <details class="sol"><summary>Solution</summary><div>(a) Product-to-sum: $\cos A\cos B = \tfrac12[\cos(A-B) + \cos(A+B)]$: frequencies $499\,000$ and $501\,000$ Hz. (b) Multiply by $\cos(2\pi\cdot500000 t)$ again: each sideband splits: $\tfrac12\cos(2\pi\,499000 t)\cos(2\pi\,500000t) = \tfrac14[\cos(2\pi\,1000t) + \cos(2\pi\,999000t)]$, and similarly the 501 kHz band gives $\tfrac14[\cos(2\pi\,1000 t) + \cos(2\pi\,1001000 t)]$. Sum: $\tfrac12\cos(2\pi\,1000t)$ + terms near 1 MHz. Low-pass filtering leaves the message at half amplitude. This is exactly how frequency mixing — and the convolution theorem of Ch 14 — works.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Waves, triangles, and rotations in NumPy — with the radian discipline this chapter demands.</p>
+ <p><b>Task 1 — Triangle solver.</b> Write <code>solve_sas(a, C_deg, b)</code> returning the third side and remaining angles using the laws of cosines and sines. Verify on the worked example: a=5, C=60°, b=8 → c=7, A≈38.21°, B≈81.79°.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def solve_sas(a, C_deg, b):
+    C = np.radians(C_deg)
+    c = np.sqrt(a*a + b*b - 2*a*b*np.cos(C))
+    # find remaining angles with law of cosines (robust, no ambiguity)
+    A = np.degrees(np.arccos((b*b + c*c - a*a) / (2*b*c)))
+    B = 180.0 - C_deg - A
+    return c, A, B
+
+c, A, B = solve_sas(5, 60, 8)
+print(c, A, B)      # 7.0  38.213...  81.786...
+assert abs(A + B + 60 - 180) &lt; 1e-9</code></pre></div></details>
+ <p><b>Task 2 — Beats.</b> Sample $f(t)=\sin(2\pi\,440t)+\sin(2\pi\,444t)$ at 8 kHz for 1 s. Compute the envelope's beat frequency empirically by counting the maxima of a smoothed $|f|$, and confirm it is 4 Hz as the sum-to-product identity predicts.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+fs = 8000
+t = np.arange(0, 1, 1/fs)
+f = np.sin(2*np.pi*440*t) + np.sin(2*np.pi*444*t)
+
+# envelope = |2 cos(2 pi * 2 t)|; recover by rectify + moving average
+rect = np.abs(f)
+win = int(fs * 0.01)                     # 10 ms window kills the 442 Hz ripple
+env = np.convolve(rect, np.ones(win)/win, mode='same')
+
+# count peaks of the envelope
+peaks = np.where((env[1:-1] &gt; env[:-2]) &amp; (env[1:-1] &gt; env[2:]))[0]
+# keep well-separated peaks only
+sep = peaks[np.insert(np.diff(peaks) &gt; win, 0, True)]
+print(len(sep))                          # ~4 beats in 1 second
+# theory: sum-to-product gives envelope |2cos(2 pi 2 t)| -&gt; 4 maxima/s</code></pre></div></details>
+ <p><b>Task 3 — Rotation by complex multiplication.</b> Represent 2D points as complex numbers and implement rotation about the origin as multiplication by $e^{i\theta}$. Rotate the square with corners $\pm1 \pm i$ by 30° and check that lengths and the dot products between corner vectors are preserved.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+corners = np.array([1+1j, -1+1j, -1-1j, 1-1j])
+theta = np.radians(30)
+rotated = corners * np.exp(1j*theta)     # Euler: e^{i t} rotates by t
+
+print(np.abs(corners))                   # all sqrt(2)
+print(np.abs(rotated))                   # unchanged
+# dot product of vectors u,v as complex numbers: Re(u * conj(v))
+def dot(u, v): return (u * np.conj(v)).real
+for i in range(4):
+    u1, v1 = corners[i], corners[(i+1) % 4]
+    u2, v2 = rotated[i], rotated[(i+1) % 4]
+    assert np.isclose(dot(u1, v1), dot(u2, v2))   # angles preserved
+print(rotated[0])                        # (0.366+1.366j) = rot of 1+i</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.khanacademy.org/math/trigonometry">Khan Academy — Trigonometry</a>: the full course: unit circle, identities, graphs, laws of sines/cosines, with exercises.</li>
+  <li><a href="https://openstax.org/books/algebra-and-trigonometry-2e/pages/7-introduction-to-the-unit-circle-sine-and-cosine-functions">OpenStax Algebra and Trigonometry 2e</a>: free textbook; chapters 7–10 cover everything here with hundreds of problems.</li>
+  <li><a href="https://www.youtube.com/watch?v=v0YEaeIClKY">3Blue1Brown — Euler's formula with introductory group theory</a>: why $e^{i\pi} = -1$ is about rotation, not coincidence.</li>
+  <li><a href="https://www.desmos.com/calculator">Desmos graphing calculator</a>: free; plot every wave, polar rose, and parametric curve in this chapter and drag the parameters.</li>
+  <li><a href="https://mathworld.wolfram.com/TrigonometricAdditionFormulas.html">Wolfram MathWorld — Trigonometric addition formulas</a>: complete identity reference with derivations.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/">MIT OCW 18.01SC</a>: the trig review and trig-derivative sessions bridge this chapter into Ch 7.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch05.html">← 05 Geometry</a>
+ <a class="btn" href="ch07.html">07 Calculus →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function on(id,ev,fn){var el=document.getElementById(id); if(el) el.addEventListener(ev,fn);}
+ function val(id){var el=document.getElementById(id); return el?parseFloat(el.value):0;}
+ function axes(g,s,cx,cy){
+  g.strokeStyle=cssVar('--ink-2'); g.lineWidth=1; g.globalAlpha=0.5;
+  g.beginPath(); g.moveTo(0,cy); g.lineTo(s.w,cy); g.moveTo(cx,0); g.lineTo(cx,s.h); g.stroke();
+  g.globalAlpha=1; g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+ }
+
+ /* Unit circle */
+ var cu=document.getElementById('cv-unit');
+ function drawUnit(){
+  if(!cu) return;
+  var s=setupCanvas(cu,300), g=s.g;
+  var cx=s.w/2, cy=s.h/2, R=Math.min(s.w,s.h)/2-30;
+  axes(g,s,cx,cy);
+  g.strokeStyle=cssVar('--ink-2'); g.beginPath(); g.arc(cx,cy,R,0,2*Math.PI); g.stroke();
+  var th=val('uc-th')*Math.PI/180;
+  var px=cx+R*Math.cos(th), py=cy-R*Math.sin(th);
+  // angle arc
+  g.strokeStyle=cssVar('--ink-2'); g.beginPath(); g.arc(cx,cy,22,0,-th,th>0); g.stroke();
+  // cos segment (horizontal) and sin segment (vertical)
+  g.lineWidth=3;
+  g.strokeStyle=cssVar('--green')||'#2f9e6e';
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(px,cy); g.stroke();
+  g.strokeStyle=cssVar('--cobalt');
+  g.beginPath(); g.moveTo(px,cy); g.lineTo(px,py); g.stroke();
+  g.lineWidth=2; g.strokeStyle=cssVar('--ink');
+  g.beginPath(); g.moveTo(cx,cy); g.lineTo(px,py); g.stroke();
+  g.fillStyle=cssVar('--rose')||'#d35d7e'; g.beginPath(); g.arc(px,py,5,0,7); g.fill();
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('cos θ', (cx+px)/2-18, cy+16);
+  g.fillText('sin θ', px+8, (cy+py)/2);
+  var out=document.getElementById('uc-out');
+  if(out) out.textContent='θ = '+val('uc-th')+'° = '+th.toFixed(3)+' rad   cos = '+Math.cos(th).toFixed(3)+'   sin = '+Math.sin(th).toFixed(3)+'   tan = '+(Math.abs(Math.cos(th))<1e-3?'undef':Math.tan(th).toFixed(3));
+ }
+ on('uc-th','input',drawUnit);
+
+ /* Wave shaper */
+ var cw=document.getElementById('cv-wave');
+ function drawWave(){
+  if(!cw) return;
+  var s=setupCanvas(cw,280), g=s.g;
+  var cx=40, cy=s.h/2, sx=(s.w-60)/(4*Math.PI), sy=35;
+  axes(g,s,cx,cy);
+  var A=val('wv-a'), B=val('wv-b'), C=val('wv-c'), D=val('wv-d');
+  // midline
+  g.strokeStyle=cssVar('--ink-2'); g.setLineDash([4,4]);
+  g.beginPath(); g.moveTo(0,cy-D*sy); g.lineTo(s.w,cy-D*sy); g.stroke(); g.setLineDash([]);
+  // reference sin x
+  g.globalAlpha=0.35; g.strokeStyle=cssVar('--ink-2'); g.beginPath();
+  for(var x=0;x<=4*Math.PI;x+=0.02){ var X=cx+x*sx, Y=cy-Math.sin(x)*sy; x?g.lineTo(X,Y):g.moveTo(X,Y);} g.stroke(); g.globalAlpha=1;
+  g.strokeStyle=cssVar('--cobalt'); g.lineWidth=2; g.beginPath();
+  var first=true;
+  for(x=0;x<=4*Math.PI;x+=0.02){ var Y2=cy-(A*Math.sin(B*x+C)+D)*sy; var X2=cx+x*sx; first?g.moveTo(X2,Y2):g.lineTo(X2,Y2); first=false;} g.stroke();
+  g.fillStyle=cssVar('--ink-2'); g.fillText('x: 0 … 4π', s.w-90, s.h-8);
+  var out=document.getElementById('wv-out');
+  if(out) out.textContent='y = '+A.toFixed(1)+' sin('+B.toFixed(1)+'x + '+C.toFixed(2)+') + '+D.toFixed(1)+'   amplitude '+Math.abs(A).toFixed(1)+', period '+(2*Math.PI/Math.abs(B)).toFixed(2)+', shift '+(-C/B).toFixed(2)+', midline '+D.toFixed(1);
+ }
+ ['wv-a','wv-b','wv-c','wv-d'].forEach(function(id){on(id,'input',drawWave);});
+
+ /* Polar curves */
+ var cpol=document.getElementById('cv-polar');
+ function drawPolar(){
+  if(!cpol) return;
+  var s=setupCanvas(cpol,300), g=s.g;
+  var cx=s.w/2, cy=s.h/2, R=Math.min(s.w,s.h)/2-24;
+  axes(g,s,cx,cy);
+  // faint circles
+  g.strokeStyle=cssVar('--ink-2'); g.globalAlpha=0.25;
+  [0.5,1].forEach(function(rr){ g.beginPath(); g.arc(cx,cy,rr*R/2*2*0.5+ (rr===1? R*0 :0),0,7); g.stroke(); });
+  g.beginPath(); g.arc(cx,cy,R/2,0,7); g.stroke();
+  g.beginPath(); g.arc(cx,cy,R,0,7); g.stroke();
+  g.globalAlpha=1;
+  var kindEl=document.getElementById('pl-kind'); var kind=kindEl?kindEl.value:'rose';
+  var k=val('pl-k');
+  var tmax = kind==='spiral' ? 8*Math.PI : 2*Math.PI;
+  var scale = kind==='cardioid' ? R/2 : (kind==='spiral' ? R/(0.15*tmax) : R);
+  g.strokeStyle=cssVar('--cobalt'); g.lineWidth=2; g.beginPath();
+  var first=true;
+  for(var t=0;t<=tmax;t+=0.005){
+   var r = kind==='rose' ? Math.cos(k*t) : kind==='spiral' ? 0.15*t : 1+Math.cos(t);
+   var X=cx + r*Math.cos(t)*scale, Y=cy - r*Math.sin(t)*scale;
+   first?g.moveTo(X,Y):g.lineTo(X,Y); first=false;
+  }
+  g.stroke();
+  var out=document.getElementById('pl-out');
+  var desc = kind==='rose' ? ('r = cos('+k+'θ): '+(k%2? k+' petals':(2*k)+' petals')) : kind==='spiral' ? 'Archimedean spiral r = 0.15θ' : 'cardioid r = 1 + cos θ';
+  if(out) out.textContent=desc;
+ }
+ on('pl-k','input',drawPolar); on('pl-kind','change',drawPolar);
+
+ /* Lissajous */
+ var cl=document.getElementById('cv-liss');
+ function drawLiss(){
+  if(!cl) return;
+  var s=setupCanvas(cl,300), g=s.g;
+  var cx=s.w/2, cy=s.h/2, R=Math.min(s.w,s.h)/2-24;
+  axes(g,s,cx,cy);
+  var a=val('ls-a'), b=val('ls-b'), p=val('ls-p');
+  g.strokeStyle=cssVar('--cobalt'); g.lineWidth=2; g.beginPath();
+  var first=true;
+  for(var t=0;t<=2*Math.PI+0.01;t+=0.003){
+   var X=cx+Math.cos(a*t+p)*R, Y=cy-Math.sin(b*t)*R;
+   first?g.moveTo(X,Y):g.lineTo(X,Y); first=false;
+  }
+  g.stroke();
+  var out=document.getElementById('ls-out');
+  if(out) out.textContent='(x, y) = (cos('+a+'t + '+p.toFixed(2)+'), sin('+b+'t)).  a = b with phase π/2 gives a circle.';
+ }
+ ['ls-a','ls-b','ls-p'].forEach(function(id){on(id,'input',drawLiss);});
+
+ function drawAll(){ drawUnit(); drawWave(); drawPolar(); drawLiss(); }
+ window.addEventListener('resize', drawAll);
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', drawAll);
+ else drawAll();
+})();
+</script>
+
+</body></html>

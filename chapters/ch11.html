@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 11 Probability</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','11')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">11</div><h1>Probability</h1>
+   <p class="lede">Reasoning precisely about uncertainty.</p>
+   <div class="meta"><span class="chip">51 topics</span><span class="chip">needs: chapters 03, 07, 08, 09</span><span class="chip">feeds: chapters 12, 13, 16, 19, 22</span></div>
+  </div>
+
+<section class="topic" id="sample-spaces">
+ <h2>Sample spaces</h2>
+ <p>Before you can reason about chance, list what can happen. The sample space is the set of all possible outcomes of an experiment — every die face, every coin sequence, every possible dataset. Choosing it well is half the modeling.</p>
+ <div class="box def"><span class="label">Definition</span> The sample space $\Omega$ is the set of all possible outcomes $\omega$ of an experiment. It may be finite ($\{H,T\}$), countably infinite (number of emails today: $\{0,1,2,\dots\}$), or uncountable ($[0,1]$, $\mathbb{R}^n$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Toss two distinguishable coins: $\Omega=\{HH,HT,TH,TT\}$, $|\Omega|=4$. If instead we only record the <em>number</em> of heads, $\Omega'=\{0,1,2\}$ — a different (coarser) sample space, and outcomes are no longer equally likely: $P(1)=\frac12$ but $P(0)=P(2)=\frac14$ in the fair-coin model.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Equally likely" is a modeling assumption about $\Omega$, not a law. The coarse space $\{0,1,2\}$ above is a legitimate sample space whose outcomes are <em>not</em> equally likely.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the sample space for rolling one die then flipping one coin. How many outcomes? <details class="sol"><summary>Solution</summary><div>$\Omega=\{1,\dots,6\}\times\{H,T\}$: pairs like $(3,H)$; $|\Omega|=12$.</div></details></li>
+  <li><span class="lvl m">MED</span> Give a natural sample space for "flip a coin until the first head." Is it finite? <details class="sol"><summary>Solution</summary><div>$\Omega=\{H,TH,TTH,TTTH,\dots\}\cup\{TTT\cdots\}$: countably infinite (plus the probability-zero never-head sequence).</div></details></li>
+  <li><span class="lvl h">HARD</span> An experiment picks a uniformly random point on a circle's circumference. Propose $\Omega$ and explain why $P(\{\omega\})=0$ for every single outcome yet $P(\Omega)=1$. <details class="sol"><summary>Solution</summary><div>$\Omega=[0,2\pi)$ (the angle). Any single angle has probability 0 — uncountably many outcomes must share total mass 1, and uniformity forces each to 0. Probability lives on <em>sets</em> (arcs get mass proportional to length); countable additivity cannot sum uncountably many zeros to 1, which is why continuous probability is built on measure, not on outcome-counting.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="events">
+ <h2>Events</h2>
+ <p>An event is a yes/no question about the outcome: "the die is even," "the loss is below 0.1." Formally it is just a subset of the sample space, and logic becomes set algebra: AND is intersection, OR is union, NOT is complement.</p>
+ <div class="box def"><span class="label">Definition</span> An event $A\subseteq\Omega$ occurs iff the realized outcome $\omega\in A$. Operations: $A\cap B$ (both), $A\cup B$ (at least one), $A^c=\Omega\setminus A$ (not $A$). $A,B$ are <em>disjoint</em> (mutually exclusive) if $A\cap B=\varnothing$. De Morgan: $(A\cup B)^c=A^c\cap B^c$.</div>
+ <div class="box ex"><span class="label">Worked example</span> One die: $A=$ even $=\{2,4,6\}$, $B=$ greater than 3 $=\{4,5,6\}$. Then $A\cap B=\{4,6\}$, $A\cup B=\{2,4,5,6\}$, $A^c=\{1,3,5\}$. Probabilities (fair die): $P(A)=\tfrac12$, $P(B)=\tfrac12$, $P(A\cap B)=\tfrac13$, $P(A\cup B)=\tfrac12+\tfrac12-\tfrac13=\tfrac23$ ✓ (matching the 4 outcomes).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two coins. Express "at least one head" as a set and find its probability. <details class="sol"><summary>Solution</summary><div>$\{HH,HT,TH\}$; $P=\frac34$ (or $1-P(TT)=1-\frac14$).</div></details></li>
+  <li><span class="lvl m">MED</span> Show that "exactly one of $A,B$" is $(A\cap B^c)\cup(A^c\cap B)$ and compute its probability in terms of $P(A),P(B),P(A\cap B)$. <details class="sol"><summary>Solution</summary><div>The two disjoint pieces cover the cases ($A$ only), ($B$ only). $P=P(A)+P(B)-2P(A\cap B)$ (each of $P(A),P(B)$ counts the overlap once; subtract it twice).</div></details></li>
+  <li><span class="lvl h">HARD</span> For events $A_1,\dots,A_n$, write "infinitely often would need infinite $n$ — instead: none occur" and "all occur" using set operations, and verify De Morgan connects them. <details class="sol"><summary>Solution</summary><div>None: $\bigcap_iA_i^c$. All: $\bigcap_iA_i$. De Morgan: $\big(\bigcup_iA_i\big)^c=\bigcap_iA_i^c$ — "not (at least one)" $=$ "none," and $\big(\bigcap_iA_i\big)^c=\bigcup_iA_i^c$ — "not all" $=$ "at least one fails."</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="probability-axioms">
+ <h2>Probability axioms</h2>
+ <p>All of probability rests on three rules: probabilities are nonnegative, the whole space has probability 1, and the probability of a disjoint union is the sum. Everything else — complements, inclusion-exclusion, continuity — is a theorem.</p>
+ <div class="box def"><span class="label">Definition (Kolmogorov axioms)</span> A probability measure $P$ assigns each event a number with: (1) $P(A)\ge0$; (2) $P(\Omega)=1$; (3) countable additivity: for pairwise disjoint $A_1,A_2,\dots$, $P\big(\bigcup_iA_i\big)=\sum_iP(A_i)$. Consequences: $P(A^c)=1-P(A)$; $P(\varnothing)=0$; monotonicity $A\subseteq B\Rightarrow P(A)\le P(B)$; inclusion–exclusion $P(A\cup B)=P(A)+P(B)-P(A\cap B)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> In a class, 60% take math (M), 45% take physics (Ph), 25% take both. Probability a random student takes at least one: $P(M\cup Ph)=0.60+0.45-0.25=0.80$. Neither: $1-0.80=0.20$. Exactly one: $0.80-0.25=0.55$.</div>
+ <div class="box think"><span class="label">Think first</span> Can $P(A)=0.7$, $P(B)=0.6$, and $A,B$ disjoint? <details class="sol"><summary>Reveal</summary><div>No: disjointness would give $P(A\cup B)=1.3&gt;1$, violating $P(\Omega)=1$ and monotonicity. In fact $P(A\cap B)\ge P(A)+P(B)-1=0.3$: heavily probable events are forced to overlap.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $P(A)=0.3$, $P(B)=0.5$, disjoint. Find $P(A\cup B)$ and $P(A^c\cap B^c)$. <details class="sol"><summary>Solution</summary><div>$0.8$; complement of the union: $0.2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $P(A\cup B)\le P(A)+P(B)$ (union bound) from the axioms. <details class="sol"><summary>Solution</summary><div>$A\cup B=A\cup(B\setminus A)$, disjoint, so $P(A\cup B)=P(A)+P(B\setminus A)\le P(A)+P(B)$ by monotonicity ($B\setminus A\subseteq B$). The union bound scales to any countable collection — the workhorse of Ch 20's generalization proofs.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the 3-set inclusion–exclusion formula and use it: of 100 programs, 50 use tool A, 40 tool B, 30 tool C, 20 A&amp;B, 15 A&amp;C, 10 B&amp;C, 5 all three. How many use none? <details class="sol"><summary>Solution</summary><div>$P(A\cup B\cup C)=P(A)+P(B)+P(C)-P(AB)-P(AC)-P(BC)+P(ABC)$. Count: $50+40+30-20-15-10+5=80$. None: $20$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditional-probability">
+ <h2>Conditional probability</h2>
+ <p>New information shrinks the world. Given that event $B$ happened, throw away every outcome outside $B$ and renormalize what remains: that is conditioning. Almost every probability you actually care about — a diagnosis given a test, the next token given the context — is conditional.</p>
+ <div class="box def"><span class="label">Definition</span> For $P(B)&gt;0$: $$P(A\mid B)=\frac{P(A\cap B)}{P(B)}.$$ Chain rule: $P(A\cap B)=P(A\mid B)P(B)$, and generally $P(A_1\cap\cdots\cap A_n)=P(A_1)P(A_2\mid A_1)\cdots P(A_n\mid A_1\cdots A_{n-1})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two dice. Given the sum is 8, what is the probability the first die shows 6? Outcomes with sum 8: $(2,6),(3,5),(4,4),(5,3),(6,2)$ — five, equally likely. First die 6: one of them. $P=\frac15$. Note the unconditional $P(\text{first}=6)=\frac16\neq\frac15$: information moved the needle.</div>
+ <div class="box link"><span class="label">Where this goes</span> A language model is one long chain rule: $P(w_1\cdots w_n)=\prod_tP(w_t\mid w_{&lt;t})$ (Ch 21, 23).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From a standard deck, draw one card. $P(\text{king}\mid\text{face card})$? <details class="sol"><summary>Solution</summary><div>Face cards: J,Q,K — 12 cards. Kings: 4. $P=\frac{4}{12}=\frac13$.</div></details></li>
+  <li><span class="lvl m">MED</span> Draw two cards without replacement. Find $P(\text{both aces})$ by the chain rule. <details class="sol"><summary>Solution</summary><div>$\frac{4}{52}\cdot\frac{3}{51}=\frac{12}{2652}=\frac{1}{221}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A family has two children (each independently boy/girl with prob ½). Compare: (a) $P(\text{two girls}\mid\text{elder is a girl})$; (b) $P(\text{two girls}\mid\text{at least one girl})$. <details class="sol"><summary>Solution</summary><div>Space $\{BB,BG,GB,GG\}$ (elder first). (a) Condition on $\{GB,GG\}$: $P=\frac12$. (b) Condition on $\{BG,GB,GG\}$: $P=\frac13$. Different information, different answers — "which girl you learned about" matters, the classic conditioning trap.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="independence">
+ <h2>Independence</h2>
+ <p>Two events are independent when learning one tells you nothing about the other — the conditional probability equals the unconditional. Multiplication of probabilities is the algebraic signature. Independence is an assumption you must justify, and the single most common source of silent modeling errors.</p>
+ <div class="box def"><span class="label">Definition</span> $A\perp B$ iff $P(A\cap B)=P(A)P(B)$ (equivalently $P(A\mid B)=P(A)$ when $P(B)&gt;0$). Events $A_1,\dots,A_n$ are <em>mutually</em> independent if the product rule holds for every sub-collection — pairwise independence is not enough.</div>
+ <div class="box ex"><span class="label">Worked example</span> One die: $A=\{2,4,6\}$ (even), $B=\{1,2,3,4\}$ ($\le4$). $P(A)=\frac12$, $P(B)=\frac23$, $P(A\cap B)=P(\{2,4\})=\frac13=\frac12\cdot\frac23$ ✓ independent — even though both are statements about the same die. Independence is about probabilities, not physical separation.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Disjoint ≠ independent — disjoint events with positive probability are maximally <em>dependent</em> (one happening forbids the other). And pairwise independence does not imply mutual: flip two fair coins, let $A$=first is H, $B$=second is H, $C$=they agree; any two are independent, but $P(A\cap B\cap C)=\frac14\neq\frac18$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two independent components each fail with probability 0.1. $P(\text{both fail})$? $P(\text{at least one fails})$? <details class="sol"><summary>Solution</summary><div>$0.01$; $1-0.9^2=0.19$.</div></details></li>
+  <li><span class="lvl m">MED</span> If $A\perp B$, show $A\perp B^c$. <details class="sol"><summary>Solution</summary><div>$P(A\cap B^c)=P(A)-P(A\cap B)=P(A)-P(A)P(B)=P(A)(1-P(B))=P(A)P(B^c)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A test suite has 20 independent flaky tests, each passing with probability 0.99. What is the probability a full run is green? How many reruns until the first green run (expected)? <details class="sol"><summary>Solution</summary><div>$0.99^{20}=e^{20\ln0.99}\approx e^{-0.201}\approx0.818$. Reruns are geometric with $p=0.818$: expected $1/p\approx1.22$ runs. Moral: independence compounds — per-test reliability must be far better than per-suite tolerance.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bayes-theorem">
+ <h2>Bayes theorem</h2>
+ <p>Bayes' theorem reverses the direction of conditioning: from "probability of evidence given hypothesis" — usually what a model gives you — to "probability of hypothesis given evidence" — what you actually want. Prior beliefs times likelihood, renormalized: that's inference in one line.</p>
+ <div class="box thm"><span class="label">Theorem (Bayes)</span> For $P(B)&gt;0$: $$P(A\mid B)=\frac{P(B\mid A)\,P(A)}{P(B)},\qquad P(B)=\sum_iP(B\mid A_i)P(A_i)$$ over a partition $\{A_i\}$ (law of total probability). Mnemonic: posterior $\propto$ likelihood × prior.</div>
+ <div class="box ex"><span class="label">Worked example</span> A disease affects 1% of people. A test catches it 95% of the time (sensitivity) and false-alarms 5% of the time. You test positive. $$P(D\mid +)=\frac{0.95\times0.01}{0.95\times0.01+0.05\times0.99}=\frac{0.0095}{0.0095+0.0495}=\frac{0.0095}{0.059}\approx0.161.$$ Only 16%! The 1% prior dominates: among 10,000 people, ~95 true positives drown in ~495 false ones.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the prior and the test's error rates and watch the posterior — and the population picture of true vs false positives — respond.</p>
+  <canvas id="cv-bayes"></canvas>
+  <div class="ctl"><label>prior P(D) <input type="range" id="by-prior" min="0.001" max="0.5" step="0.001" value="0.01"></label>
+  <label>sensitivity <input type="range" id="by-sens" min="0.5" max="0.999" step="0.001" value="0.95"></label>
+  <label>false-positive rate <input type="range" id="by-fpr" min="0.001" max="0.5" step="0.001" value="0.05"></label></div>
+  <div class="out" id="by-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Bayesian inference (Ch 13), Bayesian decision theory (Ch 24), and every posterior in this book start here.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Urn I has 3 red, 1 blue; urn II has 1 red, 3 blue. Pick an urn at random, draw red. $P(\text{urn I}\mid\text{red})$? <details class="sol"><summary>Solution</summary><div>$\frac{\frac34\cdot\frac12}{\frac34\cdot\frac12+\frac14\cdot\frac12}=\frac{3/8}{4/8}=\frac34$.</div></details></li>
+  <li><span class="lvl m">MED</span> Spam filter: 40% of mail is spam; "free" appears in 25% of spam and 2% of ham. $P(\text{spam}\mid\text{"free"})$? <details class="sol"><summary>Solution</summary><div>$\frac{0.25\cdot0.4}{0.25\cdot0.4+0.02\cdot0.6}=\frac{0.1}{0.112}\approx0.893$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Repeat the disease example but the positive person immediately takes a second, independent test, also positive. New posterior? <details class="sol"><summary>Solution</summary><div>Use the first posterior $0.161$ as the new prior: $\frac{0.95\times0.161}{0.95\times0.161+0.05\times0.839}=\frac{0.1530}{0.1530+0.0420}\approx0.785$. Two pieces of evidence, sequentially absorbed — Bayesian updating in action. (Same as batching: likelihood ratio $19^2$ against prior odds $1/99$: odds $361/99\approx3.65$, $P=0.785$ ✓.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A rare condition (prior 0.1%) has a very accurate test (99% sensitivity, 1% false-positive). After one positive, the probability of the condition is closest to…</div><button class="opt">99%</button><button class="opt">9%</button><button class="opt">50%</button><div class="why" hidden>$\frac{0.99\times0.001}{0.99\times0.001+0.01\times0.999}\approx0.09$. When the prior is tiny, even excellent tests yield mostly false positives — the base-rate fallacy.</div></div>
+</section>
+
+<section class="topic" id="random-variables">
+ <h2>Random variables</h2>
+ <p>A random variable is a number attached to each outcome — the sum of the dice, the loss of the model, the number of heads. It converts raw outcomes into quantities you can average, compare and transform, and it is the object all the machinery below (expectation, variance, distributions) acts on.</p>
+ <div class="box def"><span class="label">Definition</span> A random variable is a function $X:\Omega\to\mathbb{R}$. Its <em>distribution</em> is the collection of probabilities $P(X\in S)=P(\{\omega:X(\omega)\in S\})$. Notation: $\{X=x\}$ and $\{X\le x\}$ abbreviate the corresponding events.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two fair coins, $X=$ number of heads. As a function: $X(TT)=0$, $X(HT)=X(TH)=1$, $X(HH)=2$. Distribution: $P(X=0)=\frac14$, $P(X=1)=\frac12$, $P(X=2)=\frac14$. A different random variable on the same space, $Y=1$ if the flips agree else $0$: $P(Y=1)=\frac12$. Same $\Omega$, different lenses.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> One die, $X=$ the face squared. List the values of $X$ and $P(X=x)$ for each. <details class="sol"><summary>Solution</summary><div>Values $1,4,9,16,25,36$, each with probability $\frac16$.</div></details></li>
+  <li><span class="lvl m">MED</span> Two dice, $X=$ maximum. Find $P(X\le x)$ for $x=1,\dots,6$ and then $P(X=4)$. <details class="sol"><summary>Solution</summary><div>$P(X\le x)=(x/6)^2$. $P(X=4)=P(X\le4)-P(X\le3)=\frac{16-9}{36}=\frac{7}{36}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Let $X$ be any random variable and $g$ any function. Explain why $g(X)$ is also a random variable, and compute the distribution of $g(X)$ where $X$ uniform on $\{-2,-1,0,1,2\}$ and $g(x)=x^2$. <details class="sol"><summary>Solution</summary><div>$g\circ X:\Omega\to\mathbb{R}$ is a function on outcomes, hence a random variable. $P(X^2=0)=\frac15$, $P(X^2=1)=P(X\in\{-1,1\})=\frac25$, $P(X^2=4)=\frac25$. Note the transformation folds the distribution — two $x$'s per value — a preview of the change-of-variables bookkeeping.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="discrete-random-variables">
+ <h2>Discrete random variables</h2>
+ <p>Discrete means the values can be listed: counts, categories, token ids. All probability questions reduce to summing the masses of the listed values — no calculus needed, just bookkeeping.</p>
+ <div class="box def"><span class="label">Definition</span> $X$ is discrete if it takes values in a finite or countable set $\{x_1,x_2,\dots\}$. Its distribution is determined by the probabilities $p_i=P(X=x_i)$ with $p_i\ge0$, $\sum_ip_i=1$; and $P(X\in S)=\sum_{x_i\in S}p_i$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A biased four-sided die has $P(X=k)\propto k$ for $k=1,2,3,4$. Normalize: $\sum k=10$, so $P(X=k)=k/10$. Then $P(X\ge3)=\frac{3+4}{10}=0.7$ and $P(X\text{ even})=\frac{2+4}{10}=0.6$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $P(X=k)=c/2^k$ for $k=1,2,3,\dots$. Find $c$. <details class="sol"><summary>Solution</summary><div>$\sum_{k\ge1}2^{-k}=1$, so $c=1$.</div></details></li>
+  <li><span class="lvl m">MED</span> With that $X$, compute $P(X\text{ odd})$. <details class="sol"><summary>Solution</summary><div>$\sum_{j\ge0}2^{-(2j+1)}=\frac12\cdot\frac{1}{1-1/4}=\frac{2}{3}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A language model's next-token distribution puts $p$ on the top token and splits $1-p$ evenly over the other $V-1$. For $V=50{,}000$, $p=0.9$: what is the probability that greedy decoding is wrong (token drawn ≠ top token), and how many tokens carry 99% of the remaining mass? <details class="sol"><summary>Solution</summary><div>$P(\text{not top})=0.1$. The remaining mass is uniform: each other token has $\frac{0.1}{49999}\approx2\times10^{-6}$; 99% of that mass needs $0.99\times49999\approx49{,}499$ tokens — a heavy flat tail, which is why top-$p$/top-$k$ truncation (Ch 23) changes samples so much.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="continuous-random-variables">
+ <h2>Continuous random variables</h2>
+ <p>Heights, times, activations: values that vary over a continuum. Individual points carry zero probability; probability lives in intervals, computed as areas under a density curve. Sums become integrals and everything else carries over.</p>
+ <div class="box def"><span class="label">Definition</span> $X$ is continuous if there is a density $f\ge0$ with $$P(a\le X\le b)=\int_a^bf(x)\,dx,\qquad\int_{-\infty}^{\infty}f(x)\,dx=1.$$ Then $P(X=x)=0$ for every point, and endpoints don't matter: $P(a\le X\le b)=P(a&lt;X&lt;b)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x)=2x$ on $[0,1]$ (0 elsewhere) — a valid density: $\int_0^12x\,dx=1$ ✓. $P(X\le\tfrac12)=\int_0^{1/2}2x\,dx=\tfrac14$: even though $[0,\frac12]$ is half the range, it holds only a quarter of the mass — the density tilts toward 1.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A density is not a probability: $f(x)$ can exceed 1 (e.g. uniform on $[0,\tfrac12]$ has $f=2$). Only integrals of $f$ are probabilities.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $f(x)=3x^2$ on $[0,1]$: verify it's a density and find $P(X&gt;\tfrac12)$. <details class="sol"><summary>Solution</summary><div>$\int_0^13x^2=1$ ✓. $P=1-(1/2)^3=\frac78$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $c$ so $f(x)=c e^{-3x}$ on $[0,\infty)$ is a density, then compute $P(1&lt;X&lt;2)$. <details class="sol"><summary>Solution</summary><div>$c\cdot\frac13=1\Rightarrow c=3$. $P=e^{-3}-e^{-6}\approx0.0473$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X$ has density $f(x)=\frac{1}{\pi(1+x^2)}$ (Cauchy). Show it integrates to 1 but has divergent mean integral, and explain the practical warning. <details class="sol"><summary>Solution</summary><div>$\int\frac{dx}{\pi(1+x^2)}=\frac{1}{\pi}[\arctan x]_{-\infty}^{\infty}=1$ ✓. But $\int|x|f\,dx=\frac{2}{\pi}\int_0^\infty\frac{x}{1+x^2}dx=\frac{1}{\pi}\ln(1+x^2)\big|_0^\infty=\infty$: no mean exists. Averages of Cauchy samples never settle down (the LLN needs a finite mean) — heavy tails can break the most basic statistics.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="probability-mass-functions">
+ <h2>Probability mass functions</h2>
+ <p>The PMF is the complete spec of a discrete random variable: a bar per value, heights summing to 1. Every discrete question is answered by adding bars.</p>
+ <div class="box def"><span class="label">Definition</span> The PMF of discrete $X$ is $p_X(x)=P(X=x)$, with $p_X(x)\ge0$ and $\sum_xp_X(x)=1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sum $S$ of two fair dice: $p_S(s)=\frac{6-|s-7|}{36}$ for $s=2,\dots,12$ — the triangle: $p_S(2)=\frac{1}{36}$, up to $p_S(7)=\frac{6}{36}$, back down. Check total: $\frac{1+2+3+4+5+6+5+4+3+2+1}{36}=\frac{36}{36}=1$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the PMF of a fair coin's number of heads in one flip. <details class="sol"><summary>Solution</summary><div>$p(0)=p(1)=\frac12$ — Bernoulli(½).</div></details></li>
+  <li><span class="lvl m">MED</span> Using the two-dice PMF, compute $P(5\le S\le9)$. <details class="sol"><summary>Solution</summary><div>$\frac{4+5+6+5+4}{36}=\frac{24}{36}=\frac23$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X,Y$ independent, each uniform on $\{0,1,2\}$. Derive the PMF of $Z=X+Y$ by convolution: $p_Z(z)=\sum_kp_X(k)p_Y(z-k)$. <details class="sol"><summary>Solution</summary><div>$p_Z(0)=\frac19$, $p_Z(1)=\frac29$, $p_Z(2)=\frac39$, $p_Z(3)=\frac29$, $p_Z(4)=\frac19$ — a discrete triangle; sums of independents convolve their PMFs (Ch 14 makes this a theorem about transforms).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="probability-density-functions">
+ <h2>Probability density functions</h2>
+ <p>The PDF is the continuous analogue of the PMF: not probability per value but probability per unit length — a rate. $f(x)\,dx$ is the chance of landing in the sliver $[x,x+dx]$. Modes, tails, and skew are all read off its graph.</p>
+ <div class="box def"><span class="label">Definition</span> $f_X$ is the density of $X$ if $P(X\in S)=\int_Sf_X(x)\,dx$ for all (measurable) $S$. Where $F_X$ is differentiable, $f_X=F_X'$. Under a change of units $Y=aX$ ($a&gt;0$), $f_Y(y)=\frac{1}{a}f_X(y/a)$ — densities carry units of $1/x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Standard Gaussian density $\varphi(x)=\frac{1}{\sqrt{2\pi}}e^{-x^2/2}$. Its maximum is $\varphi(0)=\frac{1}{\sqrt{2\pi}}\approx0.399$; the probability of a sliver of width $0.01$ near 0 is $\approx0.399\times0.01=0.4\%$; near $x=2$ it is $\varphi(2)\approx0.054$, so $0.054\%$ — the density directly compares how "popular" regions are.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Sketch (describe) the density of Uniform$[2,5]$ and give its height. <details class="sol"><summary>Solution</summary><div>Flat at $f=\frac13$ on $[2,5]$, zero outside.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x)=\lambda e^{-\lambda x}$ ($x\ge0$). At what $x$ is the density half its peak? <details class="sol"><summary>Solution</summary><div>Peak $\lambda$ at $x=0$; half: $e^{-\lambda x}=\frac12\Rightarrow x=\frac{\ln2}{\lambda}$ — the half-life again.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X$ has density $f$, and $Y=X^2$ where $X$ is standard Gaussian. Show $f_Y(y)=\frac{1}{\sqrt{2\pi y}}e^{-y/2}$ for $y&gt;0$ (chi-squared with 1 dof). <details class="sol"><summary>Solution</summary><div>$F_Y(y)=P(X^2\le y)=P(-\sqrt y\le X\le\sqrt y)=2\Phi(\sqrt y)-1$. Differentiate: $f_Y(y)=2\varphi(\sqrt y)\cdot\frac{1}{2\sqrt y}=\frac{1}{\sqrt y}\cdot\frac{1}{\sqrt{2\pi}}e^{-y/2}$ ✓ — both branches $\pm\sqrt y$ contribute, folded into the factor 2.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cumulative-distribution-functions">
+ <h2>Cumulative distribution functions</h2>
+ <p>The CDF answers one universal question — "what's the chance of being at most $x$?" — and works identically for discrete, continuous and mixed variables. It climbs from 0 to 1, and every probability of an interval is a difference of two CDF values.</p>
+ <div class="box def"><span class="label">Definition</span> $F_X(x)=P(X\le x)$. Properties: nondecreasing; right-continuous; $F(-\infty)=0$, $F(\infty)=1$; $P(a&lt;X\le b)=F(b)-F(a)$. Continuous case: $F(x)=\int_{-\infty}^xf$; discrete case: a staircase with jump $p_X(x)$ at each atom.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x)=2x$ on $[0,1]$: $F(x)=x^2$ there (0 below, 1 above). Then $P(0.3&lt;X\le0.8)=0.64-0.09=0.55$, and the median solves $x^2=\frac12$: $x=\frac{1}{\sqrt2}\approx0.707$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a fair die, evaluate $F(3)$, $F(3.7)$, $F(6)$. <details class="sol"><summary>Solution</summary><div>$F(3)=\frac12$; $F(3.7)=\frac12$ (staircase is flat between atoms); $F(6)=1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Exponential($\lambda$): derive $F(x)=1-e^{-\lambda x}$ and use it for $P(X&gt;t)$. <details class="sol"><summary>Solution</summary><div>$F(x)=\int_0^x\lambda e^{-\lambda u}du=1-e^{-\lambda x}$; survival $P(X&gt;t)=e^{-\lambda t}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X$ has continuous, strictly increasing CDF $F$. Show $U=F(X)$ is Uniform$[0,1]$ (probability integral transform). <details class="sol"><summary>Solution</summary><div>For $u\in(0,1)$: $P(U\le u)=P(F(X)\le u)=P(X\le F^{-1}(u))=F(F^{-1}(u))=u$ — the uniform CDF. This is why sorting p-values against the uniform diagonal works (Ch 13) and why inverse-CDF sampling works (next topic).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quantile-functions">
+ <h2>Quantile functions</h2>
+ <p>Run the CDF backwards: give me a probability level, I'll give you the threshold. Medians, percentiles, "p99 latency," and the standard sampling trick — feed uniform random numbers through the inverse CDF — all live here.</p>
+ <div class="box def"><span class="label">Definition</span> The quantile function is $Q(u)=F^{-1}(u)=\inf\{x:F(x)\ge u\}$ for $u\in(0,1)$. $Q(\tfrac12)$ is the median; $Q(0.25),Q(0.75)$ the quartiles. <em>Inverse-CDF sampling:</em> if $U\sim$ Uniform$[0,1]$ then $Q(U)$ has CDF $F$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Exponential($\lambda$): $F(x)=1-e^{-\lambda x}$, so $Q(u)=-\frac{\ln(1-u)}{\lambda}$. Median: $Q(\tfrac12)=\frac{\ln2}{\lambda}$ — below the mean $\frac{1}{\lambda}$, because the right tail drags the mean up. To sample: draw $u=0.37$, $\lambda=2$: $x=-\frac{\ln0.63}{2}\approx0.231$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the quantile function of Uniform$[a,b]$. <details class="sol"><summary>Solution</summary><div>$Q(u)=a+(b-a)u$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $F(x)=x^2$ on $[0,1]$, compute $Q(u)$ and the interquartile range. <details class="sol"><summary>Solution</summary><div>$Q(u)=\sqrt u$. IQR $=\sqrt{0.75}-\sqrt{0.25}=0.866-0.5=0.366$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Your service's latency is Exponential with mean 100 ms. Compute the p50, p95 and p99 latencies, and explain why p99 ≫ mean here. <details class="sol"><summary>Solution</summary><div>$\lambda=0.01/\text{ms}$. $Q(u)=-100\ln(1-u)$: p50 $=69.3$, p95 $=299.6$, p99 $=460.5$ ms. The exponential's memoryless tail decays only exponentially, so extreme quantiles sit several means out — tail metrics, not means, describe user pain.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="expectation">
+ <h2>Expectation</h2>
+ <p>The expectation is the center of mass of a distribution: each value weighted by its probability. It is the long-run average under repetition, it is linear even when variables are dependent, and it is the quantity every loss function in ML asks you to minimize.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{E}[X]=\sum_xx\,p(x)$ (discrete) or $\int xf(x)\,dx$ (continuous), when the sum/integral converges absolutely. <em>LOTUS:</em> $\mathbb{E}[g(X)]=\sum_xg(x)p(x)$ or $\int g(x)f(x)dx$. <em>Linearity:</em> $\mathbb{E}[aX+bY]=a\mathbb{E}[X]+b\mathbb{E}[Y]$ always — no independence needed.</div>
+ <div class="box ex"><span class="label">Worked example</span> Expected number of distinct faces in 3 die rolls: let $I_k$ indicate face $k$ appears. $\mathbb{E}[I_k]=1-(5/6)^3=\frac{91}{216}$. By linearity, $\mathbb{E}[\text{distinct}]=6\cdot\frac{91}{216}=\frac{91}{36}\approx2.528$ — computed without ever finding the messy distribution of the count. Indicators + linearity is the single most useful trick in applied probability.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\mathbb{E}[g(X)]\neq g(\mathbb{E}[X])$ in general (see Jensen, later): the average of $X^2$ is not the square of the average.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Expected value of one fair die roll? Of the sum of two? <details class="sol"><summary>Solution</summary><div>$3.5$; by linearity $7$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $f(x)=2x$ on $[0,1]$, compute $\mathbb{E}[X]$ and $\mathbb{E}[1/X]$. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X]=\int_0^1x\cdot2x\,dx=\frac23$. $\mathbb{E}[1/X]=\int_0^1\frac1x2x\,dx=2$. Note $1/\mathbb{E}[X]=1.5\neq2$.</div></details></li>
+  <li><span class="lvl m">MED</span> 100 people leave hats; hats are returned uniformly at random. Expected number who get their own hat? <details class="sol"><summary>Solution</summary><div>Indicators: $P(\text{person }i\text{ matched})=\frac{1}{100}$; linearity: $100\cdot\frac{1}{100}=1$ — regardless of the (strong!) dependence between matches.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\mathbb{E}[X]=\int_0^\infty P(X&gt;t)\,dt$ for nonnegative continuous $X$, and verify on Exponential($\lambda$). <details class="sol"><summary>Solution</summary><div>$\int_0^\infty P(X&gt;t)dt=\int_0^\infty\!\!\int_t^\infty f(x)\,dx\,dt=\int_0^\infty f(x)\int_0^xdt\,dx=\int_0^\infty xf(x)dx=\mathbb{E}[X]$ (swap order over $\{0&lt;t&lt;x\}$, Ch 9). Exponential: $\int_0^\infty e^{-\lambda t}dt=\frac1\lambda$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="variance">
+ <h2>Variance</h2>
+ <p>Variance measures spread: the average squared distance from the mean. Squaring punishes big deviations, keeps everything positive, and — crucially — makes variances of independent variables add, which is the engine behind the $\sqrt n$ in every error bar.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{Var}(X)=\mathbb{E}[(X-\mu)^2]=\mathbb{E}[X^2]-\mu^2$ where $\mu=\mathbb{E}[X]$. Rules: $\operatorname{Var}(aX+b)=a^2\operatorname{Var}(X)$; for independent (or merely uncorrelated) $X,Y$: $\operatorname{Var}(X+Y)=\operatorname{Var}(X)+\operatorname{Var}(Y)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> One die: $\mathbb{E}[X^2]=\frac{1+4+9+16+25+36}{6}=\frac{91}{6}$, $\mu=3.5$, so $\operatorname{Var}=\frac{91}{6}-12.25=\frac{35}{12}\approx2.917$. Sum of 10 independent dice: variance $\frac{350}{12}\approx29.17$, standard deviation $\approx5.40$ — the sum spreads like $\sqrt{10}$, not 10.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Bernoulli($p$): show $\operatorname{Var}=p(1-p)$ and find where it peaks. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X^2]=\mathbb{E}[X]=p$, so $\operatorname{Var}=p-p^2$; maximal at $p=\frac12$ (most unpredictable coin).</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x)=2x$ on $[0,1]$: compute the variance. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X^2]=\int_0^12x^3dx=\frac12$; $\operatorname{Var}=\frac12-\left(\frac23\right)^2=\frac12-\frac49=\frac{1}{18}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\bar X_n=\frac1n\sum X_i$ with i.i.d. $X_i$, variance $\sigma^2$. Show $\operatorname{Var}(\bar X_n)=\sigma^2/n$ and explain the $\sqrt n$ law of error bars. <details class="sol"><summary>Solution</summary><div>$\operatorname{Var}\big(\frac1n\sum X_i\big)=\frac{1}{n^2}\sum\operatorname{Var}(X_i)=\frac{n\sigma^2}{n^2}=\frac{\sigma^2}{n}$. Standard deviation $\sigma/\sqrt n$: to halve your error bar you need 4× the data — the tyranny and mercy of averaging (LLN and CLT below; Ch 13 estimators).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="standard-deviation">
+ <h2>Standard deviation</h2>
+ <p>The square root of variance restores the original units: if $X$ is in meters, $\sigma$ is in meters. It is the natural yardstick of a distribution — "how far from the mean is typical" — and the unit in which z-scores, confidence intervals and normalized activations are measured.</p>
+ <div class="box def"><span class="label">Definition</span> $\sigma_X=\sqrt{\operatorname{Var}(X)}$. Standardization: $Z=\frac{X-\mu}{\sigma}$ has mean 0 and standard deviation 1. For Gaussians, the 68–95–99.7 rule: about 68% of mass within $1\sigma$, 95% within $2\sigma$, 99.7% within $3\sigma$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Exam scores: $\mu=70$, $\sigma=8$, approximately normal. A score of 86 is $z=\frac{86-70}{8}=2$: two standard deviations up, so roughly the top $2.5\%$ ($95\%$ within $\pm2\sigma$, half of the remaining 5% above). A score of 62 is $z=-1$: about the 16th percentile.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X$ has $\mu=10$, $\sigma=2$. Give the mean and standard deviation of $3X-5$. <details class="sol"><summary>Solution</summary><div>Mean $25$; standard deviation $|3|\cdot2=6$ (shifts don't spread).</div></details></li>
+  <li><span class="lvl m">MED</span> Batch normalization (Ch 21) computes $z=\frac{x-\hat\mu}{\hat\sigma}$ per feature. What are the mean and variance of the normalized feature, and why does that help optimization? <details class="sol"><summary>Solution</summary><div>Mean 0, variance 1 by construction. It equalizes scales across features, improving the conditioning of the loss Hessian (Ch 9, 15) so one learning rate fits all directions.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that $\sigma$ minimizes $\sqrt{\mathbb{E}[(X-c)^2]}$ over $c$ at $c=\mu$, i.e. the mean is the best constant predictor under squared error. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[(X-c)^2]=\mathbb{E}[(X-\mu)^2]+(\mu-c)^2$ (expand; cross term vanishes since $\mathbb{E}[X-\mu]=0$). Minimized at $c=\mu$ with value $\operatorname{Var}(X)$. Squared-error regression is estimating conditional means for exactly this reason (Ch 13, 19).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="covariance">
+ <h2>Covariance</h2>
+ <p>Do two quantities move together? Covariance averages the product of their deviations: positive when they rise together, negative when one rises as the other falls, zero when deviations are unrelated (on average). It is the off-diagonal ingredient of every covariance matrix and portfolio-risk formula.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{Cov}(X,Y)=\mathbb{E}[(X-\mu_X)(Y-\mu_Y)]=\mathbb{E}[XY]-\mu_X\mu_Y$. Properties: bilinear; $\operatorname{Cov}(X,X)=\operatorname{Var}(X)$; $\operatorname{Var}(X+Y)=\operatorname{Var}(X)+\operatorname{Var}(Y)+2\operatorname{Cov}(X,Y)$. Independence $\Rightarrow\operatorname{Cov}=0$; the converse fails.</div>
+ <div class="box ex"><span class="label">Worked example</span> Joint PMF: $P(X=0,Y=0)=0.4$, $P(1,0)=0.1$, $P(0,1)=0.1$, $P(1,1)=0.4$. Marginals: $P(X=1)=P(Y=1)=0.5$. $\mathbb{E}[XY]=0.4$. $\operatorname{Cov}=0.4-0.25=0.15&gt;0$: the variables like to agree.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Zero covariance ≠ independence: $X$ uniform on $\{-1,0,1\}$, $Y=X^2$. $\mathbb{E}[XY]=\mathbb{E}[X^3]=0=\mathbb{E}[X]\mathbb{E}[Y]$, covariance 0 — yet $Y$ is a deterministic function of $X$. Covariance only sees <em>linear</em> association.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\operatorname{Var}(X)=4$, $\operatorname{Var}(Y)=9$, $\operatorname{Cov}(X,Y)=-3$. Find $\operatorname{Var}(X+Y)$. <details class="sol"><summary>Solution</summary><div>$4+9-6=7$ — anticorrelation cancels spread (hedging).</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\operatorname{Cov}(aX+b,\,cY+d)=ac\operatorname{Cov}(X,Y)$. <details class="sol"><summary>Solution</summary><div>Shifts drop out of deviations; scalars factor: $\mathbb{E}[(a(X-\mu_X))(c(Y-\mu_Y))]=ac\operatorname{Cov}(X,Y)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two dice: $S=X+Y$, $D=X-Y$. Compute $\operatorname{Cov}(S,D)$ and discuss. <details class="sol"><summary>Solution</summary><div>$\operatorname{Cov}(X+Y,X-Y)=\operatorname{Var}(X)-\operatorname{Cov}(X,Y)+\operatorname{Cov}(Y,X)-\operatorname{Var}(Y)=\operatorname{Var}(X)-\operatorname{Var}(Y)=0$. Sum and difference of i.i.d. variables are uncorrelated — but not independent (e.g. $S=12$ forces $D=0$); another covariance-blindness example.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="correlation">
+ <h2>Correlation</h2>
+ <p>Covariance has awkward units (meters × kilograms); correlation divides them out, leaving a pure number in $[-1,1]$: the strength of <em>linear</em> association. $\pm1$ means an exact line; 0 means no linear trend — possibly plenty of nonlinear structure.</p>
+ <div class="box def"><span class="label">Definition</span> $$\rho_{XY}=\frac{\operatorname{Cov}(X,Y)}{\sigma_X\sigma_Y}\in[-1,1],$$ with $|\rho|=1$ iff $Y=aX+b$ exactly ($a\neq0$, sign of $a$ = sign of $\rho$). Bound from Cauchy–Schwarz (Ch 8).</div>
+ <div class="box ex"><span class="label">Worked example</span> From the covariance example: $\operatorname{Cov}=0.15$, $\operatorname{Var}(X)=\operatorname{Var}(Y)=0.25$ (Bernoulli(½)), so $\rho=\frac{0.15}{0.5\times0.5}=0.6$ — a strong tendency to agree, now unit-free and comparable across problems.</div>
+ <div class="box link"><span class="label">Where this goes</span> Correlation ≠ causation gets its own machinery in Ch 27; the correlation matrix is PCA's raw material (Ch 8, 19).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\sigma_X=2$, $\sigma_Y=5$, $\rho=-0.8$. Find $\operatorname{Cov}(X,Y)$. <details class="sol"><summary>Solution</summary><div>$-0.8\times10=-8$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show correlation is invariant to positive affine rescaling of each variable. <details class="sol"><summary>Solution</summary><div>$\operatorname{Cov}(aX+b,cY+d)=ac\operatorname{Cov}$, $\sigma_{aX+b}=|a|\sigma_X$: for $a,c&gt;0$ the factors cancel: $\rho$ unchanged. (Negative $a$ flips the sign.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $|\rho|\le1$ via $\operatorname{Var}\!\big(\frac{X}{\sigma_X}\pm\frac{Y}{\sigma_Y}\big)\ge0$. <details class="sol"><summary>Solution</summary><div>Expanding: $1+1\pm2\rho\ge0\Rightarrow\rho\ge-1$ and $\rho\le1$. Equality forces the standardized sum/difference to have zero variance, i.e. be constant: $Y$ an exact affine function of $X$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="moments">
+ <h2>Moments</h2>
+ <p>Moments are the summary statistics ladder: the 1st is the mean, the 2nd gives variance, the 3rd (standardized) is skewness — lopsidedness — and the 4th is kurtosis — tail weight. Matching moments is a classical way to fit distributions, and moments are what generating functions package.</p>
+ <div class="box def"><span class="label">Definition</span> The $k$-th moment is $\mathbb{E}[X^k]$; the $k$-th central moment is $\mu_k=\mathbb{E}[(X-\mu)^k]$. Skewness $\gamma_1=\mu_3/\sigma^3$; (excess) kurtosis $\gamma_2=\mu_4/\sigma^4-3$ (0 for a Gaussian).</div>
+ <div class="box ex"><span class="label">Worked example</span> Exponential($\lambda=1$): $\mathbb{E}[X^k]=k!$ (integrate by parts repeatedly). So $\mu=1$, $\mathbb{E}[X^2]=2\Rightarrow\sigma^2=1$, $\mu_3=\mathbb{E}[X^3]-3\mu\mathbb{E}[X^2]+2\mu^3=6-6+2=2$, skewness $\gamma_1=2$ — strongly right-skewed, matching the long right tail.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the first two moments of Uniform$[0,1]$. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X]=\frac12$, $\mathbb{E}[X^2]=\frac13$ (variance $\frac1{12}$).</div></details></li>
+  <li><span class="lvl m">MED</span> Why is the skewness of any symmetric distribution (with finite third moment) zero? <details class="sol"><summary>Solution</summary><div>Symmetry about $\mu$ means $X-\mu$ and $-(X-\mu)$ have the same distribution, so $\mu_3=\mathbb{E}[(X-\mu)^3]=-\mu_3$, forcing $\mu_3=0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A distribution has $\gamma_2\gg0$ (heavy tails). Explain concretely what this means for gradient noise in SGD and why gradient clipping (Ch 15) exists. <details class="sol"><summary>Solution</summary><div>High kurtosis: rare, huge deviations dominate the fourth moment — occasional gradient samples are orders of magnitude larger than typical. Averages converge slowly and single steps can be catastrophic; clipping caps the influence of these tail events, trading a little bias for much smaller variance.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="moment-generating-functions">
+ <h2>Moment generating functions</h2>
+ <p>Package every moment into a single function: $M(t)=\mathbb{E}[e^{tX}]$. Differentiate at 0 to pop out moments; multiply MGFs to add independent variables; and the exponential moments it encodes are exactly what concentration inequalities (Chernoff/Hoeffding) feed on.</p>
+ <div class="box def"><span class="label">Definition</span> $M_X(t)=\mathbb{E}[e^{tX}]$ (where finite). Then $M^{(k)}(0)=\mathbb{E}[X^k]$. If $X\perp Y$: $M_{X+Y}(t)=M_X(t)M_Y(t)$. An MGF finite on an interval around 0 determines the distribution.</div>
+ <div class="box ex"><span class="label">Worked example</span> Gaussian $N(\mu,\sigma^2)$: $M(t)=e^{\mu t+\sigma^2t^2/2}$. Check moments: $M'(t)=(\mu+\sigma^2t)M(t)$, $M'(0)=\mu$ ✓; $M''(0)=\mu^2+\sigma^2=\mathbb{E}[X^2]$ ✓. Sum of independent Gaussians: MGFs multiply — $e^{(\mu_1+\mu_2)t+(\sigma_1^2+\sigma_2^2)t^2/2}$: again Gaussian, means and variances adding. Closure under sums, proved in one line.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the MGF of Bernoulli($p$). <details class="sol"><summary>Solution</summary><div>$M(t)=1-p+pe^{t}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use MGFs to find the distribution of a sum of $n$ i.i.d. Bernoulli($p$). <details class="sol"><summary>Solution</summary><div>$M(t)=(1-p+pe^t)^n$ — the Binomial($n,p$) MGF (binomial theorem on $\mathbb{E}[e^{tX}]=\sum_k\binom nkp^k(1-p)^{n-k}e^{tk}$). Sums of coins are binomial, certified by transform.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the Poisson($\lambda$) MGF and use it to show that independent Poissons add: $X\sim\mathrm{Poi}(\lambda),Y\sim\mathrm{Poi}(\mu)\Rightarrow X+Y\sim\mathrm{Poi}(\lambda+\mu)$. <details class="sol"><summary>Solution</summary><div>$M(t)=\sum_k e^{tk}e^{-\lambda}\frac{\lambda^k}{k!}=e^{-\lambda}\sum_k\frac{(\lambda e^t)^k}{k!}=e^{\lambda(e^t-1)}$. Product: $e^{(\lambda+\mu)(e^t-1)}$ — the Poisson($\lambda+\mu$) MGF; by uniqueness, done.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="characteristic-functions">
+ <h2>Characteristic functions</h2>
+ <p>The MGF's bulletproof sibling: $\varphi(t)=\mathbb{E}[e^{itX}]$ always exists (the integrand has modulus 1), uniquely determines the distribution, and turns sums into products. It is the Fourier transform of the density (Ch 14), and it is the tool that proves the Central Limit Theorem.</p>
+ <div class="box def"><span class="label">Definition</span> $\varphi_X(t)=\mathbb{E}[e^{itX}]$. Properties: $\varphi(0)=1$, $|\varphi|\le1$; $\varphi_{aX+b}(t)=e^{itb}\varphi_X(at)$; independence: $\varphi_{X+Y}=\varphi_X\varphi_Y$; uniqueness and Lévy continuity (pointwise convergence of $\varphi$'s ⟺ convergence in distribution).</div>
+ <div class="box ex"><span class="label">Worked example</span> Standard Gaussian: $\varphi(t)=e^{-t^2/2}$ — its own shape, the Fourier fixed point. CLT sketch: standardized sum $S_n=\frac{1}{\sqrt n}\sum(X_i-\mu)/\sigma$ has $\varphi_{S_n}(t)=\big(\varphi_Z(t/\sqrt n)\big)^n$ where $\varphi_Z(s)=1-\frac{s^2}{2}+o(s^2)$; then $\big(1-\frac{t^2}{2n}+o(\tfrac1n)\big)^n\to e^{-t^2/2}$ — Gaussianity emerges from any finite-variance start.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\varphi(t)$ for a fair coin valued $\pm1$. <details class="sol"><summary>Solution</summary><div>$\frac{e^{it}+e^{-it}}{2}=\cos t$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does every distribution have a characteristic function even when the MGF diverges (e.g. Cauchy)? <details class="sol"><summary>Solution</summary><div>$|e^{itX}|=1$, so $\mathbb{E}[e^{itX}]$ is an average of unit-modulus numbers — always finite. $e^{tX}$ by contrast can explode against heavy tails. (Cauchy: $\varphi(t)=e^{-|t|}$, no MGF, no mean.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Using $\varphi$'s, show the sum of two independent Cauchy variables is Cauchy with doubled scale, and reconcile with the failure of the LLN. <details class="sol"><summary>Solution</summary><div>$\varphi_{X+Y}=e^{-|t|}e^{-|t|}=e^{-2|t|}$: Cauchy with scale 2. Then $\bar X_n=\frac{1}{n}\sum X_i$ has $\varphi(t)=\big(e^{-|t|/n}\big)^n=e^{-|t|}$: the average of $n$ Cauchys is <em>exactly</em> Cauchy again — averaging buys nothing, consistent with the LLN's finite-mean hypothesis being violated.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="joint-distributions">
+ <h2>Joint distributions</h2>
+ <p>Real problems involve several random quantities at once, and the joint distribution is the full contract: the probability of every combination. Everything else — marginals, conditionals, covariance, independence — is derived from it by summing, slicing or integrating.</p>
+ <div class="box def"><span class="label">Definition</span> Discrete: joint PMF $p(x,y)=P(X=x,Y=y)$, $\sum_{x,y}p=1$. Continuous: joint density $f(x,y)\ge0$ with $P((X,Y)\in S)=\iint_Sf\,dA$ and $\iint f=1$ (a double integral, Ch 9).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x+y$ on $[0,1]^2$. Valid: $\int_0^1\!\int_0^1(x+y)dxdy=\frac12+\frac12=1$ ✓. $P(X+Y\le1)=\int_0^1\!\int_0^{1-x}(x+y)\,dy\,dx=\int_0^1\big(x(1-x)+\frac{(1-x)^2}{2}\big)dx=\int_0^1\frac{1-x^2}{2}dx=\frac12-\frac16=\frac13$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A joint PMF has $p(0,0)=0.2,p(0,1)=0.3,p(1,0)=0.1,p(1,1)=k$. Find $k$ and $P(X=Y)$. <details class="sol"><summary>Solution</summary><div>$k=0.4$; $P(X=Y)=0.2+0.4=0.6$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $f(x,y)=4xy$ on $[0,1]^2$, compute $P(Y&gt;X)$. <details class="sol"><summary>Solution</summary><div>By the symmetry $x\leftrightarrow y$ of the density, $P(Y&gt;X)=\frac12$ (ties have probability 0).</div></details></li>
+  <li><span class="lvl h">HARD</span> For $f(x,y)=6e^{-2x-3y}$ on $x,y\ge0$, verify it is a density and compute $P(X&lt;Y)$. <details class="sol"><summary>Solution</summary><div>$\int_0^\infty2e^{-2x}dx\cdot\int_0^\infty3e^{-3y}dy=1$ ✓ (it factors — independent exponentials). $P(X&lt;Y)=\int_0^\infty2e^{-2x}P(Y&gt;x)dx=\int_0^\infty2e^{-2x}e^{-3x}dx=\frac{2}{5}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="marginal-distributions">
+ <h2>Marginal distributions</h2>
+ <p>To get the distribution of $X$ alone from a joint, sum or integrate the other variable out — collapse the table onto its margin (hence the name). Marginalization is the "forget what you don't care about" operation, and it is everywhere: mixture models, Bayesian evidence, attention over latent choices.</p>
+ <div class="box def"><span class="label">Definition</span> $p_X(x)=\sum_yp(x,y)$; $f_X(x)=\int f(x,y)\,dy$. In general, for any latent $z$: $p(x)=\sum_zp(x,z)$ or $\int p(x,z)\,dz$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x+y$ on $[0,1]^2$: $f_X(x)=\int_0^1(x+y)dy=x+\tfrac12$ — a tilted marginal even though the joint looks symmetric in form. Check: $\int_0^1(x+\tfrac12)dx=1$ ✓. By symmetry $f_Y(y)=y+\tfrac12$. Note $f(x,y)\neq f_X(x)f_Y(y)$: not independent.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From the PMF $p(0,0)=0.2,p(0,1)=0.3,p(1,0)=0.1,p(1,1)=0.4$, find both marginals. <details class="sol"><summary>Solution</summary><div>$p_X(0)=0.5,p_X(1)=0.5$; $p_Y(0)=0.3,p_Y(1)=0.7$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $f(x,y)=2$ on the triangle $0\le y\le x\le1$, find $f_X$ and $f_Y$. <details class="sol"><summary>Solution</summary><div>$f_X(x)=\int_0^x2\,dy=2x$ on $[0,1]$; $f_Y(y)=\int_y^12\,dx=2(1-y)$ on $[0,1]$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A mixture: $Z\sim$Bernoulli(0.3); given $Z=0$, $X\sim N(0,1)$; given $Z=1$, $X\sim N(4,1)$. Write the marginal density of $X$ and its mean. <details class="sol"><summary>Solution</summary><div>$f_X(x)=0.7\,\varphi(x)+0.3\,\varphi(x-4)$ — a bimodal mixture; marginalization = weighted overlay of components. Mean: $0.7\cdot0+0.3\cdot4=1.2$. (Gaussian mixtures: Ch 19.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditional-distributions">
+ <h2>Conditional distributions</h2>
+ <p>Freeze one variable at an observed value and renormalize the slice: that is the conditional distribution of the other. It is the probabilistic answer to "given what I've seen, what do I believe about the rest?" — the core object of prediction.</p>
+ <div class="box def"><span class="label">Definition</span> Discrete: $p_{Y\mid X}(y\mid x)=\dfrac{p(x,y)}{p_X(x)}$. Continuous: $f_{Y\mid X}(y\mid x)=\dfrac{f(x,y)}{f_X(x)}$ (for $f_X(x)&gt;0$). Product rule: $f(x,y)=f_X(x)\,f_{Y\mid X}(y\mid x)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x+y$ on $[0,1]^2$, condition on $X=\tfrac12$: $f_{Y\mid X}(y\mid\tfrac12)=\dfrac{\tfrac12+y}{\tfrac12+\tfrac12}=\tfrac12+y$ — a proper density on $[0,1]$ ($\int_0^1(\tfrac12+y)dy=1$ ✓), tilted toward large $y$. Conditional mean: $\int_0^1y(\tfrac12+y)dy=\tfrac14+\tfrac13=\tfrac{7}{12}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From $p(0,0)=0.2,p(0,1)=0.3,p(1,0)=0.1,p(1,1)=0.4$: find $p_{Y|X}(\cdot\mid X=1)$. <details class="sol"><summary>Solution</summary><div>$p_X(1)=0.5$: $p(0\mid1)=0.2$, $p(1\mid1)=0.8$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $f(x,y)=2$ on $0\le y\le x\le1$: find $f_{Y|X}(y\mid x)$ and describe it. <details class="sol"><summary>Solution</summary><div>$\frac{2}{2x}=\frac1x$ on $[0,x]$: given $X=x$, $Y$ is Uniform$[0,x]$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that sampling $X\sim f_X$ then $Y\sim f_{Y|X}(\cdot\mid X)$ produces a pair with joint density $f(x,y)$ — and connect to autoregressive generation. <details class="sol"><summary>Solution</summary><div>The sampling scheme's joint density is by construction $f_X(x)f_{Y|X}(y\mid x)$, which equals $f(x,y)$ by the product rule. Chaining this over many variables — sample $w_1$, then $w_2\mid w_1$, etc. — is exactly how autoregressive LLMs generate from the full joint one token at a time (Ch 21–23).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="independence-of-random-variables">
+ <h2>Independence of random variables</h2>
+ <p>Random variables are independent when their joint distribution factors into the product of marginals — knowing one changes nothing about the other. The i.i.d. assumption (independent, identically distributed) underlies nearly every statistical guarantee; knowing when it breaks (time series, shuffled-badly data, users appearing twice) is a superpower.</p>
+ <div class="box def"><span class="label">Definition</span> $X\perp Y$ iff $p(x,y)=p_X(x)p_Y(y)$ for all $x,y$ (densities: $f(x,y)=f_X(x)f_Y(y)$), equivalently $P(X\in A,Y\in B)=P(X\in A)P(Y\in B)$ for all $A,B$. Consequences: $\mathbb{E}[XY]=\mathbb{E}[X]\mathbb{E}[Y]$, $\operatorname{Cov}=0$, $g(X)\perp h(Y)$ for any functions $g,h$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=6e^{-2x-3y}$ ($x,y\ge0$) factors as $(2e^{-2x})(3e^{-3y})$: independent Exponential(2) and Exponential(3). But $f(x,y)=x+y$ on $[0,1]^2$ does not factor (marginals multiply to $(x+\frac12)(y+\frac12)\neq x+y$): dependent. Quick test: if the formula for $f$ separates <em>and</em> the domain is a product set, independent.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The domain matters: $f(x,y)=2$ on the triangle $0\le y\le x\le1$ looks "constant-separable," but the triangular support couples the variables — $Y\le X$ always. Not independent.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X,Y$ independent dice. $P(X=6,Y=6)$? <details class="sol"><summary>Solution</summary><div>$\frac{1}{36}$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x,y)=cxy$ on $[0,1]\times[0,2]$. Find $c$ and determine independence. <details class="sol"><summary>Solution</summary><div>$c\int_0^1x\,dx\int_0^2y\,dy=c\cdot\frac12\cdot2=1\Rightarrow c=1$. $f=xy=(2x)(y/2)$: factors on a product domain — independent, with $f_X=2x$, $f_Y=y/2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X_1,\dots,X_n$ i.i.d. Uniform$[0,1]$. Find the distribution of $M=\max_iX_i$ and $\mathbb{E}[M]$. <details class="sol"><summary>Solution</summary><div>$P(M\le m)=P(\text{all}\le m)=m^n$ (independence). Density $nm^{n-1}$; $\mathbb{E}[M]=\int_0^1m\cdot nm^{n-1}dm=\frac{n}{n+1}$ — the max of many uniforms crowds the ceiling.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="change-of-variables-for-densities">
+ <h2>Change of variables for densities</h2>
+ <p>Transform a random variable and its density warps: mass is conserved, so where the map stretches space the density thins, and where it compresses, the density piles up. The correction factor is the (inverse) Jacobian determinant from Ch 9 — the identity that powers normalizing flows.</p>
+ <div class="box def"><span class="label">Definition</span> If $Y=g(X)$ with $g$ strictly monotone and differentiable: $$f_Y(y)=f_X\big(g^{-1}(y)\big)\left|\frac{d}{dy}g^{-1}(y)\right|.$$ Vector version, $\mathbf y=g(\mathbf x)$ invertible: $f_Y(\mathbf y)=f_X(g^{-1}(\mathbf y))\,\big|\det J_{g^{-1}}(\mathbf y)\big|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $X\sim$Uniform$[0,1]$, $Y=-\ln X$. Inverse: $x=e^{-y}$, $\left|\frac{dx}{dy}\right|=e^{-y}$. $f_Y(y)=1\cdot e^{-y}$ for $y&gt;0$: Exponential(1) — the inverse-CDF sampler derived by change of variables. Sanity check: small $X$ (rare region near 0 stretched over huge $y$) maps to large $Y$ with thin density ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> Normalizing flows (Ch 22) train invertible networks by maximizing $\ln f_X(g^{-1}(y))+\ln|\det J_{g^{-1}}|$; the reparameterization trick (Ch 22) is this formula run in reverse.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\sim N(0,1)$, $Y=3X+2$. Find $f_Y$. <details class="sol"><summary>Solution</summary><div>$f_Y(y)=\frac{1}{3}\varphi\!\left(\frac{y-2}{3}\right)$: $N(2,9)$.</div></details></li>
+  <li><span class="lvl m">MED</span> $X\sim$Uniform$[0,1]$, $Y=X^2$. Find $f_Y$ and explain the spike near 0. <details class="sol"><summary>Solution</summary><div>$x=\sqrt y$, $\frac{dx}{dy}=\frac{1}{2\sqrt y}$: $f_Y(y)=\frac{1}{2\sqrt y}$ on $(0,1]$. Squaring compresses $[0,1]$ toward 0, so density piles up there (integrable spike).</div></details></li>
+  <li><span class="lvl h">HARD</span> $\mathbf X$ standard 2-D Gaussian, $\mathbf Y=A\mathbf X$ with invertible $A$. Show $\mathbf Y$ has density $\frac{1}{2\pi|\det A|}\exp\left(-\frac12\mathbf y^\top(AA^\top)^{-1}\mathbf y\right)$ — i.e. $N(\mathbf 0,AA^\top)$. <details class="sol"><summary>Solution</summary><div>$f_Y(\mathbf y)=f_X(A^{-1}\mathbf y)\frac{1}{|\det A|}=\frac{1}{2\pi|\det A|}e^{-\frac12\|A^{-1}\mathbf y\|^2}$, and $\|A^{-1}\mathbf y\|^2=\mathbf y^\top A^{-\top}A^{-1}\mathbf y=\mathbf y^\top(AA^\top)^{-1}\mathbf y$. With $\Sigma=AA^\top$, $|\det A|=\sqrt{\det\Sigma}$: the multivariate Gaussian density below, derived rather than decreed.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditional-expectation">
+ <h2>Conditional expectation</h2>
+ <p>The best guess of $Y$ after seeing $X=x$ is the mean of the conditional distribution: $\mathbb{E}[Y\mid X=x]$, a <em>function of $x$</em> called the regression function. All of supervised learning with squared loss is an attempt to learn this function from samples.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{E}[Y\mid X=x]=\sum_yy\,p_{Y|X}(y\mid x)$ or $\int y\,f_{Y|X}(y\mid x)\,dy$. As a random variable, $\mathbb{E}[Y\mid X]$ is this function evaluated at $X$. Key property: $\mathbb{E}[Y\mid X]$ minimizes $\mathbb{E}[(Y-h(X))^2]$ over all functions $h$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=2$ on $0\le y\le x\le1$ (so $Y\mid X=x$ is Uniform$[0,x]$): $\mathbb{E}[Y\mid X=x]=\frac{x}{2}$ — the regression function is the line $y=x/2$. As a random variable, $\mathbb{E}[Y\mid X]=X/2$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Least-squares regression (Ch 13, 19) estimates $\mathbb{E}[Y\mid X]$; the denoiser in a diffusion model estimates $\mathbb{E}[\mathbf x_0\mid\mathbf x_t]$ (Ch 22).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Two dice, $S$ their sum. Compute $\mathbb{E}[S\mid\text{first die}=6]$. <details class="sol"><summary>Solution</summary><div>$6+3.5=9.5$.</div></details></li>
+  <li><span class="lvl m">MED</span> For the joint PMF $p(0,0)=0.2,p(0,1)=0.3,p(1,0)=0.1,p(1,1)=0.4$: find $\mathbb{E}[Y\mid X=0]$ and $\mathbb{E}[Y\mid X=1]$. <details class="sol"><summary>Solution</summary><div>Given $X=0$: $p(1\mid0)=0.6$, so $0.6$. Given $X=1$: $p(1\mid1)=0.8$, so $0.8$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the orthogonality property: for any function $h$, $\mathbb{E}\big[(Y-\mathbb{E}[Y\mid X])\,h(X)\big]=0$, and interpret geometrically. <details class="sol"><summary>Solution</summary><div>Condition on $X$: $\mathbb{E}[(Y-\mathbb{E}[Y|X])h(X)\mid X]=h(X)\,\mathbb{E}[Y-\mathbb{E}[Y|X]\mid X]=0$; take outer expectation (tower rule, next topic). Geometrically: the residual is orthogonal to every function of $X$ — conditional expectation is the orthogonal projection of $Y$ onto the space of functions of $X$, the probabilistic twin of least-squares projection (Ch 8).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="law-of-total-expectation">
+ <h2>Law of total expectation</h2>
+ <p>Average the conditional averages, weighted by how likely each condition is, and you recover the overall average: $\mathbb{E}[\mathbb{E}[Y\mid X]]=\mathbb{E}[Y]$. The tower rule lets you compute expectations by divide and conquer — condition on whatever makes the problem easy.</p>
+ <div class="box thm"><span class="label">Theorem (tower rule)</span> $\mathbb{E}[Y]=\mathbb{E}\big[\mathbb{E}[Y\mid X]\big]$; discretely, $\mathbb{E}[Y]=\sum_x\mathbb{E}[Y\mid X=x]\,P(X=x)$. More generally $\mathbb{E}[\mathbb{E}[Y\mid X,Z]\mid Z]=\mathbb{E}[Y\mid Z]$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A miner faces three tunnels: one exits in 3 hours; one loops back in 5 hours; one loops back in 7. He picks uniformly (and forgets). Expected time $T$: $\mathbb{E}[T]=\frac13(3)+\frac13(5+\mathbb{E}[T])+\frac13(7+\mathbb{E}[T])$. Solve: $\mathbb{E}[T]=5+\frac23\mathbb{E}[T]\Rightarrow\frac13\mathbb{E}[T]=5\Rightarrow\mathbb{E}[T]=15$ hours. Conditioning on the first choice turned a nasty recursion into one line.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> 60% of traffic is mobile with mean session 3 min; desktop sessions average 8 min. Overall mean? <details class="sol"><summary>Solution</summary><div>$0.6(3)+0.4(8)=5$ min.</div></details></li>
+  <li><span class="lvl m">MED</span> $N\sim$Poisson($\lambda$) customers arrive; each spends $\mathbb{E}[S]=m$ independently. Show expected revenue $=\lambda m$ (Wald's identity for this case). <details class="sol"><summary>Solution</summary><div>$\mathbb{E}\big[\sum_{i=1}^NS_i\big]=\mathbb{E}\big[\mathbb{E}[\sum S_i\mid N]\big]=\mathbb{E}[Nm]=\lambda m$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Flip a fair coin until the first head; then roll that many dice. Expected total pips? <details class="sol"><summary>Solution</summary><div>Number of flips $N$ is Geometric(½): $\mathbb{E}[N]=2$. Given $N=n$, expected pips $3.5n$. Tower: $\mathbb{E}=3.5\,\mathbb{E}[N]=7$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="law-of-total-variance">
+ <h2>Law of total variance</h2>
+ <p>Uncertainty splits into two honest parts: the average wobble <em>within</em> each condition, plus the wobble <em>between</em> the conditions' means. "Unexplained + explained" — the decomposition behind ANOVA, mixture-model variance, and the epistemic/aleatoric split in uncertainty quantification.</p>
+ <div class="box thm"><span class="label">Theorem</span> $$\operatorname{Var}(Y)=\underbrace{\mathbb{E}\big[\operatorname{Var}(Y\mid X)\big]}_{\text{within (unexplained)}}+\underbrace{\operatorname{Var}\big(\mathbb{E}[Y\mid X]\big)}_{\text{between (explained)}}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Mixture: with prob 0.5, $Y\sim N(0,1)$; else $Y\sim N(4,1)$. Within: $\mathbb{E}[\operatorname{Var}(Y|Z)]=1$. Between: $\mathbb{E}[Y|Z]$ is $0$ or $4$ equally, variance $=\mathbb{E}[(\cdot)^2]-2^2=8-4=4$. Total: $\operatorname{Var}(Y)=1+4=5$. The bimodal split contributes 4 of the 5 units of variance.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $\mathbb{E}[Y\mid X]$ is constant (X tells nothing about the mean), what does the law reduce to? <details class="sol"><summary>Solution</summary><div>Between-term $=0$: $\operatorname{Var}(Y)=\mathbb{E}[\operatorname{Var}(Y|X)]$ — all variance is within-condition.</div></details></li>
+  <li><span class="lvl m">MED</span> $N\sim$Poisson($\lambda$), and given $N$, $Y\sim$Binomial($N,p$) (thinning). Compute $\operatorname{Var}(Y)$. <details class="sol"><summary>Solution</summary><div>Within: $\mathbb{E}[Np(1-p)]=\lambda p(1-p)$. Between: $\operatorname{Var}(Np)=p^2\lambda$. Total $\lambda p(1-p)+\lambda p^2=\lambda p$ — consistent with the thinned process being Poisson($\lambda p$), whose variance is its mean. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> An ensemble of models gives predictive distributions $p(y\mid x,\theta_i)$. Explain how total variance splits into aleatoric and epistemic parts. <details class="sol"><summary>Solution</summary><div>Treat $\theta$ as random (posterior over models). $\operatorname{Var}(Y)=\mathbb{E}_\theta[\operatorname{Var}(Y\mid\theta)]+\operatorname{Var}_\theta(\mathbb{E}[Y\mid\theta])$: the first term is average within-model noise — aleatoric, irreducible; the second is disagreement between models' means — epistemic, shrinkable with more data. This decomposition drives uncertainty-aware decisions (Ch 13, 24).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bayesian-updating">
+ <h2>Bayesian updating</h2>
+ <p>Bayes' theorem applied repeatedly, as evidence streams in: today's posterior is tomorrow's prior. Beliefs are a state that each observation updates multiplicatively (then renormalize). With conjugate families the update is just parameter arithmetic — count successes, add to pseudo-counts.</p>
+ <div class="box def"><span class="label">Definition</span> With prior $p(\theta)$ and i.i.d. data $x_{1:n}$: $$p(\theta\mid x_{1:n})\propto p(\theta)\prod_{i=1}^np(x_i\mid\theta),$$ and sequentially $p(\theta\mid x_{1:t})\propto p(\theta\mid x_{1:t-1})\,p(x_t\mid\theta)$ — the same answer in any order (for i.i.d. data, exchangeability).</div>
+ <div class="box ex"><span class="label">Worked example</span> Coin with unknown $p$, prior Beta$(2,2)$ (mildly fair). Observe H,H,T,H. Posterior: Beta$(2+3,\,2+1)=$Beta$(5,3)$; posterior mean $\frac{5}{8}=0.625$, versus the raw frequency $0.75$ — shrunk toward the prior's $0.5$. After 100 flips with 75 heads: Beta$(77,27)$, mean $0.740$ — data has overwhelmed the prior.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Flip a coin with hidden bias and watch the Beta posterior sharpen. Set the true bias, then click Flip ×1 / ×25.</p>
+  <canvas id="cv-beta"></canvas>
+  <div class="ctl"><label>true p <input type="range" id="bu-p" min="0.05" max="0.95" step="0.01" value="0.7"></label>
+  <button class="btn" id="bu-flip1">Flip ×1</button><button class="btn" id="bu-flip25">Flip ×25</button><button class="btn" id="bu-reset">Reset</button></div>
+  <div class="out" id="bu-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Full Bayesian inference machinery in Ch 13; Thompson sampling turns posteriors into decisions in Ch 24.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prior Beta$(1,1)$ (uniform); observe 3 heads, 1 tail. Posterior and its mean? <details class="sol"><summary>Solution</summary><div>Beta$(4,2)$; mean $\frac46=\frac23$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that updating on $x_1$ then $x_2$ gives the same posterior as updating on both at once. <details class="sol"><summary>Solution</summary><div>Sequential: $\big(p(\theta)p(x_1|\theta)/Z_1\big)p(x_2|\theta)/Z_2\propto p(\theta)p(x_1|\theta)p(x_2|\theta)$ — the batch posterior; normalization constants don't depend on $\theta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two hypotheses: $H_1$ fair coin, $H_2$ two-headed, prior odds 99:1 for $H_1$. You see 7 heads in a row. Posterior probability of $H_2$? <details class="sol"><summary>Solution</summary><div>Likelihood ratio $\frac{P(7H|H_2)}{P(7H|H_1)}=\frac{1}{2^{-7}}=128$. Posterior odds $H_2$:$H_1$ $=\frac{1}{99}\times128=\frac{128}{99}\approx1.29$: $P(H_2)=\frac{128}{227}\approx0.564$. Seven heads flipped a 1% suspicion into a slight favorite; an 8th head would take it to $\approx72\%$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bernoulli-distribution">
+ <h2>Bernoulli distribution</h2>
+ <p>The atom of randomness: one trial, success or failure. Every binary label, every coin flip, every "did the user click" is a Bernoulli, and richer discrete distributions are built by combining them.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim\mathrm{Bern}(p)$: $P(X=1)=p$, $P(X=0)=1-p$. $\mathbb{E}[X]=p$, $\operatorname{Var}(X)=p(1-p)$. PMF in one formula: $p^x(1-p)^{1-x}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A classifier is right with probability $p=0.9$ per (independent) example. For one example: mean $0.9$, variance $0.09$, standard deviation $0.3$ — a single binary outcome is <em>noisy</em>; that's why accuracy on 10 examples (±10 percentage points of standard error!) means little, and evaluation sets need thousands (Hoeffding, below).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\sim$Bern(0.3). Compute $\mathbb{E}[X]$, $\operatorname{Var}(X)$, $\mathbb{E}[X^{17}]$. <details class="sol"><summary>Solution</summary><div>$0.3$; $0.21$; $X^{17}=X$ for 0/1 values, so $0.3$.</div></details></li>
+  <li><span class="lvl m">MED</span> The log-likelihood of $n$ Bernoulli trials with $k$ successes is $\ell(p)=k\ln p+(n-k)\ln(1-p)$. Maximize it. <details class="sol"><summary>Solution</summary><div>$\ell'(p)=\frac kp-\frac{n-k}{1-p}=0\Rightarrow k(1-p)=(n-k)p\Rightarrow p=\frac kn$ — the sample frequency (MLE, Ch 13).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the Bernoulli is the maximum-entropy distribution on $\{0,1\}$ with a given mean $p$, trivially — then explain what changes on $\{0,1,2\}$. <details class="sol"><summary>Solution</summary><div>On $\{0,1\}$ the mean pins the distribution completely ($P(1)=p$): nothing left to maximize. On $\{0,1,2\}$ a given mean leaves one degree of freedom; maximizing entropy subject to the mean gives a Gibbs form $P(k)\propto e^{\beta k}$ with $\beta$ set by the mean — the exponential-family shape (Ch 16's max-entropy principle).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="binomial-distribution">
+ <h2>Binomial distribution</h2>
+ <p>Count the successes in $n$ independent identical trials. The counts cluster around $np$ with spread $\sqrt{np(1-p)}$, and for large $n$ the histogram bends into the bell curve — the CLT's original example.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim\mathrm{Bin}(n,p)$: $$P(X=k)=\binom{n}{k}p^k(1-p)^{n-k},\quad k=0,\dots,n.$$ $\mathbb{E}[X]=np$, $\operatorname{Var}(X)=np(1-p)$. $X$ is a sum of $n$ i.i.d. Bernoulli($p$)'s.</div>
+ <div class="box ex"><span class="label">Worked example</span> 10 questions, guessing with $p=0.25$: $P(\text{exactly }3)=\binom{10}{3}(0.25)^3(0.75)^7=120\times0.015625\times0.13348\approx0.2503$. Passing (≥5): $\sum_{k=5}^{10}\binom{10}{k}0.25^k0.75^{10-k}\approx0.0781$ — guessing rarely clears half.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\sim$Bin(20, 0.5). Mean, variance, and $P(X=20)$? <details class="sol"><summary>Solution</summary><div>$10$; $5$; $2^{-20}\approx9.5\times10^{-7}$.</div></details></li>
+  <li><span class="lvl m">MED</span> A batch of 400 tokens each gets corrupted independently with probability 0.02. Mean and standard deviation of the corrupted count; estimate $P(\text{more than }16)$ roughly with the normal approximation. <details class="sol"><summary>Solution</summary><div>Mean $8$, variance $7.84$, sd $2.8$. $16$ is $\frac{16-8}{2.8}\approx2.86$ sd's up: $P\approx0.2\%$ (normal tail beyond 2.86).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the binomial PMF ratio $\frac{P(X=k+1)}{P(X=k)}=\frac{(n-k)p}{(k+1)(1-p)}$ and use it to find the mode. <details class="sol"><summary>Solution</summary><div>Ratio algebra from the factorials. The PMF rises while the ratio $&gt;1$, i.e. $(n-k)p&gt;(k+1)(1-p)\iff k&lt;(n+1)p-1$. Mode $=\lfloor(n+1)p\rfloor$ (with a tie when $(n+1)p$ is an integer). E.g. $n=10,p=0.25$: mode $\lfloor2.75\rfloor=2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="geometric-distribution">
+ <h2>Geometric distribution</h2>
+ <p>How many trials until the first success? The geometric distribution decays by a factor $(1-p)$ per step and has a startling property: it is memoryless — having failed 10 times tells you nothing about how much longer you'll wait. It models retries, gacha pulls, and rejection sampling.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim$Geom($p$), trials until first success: $P(X=k)=(1-p)^{k-1}p$, $k=1,2,\dots$. $\mathbb{E}[X]=\frac1p$, $\operatorname{Var}(X)=\frac{1-p}{p^2}$. Memoryless: $P(X&gt;m+n\mid X&gt;m)=P(X&gt;n)$, with $P(X&gt;n)=(1-p)^n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rolling a die until the first six: $p=\frac16$, expected rolls $6$. $P(X&gt;6)=(5/6)^6\approx0.335$: a full third of players wait longer than the "expected" 6 rolls — the distribution is right-skewed, median $=\lceil\ln0.5/\ln(5/6)\rceil=4$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $p=0.2$: expected number of trials, and $P(X=3)$? <details class="sol"><summary>Solution</summary><div>$5$; $0.8^2\cdot0.2=0.128$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove memorylessness from the PMF. <details class="sol"><summary>Solution</summary><div>$P(X&gt;m+n\mid X&gt;m)=\frac{(1-p)^{m+n}}{(1-p)^m}=(1-p)^n=P(X&gt;n)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive $\mathbb{E}[X]=1/p$ by conditioning on the first trial. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X]=p\cdot1+(1-p)(1+\mathbb{E}[X])$ (success now, or one wasted trial and start afresh — memorylessness). Solve: $\mathbb{E}[X]=1+(1-p)\mathbb{E}[X]\Rightarrow p\,\mathbb{E}[X]=1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="poisson-distribution">
+ <h2>Poisson distribution</h2>
+ <p>Counts of rare events in a fixed window — typos per page, requests per second, mutations per genome — follow the Poisson law: one parameter $\lambda$ that is simultaneously the mean and the variance. It is the $n\to\infty$, $p\to0$ limit of the binomial with $np=\lambda$ fixed: many opportunities, each tiny.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim$Poi($\lambda$): $$P(X=k)=e^{-\lambda}\frac{\lambda^k}{k!},\quad k=0,1,2,\dots$$ $\mathbb{E}[X]=\operatorname{Var}(X)=\lambda$. Sums: independent Poissons add their $\lambda$'s. Binomial limit: Bin($n,\lambda/n$) → Poi($\lambda$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A server receives $\lambda=3$ errors/hour. $P(0)=e^{-3}\approx0.0498$; $P(\ge5)=1-e^{-3}\left(1+3+\frac92+\frac{27}{6}+\frac{81}{24}\right)=1-e^{-3}\cdot16.375\approx1-0.8153=0.1847$. A "quiet hour" happens once a day; a "bad hour" (≥5) roughly once every 5–6 hours.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch Bin($n$, $\lambda/n$) bars converge to the Poisson curve as you raise $n$.</p>
+  <canvas id="cv-pois"></canvas>
+  <div class="ctl"><label>λ <input type="range" id="po-lam" min="0.5" max="12" step="0.1" value="4"></label>
+  <label>n <input type="range" id="po-n" min="5" max="200" step="1" value="10"></label></div>
+  <div class="out" id="po-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lambda=2$: compute $P(X=0),P(X=1),P(X=2)$. <details class="sol"><summary>Solution</summary><div>$e^{-2}\approx0.135$; $2e^{-2}\approx0.271$; $2e^{-2}\approx0.271$.</div></details></li>
+  <li><span class="lvl m">MED</span> Typos occur at 0.5/page. Probability a 4-page chapter is typo-free? <details class="sol"><summary>Solution</summary><div>Poisson counts add over pages: $\lambda=2$ for the chapter; $P(0)=e^{-2}\approx0.135$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show Bin($n,\lambda/n$) → Poi($\lambda$): $P(X=k)\to e^{-\lambda}\lambda^k/k!$. <details class="sol"><summary>Solution</summary><div>$\binom nk\left(\frac\lambda n\right)^k\left(1-\frac\lambda n\right)^{n-k}=\frac{n(n-1)\cdots(n-k+1)}{n^k}\cdot\frac{\lambda^k}{k!}\left(1-\frac\lambda n\right)^{n}\left(1-\frac\lambda n\right)^{-k}$. As $n\to\infty$: first factor $\to1$, $(1-\lambda/n)^n\to e^{-\lambda}$, last $\to1$: limit $e^{-\lambda}\frac{\lambda^k}{k!}$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="categorical-and-multinomial-distributions">
+ <h2>Categorical and multinomial distributions</h2>
+ <p>A die with unequal faces: one trial over $K$ outcomes is categorical — exactly what a softmax layer outputs over tokens or classes. Repeat $n$ times and count each outcome: multinomial, the $K$-sided binomial.</p>
+ <div class="box def"><span class="label">Definition</span> Categorical($\mathbf p$), $\mathbf p=(p_1,\dots,p_K)$, $\sum p_k=1$: $P(X=k)=p_k$. Multinomial($n,\mathbf p$) counts $(N_1,\dots,N_K)$ with $\sum N_k=n$: $$P(N_1=n_1,\dots,N_K=n_K)=\frac{n!}{n_1!\cdots n_K!}\,p_1^{n_1}\cdots p_K^{n_K}.$$ Marginally $N_k\sim$Bin($n,p_k$); $\operatorname{Cov}(N_j,N_k)=-np_jp_k$ for $j\neq k$ (counts compete).</div>
+ <div class="box ex"><span class="label">Worked example</span> A model predicts next token with $\mathbf p=(0.5,0.3,0.2)$ over {"the","a","an"}. In 10 independent samples, probability of exactly (5,3,2): $\frac{10!}{5!3!2!}(0.5)^5(0.3)^3(0.2)^2=2520\times0.03125\times0.027\times0.04\approx0.0850$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Roll a fair die 12 times. Expected count of each face, and variance of the count of sixes? <details class="sol"><summary>Solution</summary><div>Mean 2 each; Var $=12\cdot\frac16\cdot\frac56=\frac{5}{3}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is $\operatorname{Cov}(N_j,N_k)$ negative for $j\neq k$? Verify the sign from $\operatorname{Var}(\sum_kN_k)=0$. <details class="sol"><summary>Solution</summary><div>$\sum_kN_k=n$ is constant, so $0=\sum_k\operatorname{Var}(N_k)+\sum_{j\neq k}\operatorname{Cov}(N_j,N_k)$: positive variances must be balanced by negative covariances — one count up forces others down.</div></details></li>
+  <li><span class="lvl h">HARD</span> The cross-entropy loss for one categorical observation $y$ under predicted $\mathbf p$ is $-\ln p_y$. Show the expected loss under true distribution $\mathbf q$ is minimized over $\mathbf p$ at $\mathbf p=\mathbf q$. <details class="sol"><summary>Solution</summary><div>Minimize $-\sum_kq_k\ln p_k$ s.t. $\sum p_k=1$: Lagrange (Ch 9) gives $-q_k/p_k=-\lambda\Rightarrow p_k\propto q_k\Rightarrow p_k=q_k$. Truthful prediction is optimal — cross-entropy is a proper scoring rule, the reason it trains classifiers and LLMs (Ch 16, 19, 21).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="uniform-distribution">
+ <h2>Uniform distribution</h2>
+ <p>Total indifference over an interval: every subinterval of equal length gets equal probability. It is the raw material of simulation — every random number generator starts by emitting (pseudo-)uniforms, and every other distribution is carved from them.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim U[a,b]$: $f(x)=\frac{1}{b-a}$ on $[a,b]$. $\mathbb{E}[X]=\frac{a+b}{2}$, $\operatorname{Var}(X)=\frac{(b-a)^2}{12}$; CDF $F(x)=\frac{x-a}{b-a}$ on $[a,b]$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $U[0,1]$: mean $\frac12$, variance $\frac1{12}\approx0.0833$. A bus arrives uniformly within a 20-minute window: expected wait from the window's start $10$ min, sd $\frac{20}{\sqrt{12}}\approx5.77$ min; $P(\text{wait}&gt;15)=\frac{5}{20}=0.25$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\sim U[2,8]$: find $P(3&lt;X&lt;5)$ and $\operatorname{Var}(X)$. <details class="sol"><summary>Solution</summary><div>$\frac26=\frac13$; $\frac{36}{12}=3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive $\operatorname{Var}(U[0,1])=\frac{1}{12}$. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X^2]=\int_0^1x^2dx=\frac13$; $\frac13-\frac14=\frac1{12}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X,Y$ i.i.d. $U[0,1]$. Find the density of $S=X+Y$. <details class="sol"><summary>Solution</summary><div>Convolution: $f_S(s)=\int f_X(x)f_Y(s-x)dx=$ length of $\{x\in[0,1]:s-x\in[0,1]\}$: $f_S(s)=s$ for $0\le s\le1$, $2-s$ for $1\le s\le2$ — the triangle; two uniforms already begin the CLT's march to the bell.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exponential-distribution">
+ <h2>Exponential distribution</h2>
+ <p>The waiting time between Poisson events: continuous, memoryless, decaying at constant rate $\lambda$. Component lifetimes, radioactive decays, and time-to-next-request all wear this shape; "memoryless" means a part that has survived 5 years is statistically as good as new.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim$Exp($\lambda$): $f(x)=\lambda e^{-\lambda x}$, $x\ge0$. $\mathbb{E}[X]=\frac1\lambda$, $\operatorname{Var}(X)=\frac{1}{\lambda^2}$, survival $P(X&gt;t)=e^{-\lambda t}$, memoryless: $P(X&gt;s+t\mid X&gt;s)=P(X&gt;t)$ — the only continuous distribution with this property.</div>
+ <div class="box ex"><span class="label">Worked example</span> Requests arrive at $\lambda=2$/min. Time to next request: mean $0.5$ min; $P(&gt;1\text{ min})=e^{-2}\approx0.135$; median $\frac{\ln2}{2}\approx0.347$ min. Given 3 quiet minutes so far, chance of another quiet minute: still $e^{-2}$ — the process doesn't "owe" you an arrival.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\sim$Exp(0.5). Mean? $P(X&gt;4)$? <details class="sol"><summary>Solution</summary><div>$2$; $e^{-2}\approx0.135$.</div></details></li>
+  <li><span class="lvl m">MED</span> $X\sim$Exp($\lambda_1$), $Y\sim$Exp($\lambda_2$) independent. Show $\min(X,Y)\sim$Exp($\lambda_1+\lambda_2$). <details class="sol"><summary>Solution</summary><div>$P(\min&gt;t)=P(X&gt;t)P(Y&gt;t)=e^{-(\lambda_1+\lambda_2)t}$ — exponential survival with summed rate. Competing risks race at combined speed.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove memorylessness characterizes the exponential among continuous positive variables. <details class="sol"><summary>Solution</summary><div>Let $G(t)=P(X&gt;t)$. Memorylessness: $G(s+t)=G(s)G(t)$ for all $s,t\ge0$. With $G$ right-continuous, $G(t)=G(1)^t$ for rational then all $t$ (Cauchy functional equation, monotone solution), i.e. $G(t)=e^{-\lambda t}$ with $\lambda=-\ln G(1)&gt;0$ — the exponential.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gamma-distribution">
+ <h2>Gamma distribution</h2>
+ <p>Wait for the $k$-th Poisson event, not the first: sums of exponentials give the Gamma family, a flexible positive-valued distribution with a shape and a rate knob. It also happens to be the conjugate prior for Poisson rates and precision parameters.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim$Gamma($\alpha,\beta$) (shape, rate): $$f(x)=\frac{\beta^\alpha}{\Gamma(\alpha)}x^{\alpha-1}e^{-\beta x},\quad x&gt;0,$$ where $\Gamma(\alpha)=\int_0^\infty u^{\alpha-1}e^{-u}du$ ($\Gamma(n)=(n-1)!$). $\mathbb{E}[X]=\frac{\alpha}{\beta}$, $\operatorname{Var}(X)=\frac{\alpha}{\beta^2}$. Gamma($1,\beta$)=Exp($\beta$); sum of $k$ i.i.d. Exp($\beta$) = Gamma($k,\beta$); independent Gammas with same rate add shapes.</div>
+ <div class="box ex"><span class="label">Worked example</span> Requests at $\lambda=2$/min; time until the 3rd request is Gamma($3,2$): mean $\frac32$ min, variance $\frac34$. $P(T&gt;2)$: for integer shape, $P(T&gt;t)=e^{-\beta t}\sum_{j=0}^{\alpha-1}\frac{(\beta t)^j}{j!}=e^{-4}(1+4+8)=13e^{-4}\approx0.238$ — equivalently, fewer than 3 Poisson(4) events in 2 minutes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Gamma($5,10$): mean and variance? <details class="sol"><summary>Solution</summary><div>$0.5$; $0.05$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify Gamma($1,\beta$) is Exp($\beta$) and that the mode of Gamma($\alpha,\beta$) with $\alpha&gt;1$ is $\frac{\alpha-1}{\beta}$. <details class="sol"><summary>Solution</summary><div>$\alpha=1$: $f=\beta e^{-\beta x}$ ✓. Mode: $\frac{d}{dx}\ln f=\frac{\alpha-1}{x}-\beta=0\Rightarrow x=\frac{\alpha-1}{\beta}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Poisson likelihood with Gamma prior: $X_1,\dots,X_n\sim$Poi($\lambda$), prior $\lambda\sim$Gamma($\alpha,\beta$). Derive the posterior. <details class="sol"><summary>Solution</summary><div>$p(\lambda\mid x)\propto\lambda^{\alpha-1}e^{-\beta\lambda}\prod e^{-\lambda}\lambda^{x_i}=\lambda^{\alpha+\sum x_i-1}e^{-(\beta+n)\lambda}$: Gamma($\alpha+\sum x_i,\ \beta+n$) — conjugacy: add total counts to the shape, sample size to the rate. Posterior mean $\frac{\alpha+\sum x_i}{\beta+n}$ interpolates prior mean and MLE.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="beta-distribution">
+ <h2>Beta distribution</h2>
+ <p>A distribution over probabilities themselves: supported on $[0,1]$, shaped by two pseudo-counts $\alpha$ (successes) and $\beta$ (failures). It is the conjugate prior of the Bernoulli/binomial — Bayesian coin-flipping is just Beta arithmetic — and the posterior sharpens as counts grow.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim$Beta($\alpha,\beta$): $$f(x)=\frac{\Gamma(\alpha+\beta)}{\Gamma(\alpha)\Gamma(\beta)}\,x^{\alpha-1}(1-x)^{\beta-1},\quad 0&lt;x&lt;1.$$ $\mathbb{E}[X]=\frac{\alpha}{\alpha+\beta}$, $\operatorname{Var}(X)=\frac{\alpha\beta}{(\alpha+\beta)^2(\alpha+\beta+1)}$; mode $\frac{\alpha-1}{\alpha+\beta-2}$ for $\alpha,\beta&gt;1$. Beta(1,1) is uniform. Conjugacy: Beta($\alpha,\beta$) prior + $k$ successes in $n$ trials → Beta($\alpha+k,\beta+n-k$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A/B test: variant shows 7 conversions in 20 views; prior Beta(1,1). Posterior Beta(8,14): mean $\frac{8}{22}\approx0.364$, mode $\frac{7}{20}=0.35$, sd $\sqrt{\frac{8\cdot14}{22^2\cdot23}}\approx0.10$. $P(p&gt;0.5)$ is small (≈9%): the data leans below a coin flip but 20 views leave real uncertainty.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Beta(9,1): mean, and is it left- or right-skewed? <details class="sol"><summary>Solution</summary><div>Mean $0.9$; mass piles near 1 with a left tail — left-skewed.</div></details></li>
+  <li><span class="lvl m">MED</span> Show Beta($\alpha,\beta$)'s variance shrinks like $1/n$ as $\alpha+\beta=n$ grows with fixed mean. <details class="sol"><summary>Solution</summary><div>With $\mu=\frac{\alpha}{n}$ fixed: $\operatorname{Var}=\frac{\mu(1-\mu)}{n+1}\to0$ like $1/n$ — the posterior concentrates at rate matching the CLT.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two independent posteriors: $p_A\sim$Beta(8,14), $p_B\sim$Beta(12,10). Write the exact integral for $P(p_B&gt;p_A)$ and estimate how you'd compute it. <details class="sol"><summary>Solution</summary><div>$P=\int_0^1\!\int_0^1[b&gt;a]\,f_{8,14}(a)f_{12,10}(b)\,da\,db=\int_0^1F_{8,14}(b)\,f_{12,10}(b)\,db$ (inner CDF). Compute by numerical quadrature or Monte Carlo (sample both, count $b&gt;a$); here $P\approx0.93$ — decision-ready Bayesian A/B output (Ch 13, 24).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dirichlet-distribution">
+ <h2>Dirichlet distribution</h2>
+ <p>The Beta's $K$-dimensional sibling: a distribution over entire probability vectors (points of the simplex). Its parameters are pseudo-counts per category, and it is the conjugate prior of the categorical/multinomial — the Bayesian way to smooth histograms and topic mixtures.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf p\sim$Dir($\boldsymbol\alpha$), $\boldsymbol\alpha=(\alpha_1,\dots,\alpha_K)$, on the simplex $\{p_k\ge0,\sum p_k=1\}$: $$f(\mathbf p)=\frac{\Gamma(\sum_k\alpha_k)}{\prod_k\Gamma(\alpha_k)}\prod_{k=1}^Kp_k^{\alpha_k-1}.$$ $\mathbb{E}[p_k]=\frac{\alpha_k}{\alpha_0}$, $\alpha_0=\sum_j\alpha_j$; larger $\alpha_0$ = tighter around the mean; marginals are Beta($\alpha_k,\alpha_0-\alpha_k$). Conjugacy: Dir($\boldsymbol\alpha$) + multinomial counts $\mathbf n$ → Dir($\boldsymbol\alpha+\mathbf n$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Language model smoothing: token counts $(3,0,1)$ over a 3-word vocabulary with prior Dir$(1,1,1)$ (uniform on the simplex). Posterior Dir$(4,1,2)$: posterior means $\left(\frac47,\frac17,\frac27\right)$ — the unseen word gets probability $\frac17$ instead of the MLE's 0. This is exactly add-one (Laplace) smoothing, unmasked as Bayesian inference.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Dir(2,2,2): what is $\mathbb{E}[\mathbf p]$, and is the density peaked or flat around it compared to Dir(20,20,20)? <details class="sol"><summary>Solution</summary><div>$(\frac13,\frac13,\frac13)$ both; Dir(20,20,20) is much more concentrated ($\alpha_0=60$ vs 6).</div></details></li>
+  <li><span class="lvl m">MED</span> Show the $K=2$ Dirichlet reduces to the Beta. <details class="sol"><summary>Solution</summary><div>With $\mathbf p=(p,1-p)$: $f\propto p^{\alpha_1-1}(1-p)^{\alpha_2-1}$ — Beta($\alpha_1,\alpha_2$), constants matching.</div></details></li>
+  <li><span class="lvl h">HARD</span> With $\alpha_k=c&lt;1$ for all $k$, describe qualitatively where Dir($\boldsymbol\alpha$) puts its mass, and why that makes small-$\alpha$ Dirichlets useful as sparsity priors. <details class="sol"><summary>Solution</summary><div>For $c&lt;1$ each factor $p_k^{c-1}$ blows up as $p_k\to0$: the density concentrates on the simplex's edges and corners — vectors with most coordinates near zero. A Dir(0.1,…,0.1) prior thus prefers sparse mixtures (few active topics/classes), which is why LDA-style topic models use it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gaussian-distribution">
+ <h2>Gaussian distribution</h2>
+ <p>The bell curve: the distribution that sums converge to (CLT), the maximum-entropy shape for a fixed mean and variance, the noise model behind least squares, and the default assumption when all you know is a center and a spread. Two parameters, endless reach.</p>
+ <div class="box def"><span class="label">Definition</span> $X\sim N(\mu,\sigma^2)$: $$f(x)=\frac{1}{\sigma\sqrt{2\pi}}\exp\!\left(-\frac{(x-\mu)^2}{2\sigma^2}\right).$$ Standardize: $Z=\frac{X-\mu}{\sigma}\sim N(0,1)$ with CDF $\Phi$. Closure: $aX+b\sim N(a\mu+b,a^2\sigma^2)$; independent Gaussians sum to Gaussian. 68–95–99.7 within $1,2,3\sigma$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Adult heights $N(170,7^2)$ cm. $P(X&gt;180)=P\!\left(Z&gt;\frac{10}{7}\right)=1-\Phi(1.43)\approx0.0764$. Between 160 and 180: $\Phi(1.43)-\Phi(-1.43)=2\Phi(1.43)-1\approx0.847$. Top 1% cutoff: $z_{0.99}\approx2.326$: $170+2.326\times7\approx186.3$ cm.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide μ and σ; the curve rescales and the shaded area shows $P(X\le a)$ for the draggable threshold.</p>
+  <canvas id="cv-gauss"></canvas>
+  <div class="ctl"><label>μ <input type="range" id="ga-mu" min="-3" max="3" step="0.1" value="0"></label>
+  <label>σ <input type="range" id="ga-sig" min="0.3" max="2.5" step="0.05" value="1"></label>
+  <label>threshold a <input type="range" id="ga-a" min="-5" max="5" step="0.1" value="1"></label></div>
+  <div class="out" id="ga-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Least squares = Gaussian MLE (Ch 13); Gaussian noise defines diffusion models (Ch 12, 22); max-entropy claim proved in Ch 16.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\sim N(5,4)$. Compute $P(X&lt;7)$. <details class="sol"><summary>Solution</summary><div>$\sigma=2$: $P(Z&lt;1)=\Phi(1)\approx0.841$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show the Gaussian density's inflection points sit exactly at $\mu\pm\sigma$. <details class="sol"><summary>Solution</summary><div>For $\mu=0$: $f\propto e^{-x^2/2\sigma^2}$, $f''\propto\left(\frac{x^2}{\sigma^4}-\frac{1}{\sigma^2}\right)e^{-x^2/2\sigma^2}=0$ at $x=\pm\sigma$ — where the bell switches from concave to convex; shift by $\mu$ in general.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X,Y$ i.i.d. $N(0,1)$. Show $\frac{X+Y}{\sqrt2}$ and $\frac{X-Y}{\sqrt2}$ are i.i.d. $N(0,1)$. <details class="sol"><summary>Solution</summary><div>Both are linear combinations of Gaussians, hence Gaussian; means 0, variances $\frac{1+1}{2}=1$. Covariance: $\frac12\mathbb{E}[(X+Y)(X-Y)]=\frac12(\operatorname{Var}X-\operatorname{Var}Y)=0$ — and for <em>jointly Gaussian</em> variables zero covariance does imply independence. (The transformation is a rotation by 45°; the standard Gaussian is rotation-invariant.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multivariate-gaussian">
+ <h2>Multivariate Gaussian</h2>
+ <p>The bell curve in $n$ dimensions: an ellipsoidal cloud whose center is the mean vector and whose shape is the covariance matrix. Its level sets are the ellipsoids of $\Sigma$'s eigenvectors (Ch 8); its marginals, conditionals and linear images are all Gaussian — the closure properties that make it the workhorse of tractable multivariate probability.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf X\sim N(\boldsymbol\mu,\Sigma)$, $\Sigma$ symmetric positive definite: $$f(\mathbf x)=\frac{1}{(2\pi)^{n/2}(\det\Sigma)^{1/2}}\exp\!\left(-\tfrac12(\mathbf x-\boldsymbol\mu)^\top\Sigma^{-1}(\mathbf x-\boldsymbol\mu)\right).$$ Linear maps: $A\mathbf X+\mathbf b\sim N(A\boldsymbol\mu+\mathbf b,\,A\Sigma A^\top)$. Sampling: $\mathbf x=\boldsymbol\mu+L\mathbf z$ with $LL^\top=\Sigma$ (Cholesky), $\mathbf z\sim N(\mathbf0,I)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\boldsymbol\mu=(0,0)$, $\Sigma=\begin{pmatrix}2&1.2\\1.2&1\end{pmatrix}$. Eigen: $\lambda^2-3\lambda+(2-1.44)=0$: $\lambda=\frac{3\pm\sqrt{9-2.24}}{2}=\frac{3\pm2.6}{2}$: $2.8$ and $0.2$. The cloud is a tilted ellipse, long axis along the $\lambda=2.8$ eigenvector, axis lengths in ratio $\sqrt{2.8/0.2}\approx3.74$. Correlation: $\rho=\frac{1.2}{\sqrt{2}\cdot1}\approx0.849$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the variances and correlation; the point cloud and the 1σ/2σ ellipses deform in real time.</p>
+  <canvas id="cv-mvn"></canvas>
+  <div class="ctl"><label>σ₁ <input type="range" id="mv-s1" min="0.4" max="2" step="0.05" value="1.4"></label>
+  <label>σ₂ <input type="range" id="mv-s2" min="0.4" max="2" step="0.05" value="0.8"></label>
+  <label>ρ <input type="range" id="mv-rho" min="-0.95" max="0.95" step="0.01" value="0.6"></label></div>
+  <div class="out" id="mv-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $N(\mathbf0,I_2)$, what shape are the level sets, and what is $P(X_1&gt;0,X_2&gt;0)$? <details class="sol"><summary>Solution</summary><div>Circles; by symmetry $\frac14$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify that with $\Sigma=\mathrm{diag}(\sigma_1^2,\sigma_2^2)$ the joint density factors into two 1-D Gaussians. <details class="sol"><summary>Solution</summary><div>$\Sigma^{-1}=\mathrm{diag}(\sigma_1^{-2},\sigma_2^{-2})$, $\det\Sigma=\sigma_1^2\sigma_2^2$: $f=\prod_i\frac{1}{\sigma_i\sqrt{2\pi}}e^{-x_i^2/2\sigma_i^2}$ — diagonal covariance ⟺ independent components (for Gaussians).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for $\mathbf X\sim N(\boldsymbol\mu,\Sigma)$, the scalar $\mathbf w^\top\mathbf X$ has variance $\mathbf w^\top\Sigma\mathbf w$, and conclude why $\Sigma$ must be positive semidefinite. <details class="sol"><summary>Solution</summary><div>$\operatorname{Var}(\mathbf w^\top\mathbf X)=\mathbb{E}[(\mathbf w^\top(\mathbf X-\boldsymbol\mu))^2]=\mathbf w^\top\mathbb{E}[(\mathbf X-\boldsymbol\mu)(\mathbf X-\boldsymbol\mu)^\top]\mathbf w=\mathbf w^\top\Sigma\mathbf w$. Variances are nonnegative for every $\mathbf w$: exactly the definition of $\Sigma\succeq0$ (Ch 8).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="covariance-matrices">
+ <h2>Covariance matrices</h2>
+ <p>The covariance matrix is the multivariate spread-o-meter: variances on the diagonal, covariances off it. Its eigenvectors are the principal axes of the data cloud and its eigenvalues the variances along them — diagonalize it and you have run PCA.</p>
+ <div class="box def"><span class="label">Definition</span> $\Sigma=\operatorname{Cov}(\mathbf X)=\mathbb{E}[(\mathbf X-\boldsymbol\mu)(\mathbf X-\boldsymbol\mu)^\top]$, with $\Sigma_{ij}=\operatorname{Cov}(X_i,X_j)$. Always symmetric positive semidefinite. Sample version: $\hat\Sigma=\frac{1}{n-1}\sum_i(\mathbf x_i-\bar{\mathbf x})(\mathbf x_i-\bar{\mathbf x})^\top$. Under $\mathbf Y=A\mathbf X$: $\Sigma_Y=A\Sigma_XA^\top$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data points $(1,2),(3,3),(2,4),(4,5),(5,6)$. Means: $\bar x=3$, $\bar y=4$. Deviations: $(-2,-2),(0,-1),(-1,0),(1,1),(2,2)$. $\hat\Sigma_{11}=\frac{4+0+1+1+4}{4}=2.5$; $\hat\Sigma_{22}=\frac{4+1+0+1+4}{4}=2.5$; $\hat\Sigma_{12}=\frac{4+0+0+1+4}{4}=2.25$. $\hat\Sigma=\begin{pmatrix}2.5&2.25\\2.25&2.5\end{pmatrix}$: eigenvalues $2.5\pm2.25$ = $4.75$ and $0.25$, eigenvectors $(1,1)/\sqrt2$ and $(1,-1)/\sqrt2$ — the cloud stretches along the diagonal, 19× more variance than across it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does a diagonal covariance matrix say about the features? <details class="sol"><summary>Solution</summary><div>All pairwise covariances are 0 — features are uncorrelated (independent if jointly Gaussian).</div></details></li>
+  <li><span class="lvl m">MED</span> Whitening: given $\Sigma=V\Lambda V^\top\succ0$, show $\mathbf Y=\Lambda^{-1/2}V^\top\mathbf X$ has covariance $I$. <details class="sol"><summary>Solution</summary><div>$\Sigma_Y=\Lambda^{-1/2}V^\top\Sigma V\Lambda^{-1/2}=\Lambda^{-1/2}\Lambda\Lambda^{-1/2}=I$ — rotate to principal axes, rescale each to unit variance.</div></details></li>
+  <li><span class="lvl h">HARD</span> Portfolio: weights $\mathbf w$, asset covariance $\Sigma$. Risk is $\sqrt{\mathbf w^\top\Sigma\mathbf w}$. For two assets with $\sigma_1=\sigma_2=1$ and correlation $\rho$, find the risk of the 50/50 portfolio and its limits as $\rho\to\pm1$. <details class="sol"><summary>Solution</summary><div>$\mathbf w^\top\Sigma\mathbf w=\frac14(1+1+2\rho)=\frac{1+\rho}{2}$. Risk $\sqrt{\frac{1+\rho}{2}}$: at $\rho=1$, risk 1 (no diversification); at $\rho=-1$, risk 0 (perfect hedge); at $\rho=0$, $\frac{1}{\sqrt2}\approx0.707$ — the mathematics of not putting eggs in correlated baskets.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditional-gaussian-distributions">
+ <h2>Conditional Gaussian distributions</h2>
+ <p>Slice a Gaussian cloud along an observed coordinate and the slice is again Gaussian, with a mean shifted linearly by the observation and a variance <em>reduced</em> by a fixed amount (independent of what you observed). This closed form is the beating heart of Kalman filters, Gaussian processes and linear-Gaussian everything.</p>
+ <div class="box thm"><span class="label">Theorem</span> Partition $\mathbf X=(\mathbf X_1,\mathbf X_2)\sim N\!\left(\begin{pmatrix}\boldsymbol\mu_1\\\boldsymbol\mu_2\end{pmatrix},\begin{pmatrix}\Sigma_{11}&\Sigma_{12}\\\Sigma_{21}&\Sigma_{22}\end{pmatrix}\right)$. Then $$\mathbf X_1\mid\mathbf X_2=\mathbf x_2\ \sim\ N\!\big(\boldsymbol\mu_1+\Sigma_{12}\Sigma_{22}^{-1}(\mathbf x_2-\boldsymbol\mu_2),\ \Sigma_{11}-\Sigma_{12}\Sigma_{22}^{-1}\Sigma_{21}\big).$$ The conditional mean is linear in $\mathbf x_2$; the conditional covariance (the Schur complement) never depends on $\mathbf x_2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Bivariate, $\mu=(0,0)$, $\sigma_1=\sigma_2=1$, $\rho=0.8$. Observe $X_2=2$: $$X_1\mid X_2=2\sim N(0.8\times2,\ 1-0.64)=N(1.6,\,0.36).$$ The best guess of $X_1$ moved to 1.6 (regression toward the mean: less than 2!) and the uncertainty dropped from sd 1 to sd 0.6. With $\rho=0$: no update at all.</div>
+ <div class="box link"><span class="label">Where this goes</span> This formula <em>is</em> the Kalman filter update (Ch 28) and the Gaussian process posterior (Ch 19).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Same setup with $\rho=0.5$: give the conditional distribution of $X_1$ given $X_2=-1$. <details class="sol"><summary>Solution</summary><div>$N(-0.5,\ 0.75)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain "regression toward the mean" from the formula when $\sigma_1=\sigma_2$. <details class="sol"><summary>Solution</summary><div>Conditional mean $=\rho x_2$ with $|\rho|\le1$: the predicted $X_1$ is always closer to its mean (in sd units) than the observed $X_2$ was to its own. Tall parents, slightly-less-tall children — Galton's original observation.</div></details></li>
+  <li><span class="lvl h">HARD</span> Noisy measurement: $X\sim N(0,\sigma^2)$ (state), $Y=X+\varepsilon$, $\varepsilon\sim N(0,\tau^2)$ independent. Derive $X\mid Y=y$. <details class="sol"><summary>Solution</summary><div>Jointly Gaussian with $\operatorname{Var}(Y)=\sigma^2+\tau^2$, $\operatorname{Cov}(X,Y)=\sigma^2$. Conditional: mean $\frac{\sigma^2}{\sigma^2+\tau^2}y$, variance $\sigma^2-\frac{\sigma^4}{\sigma^2+\tau^2}=\frac{\sigma^2\tau^2}{\sigma^2+\tau^2}$. The weight $\frac{\sigma^2}{\sigma^2+\tau^2}$ is the Kalman gain: trust the measurement in proportion to signal-to-noise.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="markov-inequality">
+ <h2>Markov inequality</h2>
+ <p>The crudest tail bound, from almost nothing: a nonnegative variable can't exceed $k$ times its mean more than $\frac1k$ of the time — otherwise those excursions alone would push the mean up. Weak but universal, and the seed from which Chebyshev and Chernoff grow.</p>
+ <div class="box thm"><span class="label">Theorem (Markov)</span> For $X\ge0$ and $a&gt;0$: $$P(X\ge a)\le\frac{\mathbb{E}[X]}{a}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Average inference latency is 50 ms. Fraction of requests over 500 ms: at most $\frac{50}{500}=10\%$ — whatever the distribution. (Proof in one line: $\mathbb{E}[X]\ge\mathbb{E}[X\cdot\mathbf1_{X\ge a}]\ge a\,P(X\ge a)$.) If you additionally know the variance, Chebyshev will do much better.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X\ge0$, $\mathbb{E}[X]=3$. Bound $P(X\ge12)$. <details class="sol"><summary>Solution</summary><div>$\le\frac{3}{12}=0.25$.</div></details></li>
+  <li><span class="lvl m">MED</span> Exhibit a distribution that makes Markov exactly tight for $a=10$, mean 1. <details class="sol"><summary>Solution</summary><div>$X=10$ with probability $0.1$, else $0$: mean 1, $P(X\ge10)=0.1=\frac{1}{10}$. Markov is tight only for such two-point extremes — hence its looseness in practice.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive Chebyshev's inequality from Markov. <details class="sol"><summary>Solution</summary><div>Apply Markov to the nonnegative variable $(X-\mu)^2$ with threshold $a^2$: $P(|X-\mu|\ge a)=P((X-\mu)^2\ge a^2)\le\frac{\mathbb{E}[(X-\mu)^2]}{a^2}=\frac{\sigma^2}{a^2}$. The same trick with $e^{tX}$ gives Chernoff bounds — Markov is the template for all of them.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="chebyshev-inequality">
+ <h2>Chebyshev inequality</h2>
+ <p>Add one fact — the variance — and tails shrink quadratically: being $k$ standard deviations from the mean has probability at most $1/k^2$, for <em>any</em> distribution. It is the inequality that proves the weak law of large numbers in three lines.</p>
+ <div class="box thm"><span class="label">Theorem (Chebyshev)</span> For any $X$ with mean $\mu$, variance $\sigma^2$, and $k&gt;0$: $$P(|X-\mu|\ge k\sigma)\le\frac{1}{k^2}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Reviews average 4.2 stars with sd 0.5, distribution unknown. Fraction of items rated below 3.2 or above 5.2 (i.e. ≥2 sd away): at most $\frac14$. Compare the Gaussian answer, ≈4.6% — Chebyshev pays for universality with slack, but it can never be fooled by weird distributions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\mu=100$, $\sigma=10$. Bound $P(|X-100|\ge30)$. <details class="sol"><summary>Solution</summary><div>$k=3$: $\le\frac19\approx0.111$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use Chebyshev on $\bar X_n$ (i.i.d., mean $\mu$, variance $\sigma^2$) to bound $P(|\bar X_n-\mu|\ge\epsilon)$. <details class="sol"><summary>Solution</summary><div>$\operatorname{Var}(\bar X_n)=\sigma^2/n$: $P\le\frac{\sigma^2}{n\epsilon^2}\to0$ — the weak law of large numbers, proved.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many i.i.d. samples with $\sigma=1$ guarantee $P(|\bar X_n-\mu|\ge0.1)\le0.05$ by Chebyshev? By the CLT approximation? Comment. <details class="sol"><summary>Solution</summary><div>Chebyshev: $\frac{1}{n(0.01)}\le0.05\Rightarrow n\ge2000$. CLT: need $0.1\sqrt n\ge1.96$: $n\ge385$. Chebyshev's guarantee is unconditional; the CLT's is asymptotic but far tighter — and Hoeffding (below) recovers exponential tightness with bounded variables.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="jensen-inequality">
+ <h2>Jensen inequality</h2>
+ <p>For a convex function, the function of the average lies below the average of the function — the chord sits above the curve. This one geometric fact generates half of information theory: the nonnegativity of KL divergence, the direction of the ELBO bound, and why $\log$ of an average beats average of $\log$.</p>
+ <div class="box thm"><span class="label">Theorem (Jensen)</span> If $\varphi$ is convex, $\varphi(\mathbb{E}[X])\le\mathbb{E}[\varphi(X)]$; if concave, the inequality flips. Equality (for strictly convex/concave $\varphi$) iff $X$ is a constant.</div>
+ <div class="box ex"><span class="label">Worked example</span> An investment returns ×0.5 or ×1.6 with equal probability each year. Arithmetic mean factor: $1.05$ — looks profitable. But the long-run growth is governed by $\mathbb{E}[\ln X]=\frac12(\ln0.5+\ln1.6)=\frac12\ln0.8&lt;0$: you lose ~11% per year almost surely. Jensen ($\ln$ concave): $\mathbb{E}[\ln X]\le\ln\mathbb{E}[X]$ — the gap between them is the volatility drag.</div>
+ <div class="box think"><span class="label">Think first</span> Which is larger: $\mathbb{E}[X^2]$ or $(\mathbb{E}[X])^2$? What familiar quantity is the difference? <details class="sol"><summary>Reveal</summary><div>$x^2$ is convex, so $\mathbb{E}[X^2]\ge(\mathbb{E}[X])^2$. The difference is the variance — Jensen's gap for the square function, always $\ge0$, zero iff $X$ constant.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X$ is 1 or 3 equally. Compare $\mathbb{E}[1/X]$ with $1/\mathbb{E}[X]$. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[1/X]=\frac12(1+\frac13)=\frac23$; $1/\mathbb{E}[X]=\frac12$. Convex $1/x$: $\frac23\ge\frac12$ ✓.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the AM–GM inequality $\frac{a+b}{2}\ge\sqrt{ab}$ from Jensen. <details class="sol"><summary>Solution</summary><div>$\ln$ concave: $\ln\frac{a+b}{2}\ge\frac{\ln a+\ln b}{2}=\ln\sqrt{ab}$; exponentiate. (Equality iff $a=b$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\mathrm{KL}(p\|q)=\sum_xp(x)\ln\frac{p(x)}{q(x)}\ge0$ via Jensen. <details class="sol"><summary>Solution</summary><div>$-\mathrm{KL}=\sum_xp(x)\ln\frac{q(x)}{p(x)}=\mathbb{E}_p\!\left[\ln\frac{q}{p}\right]\le\ln\mathbb{E}_p\!\left[\frac{q}{p}\right]=\ln\sum_xq(x)=\ln1=0$ ($\ln$ concave). So $\mathrm{KL}\ge0$, equality iff $q=p$ — the cornerstone of Ch 16.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">$f$ is concave. Which is true for every random $X$?</div><button class="opt">$\mathbb{E}[f(X)]\le f(\mathbb{E}[X])$</button><button class="opt">$\mathbb{E}[f(X)]\ge f(\mathbb{E}[X])$</button><button class="opt">they are always equal</button><div class="why" hidden>Concave: chords lie below the curve, so averaging outcomes then applying $f$ beats applying $f$ then averaging. (Flip for convex.)</div></div>
+</section>
+
+<section class="topic" id="hoeffding-inequality">
+ <h2>Hoeffding inequality</h2>
+ <p>For bounded variables, averages concentrate <em>exponentially</em> fast: the probability that a sample mean strays $\epsilon$ from the true mean dies like $e^{-2n\epsilon^2}$. This is the inequality that tells you how big an eval set you need, and the engine inside PAC learning bounds and UCB bandit algorithms.</p>
+ <div class="box thm"><span class="label">Theorem (Hoeffding)</span> $X_1,\dots,X_n$ independent with $X_i\in[a_i,b_i]$, $\bar X=\frac1n\sum X_i$: $$P\big(|\bar X-\mathbb{E}[\bar X]|\ge\epsilon\big)\le2\exp\!\left(-\frac{2n^2\epsilon^2}{\sum_i(b_i-a_i)^2}\right)\ \overset{[0,1]}{=}\ 2e^{-2n\epsilon^2}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Model accuracy estimated on $n$ i.i.d. test examples (each 0/1). Want the estimate within $\pm2\%$ of the truth with 95% confidence: $2e^{-2n(0.02)^2}\le0.05\Rightarrow n\ge\frac{\ln40}{2\times0.0004}=\frac{3.689}{0.0008}\approx4611$. About 4600 examples — and to halve the margin you need 4×: eval sets are expensive by law, not by accident.</div>
+ <div class="box link"><span class="label">Where this goes</span> Generalization bounds (Ch 20) are Hoeffding + union bound over a hypothesis class; UCB exploration bonuses (Ch 24, 25) are inverted Hoeffding bounds.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $n=1000$ coin flips, bound $P(|\hat p-p|\ge0.05)$. <details class="sol"><summary>Solution</summary><div>$2e^{-2\cdot1000\cdot0.0025}=2e^{-5}\approx0.0135$.</div></details></li>
+  <li><span class="lvl m">MED</span> Invert Hoeffding: with confidence $1-\delta$, the true mean lies within what radius of $\bar X$? <details class="sol"><summary>Solution</summary><div>Set $2e^{-2n\epsilon^2}=\delta$: $\epsilon=\sqrt{\frac{\ln(2/\delta)}{2n}}$ — the "confidence radius" that UCB adds to empirical means.</div></details></li>
+  <li><span class="lvl h">HARD</span> You evaluate $m=100$ model variants on the same $n$ examples and pick the best. Why does the naive per-model bound break, and how does the union bound fix the sample size for $\epsilon=0.02$, $\delta=0.05$? <details class="sol"><summary>Solution</summary><div>Selection bias: the max of $m$ noisy estimates is biased up; a per-model 95% guarantee fails for the <em>selected</em> one. Union bound: demand per-model failure $\le\delta/m$: $n\ge\frac{\ln(2m/\delta)}{2\epsilon^2}=\frac{\ln4000}{0.0008}\approx10{,}367$ — only ~2.2× more for 100× the comparisons, thanks to the logarithm. This is the finite-class generalization bound of Ch 20 in miniature.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="concentration-inequalities">
+ <h2>Concentration inequalities</h2>
+ <p>The theme uniting Markov, Chebyshev, Hoeffding, Chernoff and friends: in high dimensions and large samples, random quantities are <em>nearly deterministic</em> — sums, averages, and smooth functions of many independent variables concentrate tightly around their expectations. This is why statistics works, why high-dimensional geometry is weird, and why fixed eval numbers are trustworthy at all.</p>
+ <div class="box def"><span class="label">Definition</span> A concentration inequality bounds $P(|Z-\mathbb{E}Z|\ge t)$. The ladder: Markov (mean only, $1/t$), Chebyshev (variance, $1/t^2$), Chernoff/Hoeffding (MGF/boundedness, $e^{-ct^2}$), McDiarmid (bounded differences: any function where changing one coordinate moves the value by $\le c_i$ concentrates like $\exp\!\big(-2t^2/\sum c_i^2\big)$).</div>
+ <div class="box ex"><span class="label">Worked example</span> High-dimensional sphere weirdness: for $\mathbf z\sim N(\mathbf0,I_n)$, $\|\mathbf z\|^2=\sum z_i^2$ has mean $n$ and variance $2n$, so $\|\mathbf z\|$ concentrates around $\sqrt n$ with $O(1)$ fluctuations: in $n=1000$ dimensions virtually all Gaussian samples live in a thin shell of radius $\approx31.6$ — nowhere near the "center" where the density is largest. Sampling in latent spaces (Ch 22) respects this shell, not the origin.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Concentration needs independence (or weak dependence) and control of tails/boundedness. Heavy tails (Cauchy) or strong correlations (one shared latent factor) can destroy it completely — check the hypotheses before trusting an error bar.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Rank Markov, Chebyshev, Hoeffding by tail decay and by hypotheses needed. <details class="sol"><summary>Solution</summary><div>Decay: $1/t$ &lt; $1/t^2$ &lt; $e^{-ct^2}$. Hypotheses: mean only &lt; +variance &lt; +boundedness/MGF — you pay for sharpness with assumptions.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does McDiarmid apply to "test accuracy as a function of the n test examples," and what does it give? <details class="sol"><summary>Solution</summary><div>Swapping one test example changes accuracy by at most $c_i=\frac1n$: bounded differences. McDiarmid: $P(|\text{acc}-\mathbb{E}|\ge t)\le2e^{-2nt^2}$ — Hoeffding's bound recovered for a function, not just a sum.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two unit vectors are drawn uniformly at random in $\mathbb{R}^n$. Argue their inner product concentrates near 0 with typical size $O(1/\sqrt n)$, and connect to "random vectors are nearly orthogonal" in embedding spaces. <details class="sol"><summary>Solution</summary><div>Fix one vector $\mathbf u$; the other's coordinates are (approximately) i.i.d. with variance $1/n$ after normalization, so $\langle\mathbf u,\mathbf v\rangle=\sum u_iv_i$ has mean 0, variance $\sum u_i^2/n=1/n$: sd $1/\sqrt n$, and Hoeffding-type bounds give Gaussian-like tails. In $n=10^3$: typical cosine ≈ 0.03. This near-orthogonality is why high-dimensional embeddings can store huge vocabularies with low interference — and underlies superposition in interpretability (Ch 35).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="law-of-large-numbers">
+ <h2>Law of Large Numbers</h2>
+ <p>Averages settle down: as you take more i.i.d. samples, the sample mean converges to the true mean. This is the license that lets frequencies estimate probabilities, Monte Carlo estimate integrals, and training losses estimate expected risk. It says nothing about <em>how fast</em> — that's the CLT's job.</p>
+ <div class="box thm"><span class="label">Theorem</span> $X_1,X_2,\dots$ i.i.d. with $\mathbb{E}|X_1|&lt;\infty$, mean $\mu$. Weak LLN: $\bar X_n\xrightarrow{P}\mu$ (for every $\epsilon$, $P(|\bar X_n-\mu|&gt;\epsilon)\to0$). Strong LLN: $\bar X_n\to\mu$ almost surely.</div>
+ <div class="box ex"><span class="label">Worked example</span> Monte Carlo integration: to estimate $\pi$, drop $n$ uniform points in the unit square; the fraction inside the quarter circle estimates $\frac\pi4$. With $n=10^4$: sd of the estimate of $\pi$ is $4\sqrt{\frac{p(1-p)}{n}}\approx4\sqrt{\frac{0.785\cdot0.215}{10^4}}\approx0.0164$ — the LLN guarantees convergence, the variance formula prices it.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Two ways it fails: no finite mean (Cauchy — averages never settle), and no independence (one shared random factor keeps fluctuating forever: averaging $n$ copies of the <em>same</em> noisy measurement removes nothing).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A die is rolled 10,000 times. Around what value will the average settle, and why? <details class="sol"><summary>Solution</summary><div>$3.5=\mathbb{E}[X]$, by the LLN.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain why "the empirical risk converges to the true risk for a fixed model" is exactly the LLN, and what breaks when the model was selected using the same data. <details class="sol"><summary>Solution</summary><div>Per-example losses are i.i.d. draws with mean = true risk; their average converges (LLN). But a model chosen to minimize the empirical risk correlates with the sample: its losses are no longer an i.i.d. draw from a <em>fixed</em> distribution, and the guarantee needs uniform convergence over the class (Ch 20).</div></details></li>
+  <li><span class="lvl h">HARD</span> $X_i$ i.i.d. taking value $2^k$ with probability $2^{-k}$ ($k=1,2,\dots$; the St. Petersburg game). Does the LLN apply? What happens to $\bar X_n$? <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X]=\sum_k2^k2^{-k}=\sum_k1=\infty$: no finite mean, LLN inapplicable. In fact $\bar X_n/\log_2n\to1$ in probability — averages grow forever, slowly; no fair finite price exists for the game. Infinite means are not a technicality.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="central-limit-theorem">
+ <h2>Central Limit Theorem</h2>
+ <p>Not only do averages settle — their fluctuations take a universal shape. Center a sum of many i.i.d. contributions, divide by $\sqrt n$, and the distribution approaches the Gaussian no matter what you started from (finite variance is all that's asked). This is why the bell curve is everywhere: it is the fixed point of adding up small independent effects.</p>
+ <div class="box thm"><span class="label">Theorem (CLT)</span> $X_1,X_2,\dots$ i.i.d., mean $\mu$, variance $\sigma^2\in(0,\infty)$: $$\frac{\bar X_n-\mu}{\sigma/\sqrt n}\ \xrightarrow{d}\ N(0,1),$$ i.e. $P\!\left(\frac{\bar X_n-\mu}{\sigma/\sqrt n}\le z\right)\to\Phi(z)$ for all $z$.</div>
+ <div class="box ex"><span class="label">Worked example</span> 100 die rolls, $S$ their sum. $\mu_S=350$, $\sigma_S=\sqrt{100\times35/12}\approx17.08$. $P(S&gt;380)\approx P\!\left(Z&gt;\frac{380.5-350}{17.08}\right)=P(Z&gt;1.786)\approx3.7\%$ (with continuity correction). The exact distribution of $S$ is a monstrous 100-fold convolution; the CLT reads it off a normal table.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Pick a wildly non-Gaussian base distribution and a sample size $n$; the histogram of standardized sample means morphs into the bell. Press Sample to add batches.</p>
+  <canvas id="cv-clt"></canvas>
+  <div class="ctl">
+   <label>base <select id="clt-base" class="btn"><option value="0">uniform</option><option value="1">exponential</option><option value="2">Bernoulli(0.1)</option></select></label>
+   <label>n per mean <input type="range" id="clt-n" min="1" max="100" step="1" value="1"></label>
+   <button class="btn" id="clt-go">Sample ×2000</button><button class="btn" id="clt-clear">Clear</button></div>
+  <div class="out" id="clt-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The CLT is an approximation near the <em>center</em>. Far tails converge slowly (especially for skewed bases), and heavy-tailed (infinite-variance) summands converge to stable laws, not Gaussians. Never use a normal table for 6σ events without a large-deviations argument.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> 400 i.i.d. samples, each mean 10, sd 2. Approximate the distribution of $\bar X$. <details class="sol"><summary>Solution</summary><div>$N(10,\,(2/\sqrt{400})^2)=N(10,0.01)$: sd 0.1.</div></details></li>
+  <li><span class="lvl m">MED</span> A fair coin is flipped 10,000 times. Approximate $P(\text{heads}\ge5100)$. <details class="sol"><summary>Solution</summary><div>$\mu=5000$, $\sigma=\sqrt{2500}=50$: $z=\frac{5100-5000}{50}=2$: $P\approx1-\Phi(2)\approx2.3\%$.</div></details></li>
+  <li><span class="lvl h">HARD</span> An estimator's error bar is quoted as $\bar X\pm1.96\,s/\sqrt n$. Derive the 1.96 and name the two theorems that justify the recipe. <details class="sol"><summary>Solution</summary><div>CLT: $\frac{\bar X-\mu}{\sigma/\sqrt n}\approx N(0,1)$, and $P(|Z|\le1.96)=0.95$ ($\Phi(1.96)\approx0.975$), giving $\mu\in\bar X\pm1.96\sigma/\sqrt n$ with ~95% coverage. Replacing unknown $\sigma$ by the sample sd $s$ is justified by the LLN ($s\to\sigma$, Slutsky's lemma). The 95% confidence interval of Ch 13, assembled from this chapter's two capstone theorems.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Noisy channel, full Bayes.</b> A bit $B\in\{0,1\}$ is sent with $P(B=1)=0.6$; the channel flips it with probability 0.1. You receive $R=1$. (a) Find $P(B=1\mid R=1)$. (b) The same bit is retransmitted independently and you receive $1$ again; update. (c) How many consecutive received 1's make you 99.9% sure? <details class="sol"><summary>Solution</summary><div>(a) $\frac{0.9\cdot0.6}{0.9\cdot0.6+0.1\cdot0.4}=\frac{0.54}{0.58}\approx0.931$. (b) Odds form: prior odds $\frac{0.6}{0.4}=1.5$; each received 1 multiplies odds by $\frac{0.9}{0.1}=9$: after two, odds $=1.5\times81=121.5$, $P=\frac{121.5}{122.5}\approx0.992$. (c) Need odds $\ge999$: $1.5\times9^k\ge999\Rightarrow9^k\ge666\Rightarrow k\ge\frac{\ln666}{\ln9}\approx2.96$: $k=3$ receptions.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Gaussian pipeline.</b> $X\sim N(0,4)$ is a signal; the sensor reports $Y=X+\varepsilon$, $\varepsilon\sim N(0,1)$ independent. (a) Give the joint distribution of $(X,Y)$. (b) Derive $X\mid Y=3$. (c) The downstream system acts only if $X&gt;2$; compute the probability it should act given $Y=3$. <details class="sol"><summary>Solution</summary><div>(a) Jointly Gaussian, mean $\mathbf0$, $\operatorname{Var}(X)=4$, $\operatorname{Var}(Y)=5$, $\operatorname{Cov}=4$: $\Sigma=\begin{pmatrix}4&4\\4&5\end{pmatrix}$. (b) Mean $\frac{4}{5}\cdot3=2.4$, variance $4-\frac{16}{5}=0.8$: $X\mid Y=3\sim N(2.4,0.8)$. (c) $P(X&gt;2\mid Y=3)=P\!\left(Z&gt;\frac{2-2.4}{\sqrt{0.8}}\right)=P(Z&gt;-0.447)=\Phi(0.447)\approx0.673$.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>How big an eval?</b> A benchmark has $n$ i.i.d. questions; a model's true accuracy is $p$. (a) Give the exact distribution, mean and sd of the measured accuracy $\hat p$. (b) With $p\approx0.8$, how large must $n$ be so a 95% CLT interval has half-width 1%? (c) Model A truly beats model B by 2 points (0.80 vs 0.78) and they are evaluated on the same $n=1000$ questions independently. Approximate the probability the eval ranks them backwards, and comment. <details class="sol"><summary>Solution</summary><div>(a) $n\hat p\sim$Bin($n,p$): $\mathbb{E}[\hat p]=p$, sd $\sqrt{p(1-p)/n}$. (b) $1.96\sqrt{0.16/n}\le0.01\Rightarrow n\ge1.96^2\cdot0.16\cdot10^4\approx6147$. (c) $\hat p_A-\hat p_B$ has mean 0.02, variance $\frac{0.16+0.1716}{1000}\approx3.32\times10^{-4}$, sd $\approx0.0182$. $P(\hat p_A&lt;\hat p_B)=P\!\left(Z&lt;\frac{-0.02}{0.0182}\right)=\Phi(-1.10)\approx13.6\%$: a 1-in-7 chance the leaderboard is upside down at $n=1000$ — treat small benchmark gaps as noise unless $n$ is large (and correlated-question evals need paired analysis).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p class="lede">NumPy only.</p>
+ <div class="box ex"><span class="label">Task 1 — Build distributions from uniforms</span> Using only <code>rng.uniform()</code>, sample Exponential(λ) by inverse CDF and standard Gaussians by Box–Muller; verify means, variances and histogram shapes.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+N = 200_000
+
+# exponential via inverse CDF: X = -ln(1-U)/lam
+lam = 2.0
+u = rng.uniform(size=N)
+x = -np.log1p(-u) / lam
+print("exp  mean %.4f (1/λ=%.4f)  var %.4f (1/λ²=%.4f)"
+      % (x.mean(), 1/lam, x.var(), 1/lam**2))
+
+# gaussian via Box-Muller: Z = sqrt(-2 ln U1) cos(2π U2)
+u1, u2 = rng.uniform(size=N), rng.uniform(size=N)
+z = np.sqrt(-2*np.log(u1)) * np.cos(2*np.pi*u2)
+print("gauss mean %.4f  var %.4f" % (z.mean(), z.var()))
+within = [(np.abs(z) &lt; k).mean() for k in (1, 2, 3)]
+print("within 1,2,3 sd:", np.round(within, 4))  # ~0.683 0.954 0.997</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — CLT and concentration, empirically</span> For a skewed base distribution, plot-free-verify the CLT (standardized means vs Φ) and check Hoeffding's bound against reality.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+
+# CLT: means of n exponentials, standardized
+n, reps, lam = 40, 100_000, 1.0
+xs = rng.exponential(1/lam, size=(reps, n))
+zs = (xs.mean(axis=1) - 1/lam) / ((1/lam) / np.sqrt(n))
+for q in (-2, -1, 0, 1, 2):
+    from math import erf
+    phi = 0.5 * (1 + erf(q / np.sqrt(2)))
+    print(f"P(Z&lt;={q}): empirical {np.mean(zs &lt;= q):.4f}  normal {phi:.4f}")
+
+# Hoeffding: coin, n=1000, eps=0.05
+n, eps, reps = 1000, 0.05, 200_000
+flips = rng.random((reps, n)) &lt; 0.5
+dev = np.abs(flips.mean(axis=1) - 0.5)
+print("empirical P(|p̂-p|&gt;=ε):", (dev &gt;= eps).mean())
+print("Hoeffding bound       :", 2*np.exp(-2*n*eps**2))  # bound holds, ~5x loose</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — Bayesian A/B testing</span> Simulate two variants with true rates 0.10 and 0.12, run Beta–Bernoulli updating over 2000 visitors each, and compute $P(p_B&gt;p_A)$ from posterior samples.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(2)
+pA, pB, n = 0.10, 0.12, 2000
+convA = rng.random(n) &lt; pA
+convB = rng.random(n) &lt; pB
+
+aA, bA = 1 + convA.sum(), 1 + n - convA.sum()   # Beta(1,1) prior
+aB, bB = 1 + convB.sum(), 1 + n - convB.sum()
+print(f"posterior A: Beta({aA},{bA})  mean {aA/(aA+bA):.4f}")
+print(f"posterior B: Beta({aB},{bB})  mean {aB/(aB+bB):.4f}")
+
+S = 500_000
+prob = (rng.beta(aB, bB, S) &gt; rng.beta(aA, bA, S)).mean()
+print(f"P(pB &gt; pA | data) = {prob:.4f}")
+# also: posterior of the lift
+lift = rng.beta(aB, bB, S) - rng.beta(aA, bA, S)
+print("95% credible interval for lift:",
+      np.round(np.percentile(lift, [2.5, 97.5]), 4))</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/res-6-012-introduction-to-probability-spring-2018/">MIT RES.6-012 Introduction to Probability (Tsitsiklis)</a> — the gold-standard lecture course from axioms to limit theorems.</li>
+  <li><a href="https://projects.iq.harvard.edu/stat110/home">Harvard Stat 110 (Blitzstein)</a> — free lectures and the Introduction to Probability book; superb on conditioning and stories.</li>
+  <li><a href="https://www.probabilitycourse.com/">Pishro-Nik, Introduction to Probability, Statistics and Random Processes</a> — a complete free online textbook with solved problems.</li>
+  <li><a href="https://www.khanacademy.org/math/statistics-probability">Khan Academy Probability &amp; Statistics</a> — practice-heavy grounding for the first half of this chapter.</li>
+  <li><a href="https://seeing-theory.brown.edu/">Seeing Theory (Brown)</a> — interactive visualizations of chance, distributions, and inference.</li>
+  <li><a href="https://www.stat.cmu.edu/~larry/all-of-statistics/">Wasserman, All of Statistics</a> — chapters 1–5 compress this chapter into rigorous form; the bridge to Ch 13.</li>
+  <li><a href="https://probml.github.io/pml-book/book1.html">Murphy, Probabilistic Machine Learning: An Introduction</a> — free PDF; multivariate Gaussians and conditioning exactly as ML uses them.</li>
+  <li><a href="https://www.deeplearningbook.org/contents/prob.html">Goodfellow et al., Deep Learning, Ch 3</a> — probability distilled for deep learning readers.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch10.html">← 10 · Differential Equations</a>
+ <a class="btn" href="ch12.html">12 · Stochastic Processes →</a>
+</div>
+
+ </main>
+</div>
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
+function val(id){var el=document.getElementById(id);return el?parseFloat(el.value):0;}
+function lgamma(x){ // Lanczos
+ var g=7,p=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+ if(x<0.5)return Math.log(Math.PI/Math.sin(Math.PI*x))-lgamma(1-x);
+ x-=1;var a=p[0],t=x+g+0.5;
+ for(var i=1;i<g+2;i++)a+=p[i]/(x+i);
+ return 0.5*Math.log(2*Math.PI)+(x+0.5)*Math.log(t)-t+Math.log(a);
+}
+function erf(x){var s=x<0?-1:1;x=Math.abs(x);var t=1/(1+0.3275911*x);
+ var y=1-(((((1.061405429*t-1.453152027)*t)+1.421413741)*t-0.284496736)*t+0.254829592)*t*Math.exp(-x*x);
+ return s*y;}
+function Phi(x){return 0.5*(1+erf(x/Math.SQRT2));}
+
+/* ---- Explorer 1: Bayes posterior bars ---- */
+(function(){
+ var c=document.getElementById('cv-bayes');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var pr=val('by-prior'),se=val('by-sens'),fp=val('by-fpr');
+  var tp=se*pr, fpos=fp*(1-pr), post=tp/(tp+fpos);
+  // population strip: 1000 people
+  var y0=40,bh=46;
+  g.font='13px JetBrains Mono';
+  g.fillStyle=cssVar('--ink-2');g.fillText('population (width = probability):',10,y0-10);
+  var x=10,W=w-20;
+  function seg(frac,color,label,yy){
+   g.fillStyle=color;g.fillRect(x,yy,W*frac,bh);
+   if(W*frac>60){g.fillStyle=cssVar('--ink');g.fillText(label,x+4,yy+bh/2+4);}
+   x+=W*frac;
+  }
+  seg(tp,cssVar('--cobalt'),'true +',y0);
+  seg(fpos,cssVar('--amber'),'false +',y0);
+  seg((1-pr)-fpos,cssVar('--paper-2'),'true −',y0);
+  seg(pr-tp,cssVar('--rule'),'missed',y0);
+  // posterior bar
+  var y1=y0+bh+42;
+  g.fillStyle=cssVar('--ink-2');g.fillText('P(disease | positive) — blue share of all positives:',10,y1-10);
+  var pw=W*(tp+fpos)/(tp+fpos); // full width for positives
+  g.fillStyle=cssVar('--cobalt');g.fillRect(10,y1,W*post,30);
+  g.fillStyle=cssVar('--amber');g.fillRect(10+W*post,y1,W*(1-post),30);
+  g.strokeStyle=cssVar('--rule');g.strokeRect(10,y1,W,30);
+  var out=document.getElementById('by-out');
+  if(out)out.textContent='posterior P(D|+) = '+(se*pr).toFixed(4)+' / '+(tp+fpos).toFixed(4)+' = '+(100*post).toFixed(1)+'%';
+ }
+ ['by-prior','by-sens','by-fpr'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 2: Beta posterior updating ---- */
+(function(){
+ var c=document.getElementById('cv-beta');if(!c)return;
+ var a=1,b=1,heads=0,tails=0;
+ function betaPdf(x,a,b){
+  if(x<=0||x>=1)return 0;
+  return Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+(a-1)*Math.log(x)+(b-1)*Math.log(1-x));
+ }
+ function draw(){
+  var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var p=val('bu-p');
+  var mx=0;for(var i=1;i<200;i++)mx=Math.max(mx,betaPdf(i/200,a,b));
+  mx=Math.max(mx,1.2);
+  function X(x){return x*w} function Y(y){return h-8-y/mx*(h-40)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  // true p marker
+  g.strokeStyle=cssVar('--amber');g.setLineDash([5,4]);g.beginPath();g.moveTo(X(p),Y(0));g.lineTo(X(p),20);g.stroke();g.setLineDash([]);
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();
+  for(i=1;i<400;i++){var xx=i/400,yy=betaPdf(xx,a,b);
+   if(i===1)g.moveTo(X(xx),Y(yy));else g.lineTo(X(xx),Y(yy));}
+  g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('posterior Beta('+a+', '+b+')   dashed = true p',10,16);
+  var out=document.getElementById('bu-out');
+  if(out)out.textContent=heads+' heads, '+tails+' tails   posterior mean = '+(a/(a+b)).toFixed(3)+'   sd = '+Math.sqrt(a*b/((a+b)*(a+b)*(a+b+1))).toFixed(3);
+ }
+ function flip(n){var p=val('bu-p');for(var i=0;i<n;i++){if(Math.random()<p){a++;heads++;}else{b++;tails++;}}draw();}
+ on('bu-flip1','click',function(){flip(1)});
+ on('bu-flip25','click',function(){flip(25)});
+ on('bu-reset','click',function(){a=1;b=1;heads=0;tails=0;draw();});
+ on('bu-p','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 3: Binomial -> Poisson ---- */
+(function(){
+ var c=document.getElementById('cv-pois');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var lam=val('po-lam'),n=Math.round(val('po-n'));
+  var p=Math.min(lam/n,1);
+  var K=Math.min(Math.ceil(lam+5*Math.sqrt(lam))+2,n);
+  // binomial pmf (log-space)
+  function binom(k){
+   if(k>n)return 0;
+   var lg=lgamma(n+1)-lgamma(k+1)-lgamma(n-k+1)+k*Math.log(p)+(n-k)*Math.log(1-p);
+   return Math.exp(lg);
+  }
+  function pois(k){return Math.exp(-lam+k*Math.log(lam)-lgamma(k+1));}
+  var mx=0;for(var k=0;k<=K;k++)mx=Math.max(mx,binom(k),pois(k));
+  var bw=w/(K+2);
+  function X(k){return (k+0.5)*bw} function Y(v){return h-24-v/mx*(h-56)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,h-24);g.lineTo(w,h-24);g.stroke();
+  g.fillStyle=cssVar('--cobalt-soft');g.strokeStyle=cssVar('--cobalt');
+  var tv=0;
+  for(k=0;k<=K;k++){
+   var bv=binom(k);
+   g.fillRect(X(k)-bw*0.35,Y(bv),bw*0.7,h-24-Y(bv));
+   g.strokeRect(X(k)-bw*0.35,Y(bv),bw*0.7,h-24-Y(bv));
+   tv+=Math.abs(bv-pois(k));
+  }
+  g.strokeStyle=cssVar('--amber');g.lineWidth=2.5;g.beginPath();
+  for(k=0;k<=K;k++){var pv=pois(k);if(k===0)g.moveTo(X(k),Y(pv));else g.lineTo(X(k),Y(pv));}
+  g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--amber');
+  for(k=0;k<=K;k++){g.beginPath();g.arc(X(k),Y(pois(k)),3,0,2*Math.PI);g.fill();}
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('bars: Bin('+n+', '+p.toFixed(3)+')   dots: Poi('+lam.toFixed(1)+')',10,16);
+  var out=document.getElementById('po-out');
+  if(out)out.textContent='total variation distance ≈ '+(tv/2).toFixed(4)+'   (raise n and watch it fall)';
+ }
+ on('po-lam','input',draw);on('po-n','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 4: Gaussian with threshold area ---- */
+(function(){
+ var c=document.getElementById('cv-gauss');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var mu=val('ga-mu'),sig=val('ga-sig'),a=val('ga-a');
+  var X0=-5,X1=5;
+  function X(x){return (x-X0)/(X1-X0)*w} function pdf(x){return Math.exp(-(x-mu)*(x-mu)/(2*sig*sig))/(sig*Math.sqrt(2*Math.PI));}
+  var mx=0.45/Math.min(sig,1); mx=Math.max(pdf(mu)*1.15,0.5);
+  function Y(v){return h-24-v/mx*(h-52)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,h-24);g.lineTo(w,h-24);g.stroke();
+  // shaded area to the left of a
+  g.fillStyle=cssVar('--cobalt-soft');g.beginPath();g.moveTo(X(X0),Y(0));
+  for(var x=X0;x<=Math.min(a,X1);x+=0.02)g.lineTo(X(x),Y(pdf(x)));
+  g.lineTo(X(Math.min(a,X1)),Y(0));g.closePath();g.fill();
+  // curve
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();
+  for(x=X0;x<=X1;x+=0.02){if(x===X0)g.moveTo(X(x),Y(pdf(x)));else g.lineTo(X(x),Y(pdf(x)));}
+  g.stroke();g.lineWidth=1;
+  g.strokeStyle=cssVar('--amber');g.beginPath();g.moveTo(X(a),h-24);g.lineTo(X(a),24);g.stroke();
+  // sigma ticks
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  [-2,-1,0,1,2].forEach(function(k){var xx=mu+k*sig;if(xx>X0&&xx<X1){g.fillText(k===0?'μ':(k>0?'+'+k+'σ':k+'σ'),X(xx)-10,h-8);}});
+  var z=(a-mu)/sig, P=Phi(z);
+  var out=document.getElementById('ga-out');
+  if(out)out.textContent='z = (a−μ)/σ = '+z.toFixed(2)+'   P(X ≤ a) = Φ(z) = '+P.toFixed(4);
+ }
+ ['ga-mu','ga-sig','ga-a'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 5: multivariate Gaussian cloud + ellipses ---- */
+(function(){
+ var c=document.getElementById('cv-mvn');if(!c)return;
+ var z1=[],z2=[];
+ (function(){var n=400;for(var i=0;i<n;i++){var u1=Math.random(),u2=Math.random();
+  z1.push(Math.sqrt(-2*Math.log(u1))*Math.cos(2*Math.PI*u2));
+  z2.push(Math.sqrt(-2*Math.log(u1))*Math.sin(2*Math.PI*u2));}})();
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var s1=val('mv-s1'),s2=val('mv-s2'),r=val('mv-rho');
+  var scale=Math.min(w,h)/10,x0=w/2,y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,y0);g.lineTo(w,y0);g.moveTo(x0,0);g.lineTo(x0,h);g.stroke();
+  // Cholesky of [[s1^2, r s1 s2],[r s1 s2, s2^2]]: L = [[s1,0],[r s2, s2 sqrt(1-r^2)]]
+  var l11=s1,l21=r*s2,l22=s2*Math.sqrt(1-r*r);
+  g.fillStyle=cssVar('--cobalt');g.globalAlpha=0.45;
+  for(var i=0;i<z1.length;i++){
+   var xx=l11*z1[i],yy=l21*z1[i]+l22*z2[i];
+   g.beginPath();g.arc(X(xx),Y(yy),2,0,2*Math.PI);g.fill();
+  }
+  g.globalAlpha=1;
+  // ellipses: x = k L [cos t, sin t]
+  [1,2].forEach(function(k){
+   g.strokeStyle=cssVar('--amber');g.lineWidth=k===1?2.5:1.5;g.beginPath();
+   for(var t=0;t<=2*Math.PI+0.05;t+=0.05){
+    var cx=Math.cos(t),sy=Math.sin(t);
+    var xx=k*l11*cx, yy=k*(l21*cx+l22*sy);
+    if(t===0)g.moveTo(X(xx),Y(yy));else g.lineTo(X(xx),Y(yy));
+   }
+   g.stroke();
+  });
+  g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('400 samples · 1σ and 2σ ellipses',10,16);
+  var cv2=r*s1*s2;
+  var out=document.getElementById('mv-out');
+  if(out)out.textContent='Σ = [['+(s1*s1).toFixed(2)+', '+cv2.toFixed(2)+'], ['+cv2.toFixed(2)+', '+(s2*s2).toFixed(2)+']]   det Σ = '+((s1*s1*s2*s2)*(1-r*r)).toFixed(3);
+ }
+ ['mv-s1','mv-s2','mv-rho'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 6: CLT histogram ---- */
+(function(){
+ var c=document.getElementById('cv-clt');if(!c)return;
+ var bins=new Array(60).fill(0),count=0;
+ function base(kind){
+  if(kind===0)return Math.random();
+  if(kind===1){return -Math.log(1-Math.random());}
+  return Math.random()<0.1?1:0;
+ }
+ var params=[[0.5,1/12],[1,1],[0.1,0.09]];
+ function sample(){
+  var kind=parseInt(document.getElementById('clt-base').value);
+  var n=Math.round(val('clt-n'));
+  var mu=params[kind][0],v=params[kind][1];
+  for(var r=0;r<2000;r++){
+   var sum=0;for(var i=0;i<n;i++)sum+=base(kind);
+   var z=(sum/n-mu)/Math.sqrt(v/n);
+   var b=Math.floor((z+4)/8*60);
+   if(b>=0&&b<60)bins[b]++;
+   count++;
+  }
+  draw();
+ }
+ function draw(){
+  var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var mx=Math.max.apply(null,bins),binw=8/60;
+  var dens=Math.max(mx/(count*binw||1),0.45);
+  function X(z){return (z+4)/8*w} function Y(v){return h-24-v/dens*(h-56)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,h-24);g.lineTo(w,h-24);g.stroke();
+  if(count>0){
+   g.fillStyle=cssVar('--cobalt-soft');g.strokeStyle=cssVar('--cobalt');
+   for(var b=0;b<60;b++){
+    var z=-4+b*binw, v=bins[b]/(count*binw);
+    if(bins[b]>0){g.fillRect(X(z),Y(v),w/60,h-24-Y(v));}
+   }
+  }
+  // normal curve
+  g.strokeStyle=cssVar('--amber');g.lineWidth=2.5;g.beginPath();
+  for(var zz=-4;zz<=4;zz+=0.05){var vv=Math.exp(-zz*zz/2)/Math.sqrt(2*Math.PI);
+   if(zz===-4)g.moveTo(X(zz),Y(vv));else g.lineTo(X(zz),Y(vv));}
+  g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('standardized sample means vs N(0,1)',10,16);
+  var out=document.getElementById('clt-out');
+  if(out)out.textContent=count+' sample means so far   (n=1 shows the raw base shape; raise n)';
+ }
+ on('clt-go','click',sample);
+ on('clt-clear','click',function(){bins.fill(0);count=0;draw();});
+ on('clt-n','input',function(){bins.fill(0);count=0;draw();});
+ on('clt-base','change',function(){bins.fill(0);count=0;draw();});
+ window.addEventListener('resize',draw);draw();
+})();
+})();
+</script>
+
+</body></html>

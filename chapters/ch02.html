@@ -1,0 +1,1003 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 02 Algebra</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','02')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">02</div><h1>Algebra</h1><p class="lede">Symbols that stand for numbers, and the rules that move them.</p>
+   <div class="meta"><span class="chip">53 topics</span><span class="chip">needs: chapter 01</span><span class="chip">feeds: chapters 04, 06–08</span></div>
+  </div>
+
+<section class="topic" id="variables">
+ <h2>Variables</h2>
+ <p>A variable is a named placeholder for a number not yet chosen: a labeled box that any value can fill. Writing $x$ instead of "some number" lets one calculation stand for infinitely many. Every parameter in a neural network is a variable in exactly this sense.</p>
+ <div class="box def"><span class="label">Definition</span> A variable is a symbol ($x, y, n, \theta, \dots$) that ranges over a specified set of values (its domain). An equation involving variables constrains which values are allowed.</div>
+ <div class="box ex"><span class="label">Worked example</span> "A number tripled, plus four, gives nineteen": let $x$ be the number, then $3x + 4 = 19$, so $3x = 15$, $x = 5$. One symbol replaced a paragraph.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Translate: "seven less than twice a number $n$". <details class="sol"><summary>Solution</summary><div>$2n - 7$ (not $7 - 2n$: "less than" reverses the order).</div></details></li>
+  <li><span class="lvl m">MED</span> If $x$ ranges over $\{1,2,3,4\}$, which values satisfy $x^2 - 5x + 6 \le 0$? <details class="sol"><summary>Solution</summary><div>Test: $x{=}1: 2 &gt; 0$; $x{=}2: 0 \le 0$ ✓; $x{=}3: 0$ ✓; $x{=}4: 2 &gt; 0$. So $\{2,3\}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A rectangle's length is 3 more than twice its width and its perimeter is 36. Set up variables and find both. <details class="sol"><summary>Solution</summary><div>Width $w$, length $2w+3$. Perimeter: $2(w + 2w + 3) = 36 \Rightarrow 6w + 6 = 36 \Rightarrow w = 5$, length $13$. Check: $2(5+13)=36$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="constants">
+ <h2>Constants</h2>
+ <p>A constant is a value that stays fixed while the variables move: the $\pi$ in $\pi r^2$, the $b$ in $y = mx + b$ once a line is chosen. Which symbols are "constant" is a matter of perspective — during training, a network's inputs are constants and the weights vary; at inference it is the reverse.</p>
+ <div class="box def"><span class="label">Definition</span> A constant is a fixed value in an expression. Universal constants ($\pi \approx 3.14159$, $e \approx 2.71828$) never change; parameters ($m$, $b$) are held fixed within a problem but may differ across problems.</div>
+ <div class="box ex"><span class="label">Worked example</span> In $f(x) = 5x^2 - 3x + 8$, the constants are 5, $-3$, and 8. The <em>constant term</em> is 8: the value of $f(0)$, where all the $x$-parts vanish.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Identify the constant term of $4x^3 - 2x + 11$. <details class="sol"><summary>Solution</summary><div>11 — the term with no variable.</div></details></li>
+  <li><span class="lvl m">MED</span> In the ideal gas law $PV = nRT$, which symbol is a universal constant? <details class="sol"><summary>Solution</summary><div>$R$ (the gas constant). $P, V, n, T$ vary with the situation.</div></details></li>
+  <li><span class="lvl h">HARD</span> For which constant $c$ does $x^2 + 6x + c$ have exactly one root? <details class="sol"><summary>Solution</summary><div>One root needs discriminant 0: $36 - 4c = 0 \Rightarrow c = 9$. Then $x^2+6x+9 = (x+3)^2$, root $x = -3$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="coefficients">
+ <h2>Coefficients</h2>
+ <p>A coefficient is the numerical multiplier glued to a variable part: the 7 in $7x^2$. Coefficients are the "knobs" of an expression — change them and the shape of the function changes while its structural form stays the same. A weight matrix is a grid of coefficients.</p>
+ <div class="box def"><span class="label">Definition</span> In a term $c\,x^{k}$, $c$ is the coefficient of $x^k$. The <em>leading coefficient</em> of a polynomial multiplies the highest power. An invisible coefficient is 1: $x = 1\cdot x$, $-x = (-1)x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> In $-x^4 + \tfrac{2}{3}x^2 - x + 9$: coefficient of $x^4$ is $-1$; of $x^2$ is $\tfrac23$; of $x$ is $-1$; of $x^3$ is $0$ (absent terms have coefficient zero); leading coefficient $-1$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the coefficient of $x$ in $3x^2 - 5x + 2$? <details class="sol"><summary>Solution</summary><div>$-5$ (the sign belongs to the coefficient).</div></details></li>
+  <li><span class="lvl m">MED</span> Find $a$ so that the coefficient of $x^2$ in $a x^2 + 3x^2 - 7x$ equals 10. <details class="sol"><summary>Solution</summary><div>Combined coefficient $a + 3 = 10 \Rightarrow a = 7$.</div></details></li>
+  <li><span class="lvl h">HARD</span> What is the coefficient of $x^2$ in $(2x + 3)(x^2 - 4x + 5)$? <details class="sol"><summary>Solution</summary><div>$x^2$ terms: $2x \cdot(-4x) = -8x^2$ and $3 \cdot x^2 = 3x^2$. Coefficient $= -8 + 3 = -5$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="terms">
+ <h2>Terms</h2>
+ <p>Terms are the pieces of an expression separated by $+$ and $-$ signs — the "words" of algebra's sentences. Inside a term, everything is multiplied together; between terms, things are added. Knowing where one term ends and the next begins is the first parsing skill.</p>
+ <div class="box def"><span class="label">Definition</span> A term is a product of constants and variable powers, e.g. $-4x^2y$. An expression is a sum of terms. A polynomial's <em>degree</em> is the largest total power appearing in any term.</div>
+ <div class="box ex"><span class="label">Worked example</span> $5x^3 - 2xy + 7 - y^2$ has four terms: $5x^3$, $-2xy$, $7$, $-y^2$. Degrees: 3, 2 ($1{+}1$), 0, 2 — so the whole expression has degree 3.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many terms in $x^2 - 3x + 4 - 2x^2$? <details class="sol"><summary>Solution</summary><div>Four terms as written: $x^2, -3x, 4, -2x^2$ (they combine to three distinct kinds).</div></details></li>
+  <li><span class="lvl m">MED</span> What is the degree of $3x^2y^3 - 7x^4 + 1$? <details class="sol"><summary>Solution</summary><div>Term degrees: $2+3 = 5$, $4$, $0$. Degree 5.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give an expression with exactly three terms, degree 4, and constant term $-2$, whose coefficients sum to 0. <details class="sol"><summary>Solution</summary><div>Coefficient sum is the value at $x=1$. Try $x^4 + x - 2$: three terms, degree 4, constant $-2$, and $1 + 1 - 2 = 0$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="like-terms">
+ <h2>Like terms</h2>
+ <p>Like terms have identical variable parts — same letters, same exponents — so they can be pooled by adding coefficients, the way 3 apples + 5 apples = 8 apples. Unlike terms (apples and oranges) must be left side by side.</p>
+ <div class="box def"><span class="label">Definition</span> Terms are <em>like</em> if their variable factors match exactly: $4x^2y$ and $-7x^2y$ are like; $4x^2y$ and $4xy^2$ are not. Combining: $a\,T + b\,T = (a+b)\,T$ — the distributive law in reverse.</div>
+ <div class="box ex"><span class="label">Worked example</span> Simplify $3x^2 - 5x + 2x^2 + x - 4$: group $(3x^2 + 2x^2) + (-5x + x) - 4 = 5x^2 - 4x - 4$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $x^2 + x^3 \neq x^5$. Adding like terms adds <em>coefficients</em>; exponents only add when you <em>multiply</em> powers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify $7a - 3b + 2a + b$. <details class="sol"><summary>Solution</summary><div>$9a - 2b$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $2xy^2 - 3x^2y + 5xy^2 + x^2y$. <details class="sol"><summary>Solution</summary><div>$xy^2$ terms: $2+5 = 7$; $x^2y$ terms: $-3+1 = -2$. Answer $7xy^2 - 2x^2y$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For what value of $k$ does $kx^2 + 3x - 5x^2 + 12x$ simplify to a single term? <details class="sol"><summary>Solution</summary><div>Collected: $(k-5)x^2 + 15x$. Single term needs $k - 5 = 0$, so $k = 5$, leaving $15x$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="algebraic-expressions">
+ <h2>Algebraic expressions</h2>
+ <p>An expression is a recipe built from numbers, variables and operations — a tree of computations with no equals sign. Evaluating one means substituting values and executing the tree bottom-up, exactly what a compiler or an autodiff engine does with a computational graph.</p>
+ <div class="box def"><span class="label">Definition</span> An algebraic expression combines constants and variables with $+, -, \times, \div$, powers and roots, e.g. $\dfrac{2x^2 - 1}{\sqrt{x} + 3}$. Two expressions are <em>equivalent</em> if they take equal values for every allowed input.</div>
+ <div class="box ex"><span class="label">Worked example</span> Evaluate $\dfrac{3a^2 - b}{a + b}$ at $a = 2$, $b = -1$: numerator $3(4) - (-1) = 13$; denominator $2 + (-1) = 1$; value $13$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Expressions-as-trees becomes the computational graph of reverse-mode autodiff (Ch 18) and backprop (Ch 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $x^2 - 4x + 1$ at $x = 3$. <details class="sol"><summary>Solution</summary><div>$9 - 12 + 1 = -2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Are $\;(x+1)^2$ and $x^2 + 1$ equivalent? <details class="sol"><summary>Solution</summary><div>No: at $x = 1$ they give 4 and 2. $(x+1)^2 = x^2 + 2x + 1$; the cross term $2x$ is missing. One counterexample settles it.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\dfrac{x}{y} - \dfrac{y}{x}$ at $x = \tfrac12$, $y = -\tfrac13$. <details class="sol"><summary>Solution</summary><div>$\tfrac{x}{y} = \tfrac{1/2}{-1/3} = -\tfrac32$; $\tfrac{y}{x} = \tfrac{-1/3}{1/2} = -\tfrac23$. Difference: $-\tfrac32 - (-\tfrac23) = -\tfrac96 + \tfrac46 = -\tfrac56$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="distributive-property">
+ <h2>Distributive property</h2>
+ <p>The distributive law $a(b + c) = ab + ac$ is the bridge between addition and multiplication: multiplying a sum equals summing the multiples. Geometrically it is just a rectangle of width $a$ split into two side-by-side rectangles. It is the single most-used identity in all of algebra.</p>
+ <div class="box def"><span class="label">Definition</span> For all reals: $a(b + c) = ab + ac$ and $(a + b)(c + d) = ac + ad + bc + bd$ (distribute twice). Read right-to-left, it is <em>factoring out</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Mental arithmetic via distribution: $47 \times 102 = 47(100 + 2) = 4700 + 94 = 4794$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Distribution works over $+$, not over $\times$ or powers: $(ab)^2 = a^2b^2$ but $(a+b)^2 \ne a^2 + b^2$, and $\sqrt{a+b} \ne \sqrt a + \sqrt b$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Expand $5(2x - 3)$. <details class="sol"><summary>Solution</summary><div>$10x - 15$.</div></details></li>
+  <li><span class="lvl m">MED</span> Expand and simplify $3(x - 2) - 2(4 - x)$. <details class="sol"><summary>Solution</summary><div>$3x - 6 - 8 + 2x = 5x - 14$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use distribution to compute $999 \times 1001$ mentally, and explain the pattern. <details class="sol"><summary>Solution</summary><div>$(1000 - 1)(1000 + 1) = 1000^2 - 1 = 999\,999$. The pattern is the difference of squares $(a-b)(a+b) = a^2 - b^2$, itself two distributions with the cross terms cancelling.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="expanding-expressions">
+ <h2>Expanding expressions</h2>
+ <p>Expanding means multiplying everything out until only a sum of terms remains — flattening a product of brackets into standard polynomial form. It trades compactness for transparency: expanded form shows every coefficient at a glance.</p>
+ <div class="box def"><span class="label">Definition</span> To expand a product of sums, apply distribution repeatedly: every term of each factor multiplies every term of every other factor, then like terms combine. $(a+b)(c+d+e)$ yields $2 \times 3 = 6$ raw terms.</div>
+ <div class="box ex"><span class="label">Worked example</span> $(2x - 3)(x^2 + 4x - 1)$: $2x\cdot x^2 = 2x^3$; $2x \cdot 4x = 8x^2$; $2x\cdot(-1) = -2x$; $-3\cdot x^2 = -3x^2$; $-3\cdot4x = -12x$; $-3\cdot(-1) = 3$. Combine: $2x^3 + 5x^2 - 14x + 3$.</div>
+ <div class="box think"><span class="label">Think first</span> Without expanding fully, what is the coefficient of $x^3$ in $(x + 2)^2 (x - 1)^2$? <details class="sol"><summary>Reveal</summary><div>$(x+2)^2 = x^2 + 4x + 4$, $(x-1)^2 = x^2 - 2x + 1$. The $x^3$ terms come from $x^2\cdot(-2x)$ and $4x\cdot x^2$: $-2 + 4 = 2$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Expand $(x + 4)(x - 6)$. <details class="sol"><summary>Solution</summary><div>$x^2 - 6x + 4x - 24 = x^2 - 2x - 24$.</div></details></li>
+  <li><span class="lvl m">MED</span> Expand $(x + y + 1)^2$. <details class="sol"><summary>Solution</summary><div>Square each term and double each pair: $x^2 + y^2 + 1 + 2xy + 2x + 2y$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Expand $(x-1)(x+1)(x^2+1)$. <details class="sol"><summary>Solution</summary><div>$(x-1)(x+1) = x^2 - 1$; then $(x^2-1)(x^2+1) = x^4 - 1$. Two differences of squares chained.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="factoring">
+ <h2>Factoring</h2>
+ <p>Factoring runs expansion backwards: rewrite a sum as a product. Products are precious because a product is zero exactly when a factor is zero — so factoring converts "solve this equation" into "read off the roots." It is algebra's version of prime factorization.</p>
+ <div class="box def"><span class="label">Definition</span> To factor a polynomial is to write it as a product of lower-degree polynomials, e.g. $x^2 - 5x + 6 = (x-2)(x-3)$. The <em>zero-product property</em>: $AB = 0 \iff A = 0$ or $B = 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $x^2 = 5x$. Move everything left: $x^2 - 5x = 0 \Rightarrow x(x - 5) = 0 \Rightarrow x = 0$ or $x = 5$. Dividing both sides by $x$ instead would have silently thrown away the solution $x = 0$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Never cancel a factor that might be zero — that is how solutions vanish and how the fake proof "$1 = 2$" (dividing by $a - b$ when $a = b$) works.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Factor $x^2 + 7x + 10$. <details class="sol"><summary>Solution</summary><div>Two numbers multiplying to 10, summing to 7: 2 and 5. $(x+2)(x+5)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Factor completely: $2x^3 - 8x$. <details class="sol"><summary>Solution</summary><div>$2x(x^2 - 4) = 2x(x-2)(x+2)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Factor $x^4 - 5x^2 + 4$ and solve $x^4 - 5x^2 + 4 = 0$. <details class="sol"><summary>Solution</summary><div>Let $u = x^2$: $u^2 - 5u + 4 = (u-1)(u-4)$. So $(x^2-1)(x^2-4) = (x-1)(x+1)(x-2)(x+2)$; roots $x = \pm1, \pm2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="common-factors">
+ <h2>Common factors</h2>
+ <p>The first move in any factoring problem: pull out whatever every term shares — the greatest common factor of the coefficients times the lowest power of each shared variable. It is the gcd idea from Chapter 1 applied to polynomials.</p>
+ <div class="box def"><span class="label">Definition</span> The GCF of terms is the largest monomial dividing each. Factoring it out: $ca + cb = c(a + b)$. Always check for a GCF before any other technique.</div>
+ <div class="box ex"><span class="label">Worked example</span> $12x^3y - 18x^2y^2 + 6x^2y$: GCF of 12, 18, 6 is 6; lowest powers are $x^2$ and $y$. Result: $6x^2y(2x - 3y + 1)$ — note the $+1$ where a whole term was factored away.</div>
+ <div class="box pit"><span class="label">Pitfall</span> When a term equals the GCF itself, its quotient is 1, not 0: $6x^2y \div 6x^2y = 1$. Dropping that 1 is the classic error.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Factor $15x^2 + 10x$. <details class="sol"><summary>Solution</summary><div>$5x(3x + 2)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Factor $4a^3b^2 - 8a^2b^3 + 12a^2b^2$. <details class="sol"><summary>Solution</summary><div>GCF $= 4a^2b^2$: $\;4a^2b^2(a - 2b + 3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Factor by grouping: $x^3 + 3x^2 - 4x - 12$. <details class="sol"><summary>Solution</summary><div>$(x^3 + 3x^2) + (-4x - 12) = x^2(x+3) - 4(x+3) = (x+3)(x^2 - 4) = (x+3)(x-2)(x+2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="difference-of-squares">
+ <h2>Difference of squares</h2>
+ <p>$a^2 - b^2 = (a-b)(a+b)$: subtracting two squares always factors, because the cross terms $ab$ and $-ab$ cancel when you expand. It is the most recyclable identity in algebra — it computes mental products, rationalizes denominators, and chains with itself.</p>
+ <div class="box def"><span class="label">Definition</span> $a^2 - b^2 = (a - b)(a + b)$ for any expressions $a, b$. A <em>sum</em> of squares $a^2 + b^2$ does not factor over the reals (it does over $\mathbb{C}$: $(a - bi)(a + bi)$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $9x^2 - 25 = (3x)^2 - 5^2 = (3x - 5)(3x + 5)$. Deeper: $x^4 - 16 = (x^2 - 4)(x^2 + 4) = (x-2)(x+2)(x^2+4)$ — apply it, then apply it again.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Factor $x^2 - 49$. <details class="sol"><summary>Solution</summary><div>$(x - 7)(x + 7)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $51^2 - 49^2$ without squaring. <details class="sol"><summary>Solution</summary><div>$(51-49)(51+49) = 2 \times 100 = 200$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Factor $x^2 - 2xy + y^2 - 9$ completely. <details class="sol"><summary>Solution</summary><div>Group: $(x - y)^2 - 3^2 = (x - y - 3)(x - y + 3)$ — a perfect square trinomial hiding inside a difference of squares.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="perfect-square-trinomials">
+ <h2>Perfect square trinomials</h2>
+ <p>$(a \pm b)^2 = a^2 \pm 2ab + b^2$: a squared binomial always produces this three-term signature — two squares plus (or minus) twice their product. Recognizing the signature lets you collapse a trinomial back into a square, the move behind completing the square and the quadratic formula.</p>
+ <div class="box def"><span class="label">Definition</span> A trinomial $a^2 \pm 2ab + b^2$ factors as $(a \pm b)^2$. Test: are the first and last terms squares, and is the middle term exactly $\pm2$ times the product of their roots?</div>
+ <div class="box ex"><span class="label">Worked example</span> $4x^2 - 12x + 9$: $4x^2 = (2x)^2$, $9 = 3^2$, middle $= -2(2x)(3) = -12x$ ✓. So it equals $(2x - 3)^2$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Completing the square — forcing this pattern — derives the quadratic formula below and the vertex form of parabolas in Ch 4.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Factor $x^2 + 10x + 25$. <details class="sol"><summary>Solution</summary><div>$(x + 5)^2$.</div></details></li>
+  <li><span class="lvl m">MED</span> What constant completes the square in $x^2 - 14x + \_\_$? <details class="sol"><summary>Solution</summary><div>$(\tfrac{14}{2})^2 = 49$: $\;x^2 - 14x + 49 = (x-7)^2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Write $2x^2 + 12x + 5$ in the form $a(x+h)^2 + k$. <details class="sol"><summary>Solution</summary><div>$2(x^2 + 6x) + 5 = 2(x^2 + 6x + 9 - 9) + 5 = 2(x+3)^2 - 18 + 5 = 2(x+3)^2 - 13$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quadratic-factoring">
+ <h2>Quadratic factoring</h2>
+ <p>Factoring $ax^2 + bx + c$ means finding two binomials whose product restores it — equivalently, finding the roots and writing $a(x - r_1)(x - r_2)$. For $a = 1$ you hunt two numbers with a given sum and product; for $a \ne 1$ the "ac method" splits the middle term.</p>
+ <div class="box def"><span class="label">Definition</span> $x^2 + bx + c = (x + p)(x + q)$ where $p + q = b$ and $pq = c$. For $ax^2+bx+c$: find $p, q$ with $pq = ac$, $p + q = b$; split $bx = px + qx$ and factor by grouping.</div>
+ <div class="box ex"><span class="label">Worked example</span> $6x^2 + 7x - 3$: need $pq = 6 \cdot (-3) = -18$, $p + q = 7$: take $9$ and $-2$. Split: $6x^2 + 9x - 2x - 3 = 3x(2x + 3) - (2x + 3) = (2x + 3)(3x - 1)$. Check: $2x\cdot3x = 6x^2$, $2x(-1) + 3\cdot3x = 7x$, $3(-1) = -3$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Factor $x^2 - x - 12$. <details class="sol"><summary>Solution</summary><div>Sum $-1$, product $-12$: $-4$ and $3$. $(x - 4)(x + 3)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Factor $2x^2 + 5x - 12$. <details class="sol"><summary>Solution</summary><div>$pq = -24$, $p+q = 5$: $8, -3$. $2x^2 + 8x - 3x - 12 = 2x(x+4) -3(x+4) = (x+4)(2x-3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Factor $12x^2 - 25x + 12$. <details class="sol"><summary>Solution</summary><div>$pq = 144$, $p + q = -25$: $-16, -9$. $12x^2 - 16x - 9x + 12 = 4x(3x - 4) - 3(3x - 4) = (3x - 4)(4x - 3)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rational-expressions">
+ <h2>Rational expressions &amp; algebraic fractions <span style="font-weight:400">(merged: two names, one idea)</span></h2>
+ <p>A rational expression is a fraction whose numerator and denominator are polynomials. All the fraction rules of Chapter 1 carry over verbatim — with one new duty: track which inputs make a denominator zero, because there the expression simply does not exist.</p>
+ <div class="box def"><span class="label">Definition</span> $\dfrac{P(x)}{Q(x)}$ with $P, Q$ polynomials, defined wherever $Q(x) \ne 0$. Simplify by factoring and cancelling common <em>factors</em> (never common terms). Add via common denominators; divide by multiplying by the reciprocal.</div>
+ <div class="box ex"><span class="label">Worked example</span> Simplify $\dfrac{x^2 - 4}{x^2 + 5x + 6} = \dfrac{(x-2)(x+2)}{(x+2)(x+3)} = \dfrac{x - 2}{x + 3}$ for $x \neq -2, -3$. The simplified form still inherits the exclusion $x \ne -2$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> You may cancel factors, never terms: $\dfrac{x + 3}{3} \ne x + 1$. Only things multiplying the <em>whole</em> top and <em>whole</em> bottom cancel.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For which $x$ is $\dfrac{x+1}{x^2 - 9}$ undefined? <details class="sol"><summary>Solution</summary><div>$x^2 - 9 = 0 \Rightarrow x = \pm3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\dfrac{2}{x-1} + \dfrac{3}{x+2}$. <details class="sol"><summary>Solution</summary><div>$\dfrac{2(x+2) + 3(x-1)}{(x-1)(x+2)} = \dfrac{5x + 1}{(x-1)(x+2)}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Simplify $\dfrac{\dfrac{1}{x} - \dfrac{1}{y}}{x - y}$. <details class="sol"><summary>Solution</summary><div>Numerator: $\dfrac{y - x}{xy}$. Divide by $(x-y)$: $\dfrac{y-x}{xy(x-y)} = \dfrac{-(x-y)}{xy(x-y)} = -\dfrac{1}{xy}$ (for $x \ne y$, $x,y \ne 0$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exponents">
+ <h2>Exponents</h2>
+ <p>An exponent counts repeated multiplication: $a^4 = a\cdot a\cdot a\cdot a$. That simple counting idea, once extended to zero, negative and fractional powers, becomes the language of growth, decay, compounding and scaling laws.</p>
+ <div class="box def"><span class="label">Definition</span> For positive integer $n$: $a^n = \underbrace{a \cdots a}_{n}$, with $a^1 = a$ and (for $a \ne 0$) $a^0 = 1$. The base is $a$, the exponent $n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Powers of 2 you should own: $2^{10} = 1024 \approx 10^3$. So $2^{20} \approx 10^6$ (a million), $2^{30} \approx 10^9$ (a billion). A 32-bit counter overflows near $4.3 \times 10^9$ because $2^{32} = 4\,294\,967\,296$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $a^0 = 1$ is not arbitrary: it is forced by the pattern $a^{n}/a = a^{n-1}$. And $0^0$ is left as a convention ($=1$ in combinatorics).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $3^4$ and $(-2)^5$. <details class="sol"><summary>Solution</summary><div>$81$ and $-32$.</div></details></li>
+  <li><span class="lvl m">MED</span> Which is bigger, $2^{100}$ or $10^{30}$? <details class="sol"><summary>Solution</summary><div>$2^{100} = (2^{10})^{10} = 1024^{10} &gt; 1000^{10} = 10^{30}$. So $2^{100}$ wins.</div></details></li>
+  <li><span class="lvl h">HARD</span> A sheet of paper is 0.1 mm thick. Folded 42 times (hypothetically), how thick? <details class="sol"><summary>Solution</summary><div>$0.1\text{mm} \times 2^{42} = 10^{-4}\,\text{m} \times 4.4 \times 10^{12} \approx 4.4 \times 10^{8}$ m — beyond the Moon ($3.8\times10^8$ m). Exponentials break intuition.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="laws-of-exponents">
+ <h2>Laws of exponents</h2>
+ <p>All exponent laws are bookkeeping about counting factors: multiplying powers adds counts, dividing subtracts, raising a power to a power multiplies. Once you see them as counting, you never misremember them.</p>
+ <div class="box def"><span class="label">Definition</span> For $a, b \ne 0$: $\;a^m a^n = a^{m+n}$; $\;\dfrac{a^m}{a^n} = a^{m-n}$; $\;(a^m)^n = a^{mn}$; $\;(ab)^n = a^n b^n$; $\;\left(\dfrac{a}{b}\right)^n = \dfrac{a^n}{b^n}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Simplify $\dfrac{(2x^2)^3 \, x^{-1}}{4x^3}$: numerator $= 8x^6 \cdot x^{-1} = 8x^5$; divide: $\dfrac{8x^5}{4x^3} = 2x^{2}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> There is no law for $a^m + a^n$ — sums of powers do not combine. And $(a + b)^n \ne a^n + b^n$ (see the binomial theorem for what it really is).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify $x^3 \cdot x^5 / x^2$. <details class="sol"><summary>Solution</summary><div>$x^{3+5-2} = x^6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\left(\dfrac{3a^2b^{-1}}{a^{-1}b^2}\right)^2$. <details class="sol"><summary>Solution</summary><div>Inside: $3a^{2-(-1)}b^{-1-2} = 3a^3b^{-3}$. Square: $9a^6b^{-6} = \dfrac{9a^6}{b^6}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve for $x$: $\;4^{x} \cdot 8^{x-1} = 2^{7}$. <details class="sol"><summary>Solution</summary><div>Base 2: $2^{2x} \cdot 2^{3(x-1)} = 2^{2x + 3x - 3} = 2^{5x-3}$. So $5x - 3 = 7 \Rightarrow x = 2$. Check: $16 \cdot 8 = 128 = 2^7$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="negative-exponents">
+ <h2>Negative exponents</h2>
+ <p>A negative exponent means "reciprocal": $a^{-n} = 1/a^n$. It is not a choice but a consequence — keep subtracting 1 from the exponent and dividing by $a$, and the pattern marches straight past $a^0 = 1$ into fractions.</p>
+ <div class="box def"><span class="label">Definition</span> For $a \ne 0$: $a^{-n} = \dfrac{1}{a^n}$, and $\dfrac{1}{a^{-n}} = a^n$. All exponent laws then hold for every integer exponent.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\left(\dfrac{2}{3}\right)^{-2} = \left(\dfrac{3}{2}\right)^{2} = \dfrac{9}{4}$. A negative exponent flips the fraction, then the positive power applies.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $a^{-n}$ is not negative: $2^{-3} = \tfrac18 &gt; 0$. Sign of the exponent controls size (big vs small), not sign of the value.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $5^{-2}$. <details class="sol"><summary>Solution</summary><div>$\tfrac{1}{25}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\dfrac{x^{-3}y^2}{x^2y^{-1}}$ with positive exponents. <details class="sol"><summary>Solution</summary><div>$x^{-3-2}y^{2+1} = x^{-5}y^3 = \dfrac{y^3}{x^5}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Order from smallest to largest: $2^{-3},\ 3^{-2},\ \left(\tfrac12\right)^{-1},\ 1^{-100}$. <details class="sol"><summary>Solution</summary><div>$2^{-3} = 0.125$, $3^{-2} = \tfrac19 \approx 0.111$, $(\tfrac12)^{-1} = 2$, $1^{-100} = 1$. Order: $3^{-2} &lt; 2^{-3} &lt; 1 &lt; 2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fractional-exponents">
+ <h2>Fractional exponents</h2>
+ <p>A fractional exponent is a root: $a^{1/2} = \sqrt a$, because squaring it must give $a^{1} = a$ by the laws of exponents. The notation unifies powers and roots into one system where all the old laws keep working — which is why code and calculus prefer $x^{1/2}$ to $\sqrt x$.</p>
+ <div class="box def"><span class="label">Definition</span> For $a &gt; 0$: $a^{1/n} = \sqrt[n]{a}$ and $a^{m/n} = \left(\sqrt[n]{a}\right)^m = \sqrt[n]{a^m}$. Defined for all rational (indeed real) exponents when $a &gt; 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $27^{2/3} = (27^{1/3})^2 = 3^2 = 9$. And $16^{-3/4} = \dfrac{1}{(16^{1/4})^3} = \dfrac{1}{2^3} = \dfrac18$. Root first, then power — smaller numbers, fewer mistakes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $9^{1/2}$ and $8^{1/3}$. <details class="sol"><summary>Solution</summary><div>$3$ and $2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\left(x^{4}\right)^{3/2}$ for $x &gt; 0$, and evaluate $32^{3/5}$. <details class="sol"><summary>Solution</summary><div>$x^{4 \cdot 3/2} = x^6$. $32^{1/5} = 2$, so $32^{3/5} = 8$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $x^{3/2} = 27$ for $x &gt; 0$. <details class="sol"><summary>Solution</summary><div>Raise both sides to $\tfrac23$: $x = 27^{2/3} = 9$. Check: $9^{3/2} = 27$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="radicals">
+ <h2>Radicals</h2>
+ <p>A radical $\sqrt[n]{a}$ names the number whose $n$-th power is $a$. Square roots of positives come in pairs, but the radical symbol always means the non-negative one — the "principal root." Odd roots happily accept negatives; even roots of negatives wait for complex numbers.</p>
+ <div class="box def"><span class="label">Definition</span> For $a \ge 0$, $\sqrt{a}$ is the unique $x \ge 0$ with $x^2 = a$. For odd $n$, $\sqrt[n]{a}$ is defined for all real $a$ (e.g. $\sqrt[3]{-8} = -2$). Key identity: $\sqrt{a^2} = |a|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $x^2 = 49$: solutions are $x = \pm7$ — the equation has two roots, even though the symbol $\sqrt{49}$ names only $7$. "Take the square root of both sides" must add the $\pm$ by hand.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\sqrt{a}\sqrt{b} = \sqrt{ab}$ requires $a, b \ge 0$. Ignoring this yields nonsense like $1 = \sqrt{(-1)(-1)} = \sqrt{-1}\sqrt{-1} = -1$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\sqrt{144}$, $\sqrt[3]{-27}$. <details class="sol"><summary>Solution</summary><div>$12$ and $-3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\sqrt{2x + 3} = 5$. <details class="sol"><summary>Solution</summary><div>Square: $2x + 3 = 25 \Rightarrow x = 11$. Check: $\sqrt{25} = 5$ ✓ (checking matters — squaring can create fake roots).</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $\sqrt{x + 7} = x + 1$. <details class="sol"><summary>Solution</summary><div>Square: $x + 7 = x^2 + 2x + 1 \Rightarrow x^2 + x - 6 = 0 \Rightarrow (x+3)(x-2) = 0$, $x = -3$ or $2$. Check $x = 2$: $\sqrt9 = 3 = 2+1$ ✓. Check $x = -3$: $\sqrt4 = 2 \ne -2$ ✗ (extraneous). Answer: $x = 2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="simplifying-radicals">
+ <h2>Simplifying radicals</h2>
+ <p>To simplify a radical, pull every perfect-power factor out from under the root: $\sqrt{72} = \sqrt{36 \cdot 2} = 6\sqrt2$. The goal is a standard form — smallest possible number left inside — so that equal quantities look equal.</p>
+ <div class="box def"><span class="label">Definition</span> For $a, b \ge 0$: $\sqrt{ab} = \sqrt a\,\sqrt b$ and $\sqrt{\tfrac{a}{b}} = \tfrac{\sqrt a}{\sqrt b}$ ($b &gt; 0$). Simplified form: no perfect-square factors under $\sqrt{\ }$, no radicals in denominators, like radicals combined.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\sqrt{50} + \sqrt{18} - \sqrt{8} = 5\sqrt2 + 3\sqrt2 - 2\sqrt2 = 6\sqrt2$. Unsimplified, these three look unrelated; simplified, they are like terms.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify $\sqrt{75}$. <details class="sol"><summary>Solution</summary><div>$\sqrt{25\cdot3} = 5\sqrt3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\sqrt{12x^3}$ for $x \ge 0$. <details class="sol"><summary>Solution</summary><div>$\sqrt{4x^2 \cdot 3x} = 2x\sqrt{3x}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Simplify $\sqrt{6}\,\sqrt{10}\,\sqrt{15}$. <details class="sol"><summary>Solution</summary><div>Product under one root: $\sqrt{6 \cdot 10 \cdot 15} = \sqrt{900} = 30$. (Each prime 2, 3, 5 appears exactly twice.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rationalizing-denominators">
+ <h2>Rationalizing denominators</h2>
+ <p>Rationalizing moves radicals out of a denominator by multiplying top and bottom by a cleverly chosen 1. For a single root, multiply by the root itself; for a binomial like $3 - \sqrt2$, multiply by its <em>conjugate</em> $3 + \sqrt2$ so the difference of squares kills the radical.</p>
+ <div class="box def"><span class="label">Definition</span> $\dfrac{1}{\sqrt a} = \dfrac{\sqrt a}{a}$; and $\dfrac{1}{b + \sqrt a} = \dfrac{b - \sqrt a}{b^2 - a}$ (multiply by the conjugate; valid when $b^2 \ne a$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\dfrac{4}{3 - \sqrt5} = \dfrac{4(3 + \sqrt5)}{(3)^2 - 5} = \dfrac{4(3 + \sqrt5)}{4} = 3 + \sqrt5$.</div>
+ <div class="box link"><span class="label">Where this goes</span> The same conjugate trick divides complex numbers later in this chapter, and evaluates limits like $\lim_{x\to0}\tfrac{\sqrt{x+1}-1}{x}$ in Ch 7.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Rationalize $\dfrac{5}{\sqrt3}$. <details class="sol"><summary>Solution</summary><div>$\dfrac{5\sqrt3}{3}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Rationalize $\dfrac{2}{\sqrt7 - \sqrt3}$. <details class="sol"><summary>Solution</summary><div>$\dfrac{2(\sqrt7 + \sqrt3)}{7 - 3} = \dfrac{\sqrt7 + \sqrt3}{2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Simplify $\dfrac{1}{1+\sqrt2} + \dfrac{1}{\sqrt2 + \sqrt3}$. <details class="sol"><summary>Solution</summary><div>First: $\dfrac{1 - \sqrt2}{1 - 2} = \sqrt2 - 1$. Second: $\dfrac{\sqrt3 - \sqrt2}{3 - 2} = \sqrt3 - \sqrt2$. Sum telescopes: $\sqrt3 - 1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="summation-notation">
+ <h2>Summation notation</h2>
+ <p>$\sum$ is a for-loop written in one symbol: an index runs from a start to an end, and the expression after $\sum$ is accumulated. Every loss function you will ever minimize — $\frac1n\sum_i \ell(x_i)$ — is written in this notation.</p>
+ <div class="box def"><span class="label">Definition</span> $\displaystyle\sum_{i=m}^{n} a_i = a_m + a_{m+1} + \cdots + a_n$. Linearity: $\sum (c\,a_i + b_i) = c\sum a_i + \sum b_i$. Classic closed forms: $\sum_{i=1}^n i = \tfrac{n(n+1)}{2}$, $\;\sum_{i=1}^{n} i^2 = \tfrac{n(n+1)(2n+1)}{6}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\displaystyle\sum_{i=1}^{100} (2i - 1) = 2\cdot\tfrac{100 \cdot 101}{2} - 100 = 10100 - 100 = 10000$. The first 100 odd numbers sum to $100^2$ — a perfect square, always.</div>
+ <div class="box think"><span class="label">Think first</span> What is $\sum_{i=1}^{n} \left(\frac{1}{i} - \frac{1}{i+1}\right)$? Write out three terms before revealing. <details class="sol"><summary>Reveal</summary><div>$(1 - \tfrac12) + (\tfrac12 - \tfrac13) + (\tfrac13 - \tfrac14) + \cdots$ — everything cancels except the ends: $1 - \tfrac{1}{n+1}$. This is a <em>telescoping</em> sum.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\sum_{k=1}^{4} k^2$. <details class="sol"><summary>Solution</summary><div>$1 + 4 + 9 + 16 = 30$.</div></details></li>
+  <li><span class="lvl m">MED</span> Write $3 + 6 + 9 + \cdots + 300$ in sigma notation and evaluate. <details class="sol"><summary>Solution</summary><div>$\sum_{i=1}^{100} 3i = 3 \cdot \tfrac{100\cdot101}{2} = 15150$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\sum_{i=1}^{n}\sum_{j=1}^{n} (i + j)$. <details class="sol"><summary>Solution</summary><div>$\sum_i \sum_j i + \sum_i \sum_j j = \sum_i (n\,i) + n\sum_j j = n\cdot\tfrac{n(n+1)}{2} + n \cdot \tfrac{n(n+1)}{2} = n^2(n+1)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="product-notation">
+ <h2>Product notation</h2>
+ <p>$\prod$ is the multiplicative twin of $\sum$: the same loop, accumulating by multiplication. Likelihoods of independent data points multiply, so probability is full of $\prod$ — and taking logs turns those products back into sums, the single most-used trick in statistics.</p>
+ <div class="box def"><span class="label">Definition</span> $\displaystyle\prod_{i=m}^{n} a_i = a_m \cdot a_{m+1} \cdots a_n$. The empty product is 1. Factorial: $n! = \prod_{i=1}^{n} i$. Log rule: $\log \prod a_i = \sum \log a_i$ (all $a_i &gt; 0$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\displaystyle\prod_{k=2}^{5} \frac{k-1}{k} = \frac12 \cdot \frac23 \cdot \frac34 \cdot \frac45 = \frac{1}{5}$ — a telescoping product: each numerator cancels the previous denominator.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\log\prod = \sum\log$ is exactly why maximum likelihood (Ch 13) minimizes a <em>sum</em> of log losses — the loss of every LLM.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\prod_{i=1}^{4} 2i$. <details class="sol"><summary>Solution</summary><div>$2\cdot4\cdot6\cdot8 = 384$. (Equivalently $2^4 \cdot 4! = 16 \cdot 24$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Simplify $\prod_{i=1}^{n} 3 \cdot x$ (constant factors). <details class="sol"><summary>Solution</summary><div>$\prod_{i=1}^n (3x) = (3x)^n = 3^n x^n$ — constants exit a product as powers, not multiples.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\prod_{k=2}^{n} \left(1 - \frac{1}{k^2}\right)$. <details class="sol"><summary>Solution</summary><div>$1 - \tfrac{1}{k^2} = \tfrac{(k-1)(k+1)}{k^2}$. The product of $\tfrac{k-1}{k}$ telescopes to $\tfrac{1}{n}$; the product of $\tfrac{k+1}{k}$ telescopes to $\tfrac{n+1}{2}$. Total: $\tfrac{n+1}{2n}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="binomial-theorem">
+ <h2>Binomial theorem</h2>
+ <p>Expanding $(a+b)^n$ means choosing, in each of the $n$ factors, either $a$ or $b$ — so the coefficient of $a^{n-k}b^k$ counts the ways to choose $b$ exactly $k$ times: $\binom{n}{k}$. Algebra and counting are the same fact here, and Pascal's triangle tabulates it.</p>
+ <div class="box def"><span class="label">Definition</span> $(a + b)^n = \displaystyle\sum_{k=0}^{n} \binom{n}{k} a^{\,n-k} b^{\,k}$, where $\binom{n}{k} = \dfrac{n!}{k!(n-k)!}$. Pascal's rule: $\binom{n}{k} = \binom{n-1}{k-1} + \binom{n-1}{k}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $(x + 2)^4$: coefficients $1,4,6,4,1$ and powers of 2: $x^4 + 4\cdot2x^3 + 6\cdot4x^2 + 4\cdot8x + 16 = x^4 + 8x^3 + 24x^2 + 32x + 16$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $n$ to see the binomial coefficients $\binom{n}{k}$ — watch the bell shape sharpen as $n$ grows.</p>
+  <canvas id="cv-binom"></canvas>
+  <div class="ctl"><label>n <input type="range" id="bn-n" min="1" max="40" step="1" value="10"></label></div>
+  <div class="out" id="bn-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> $\binom{n}{k}$ counts combinations (Ch 3) and gives the binomial distribution (Ch 11); the emerging bell shape is the Central Limit Theorem winking at you.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Expand $(x + 1)^3$. <details class="sol"><summary>Solution</summary><div>$x^3 + 3x^2 + 3x + 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the coefficient of $x^3$ in $(2x - 1)^5$. <details class="sol"><summary>Solution</summary><div>Term with $k$ copies of $(-1)$: $\binom{5}{k}(2x)^{5-k}(-1)^k$. Need $5 - k = 3$, $k = 2$: $\binom52 \cdot 4x^3 \cdot 1 = 40x^3$. Coefficient 40.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\sum_{k=0}^{n} \binom{n}{k} = 2^n$ and $\sum_{k=0}^{n} (-1)^k\binom{n}{k} = 0$ (for $n \ge 1$). <details class="sol"><summary>Solution</summary><div>Set $a = b = 1$ in the theorem: $(1+1)^n = \sum\binom{n}{k} = 2^n$. Set $a = 1, b = -1$: $(1-1)^n = 0 = \sum(-1)^k\binom{n}{k}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-equations">
+ <h2>Linear equations</h2>
+ <p>A linear equation involves the variable only to the first power — no squares, no products of unknowns. Solving one is a sequence of reversible moves (add, subtract, multiply, divide both sides) that isolate the variable, like unwrapping layers around a gift.</p>
+ <div class="box def"><span class="label">Definition</span> $ax + b = 0$ with $a \ne 0$ has the unique solution $x = -\tfrac{b}{a}$. Legal moves preserve the solution set: add/subtract anything to both sides; multiply/divide both sides by any <em>nonzero</em> quantity.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $\dfrac{2x - 1}{3} + 1 = \dfrac{x + 4}{2}$. Multiply by 6: $2(2x-1) + 6 = 3(x+4) \Rightarrow 4x + 4 = 3x + 12 \Rightarrow x = 8$. Check: $\tfrac{15}{3}+1 = 6 = \tfrac{12}{2}$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $0 = 0$ after simplifying means <em>every</em> $x$ works (identity); $0 = 5$ means <em>no</em> $x$ works. Not every linear-looking equation has exactly one solution.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $4x - 9 = 15$. <details class="sol"><summary>Solution</summary><div>$4x = 24 \Rightarrow x = 6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $5(x - 2) = 3x + 2(x - 5)$. <details class="sol"><summary>Solution</summary><div>$5x - 10 = 5x - 10$: identity — all real $x$ are solutions.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve for $x$ in terms of $a$: $\;a(x - 1) = x + a^2$, noting any special values of $a$. <details class="sol"><summary>Solution</summary><div>$ax - a = x + a^2 \Rightarrow x(a - 1) = a^2 + a = a(a+1) \Rightarrow x = \tfrac{a(a+1)}{a-1}$ for $a \ne 1$. If $a = 1$: $x - 1 = x + 1$ gives $-1 = 1$, no solution.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-inequalities">
+ <h2>Linear inequalities</h2>
+ <p>Solve a linear inequality exactly like a linear equation, with the one flip rule from Chapter 1: multiplying or dividing by a negative reverses the inequality. The answer is not a point but a ray — an interval of the number line.</p>
+ <div class="box def"><span class="label">Definition</span> $ax + b &lt; c$ solves to $x &lt; \tfrac{c-b}{a}$ if $a &gt; 0$, and $x &gt; \tfrac{c-b}{a}$ if $a &lt; 0$. Solutions are written as intervals: $x &lt; 2$ is $(-\infty, 2)$; $x \ge -1$ is $[-1, \infty)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $7 - 2x &gt; 1$. Subtract 7: $-2x &gt; -6$. Divide by $-2$, flip: $x &lt; 3$, i.e. $(-\infty, 3)$. Check $x = 0$: $7 &gt; 1$ ✓; $x = 4$: $-1 &gt; 1$ ✗.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $3x + 2 \le 11$. <details class="sol"><summary>Solution</summary><div>$x \le 3$, i.e. $(-\infty, 3]$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\dfrac{5 - x}{2} \ge 4$ and express in interval notation. <details class="sol"><summary>Solution</summary><div>$5 - x \ge 8 \Rightarrow -x \ge 3 \Rightarrow x \le -3$: $(-\infty, -3]$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A cloud instance costs \$40 flat plus \$0.35/hour; another costs \$12 flat plus \$0.75/hour. For how many hours is the first cheaper? <details class="sol"><summary>Solution</summary><div>$40 + 0.35h &lt; 12 + 0.75h \Rightarrow 28 &lt; 0.4h \Rightarrow h &gt; 70$. The first is cheaper after 70 hours.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="compound-inequalities">
+ <h2>Compound inequalities</h2>
+ <p>A compound inequality chains two conditions with AND (both must hold — an intersection) or OR (either suffices — a union). The sandwich $a &lt; x &lt; b$ is the AND kind; keeping straight which set-operation you need is the whole game.</p>
+ <div class="box def"><span class="label">Definition</span> "$a &lt; x$ and $x &lt; b$" $= (a, b)$ (intersection); "$x &lt; a$ or $x &gt; b$" (with $a \le b$) is $(-\infty, a) \cup (b, \infty)$ (union). Operations on a sandwich apply to all three parts at once.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $-1 \le 3 - 2x &lt; 7$. Subtract 3: $-4 \le -2x &lt; 4$. Divide by $-2$, flip both: $2 \ge x &gt; -2$, i.e. $-2 &lt; x \le 2$, the interval $(-2, 2]$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "$x &lt; -2$ or $x &gt; 3$" cannot be written $3 &lt; x &lt; -2$ — a sandwich requires the ends to be in order, and an OR-set is two separate pieces.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $1 &lt; x + 3 \le 6$. <details class="sol"><summary>Solution</summary><div>$-2 &lt; x \le 3$: $(-2, 3]$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve "$2x - 1 &lt; 5$ or $3x &gt; 15$". <details class="sol"><summary>Solution</summary><div>$x &lt; 3$ or $x &gt; 5$: $(-\infty,3)\cup(5,\infty)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all $x$ with $-3 \le \dfrac{2 - x}{2} \le 1$ <em>and</em> $x &gt; 0$. <details class="sol"><summary>Solution</summary><div>Multiply by 2: $-6 \le 2 - x \le 2$; subtract 2: $-8 \le -x \le 0$; flip: $0 \le x \le 8$. Intersect with $x &gt; 0$: $(0, 8]$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="absolute-value-equations">
+ <h2>Absolute value equations</h2>
+ <p>$|A| = c$ says "$A$ is at distance $c$ from zero," so $A$ is either $c$ or $-c$: every absolute-value equation splits into two ordinary ones. The only trap is impossibility — a distance can never be negative.</p>
+ <div class="box def"><span class="label">Definition</span> For $c &gt; 0$: $|A| = c \iff A = c$ or $A = -c$. $|A| = 0 \iff A = 0$. $|A| = c$ with $c &lt; 0$ has no solutions. $|A| = |B| \iff A = B$ or $A = -B$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $|3x - 2| = 4$: $3x - 2 = 4 \Rightarrow x = 2$; or $3x - 2 = -4 \Rightarrow x = -\tfrac23$. Both check: $|4| = 4$, $|-4| = 4$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Isolate the absolute value first. In $|x| + 3 = 1$, do not split: $|x| = -2$ is already impossible — no solutions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $|x - 5| = 3$. <details class="sol"><summary>Solution</summary><div>$x = 8$ or $x = 2$ (the points at distance 3 from 5).</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $2|x + 1| - 5 = 9$. <details class="sol"><summary>Solution</summary><div>$|x+1| = 7$: $x = 6$ or $x = -8$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $|x - 1| = 2x + 1$. <details class="sol"><summary>Solution</summary><div>Need RHS $\ge 0$: $x \ge -\tfrac12$. Case $x - 1 = 2x + 1$: $x = -2$ — violates $x \ge -\tfrac12$, reject. Case $x - 1 = -(2x+1)$: $3x = 0$, $x = 0$. Check: $|{-1}| = 1 = 2(0)+1$ ✓. Answer: $x = 0$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="absolute-value-inequalities">
+ <h2>Absolute value inequalities</h2>
+ <p>$|A| &lt; c$ traps $A$ inside a band around zero; $|A| &gt; c$ expels it outside. "Less than" makes an AND (one interval); "greater than" makes an OR (two rays). Picture distance on the number line and the cases become obvious.</p>
+ <div class="box def"><span class="label">Definition</span> For $c &gt; 0$: $\;|A| &lt; c \iff -c &lt; A &lt; c$; $\;|A| &gt; c \iff A &gt; c$ or $A &lt; -c$. With $\le, \ge$ the endpoints join in.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $|2x - 3| \le 5$: $-5 \le 2x - 3 \le 5 \Rightarrow -2 \le 2x \le 8 \Rightarrow -1 \le x \le 4$: the interval $[-1, 4]$, centered at $\tfrac32$ with radius $\tfrac52$.</div>
+ <div class="box link"><span class="label">Where this goes</span> "$|x - L| &lt; \epsilon$" is the exact shape of the epsilon–delta limit definition in Ch 7 and of error tolerances everywhere.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $|x| \ge 4$. <details class="sol"><summary>Solution</summary><div>$x \le -4$ or $x \ge 4$: $(-\infty,-4]\cup[4,\infty)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $|5 - 2x| &lt; 3$. <details class="sol"><summary>Solution</summary><div>$-3 &lt; 5 - 2x &lt; 3 \Rightarrow -8 &lt; -2x &lt; -2 \Rightarrow 1 &lt; x &lt; 4$: $(1,4)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A measurement $m$ must be within $0.5\%$ of the target $200$. Write this as an absolute-value inequality and solve. <details class="sol"><summary>Solution</summary><div>$|m - 200| \le 0.005 \times 200 = 1$, so $199 \le m \le 201$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">Which describes $|x + 2| &gt; 3$?</div><button class="opt">$x &lt; -5$ or $x &gt; 1$</button><button class="opt">$-5 &lt; x &lt; 1$</button><button class="opt">$x &gt; 1$ only</button><div class="why" hidden>Distance from $-2$ exceeds 3: go left past $-5$ or right past $1$ — an OR, two rays.</div></div>
+</section>
+
+<section class="topic" id="systems-of-linear-equations">
+ <h2>Systems of linear equations</h2>
+ <p>A system of linear equations asks for values satisfying several linear constraints at once. Geometrically each equation is a line (or plane), and the solution is where they all intersect: exactly one point, none (parallel), or infinitely many (coincident).</p>
+ <div class="box def"><span class="label">Definition</span> A $2\times2$ system $\begin{cases} a_1x + b_1y = c_1 \\ a_2x + b_2y = c_2\end{cases}$ has a unique solution iff $a_1b_2 - a_2b_1 \ne 0$; otherwise the lines are parallel (no solution) or identical (infinitely many).</div>
+ <div class="box ex"><span class="label">Worked example</span> $x + y = 5$, $x - y = 1$: adding gives $2x = 6$, $x = 3$, then $y = 2$. Geometrically: two lines crossing at $(3, 2)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Adjust the second line's coefficients and watch the intersection move — or vanish when the lines go parallel.</p>
+  <canvas id="cv-system"></canvas>
+  <div class="ctl">
+   <label>a₂ <input type="range" id="sy-a" min="-4" max="4" step="0.1" value="1"></label>
+   <label>b₂ <input type="range" id="sy-b" min="-4" max="4" step="0.1" value="-1"></label>
+   <label>c₂ <input type="range" id="sy-c" min="-8" max="8" step="0.1" value="1"></label>
+  </div>
+  <div class="out" id="sy-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $2x + y = 7$, $y = x + 1$. <details class="sol"><summary>Solution</summary><div>Substitute: $2x + x + 1 = 7 \Rightarrow x = 2$, $y = 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> For what $k$ does $\begin{cases}2x + 3y = 6\\ 4x + ky = 10\end{cases}$ have no solution? <details class="sol"><summary>Solution</summary><div>Parallel when $\tfrac{4}{2} = \tfrac{k}{3}$ i.e. $k = 6$, and then RHS check: $\tfrac{10}{6} \ne 2$, so genuinely no solution at $k = 6$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Tickets: adults \$12, children \$8. 250 tickets sold for \$2600. How many of each? <details class="sol"><summary>Solution</summary><div>$a + c = 250$, $12a + 8c = 2600$. From the first, $c = 250 - a$: $12a + 2000 - 8a = 2600 \Rightarrow 4a = 600 \Rightarrow a = 150$, $c = 100$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="substitution">
+ <h2>Substitution</h2>
+ <p>Substitution solves a system by making one equation define a variable and pasting that definition into the others — reducing the number of unknowns by one. It is the algebraic version of inlining a function.</p>
+ <div class="box def"><span class="label">Definition</span> From one equation, express a variable exactly: $y = f(x)$. Replace every occurrence of $y$ in the remaining equations with $f(x)$, solve the smaller system, then back-substitute.</div>
+ <div class="box ex"><span class="label">Worked example</span> $3x - 2y = 4$ and $x + 4y = 6$. Second gives $x = 6 - 4y$. Then $3(6 - 4y) - 2y = 4 \Rightarrow 18 - 14y = 4 \Rightarrow y = 1$, and $x = 2$. Check: $6 - 2 = 4$ ✓, $2 + 4 = 6$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Substitute into the <em>other</em> equation, never back into the one you solved — that yields the useless identity $0 = 0$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $y = 2x$, $x + y = 9$. <details class="sol"><summary>Solution</summary><div>$x + 2x = 9 \Rightarrow x = 3$, $y = 6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $2x + 3y = 12$, $x = 3y - 3$ by substitution. <details class="sol"><summary>Solution</summary><div>$2(3y - 3) + 3y = 12 \Rightarrow 9y = 18 \Rightarrow y = 2$, $x = 3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve the nonlinear system $y = x^2$ and $y = 2x + 3$. <details class="sol"><summary>Solution</summary><div>$x^2 = 2x + 3 \Rightarrow x^2 - 2x - 3 = 0 \Rightarrow (x-3)(x+1) = 0$. Points: $(3, 9)$ and $(-1, 1)$ — substitution handles curves too.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="elimination">
+ <h2>Elimination</h2>
+ <p>Elimination adds scaled equations so that one variable cancels outright. It scales far better than substitution — done systematically on a grid of coefficients it becomes Gaussian elimination, the workhorse of numerical linear algebra.</p>
+ <div class="box def"><span class="label">Definition</span> Adding a multiple of one equation to another does not change the solution set. Choose multipliers so one variable's coefficients become opposite, add, and solve what remains.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\begin{cases}3x + 4y = 10\\ 5x - 2y = 8\end{cases}$ Multiply the second by 2: $10x - 4y = 16$. Add to the first: $13x = 26 \Rightarrow x = 2$, then $6 + 4y = 10 \Rightarrow y = 1$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Systematized, this is Gaussian elimination / LU decomposition (Ch 18) — how computers actually solve $A\mathbf{x} = \mathbf{b}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $x + y = 10$, $x - y = 2$ by elimination. <details class="sol"><summary>Solution</summary><div>Add: $2x = 12$, $x = 6$, $y = 4$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $2x + 5y = 1$, $3x - 2y = 11$. <details class="sol"><summary>Solution</summary><div>×2 and ×5: $4x + 10y = 2$; $15x - 10y = 55$. Add: $19x = 57$, $x = 3$; then $6 + 5y = 1$, $y = -1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve the $3\times3$ system: $x + y + z = 6$, $2x - y + z = 3$, $x + 2y - z = 2$. <details class="sol"><summary>Solution</summary><div>(1)−(2): $-x + 2y = 3$. (1)+(3): $2x + 3y = 8$. From the first: $x = 2y - 3$; then $2(2y-3) + 3y = 8 \Rightarrow 7y = 14 \Rightarrow y = 2$, $x = 1$, and $z = 6 - 1 - 2 = 3$. Check eq. (2): $2 - 2 + 3 = 3$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-solution-of-systems">
+ <h2>Matrix solution of systems</h2>
+ <p>Strip a linear system down to its grid of numbers and you get a matrix: the system becomes $A\mathbf{x} = \mathbf{b}$, one object equation. For $2\times2$ systems, Cramer's rule and the inverse matrix give closed-form solutions built from the determinant $ad - bc$ — the same quantity that decided uniqueness above.</p>
+ <div class="box def"><span class="label">Definition</span> $\begin{cases}ax + by = e\\ cx + dy = f\end{cases}$ is $\begin{pmatrix}a &amp; b\\ c &amp; d\end{pmatrix}\begin{pmatrix}x\\ y\end{pmatrix} = \begin{pmatrix}e\\ f\end{pmatrix}$. With $\Delta = ad - bc \ne 0$: $\;x = \dfrac{ed - bf}{\Delta},\quad y = \dfrac{af - ec}{\Delta}$ (Cramer's rule).</div>
+ <div class="box ex"><span class="label">Worked example</span> $3x + 4y = 10$, $5x - 2y = 8$: $\Delta = 3(-2) - 4\cdot5 = -26$. $x = \dfrac{10(-2) - 4\cdot 8}{-26} = \dfrac{-52}{-26} = 2$; $y = \dfrac{3\cdot8 - 10\cdot5}{-26} = \dfrac{-26}{-26} = 1$. Matches elimination ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> Chapter 8 builds the full theory (rank, inverse, determinants); Ch 18 shows how solvers do it stably at scale.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $2x - y = 3$, $x + 4y = 6$ in matrix form. <details class="sol"><summary>Solution</summary><div>$\begin{pmatrix}2 &amp; -1\\ 1 &amp; 4\end{pmatrix}\begin{pmatrix}x\\y\end{pmatrix} = \begin{pmatrix}3\\6\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use Cramer's rule on that system. <details class="sol"><summary>Solution</summary><div>$\Delta = 8 + 1 = 9$. $x = \tfrac{3\cdot4 - (-1)\cdot6}{9} = \tfrac{18}{9} = 2$; $y = \tfrac{2\cdot6 - 3\cdot1}{9} = 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $A = \begin{pmatrix}1 &amp; 2\\ 2 &amp; 4\end{pmatrix}$, describe the solutions of $A\mathbf{x} = \begin{pmatrix}3\\6\end{pmatrix}$ and of $A\mathbf{x} = \begin{pmatrix}3\\5\end{pmatrix}$. <details class="sol"><summary>Solution</summary><div>$\Delta = 4 - 4 = 0$: rows are proportional (row 2 = 2·row 1). First RHS respects that proportion ($6 = 2\cdot3$): infinitely many solutions, the line $x + 2y = 3$. Second violates it ($5 \ne 6$): no solutions.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quadratic-equations">
+ <h2>Quadratic equations</h2>
+ <p>A quadratic equation sets a degree-2 polynomial to zero. Its graph is a parabola, so it can cross the axis twice, touch once, or miss entirely — which is why quadratics have two, one, or zero real solutions. Three solution routes: factor, complete the square, or use the formula.</p>
+ <div class="box def"><span class="label">Definition</span> $ax^2 + bx + c = 0$ with $a \ne 0$. By the zero-product property, if it factors as $a(x - r_1)(x - r_2) = 0$ the solutions are $r_1, r_2$. Vieta's relations: $r_1 + r_2 = -\tfrac{b}{a}$, $r_1 r_2 = \tfrac{c}{a}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $x^2 - 6x + 8 = 0$ by completing the square: $x^2 - 6x + 9 = 1 \Rightarrow (x - 3)^2 = 1 \Rightarrow x - 3 = \pm1 \Rightarrow x = 2, 4$. Vieta check: sum $6$, product $8$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $x^2 - 9 = 0$. <details class="sol"><summary>Solution</summary><div>$(x-3)(x+3) = 0$: $x = \pm3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $x^2 + 4x = 21$. <details class="sol"><summary>Solution</summary><div>$x^2 + 4x - 21 = 0 = (x+7)(x-3)$: $x = -7$ or $3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The roots of $x^2 + px + q = 0$ are 3 and $-5$. Find $p, q$, and verify. <details class="sol"><summary>Solution</summary><div>Vieta: $p = -(3 + (-5)) = 2$, $q = 3\cdot(-5) = -15$. Equation $x^2 + 2x - 15 = (x+5)(x-3)$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quadratic-formula">
+ <h2>Quadratic formula</h2>
+ <p>Complete the square on the general quadratic once, and you never have to do it again: the quadratic formula is that computation, frozen into a reusable result. It solves every quadratic, factorable or not.</p>
+ <div class="box def"><span class="label">Definition</span> For $ax^2 + bx + c = 0$, $a \ne 0$: $$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> $2x^2 - 4x - 3 = 0$: $x = \dfrac{4 \pm \sqrt{16 + 24}}{4} = \dfrac{4 \pm \sqrt{40}}{4} = \dfrac{4 \pm 2\sqrt{10}}{4} = 1 \pm \dfrac{\sqrt{10}}{2}$. Numerically $x \approx 2.581$ or $-0.581$.</div>
+ <div class="box think"><span class="label">Think first</span> Derive the formula: complete the square on $ax^2+bx+c=0$. <details class="sol"><summary>Reveal</summary><div>Divide by $a$: $x^2 + \tfrac{b}{a}x = -\tfrac{c}{a}$. Add $\left(\tfrac{b}{2a}\right)^2$: $\left(x + \tfrac{b}{2a}\right)^2 = \tfrac{b^2 - 4ac}{4a^2}$. Root and rearrange: $x = \tfrac{-b \pm \sqrt{b^2-4ac}}{2a}$.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> The $-b$ and the $2a$ apply to the whole expression; with $a$ or $b$ negative, parenthesize everything. When $b^2 \approx 4ac$ or $b$ is huge, the subtraction cancels catastrophically in floating point (Ch 18 fixes this).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $x^2 + 3x - 10 = 0$ with the formula. <details class="sol"><summary>Solution</summary><div>$x = \tfrac{-3 \pm \sqrt{9 + 40}}{2} = \tfrac{-3 \pm 7}{2}$: $x = 2$ or $-5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $3x^2 = 2x + 2$. <details class="sol"><summary>Solution</summary><div>$3x^2 - 2x - 2 = 0$: $x = \tfrac{2 \pm \sqrt{4 + 24}}{6} = \tfrac{2 \pm 2\sqrt7}{6} = \tfrac{1 \pm \sqrt7}{3}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A ball is thrown up from height 2 m at 9 m/s; height is $h(t) = 2 + 9t - 4.9t^2$. When does it land? <details class="sol"><summary>Solution</summary><div>Solve $4.9t^2 - 9t - 2 = 0$: $t = \tfrac{9 \pm \sqrt{81 + 39.2}}{9.8} = \tfrac{9 \pm \sqrt{120.2}}{9.8}$. $\sqrt{120.2} \approx 10.964$, so $t \approx \tfrac{19.964}{9.8} \approx 2.04$ s (negative root rejected).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="discriminant">
+ <h2>Discriminant</h2>
+ <p>The expression under the square root, $b^2 - 4ac$, decides everything before you solve: positive means two real roots, zero means one repeated root, negative means the parabola never touches the axis and the roots are complex. It discriminates between the three geometries.</p>
+ <div class="box def"><span class="label">Definition</span> $\Delta = b^2 - 4ac$. $\;\Delta &gt; 0$: two distinct real roots. $\Delta = 0$: one repeated real root $x = -\tfrac{b}{2a}$. $\Delta &lt; 0$: two complex-conjugate roots.</div>
+ <div class="box ex"><span class="label">Worked example</span> $x^2 + 4x + 5$: $\Delta = 16 - 20 = -4 &lt; 0$ — no real roots; the parabola's vertex $(-2, 1)$ sits above the axis, opening up. Roots: $x = -2 \pm i$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $a, b, c$ and watch the parabola, its roots, and the sign of $\Delta$.</p>
+  <canvas id="cv-quad"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="qd-a" min="-3" max="3" step="0.1" value="1"></label>
+   <label>b <input type="range" id="qd-b" min="-6" max="6" step="0.1" value="1"></label>
+   <label>c <input type="range" id="qd-c" min="-6" max="6" step="0.1" value="-2"></label>
+  </div>
+  <div class="out" id="qd-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many real roots has $2x^2 - 3x + 5 = 0$? <details class="sol"><summary>Solution</summary><div>$\Delta = 9 - 40 = -31 &lt; 0$: none.</div></details></li>
+  <li><span class="lvl m">MED</span> For which $k$ does $x^2 + kx + 9 = 0$ have a repeated root? <details class="sol"><summary>Solution</summary><div>$\Delta = k^2 - 36 = 0 \Rightarrow k = \pm6$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For which $k$ does $kx^2 + 4x + (k - 3) = 0$ have two distinct real roots? <details class="sol"><summary>Solution</summary><div>Need $k \ne 0$ and $\Delta = 16 - 4k(k-3) &gt; 0 \Rightarrow -4k^2 + 12k + 16 &gt; 0 \Rightarrow k^2 - 3k - 4 &lt; 0 \Rightarrow (k-4)(k+1) &lt; 0 \Rightarrow -1 &lt; k &lt; 4$, excluding $k = 0$. So $k \in (-1, 0)\cup(0, 4)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="polynomial-division">
+ <h2>Polynomial division</h2>
+ <p>Polynomials divide with quotient and remainder just like integers: long division peels off the leading term at each step. The remainder always has smaller degree than the divisor — for a linear divisor, it is just a number.</p>
+ <div class="box def"><span class="label">Definition</span> For polynomials $P, D$ ($D \ne 0$) there are unique $Q, R$ with $P = D\,Q + R$ and $\deg R &lt; \deg D$. Dividing by $x - a$ can be done quickly by <em>synthetic division</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Divide $x^3 - 2x^2 + 3x - 4$ by $x - 2$ synthetically: bring down 1; $1\cdot2 = 2$, $-2 + 2 = 0$; $0\cdot2 = 0$, $3 + 0 = 3$; $3\cdot2 = 6$, $-4 + 6 = 2$. Quotient $x^2 + 0x + 3$, remainder 2: $\;x^3 - 2x^2 + 3x - 4 = (x-2)(x^2 + 3) + 2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Divide $x^2 + 5x + 6$ by $x + 2$. <details class="sol"><summary>Solution</summary><div>Quotient $x + 3$, remainder 0 (it factors exactly).</div></details></li>
+  <li><span class="lvl m">MED</span> Divide $2x^3 + x - 5$ by $x - 1$. <details class="sol"><summary>Solution</summary><div>Synthetic with coefficients $2, 0, 1, -5$ at $a = 1$: $2; 2; 3; -2$. Quotient $2x^2 + 2x + 3$, remainder $-2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Divide $x^4 - 1$ by $x^2 + 1$. <details class="sol"><summary>Solution</summary><div>$x^4 - 1 = (x^2+1)(x^2-1) + 0$: quotient $x^2 - 1$, remainder 0.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="remainder-theorem">
+ <h2>Remainder theorem</h2>
+ <p>To find the remainder when dividing by $x - a$, don't divide — evaluate. Plugging $a$ into $P = (x-a)Q + R$ kills the first term instantly, leaving $P(a) = R$. Division and evaluation are secretly the same act.</p>
+ <div class="box def"><span class="label">Definition</span> The remainder of $P(x)$ divided by $x - a$ equals $P(a)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Remainder of $x^3 - 2x^2 + 3x - 4$ by $x - 2$: $P(2) = 8 - 8 + 6 - 4 = 2$ — matching the long division above, in one line.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Remainder of $x^2 + 3x + 1$ divided by $x - 1$? <details class="sol"><summary>Solution</summary><div>$P(1) = 1 + 3 + 1 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Remainder of $x^{100} + x + 1$ divided by $x + 1$? <details class="sol"><summary>Solution</summary><div>$P(-1) = 1 - 1 + 1 = 1$ (note $x + 1 = x - (-1)$).</div></details></li>
+  <li><span class="lvl h">HARD</span> $P(x) = x^3 + ax + b$ leaves remainder 3 by $x - 1$ and remainder 1 by $x + 1$. Find $a, b$. <details class="sol"><summary>Solution</summary><div>$P(1) = 1 + a + b = 3$ and $P(-1) = -1 - a + b = 1$. Add: $2b = 4$, $b = 2$; then $a = 0$. Check: $P = x^3 + 2$, $P(1) = 3$ ✓, $P(-1) = 1$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="factor-theorem">
+ <h2>Factor theorem</h2>
+ <p>The special case that powers root-finding: remainder zero means clean division, so $x - a$ is a factor exactly when $a$ is a root. Find one root of a cubic, divide it out, and you are left with a quadratic you already know how to kill.</p>
+ <div class="box def"><span class="label">Definition</span> $(x - a) \mid P(x) \iff P(a) = 0$. Rational root test: any rational root $\tfrac{p}{q}$ (lowest terms) of an integer polynomial has $p \mid$ constant term and $q \mid$ leading coefficient.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $x^3 - 4x^2 + x + 6 = 0$. Candidates $\pm1, \pm2, \pm3, \pm6$. $P(-1) = -1 - 4 - 1 + 6 = 0$ ✓. Divide by $x + 1$: quotient $x^2 - 5x + 6 = (x-2)(x-3)$. Roots: $-1, 2, 3$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $x - 3$ a factor of $x^3 - 27$? <details class="sol"><summary>Solution</summary><div>$P(3) = 27 - 27 = 0$: yes. $x^3 - 27 = (x-3)(x^2 + 3x + 9)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Factor $x^3 - 7x + 6$ completely. <details class="sol"><summary>Solution</summary><div>$P(1) = 0$, so $(x-1)$ divides: quotient $x^2 + x - 6 = (x+3)(x-2)$. Answer: $(x-1)(x-2)(x+3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find $k$ so that $x + 2$ is a factor of $x^3 + kx^2 - 4x + 4$, then factor fully. <details class="sol"><summary>Solution</summary><div>$P(-2) = -8 + 4k + 8 + 4 = 4k + 4 = 0 \Rightarrow k = -1$. Then $x^3 - x^2 - 4x + 4$; divide by $x + 2$: quotient $x^2 - 3x + 2 = (x-1)(x-2)$. Full: $(x+2)(x-1)(x-2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="partial-fractions">
+ <h2>Partial fractions</h2>
+ <p>Partial fractions un-adds fractions: it splits a complicated rational expression into a sum of simple ones, one per factor of the denominator. It exists because integration, series expansion and inverse transforms all handle $\tfrac{A}{x - a}$ easily but choke on big quotients.</p>
+ <div class="box def"><span class="label">Definition</span> For $\deg P &lt; \deg Q$ with $Q$ factored: each distinct linear factor $(x - a)$ contributes $\tfrac{A}{x-a}$; a repeated factor $(x-a)^2$ contributes $\tfrac{A}{x-a} + \tfrac{B}{(x-a)^2}$; an irreducible quadratic contributes $\tfrac{Ax + B}{x^2 + px + q}$. Solve for the constants by clearing denominators.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\dfrac{3x + 1}{(x-1)(x+2)} = \dfrac{A}{x-1} + \dfrac{B}{x+2}$. Clear: $3x + 1 = A(x+2) + B(x-1)$. At $x = 1$: $4 = 3A$, $A = \tfrac43$. At $x = -2$: $-5 = -3B$, $B = \tfrac53$. So $\dfrac{4/3}{x-1} + \dfrac{5/3}{x+2}$.</div>
+ <div class="box link"><span class="label">Where this goes</span> This is the engine behind integrating rational functions (Ch 7) and inverting generating functions (Ch 17).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Decompose $\dfrac{1}{x(x+1)}$. <details class="sol"><summary>Solution</summary><div>$\tfrac{A}{x} + \tfrac{B}{x+1}$: $1 = A(x+1) + Bx$. $x=0$: $A = 1$; $x = -1$: $B = -1$. So $\tfrac1x - \tfrac{1}{x+1}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Decompose $\dfrac{x + 4}{(x+1)(x-2)}$. <details class="sol"><summary>Solution</summary><div>$x + 4 = A(x-2) + B(x+1)$. $x = -1$: $3 = -3A$, $A = -1$. $x = 2$: $6 = 3B$, $B = 2$. Answer: $\tfrac{-1}{x+1} + \tfrac{2}{x-2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Decompose $\dfrac{2x^2 + 3}{(x-1)^2(x+1)}$. <details class="sol"><summary>Solution</summary><div>$\tfrac{A}{x-1} + \tfrac{B}{(x-1)^2} + \tfrac{C}{x+1}$: $2x^2 + 3 = A(x-1)(x+1) + B(x+1) + C(x-1)^2$. $x=1$: $5 = 2B$, $B = \tfrac52$. $x=-1$: $5 = 4C$, $C = \tfrac54$. Compare $x^2$: $2 = A + C \Rightarrow A = \tfrac34$. Check constants: $-A + B + C = -\tfrac34 + \tfrac52 + \tfrac54 = 3$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="complex-numbers">
+ <h2>Complex numbers</h2>
+ <p>Declare one new number $i$ with $i^2 = -1$, and every polynomial equation suddenly has solutions. A complex number $a + bi$ is best seen as a point (or arrow) in a plane: real part east, imaginary part north. Nothing "imaginary" about it — it is 2D arithmetic.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbb{C} = \{a + bi : a, b \in \mathbb{R}\}$ with $i^2 = -1$. Real part $\operatorname{Re}(z) = a$, imaginary part $\operatorname{Im}(z) = b$. Modulus $|z| = \sqrt{a^2 + b^2}$ — the arrow's length.</div>
+ <div class="box ex"><span class="label">Worked example</span> Powers of $i$ cycle with period 4: $i^1 = i,\ i^2 = -1,\ i^3 = -i,\ i^4 = 1$. So $i^{2027} = i^{4\cdot506 + 3} = i^3 = -i$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Complex exponentials are the basis of Fourier analysis (Ch 14); eigenvalues of real matrices (Ch 8) are often complex — rotation hiding inside.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are $\operatorname{Re}(z)$, $\operatorname{Im}(z)$, $|z|$ for $z = 3 - 4i$? <details class="sol"><summary>Solution</summary><div>$3$, $-4$ (a real number, not $-4i$), and $\sqrt{9+16} = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $x^2 + 2x + 5 = 0$. <details class="sol"><summary>Solution</summary><div>$x = \tfrac{-2 \pm \sqrt{4 - 20}}{2} = \tfrac{-2 \pm 4i}{2} = -1 \pm 2i$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all $z$ with $z^2 = -9$, and all $z$ with $z^2 = 2i$. <details class="sol"><summary>Solution</summary><div>$z^2 = -9$: $z = \pm3i$. For $z^2 = 2i$: try $z = a + bi$: $a^2 - b^2 + 2abi = 2i$ needs $a^2 = b^2$ and $2ab = 2$, so $a = b = \pm1$: $z = \pm(1 + i)$. Check: $(1+i)^2 = 2i$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="complex-arithmetic">
+ <h2>Complex arithmetic</h2>
+ <p>Add complex numbers like vectors (component-wise); multiply them like binomials, replacing $i^2$ with $-1$. Geometrically, multiplication rotates and stretches — a fact the polar form will make transparent.</p>
+ <div class="box def"><span class="label">Definition</span> $(a+bi) + (c+di) = (a+c) + (b+d)i$; $\;(a+bi)(c+di) = (ac - bd) + (ad + bc)i$. Division: multiply by the conjugate of the denominator (next section).</div>
+ <div class="box ex"><span class="label">Worked example</span> $(2 + 3i)(1 - 4i) = 2 - 8i + 3i - 12i^2 = 2 - 5i + 12 = 14 - 5i$. Moduli multiply: $|2+3i| = \sqrt{13}$, $|1-4i| = \sqrt{17}$, and $|14 - 5i| = \sqrt{196+25} = \sqrt{221} = \sqrt{13\cdot17}$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $(3 + i) + (2 - 5i)$ and $(3+i) - (2 - 5i)$. <details class="sol"><summary>Solution</summary><div>$5 - 4i$ and $1 + 6i$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $(1 + i)^3$. <details class="sol"><summary>Solution</summary><div>$(1+i)^2 = 2i$; $(2i)(1+i) = 2i + 2i^2 = -2 + 2i$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\dfrac{2 + 3i}{1 - i}$. <details class="sol"><summary>Solution</summary><div>Multiply by $\tfrac{1+i}{1+i}$: numerator $(2+3i)(1+i) = 2 + 2i + 3i - 3 = -1 + 5i$; denominator $1 + 1 = 2$. Answer $-\tfrac12 + \tfrac52 i$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="complex-conjugates">
+ <h2>Complex conjugates</h2>
+ <p>The conjugate $\bar z$ flips the sign of the imaginary part — a mirror reflection across the real axis. Its magic: $z\bar z = |z|^2$ is always real and non-negative, which is how division by complex numbers works and why roots of real polynomials come in conjugate pairs.</p>
+ <div class="box def"><span class="label">Definition</span> $\overline{a + bi} = a - bi$. Properties: $z\bar z = a^2 + b^2 = |z|^2$; $\overline{z + w} = \bar z + \bar w$; $\overline{zw} = \bar z\,\bar w$; $z + \bar z = 2\operatorname{Re}(z)$. If a polynomial has real coefficients and root $z$, then $\bar z$ is also a root.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\dfrac{1}{3 + 4i} = \dfrac{3 - 4i}{(3+4i)(3-4i)} = \dfrac{3 - 4i}{9 + 16} = \dfrac{3}{25} - \dfrac{4}{25}i$. Same conjugate trick as rationalizing denominators — that was practice for this.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $z\bar z$ for $z = 2 - 5i$. <details class="sol"><summary>Solution</summary><div>$4 + 25 = 29$.</div></details></li>
+  <li><span class="lvl m">MED</span> A real quadratic has root $1 + 2i$. Find the quadratic (monic). <details class="sol"><summary>Solution</summary><div>Other root $1 - 2i$. Sum 2, product $1 + 4 = 5$: $x^2 - 2x + 5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $|zw| = |z||w|$ using conjugates. <details class="sol"><summary>Solution</summary><div>$|zw|^2 = zw\overline{zw} = zw\bar z\bar w = (z\bar z)(w\bar w) = |z|^2|w|^2$. Take square roots (all quantities non-negative).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="polar-form-of-complex-numbers">
+ <h2>Polar form of complex numbers</h2>
+ <p>Instead of east/north coordinates, describe a complex number by its distance from the origin $r$ and its angle $\theta$. In polar form multiplication becomes beautifully simple: multiply the lengths, add the angles. Complex multiplication <em>is</em> rotation-and-scaling.</p>
+ <div class="box def"><span class="label">Definition</span> $z = r(\cos\theta + i\sin\theta) = re^{i\theta}$ where $r = |z|$ and $\theta = \arg z$ (angle from the positive real axis). Product rule: $r_1e^{i\theta_1} \cdot r_2 e^{i\theta_2} = r_1r_2\,e^{i(\theta_1 + \theta_2)}$. De Moivre: $(\cos\theta + i\sin\theta)^n = \cos n\theta + i \sin n\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $z = 1 + i$: $r = \sqrt2$, $\theta = 45°=\tfrac{\pi}{4}$. Then $z^8 = (\sqrt2)^8 e^{i\,8\pi/4} = 16\,e^{2\pi i} = 16$. Try expanding $(1+i)^8$ by hand to appreciate the shortcut.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Set the angles and moduli of $z$ and $w$; watch the product $zw$ rotate and stretch.</p>
+  <canvas id="cv-cplx"></canvas>
+  <div class="ctl">
+   <label>|z| <input type="range" id="cp-r1" min="0.2" max="2" step="0.05" value="1.2"></label>
+   <label>arg z° <input type="range" id="cp-t1" min="0" max="360" step="1" value="40"></label>
+   <label>|w| <input type="range" id="cp-r2" min="0.2" max="2" step="0.05" value="1.4"></label>
+   <label>arg w° <input type="range" id="cp-t2" min="0" max="360" step="1" value="70"></label>
+  </div>
+  <div class="out" id="cp-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $-2i$ in polar form. <details class="sol"><summary>Solution</summary><div>$r = 2$, angle $-\tfrac{\pi}{2}$ (or $\tfrac{3\pi}{2}$): $2e^{-i\pi/2}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\left(\tfrac{\sqrt3}{2} + \tfrac12 i\right)^{6}$. <details class="sol"><summary>Solution</summary><div>Modulus 1, angle $30°$. Sixth power: angle $180°$, modulus 1: $-1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use De Moivre with $n=2$ to derive $\cos 2\theta = \cos^2\theta - \sin^2\theta$ and $\sin2\theta = 2\sin\theta\cos\theta$. <details class="sol"><summary>Solution</summary><div>$(\cos\theta + i\sin\theta)^2 = \cos^2\theta - \sin^2\theta + 2i\sin\theta\cos\theta$ must equal $\cos2\theta + i\sin2\theta$. Match real and imaginary parts.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="roots-of-complex-numbers">
+ <h2>Roots of complex numbers</h2>
+ <p>Every nonzero complex number has exactly $n$ distinct $n$-th roots, spaced evenly around a circle — take the real $n$-th root of the modulus and split the angle $n$ ways, then keep adding $\tfrac{2\pi}{n}$. Root-taking draws regular polygons.</p>
+ <div class="box def"><span class="label">Definition</span> The $n$-th roots of $re^{i\theta}$ are $\;r^{1/n} \exp\!\left(i\,\tfrac{\theta + 2\pi k}{n}\right)$ for $k = 0, 1, \dots, n-1$. The $n$-th roots of 1 ("roots of unity") are $e^{2\pi i k/n}$, vertices of a regular $n$-gon on the unit circle.</div>
+ <div class="box ex"><span class="label">Worked example</span> Cube roots of $8i = 8e^{i\pi/2}$: modulus $2$, angles $\tfrac{\pi}{6}, \tfrac{\pi}{6} + \tfrac{2\pi}{3} = \tfrac{5\pi}{6}, \tfrac{3\pi}{2}$. Roots: $2(\tfrac{\sqrt3}{2} + \tfrac{i}{2}) = \sqrt3 + i$, $\;-\sqrt3 + i$, $\;-2i$. Check: $(-2i)^3 = -8i^3 = 8i$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List the 4th roots of unity. <details class="sol"><summary>Solution</summary><div>$1, i, -1, -i$ — angles $0°, 90°, 180°, 270°$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the square roots of $-16$. <details class="sol"><summary>Solution</summary><div>$-16 = 16e^{i\pi}$: roots $4e^{i\pi/2} = 4i$ and $4e^{i3\pi/2} = -4i$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the sum of all $n$-th roots of unity is 0 for $n \ge 2$. <details class="sol"><summary>Solution</summary><div>Let $\omega = e^{2\pi i/n} \ne 1$. The roots form the geometric series $\sum_{k=0}^{n-1}\omega^k = \tfrac{\omega^n - 1}{\omega - 1} = \tfrac{1 - 1}{\omega - 1} = 0$. (Geometrically: symmetric arrows cancel.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fundamental-theorem-of-algebra">
+ <h2>Fundamental theorem of algebra</h2>
+ <p>Once $i$ joins the number system, the factoring story is complete: every polynomial splits fully into linear factors over $\mathbb{C}$. Degree $n$ means exactly $n$ roots, counted with multiplicity. No further number inventions are needed for algebra — $\mathbb{C}$ is algebraically closed.</p>
+ <div class="box def"><span class="label">Definition</span> Every polynomial $P$ of degree $n \ge 1$ with complex coefficients has at least one complex root; consequently $P(x) = a\prod_{i=1}^{n}(x - r_i)$ with $r_i \in \mathbb{C}$. For real coefficients, non-real roots pair up as conjugates, so real polynomials factor into real linear and irreducible quadratic pieces.</div>
+ <div class="box ex"><span class="label">Worked example</span> $x^4 - 1 = (x-1)(x+1)(x-i)(x+i)$ over $\mathbb{C}$; over $\mathbb{R}$ it stops at $(x-1)(x+1)(x^2+1)$. Four roots, as degree promises: $1, -1, i, -i$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many roots (with multiplicity) does $x^7 - 3x + 1$ have in $\mathbb{C}$? <details class="sol"><summary>Solution</summary><div>Exactly 7.</div></details></li>
+  <li><span class="lvl m">MED</span> A degree-3 real polynomial has roots $2$ and $1 - i$. Find it (monic). <details class="sol"><summary>Solution</summary><div>Conjugate $1 + i$ must also be a root. $(x - 2)\big((x-1)^2 + 1\big) = (x-2)(x^2 - 2x + 2) = x^3 - 4x^2 + 6x - 4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why a real polynomial of odd degree must have a real root. <details class="sol"><summary>Solution</summary><div>Non-real roots come in conjugate pairs, an even count. Odd total degree minus an even number of non-real roots leaves an odd — hence nonzero — number of real roots. (Analytic view: as $x \to \pm\infty$ the polynomial takes both signs, so it crosses zero by continuity — Ch 7's IVT.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logarithms">
+ <h2>Logarithms</h2>
+ <p>A logarithm answers "what exponent?": $\log_2 8 = 3$ because $2^3 = 8$. It is exponentiation run backwards, and it converts multiplicative questions (how many doublings?) into additive ones. Whenever a quantity spans many orders of magnitude — loss curves, token counts, probabilities — you are living on a log scale.</p>
+ <div class="box def"><span class="label">Definition</span> For $b &gt; 0$, $b \ne 1$, $x &gt; 0$: $\;\log_b x = y \iff b^y = x$. So $b^{\log_b x} = x$ and $\log_b(b^y) = y$: the functions undo each other.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\log_{10} 1000 = 3$; $\log_2 \tfrac{1}{32} = -5$; $\log_7 7 = 1$; $\log_5 1 = 0$. And $\log_2 10$ is between 3 and 4 since $8 &lt; 10 &lt; 16$; in fact $\approx 3.3219$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\log$ of a negative number or of zero is undefined (over the reals): no real exponent makes a positive base non-positive.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the base $b$: the curves $y = b^x$ and $y = \log_b x$ stay mirror images across $y = x$.</p>
+  <canvas id="cv-log"></canvas>
+  <div class="ctl"><label>base b <input type="range" id="lg-b" min="1.2" max="5" step="0.05" value="2"></label></div>
+  <div class="out" id="lg-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\log_3 81$. <details class="sol"><summary>Solution</summary><div>$3^4 = 81$: answer 4.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate $\log_4 8$. <details class="sol"><summary>Solution</summary><div>$4^y = 8 \Rightarrow 2^{2y} = 2^3 \Rightarrow y = \tfrac32$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Without a calculator, how many decimal digits does $2^{100}$ have? (Use $\log_{10}2 \approx 0.30103$.) <details class="sol"><summary>Solution</summary><div>$\log_{10} 2^{100} = 100 \times 0.30103 = 30.103$, so $2^{100} = 10^{30.103}$: it has $\lfloor 30.103\rfloor + 1 = 31$ digits.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logarithm-laws">
+ <h2>Logarithm laws</h2>
+ <p>Each exponent law has a mirror-image log law: products become sums, quotients become differences, powers become multiples. This is precisely why logs are useful — they demote every operation one level of difficulty.</p>
+ <div class="box def"><span class="label">Definition</span> For $x, y &gt; 0$: $\;\log_b(xy) = \log_b x + \log_b y$; $\;\log_b\tfrac{x}{y} = \log_b x - \log_b y$; $\;\log_b(x^p) = p\log_b x$. Change of base: $\log_b x = \dfrac{\log_c x}{\log_c b}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Given $\log_{10}2 \approx 0.301$ and $\log_{10}3 \approx 0.477$: $\log_{10}72 = \log_{10}(8 \cdot 9) = 3\log 2 + 2\log 3 \approx 0.903 + 0.954 = 1.857$. Check: $10^{1.857} \approx 72$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\log(x + y)$ has <em>no</em> expansion — the law works on products only. And $(\log x)^2 \ne \log(x^2) = 2\log x$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Expand $\log_b\dfrac{x^3 y}{z}$. <details class="sol"><summary>Solution</summary><div>$3\log_b x + \log_b y - \log_b z$.</div></details></li>
+  <li><span class="lvl m">MED</span> Condense $2\log x - \tfrac12\log y + 3\log z$ into one log. <details class="sol"><summary>Solution</summary><div>$\log\dfrac{x^2 z^3}{\sqrt y}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\log_b a \cdot \log_a b = 1$. <details class="sol"><summary>Solution</summary><div>Change of base to any base $c$: $\log_b a = \tfrac{\log_c a}{\log_c b}$ and $\log_a b = \tfrac{\log_c b}{\log_c a}$. Their product is 1. (Log in one direction is the reciprocal of the log in the other.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="natural-logarithm">
+ <h2>Natural logarithm</h2>
+ <p>Among all bases one is mathematically inevitable: $e \approx 2.71828$, the base for which the exponential function is its own rate of change. Its logarithm, $\ln$, appears in every entropy, every likelihood, every softmax — because calculus makes base $e$ frictionless.</p>
+ <div class="box def"><span class="label">Definition</span> $e = \lim_{n\to\infty}\left(1 + \tfrac1n\right)^n \approx 2.718281828$. $\ln x = \log_e x$. Useful facts: $\ln e = 1$, $\ln 1 = 0$, $e^{\ln x} = x$, and for small $u$, $\ln(1 + u) \approx u$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Continuous compounding: \$1 at 100% annual interest compounded $n$ times gives $(1 + \tfrac1n)^n$: with $n = 1$: 2; $n = 12$: 2.613; $n = 365$: 2.7146; limit: $e$. Money (and populations, and gradients) compound to $e$.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\ln$ is the log of information theory in nats (Ch 16) and of every log-likelihood (Ch 13); $\tfrac{d}{dx}\ln x = \tfrac1x$ arrives in Ch 7.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Simplify $\ln(e^5)$ and $e^{2\ln 3}$. <details class="sol"><summary>Solution</summary><div>$5$ and $e^{\ln 9} = 9$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\ln x = -2$. <details class="sol"><summary>Solution</summary><div>$x = e^{-2} \approx 0.1353$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Using $\ln(1+u) \approx u$, estimate how many periods a quantity growing 1% per period needs to double, and compare with the exact answer. <details class="sol"><summary>Solution</summary><div>Need $1.01^n = 2$: $n = \tfrac{\ln 2}{\ln 1.01} \approx \tfrac{0.6931}{0.00995} \approx 69.7$. The approximation $\ln 1.01 \approx 0.01$ gives $n \approx 69.3$ — the "rule of 70" (or 72) for doubling times.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exponential-equations">
+ <h2>Exponential equations</h2>
+ <p>When the unknown sits in the exponent, logarithms pull it down. Either match bases on both sides and equate exponents, or take a log of both sides and use the power law. Growth-and-decay questions ("when does the loss halve?") are all of this shape.</p>
+ <div class="box def"><span class="label">Definition</span> $b^{f(x)} = b^{g(x)} \Rightarrow f(x) = g(x)$ (for $b &gt; 0, b \ne 1$). Otherwise: $a^x = c \Rightarrow x = \dfrac{\ln c}{\ln a}$ (for $a, c &gt; 0$, $a\ne1$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $5 \cdot 3^{2x} = 45$. Divide by 5: $3^{2x} = 9 = 3^2$, so $2x = 2$, $x = 1$. Non-matching version: $3^{2x} = 10 \Rightarrow 2x = \tfrac{\ln 10}{\ln 3} \approx 2.0959 \Rightarrow x \approx 1.048$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Isolate the exponential before logging: from $5\cdot3^{2x} = 45$, do not take logs of both sides first and then "cancel the 5" — $\ln(5y) = \ln 5 + \ln y$, not $5\ln y$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $2^x = 64$. <details class="sol"><summary>Solution</summary><div>$x = 6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $e^{2t} - 5e^{t} + 6 = 0$. <details class="sol"><summary>Solution</summary><div>Let $u = e^t$: $u^2 - 5u + 6 = (u-2)(u-3) = 0$, $u = 2$ or 3. $t = \ln 2$ or $\ln 3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A substance decays as $m(t) = m_0 e^{-kt}$ with half-life 12 years. Find $k$ and the time to reach 10% of $m_0$. <details class="sol"><summary>Solution</summary><div>$e^{-12k} = \tfrac12 \Rightarrow k = \tfrac{\ln 2}{12} \approx 0.05776$/yr. Then $e^{-kt} = 0.1 \Rightarrow t = \tfrac{\ln 10}{k} = 12\,\tfrac{\ln 10}{\ln 2} \approx 12 \times 3.3219 \approx 39.9$ years.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logarithmic-equations">
+ <h2>Logarithmic equations</h2>
+ <p>When the unknown hides inside a log, exponentiate to free it — after condensing everything into a single logarithm. One rule is non-negotiable: check every answer in the original equation, because condensing can enlarge the domain and mint fake solutions.</p>
+ <div class="box def"><span class="label">Definition</span> $\log_b f(x) = c \Rightarrow f(x) = b^c$; $\;\log_b f(x) = \log_b g(x) \Rightarrow f(x) = g(x)$ — valid only where $f, g &gt; 0$. Always verify candidates against the original domain.</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve $\log_2 x + \log_2(x - 2) = 3$. Condense: $\log_2\big(x(x-2)\big) = 3 \Rightarrow x^2 - 2x = 8 \Rightarrow (x-4)(x+2) = 0$: $x = 4$ or $-2$. Original needs $x &gt; 2$: reject $-2$. Answer $x = 4$; check $\log_2 4 + \log_2 2 = 2 + 1 = 3$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $\log_5(2x + 1) = 2$. <details class="sol"><summary>Solution</summary><div>$2x + 1 = 25 \Rightarrow x = 12$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\ln(x + 1) - \ln(x - 1) = \ln 3$. <details class="sol"><summary>Solution</summary><div>$\tfrac{x+1}{x-1} = 3 \Rightarrow x + 1 = 3x - 3 \Rightarrow x = 2$. Domain $x &gt; 1$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $(\log_{10} x)^2 = \log_{10}(x^2) + 3$. <details class="sol"><summary>Solution</summary><div>Let $u = \log_{10}x$: $u^2 = 2u + 3 \Rightarrow u^2 - 2u - 3 = (u-3)(u+1) = 0$. $u = 3$: $x = 1000$; $u = -1$: $x = 0.1$. Both positive — both valid.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">$\log_2 x = 10$ and $\log_2 y = 7$. What is $\log_2 \tfrac{x}{y}$?</div><button class="opt">$\tfrac{10}{7}$</button><button class="opt">70</button><button class="opt">3</button><div class="why" hidden>Quotients subtract: $\log_2\tfrac{x}{y} = 10 - 7 = 3$. (Never divide or multiply the logs themselves.)</div></div>
+</section>
+
+<section class="topic" id="algebraic-modeling">
+ <h2>Algebraic modeling</h2>
+ <p>Modeling is the translation step: read a situation, name the unknowns, and write the relations as equations — then let algebra do the reasoning. The discipline is in the translation: define variables precisely with units, state the constraints, solve, and sanity-check the answer against reality.</p>
+ <div class="box def"><span class="label">Definition</span> The modeling loop: (1) name variables with units; (2) translate facts into equations/inequalities; (3) solve; (4) interpret and check plausibility; (5) refine if reality disagrees. A model is judged by usefulness, not truth.</div>
+ <div class="box ex"><span class="label">Worked example</span> Serving an LLM costs \$0.002 per 1K input tokens and \$0.006 per 1K output tokens. A chat averages 1.8K input and 0.5K output tokens. Monthly budget \$900: how many chats? Cost per chat $= 1.8(0.002) + 0.5(0.006) = 0.0036 + 0.003 = \$0.0066$. Chats $\le 900 / 0.0066 \approx 136\,363$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Modeling returns with functions (Ch 4), optimization (Ch 15), and ultimately with learned models — where the "translation" is done by data.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A taxi charges \$3 plus \$2.40/km. Write the fare $F$ for $d$ km and find $d$ when $F = 15$. <details class="sol"><summary>Solution</summary><div>$F = 3 + 2.4d$; $15 = 3 + 2.4d \Rightarrow d = 5$ km.</div></details></li>
+  <li><span class="lvl m">MED</span> Mixing: how many liters of 20% acid must join 6 L of 50% acid to make 30% acid? <details class="sol"><summary>Solution</summary><div>$0.2x + 0.5(6) = 0.3(x + 6) \Rightarrow 0.2x + 3 = 0.3x + 1.8 \Rightarrow x = 12$ L.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two GPU clusters train a model in 30 h and 45 h respectively. Working together (perfect scaling), how long? Then critique the model. <details class="sol"><summary>Solution</summary><div>Rates $\tfrac{1}{30} + \tfrac{1}{45} = \tfrac{3 + 2}{90} = \tfrac{1}{18}$: 18 hours. Critique: joint training incurs communication overhead and imperfect parallel efficiency, so 18 h is a lower bound — the model's "perfect scaling" assumption is the weak joint.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <p>Three problems that braid the chapter together.</p>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> Let $P(x) = x^3 - 2x^2 - 5x + 6$. Factor it completely, solve $P(x) &gt; 0$, and give the sum and product of its roots. <details class="sol"><summary>Solution</summary><div>$P(1) = 0$, divide: $x^2 - x - 6 = (x-3)(x+2)$, so $P = (x-1)(x-3)(x+2)$; roots $-2, 1, 3$. Sign chart: $P &gt; 0$ on $(-2, 1)\cup(3, \infty)$. Sum $= 2$ ($= -(-2)$, Vieta), product $= -6$ ($= -6/1$). ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Model capability follows a scaling law $L(N) = a N^{-b}$ (loss vs parameter count). Measurements: $L(10^8) = 4.0$ and $L(10^{10}) = 2.5$. Find $b$ and $a$, and predict $L(10^{12})$. <details class="sol"><summary>Solution</summary><div>Divide: $\tfrac{4.0}{2.5} = \left(\tfrac{10^{8}}{10^{10}}\right)^{-b} = 10^{2b}$, so $2b = \log_{10}1.6 \approx 0.2041$, $b \approx 0.102$. Then $a = 4.0 \times (10^8)^{b} = 4.0 \times 10^{8 \times 0.102} \approx 4.0 \times 10^{0.816} \approx 26.2$. Predict $L(10^{12}) = 2.5 \times 10^{-2b} = 2.5 / 1.6 \approx 1.56$ (each ×100 in $N$ divides loss by 1.6). Log–log straight lines make power laws linear — that is the log laws at work.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all four roots of $z^4 + 4 = 0$ and factor $z^4 + 4$ into two real quadratics. <details class="sol"><summary>Solution</summary><div>$z^4 = -4 = 4e^{i\pi}$: roots $\sqrt2\,e^{i(\pi + 2\pi k)/4}$, $k=0..3$: angles $45°, 135°, 225°, 315°$, i.e. $1+i, -1+i, -1-i, 1-i$. Pair conjugates: $(z - (1{+}i))(z - (1{-}i)) = z^2 - 2z + 2$ and $(z + 1 - i)(z + 1 + i) = z^2 + 2z + 2$. So $z^4 + 4 = (z^2 - 2z + 2)(z^2 + 2z + 2)$ — the Sophie Germain identity. Expand to check: $(z^2+2)^2 - (2z)^2 = z^4 + 4z^2 + 4 - 4z^2 = z^4 + 4$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Implement the chapter's machinery in Python/NumPy.</p>
+ <p><b>Task 1 — Robust quadratic solver.</b> Write <code>solve_quadratic(a, b, c)</code> returning both roots (complex allowed via <code>cmath</code>), using the numerically stable form: compute $q = -\tfrac12\big(b + \operatorname{sign}(b)\sqrt{b^2-4ac}\big)$, then roots $q/a$ and $c/q$, avoiding catastrophic cancellation.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import cmath, math
+
+def solve_quadratic(a, b, c):
+    assert a != 0
+    disc = b*b - 4*a*c
+    sq = cmath.sqrt(disc)
+    if disc &gt;= 0 and b != 0:
+        q = -0.5 * (b + math.copysign(abs(sq.real), b))
+        return q / a, c / q          # stable pair
+    if b == 0:
+        return sq / (2*a), -sq / (2*a)
+    q = -0.5 * (b + sq)
+    return q / a, c / q
+
+r1, r2 = solve_quadratic(1, -3, 2)
+assert sorted([r1.real if hasattr(r1,'real') else r1,
+               r2.real if hasattr(r2,'real') else r2]) == [1.0, 2.0]
+# stability demo: x^2 - 1e8 x + 1 has roots ~1e8 and ~1e-8
+r1, r2 = solve_quadratic(1, -1e8, 1)
+assert abs(min(abs(r1), abs(r2)) - 1e-8) &lt; 1e-16</code></pre></div></details>
+ <p><b>Task 2 — Polynomial toolkit.</b> Represent a polynomial as a coefficient list (highest degree first). Implement <code>poly_eval</code> (Horner's rule), <code>synthetic_div(coeffs, a)</code> returning quotient and remainder, and use them to find all rational roots of $x^3 - 4x^2 + x + 6$.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>def poly_eval(coeffs, x):
+    acc = 0
+    for c in coeffs:
+        acc = acc * x + c
+    return acc
+
+def synthetic_div(coeffs, a):
+    out = [coeffs[0]]
+    for c in coeffs[1:]:
+        out.append(c + out[-1] * a)
+    return out[:-1], out[-1]   # quotient, remainder
+
+def rational_roots(coeffs):
+    const, lead = coeffs[-1], coeffs[0]
+    cands = set()
+    for p in range(1, abs(const) + 1):
+        if const % p == 0:
+            for q in range(1, abs(lead) + 1):
+                if lead % q == 0:
+                    cands |= {p/q, -p/q}
+    return sorted(r for r in cands if abs(poly_eval(coeffs, r)) &lt; 1e-9)
+
+assert poly_eval([1, -4, 1, 6], 2) == 0
+assert rational_roots([1, -4, 1, 6]) == [-1.0, 2.0, 3.0]
+q, r = synthetic_div([1, -4, 1, 6], -1)
+assert q == [1, -5, 6] and r == 0</code></pre></div></details>
+ <p><b>Task 3 — Log–log fit of a power law.</b> Generate $y = 3.5\,x^{-0.7}$ with 5% noise for $x \in \{10^1,\dots,10^6\}$, then recover the exponent and constant by fitting a line to $(\ln x, \ln y)$ with <code>np.polyfit</code>.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+x = np.logspace(1, 6, 60)
+y = 3.5 * x**(-0.7) * (1 + 0.05 * rng.standard_normal(60))
+
+slope, intercept = np.polyfit(np.log(x), np.log(y), 1)
+b_hat = -slope           # exponent
+a_hat = np.exp(intercept)
+print(b_hat, a_hat)      # ~0.7, ~3.5
+assert abs(b_hat - 0.7) &lt; 0.02
+assert abs(a_hat - 3.5) &lt; 0.5</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.khanacademy.org/math/algebra">Khan Academy — Algebra 1 &amp; 2</a>: full coverage of every topic here with practice.</li>
+  <li><a href="https://openstax.org/details/books/college-algebra-2e">OpenStax — College Algebra 2e</a>: free textbook; polynomials, rationals, exponentials, logs, systems.</li>
+  <li><a href="https://tutorial.math.lamar.edu/Classes/Alg/Alg.aspx">Paul's Online Math Notes — Algebra</a>: terse, example-dense notes with solved problems.</li>
+  <li><a href="https://www.3blue1brown.com/lessons/complex-multiplication">3Blue1Brown — complex number visualizations</a>: multiplication as rotation, seen not told.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/pages/unit-1-differentiation/">MIT OCW 18.01SC</a>: the algebra-to-calculus bridge; review sessions on exponentials and logs.</li>
+  <li><a href="https://en.wikipedia.org/wiki/Fundamental_theorem_of_algebra">Wikipedia — Fundamental theorem of algebra</a>: statements, history and several proofs.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch01.html">← Prev: 01 · Arithmetic</a>
+ <a href="ch03.html">Next: 03 · Sets, Logic and Proof →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function mono(g){ g.font = '13px "JetBrains Mono", monospace'; }
+ function col(n, fb){ var v = cssVar(n); return v || fb; }
+
+ // --- Binomial coefficients ---
+ var bnc = document.getElementById('cv-binom');
+ function drawBN(){
+  if(!bnc) return;
+  var n = parseInt(document.getElementById('bn-n').value, 10);
+  var s = setupCanvas(bnc, 240), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var row = [1];
+  for(var i = 0; i < n; i++){
+   var nx = [1];
+   for(var j = 1; j < row.length; j++) nx.push(row[j-1] + row[j]);
+   nx.push(1); row = nx;
+  }
+  var maxv = Math.max.apply(null, row);
+  var bw = (s.w - 40) / (n + 1), base = s.h - 28;
+  for(var k = 0; k <= n; k++){
+   var h = row[k] / maxv * (s.h - 60);
+   g.fillStyle = col('--cobalt', '#2255cc');
+   g.fillRect(20 + k*bw + 1, base - h, Math.max(1, bw - 2), h);
+  }
+  mono(g); g.fillStyle = col('--ink-2', '#888');
+  g.fillText('k=0', 20, base + 16);
+  g.fillText('k=' + n, s.w - 60, base + 16);
+  var out = document.getElementById('bn-out');
+  if(out) out.textContent = 'n=' + n + '  peak C(n,' + Math.floor(n/2) + ') = ' + maxv + '   row sum = 2^' + n + ' = ' + Math.pow(2, n);
+ }
+
+ // --- Linear system intersection ---
+ var syc = document.getElementById('cv-system');
+ function drawSY(){
+  if(!syc) return;
+  var a1 = 1, b1 = 1, c1 = 4; // fixed line: x + y = 4
+  var a2 = +document.getElementById('sy-a').value;
+  var b2 = +document.getElementById('sy-b').value;
+  var c2 = +document.getElementById('sy-c').value;
+  var s = setupCanvas(syc, 280), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var R = 8; // view [-R,R]
+  function X(x){ return (x + R)/(2*R) * s.w; }
+  function Y(y){ return s.h - (y + R)/(2*R) * s.h; }
+  // axes
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(X(-R), Y(0)); g.lineTo(X(R), Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(0), Y(-R)); g.lineTo(X(0), Y(R)); g.stroke();
+  mono(g); g.fillStyle = col('--ink-2', '#888'); g.fillText('x', s.w - 14, Y(0) - 6); g.fillText('y', X(0) + 6, 12);
+  function line(a, b, c, color){
+   g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
+   if(Math.abs(b) > 1e-9){
+    g.moveTo(X(-R), Y((c - a*(-R))/b)); g.lineTo(X(R), Y((c - a*R)/b));
+   } else if(Math.abs(a) > 1e-9){
+    g.moveTo(X(c/a), Y(-R)); g.lineTo(X(c/a), Y(R));
+   }
+   g.stroke();
+  }
+  line(a1, b1, c1, col('--cobalt', '#2255cc'));
+  line(a2, b2, c2, col('--rose', '#cc3355'));
+  var det = a1*b2 - a2*b1, out = document.getElementById('sy-out');
+  if(Math.abs(det) > 1e-6){
+   var x = (c1*b2 - b1*c2)/det, y = (a1*c2 - c1*a2)/det;
+   g.fillStyle = col('--emerald', '#11aa66');
+   g.beginPath(); g.arc(X(x), Y(y), 6, 0, 2*Math.PI); g.fill();
+   if(out) out.textContent = 'det = ' + det.toFixed(2) + '  →  unique solution (' + x.toFixed(2) + ', ' + y.toFixed(2) + ')';
+  } else {
+   if(out) out.textContent = 'det = 0  →  lines parallel (no solution) or identical (infinitely many)';
+  }
+ }
+
+ // --- Quadratic + discriminant ---
+ var qdc = document.getElementById('cv-quad');
+ function drawQD(){
+  if(!qdc) return;
+  var a = +document.getElementById('qd-a').value;
+  var b = +document.getElementById('qd-b').value;
+  var c = +document.getElementById('qd-c').value;
+  if(Math.abs(a) < 0.05) a = a < 0 ? -0.05 : 0.05;
+  var s = setupCanvas(qdc, 280), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var R = 8;
+  function X(x){ return (x + R)/(2*R)*s.w; }
+  function Y(y){ return s.h - (y + R)/(2*R)*s.h; }
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(s.w, Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(0), 0); g.lineTo(X(0), s.h); g.stroke();
+  g.strokeStyle = col('--cobalt', '#2255cc'); g.lineWidth = 2; g.beginPath();
+  var first = true;
+  for(var px = 0; px <= s.w; px += 2){
+   var x = px/s.w * 2*R - R, y = a*x*x + b*x + c;
+   var py = Y(y);
+   if(py < -50 || py > s.h + 50){ first = true; continue; }
+   if(first){ g.moveTo(px, py); first = false; } else g.lineTo(px, py);
+  }
+  g.stroke();
+  var D = b*b - 4*a*c;
+  mono(g);
+  if(D >= 0){
+   var r1 = (-b - Math.sqrt(D))/(2*a), r2 = (-b + Math.sqrt(D))/(2*a);
+   g.fillStyle = col('--rose', '#cc3355');
+   [r1, r2].forEach(function(r){ g.beginPath(); g.arc(X(r), Y(0), 5, 0, 2*Math.PI); g.fill(); });
+  }
+  var vx = -b/(2*a), vy = a*vx*vx + b*vx + c;
+  g.fillStyle = col('--emerald', '#11aa66');
+  g.beginPath(); g.arc(X(vx), Y(vy), 4, 0, 2*Math.PI); g.fill();
+  var out = document.getElementById('qd-out');
+  if(out){
+   var msg = 'Δ = ' + D.toFixed(2) + '  →  ';
+   if(D > 0){ msg += 'two real roots: ' + ((-b-Math.sqrt(D))/(2*a)).toFixed(2) + ', ' + ((-b+Math.sqrt(D))/(2*a)).toFixed(2); }
+   else if(Math.abs(D) < 1e-9){ msg += 'one repeated root x = ' + (-b/(2*a)).toFixed(2); }
+   else { msg += 'no real roots (complex pair ' + (-b/(2*a)).toFixed(2) + ' ± ' + (Math.sqrt(-D)/(2*Math.abs(a))).toFixed(2) + 'i)'; }
+   out.textContent = msg + '   vertex (' + vx.toFixed(2) + ', ' + vy.toFixed(2) + ')';
+  }
+ }
+
+ // --- Complex multiplication (polar) ---
+ var cpc = document.getElementById('cv-cplx');
+ function drawCP(){
+  if(!cpc) return;
+  var r1 = +document.getElementById('cp-r1').value, t1 = +document.getElementById('cp-t1').value * Math.PI/180;
+  var r2 = +document.getElementById('cp-r2').value, t2 = +document.getElementById('cp-t2').value * Math.PI/180;
+  var s = setupCanvas(cpc, 300), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var R = 4.5, cx = s.w/2, cy = s.h/2, sc = Math.min(s.w, s.h)/(2*R);
+  function X(x){ return cx + x*sc; }
+  function Y(y){ return cy - y*sc; }
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, cy); g.lineTo(s.w, cy); g.stroke();
+  g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx, s.h); g.stroke();
+  g.beginPath(); g.arc(cx, cy, sc, 0, 2*Math.PI); g.stroke(); // unit circle
+  function arrow(r, t, color, label){
+   var x = r*Math.cos(t), y = r*Math.sin(t);
+   g.strokeStyle = color; g.fillStyle = color; g.lineWidth = 2;
+   g.beginPath(); g.moveTo(cx, cy); g.lineTo(X(x), Y(y)); g.stroke();
+   g.beginPath(); g.arc(X(x), Y(y), 4, 0, 2*Math.PI); g.fill();
+   mono(g); g.fillText(label, X(x) + 6, Y(y) - 6);
+  }
+  arrow(r1, t1, col('--cobalt', '#2255cc'), 'z');
+  arrow(r2, t2, col('--rose', '#cc3355'), 'w');
+  arrow(r1*r2, t1 + t2, col('--emerald', '#11aa66'), 'zw');
+  var out = document.getElementById('cp-out');
+  if(out) out.textContent = '|zw| = ' + (r1*r2).toFixed(2) + ' = ' + r1.toFixed(2) + '×' + r2.toFixed(2) + '   arg(zw) = ' + Math.round(((t1 + t2)*180/Math.PI) % 360) + '° (angles add)';
+ }
+
+ // --- log/exp mirror ---
+ var lgc = document.getElementById('cv-log');
+ function drawLG(){
+  if(!lgc) return;
+  var b = +document.getElementById('lg-b').value;
+  var s = setupCanvas(lgc, 280), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var R = 6, cx = s.w/2, cy = s.h/2, sc = Math.min(s.w, s.h)/(2*R);
+  function X(x){ return cx + x*sc; } function Y(y){ return cy - y*sc; }
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, cy); g.lineTo(s.w, cy); g.stroke();
+  g.beginPath(); g.moveTo(cx, 0); g.lineTo(cx, s.h); g.stroke();
+  // y = x mirror
+  g.setLineDash([4,4]); g.beginPath(); g.moveTo(X(-R), Y(-R)); g.lineTo(X(R), Y(R)); g.stroke(); g.setLineDash([]);
+  function plot(fn, color){
+   g.strokeStyle = color; g.lineWidth = 2; g.beginPath(); var first = true;
+   for(var px = 0; px <= s.w; px++){
+    var x = (px - cx)/sc, y = fn(x);
+    if(!isFinite(y) || Math.abs(y) > R*2){ first = true; continue; }
+    var py = Y(y);
+    if(first){ g.moveTo(px, py); first = false; } else g.lineTo(px, py);
+   }
+   g.stroke();
+  }
+  plot(function(x){ return Math.pow(b, x); }, col('--cobalt', '#2255cc'));
+  plot(function(x){ return x > 0 ? Math.log(x)/Math.log(b) : NaN; }, col('--rose', '#cc3355'));
+  mono(g); g.fillStyle = col('--cobalt', '#2255cc'); g.fillText('y = ' + b.toFixed(2) + '^x', 12, 20);
+  g.fillStyle = col('--rose', '#cc3355'); g.fillText('y = log_' + b.toFixed(2) + '(x)', 12, 38);
+  var out = document.getElementById('lg-out');
+  if(out) out.textContent = 'b = ' + b.toFixed(2) + '   both pass through their anchors: (0,1) on the exponential, (1,0) on the log — reflections across y = x.';
+ }
+
+ function all(){ drawBN(); drawSY(); drawQD(); drawCP(); drawLG(); }
+ document.addEventListener('input', all);
+ window.addEventListener('resize', all);
+ document.addEventListener('DOMContentLoaded', all);
+ all();
+})();
+</script>
+
+</body></html>

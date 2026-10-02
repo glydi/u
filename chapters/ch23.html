@@ -1,0 +1,716 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 23 Large Language Models</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','23')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">23</div><h1>Large Language Models</h1><p class="lede">How today's language models are built, trained, tuned and run.</p>
+   <div class="meta"><span class="chip">28 topics</span><span class="chip">needs: chapters 15, 16, 21, 22</span><span class="chip">feeds: chapters 25, 30, 31, 32</span></div>
+  </div>
+
+<section class="topic" id="pretraining-objective">
+ <h2>Pretraining objective</h2>
+ <p>Everything begins with one loss: predict the next token, everywhere, on a huge slice of human text. This is Ch 21's causal language modeling scaled up until the model has been graded on trillions of predictions. Because predicting text well requires modeling whatever produced the text, the objective quietly buys grammar, facts, code, style and fragments of reasoning.</p>
+ <div class="box def"><span class="label">Definition</span> Given a token corpus, pretraining minimizes $$\mathcal L(\theta)=-\,\mathbb E_{x\sim\text{corpus}}\ \frac1T\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t}),$$ the average next-token cross-entropy (nats/token). Equivalently, it minimizes $\mathrm{KL}(p_{\text{data}}\|p_\theta)$ over sequences (Ch 16, Ch 21), and equivalently again, it maximizes the compression achievable with $p_\theta$ as an arithmetic-coding model.</div>
+ <div class="box ex"><span class="label">Worked example</span> A model reads "The capital of France is" and assigns $p(\text{" Paris"})=0.85$: loss contribution $-\ln0.85=0.163$ nats. A weaker model with $p=0.30$ pays $1.204$ nats. Across a 10T-token run, differences of even 0.01 nats/token are decisive — that is $10^{11}$ nats of accumulated evidence separating the models.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The objective is <em>imitation of the corpus</em>, not truth or helpfulness: confident falsehoods that pervade the training text are optimal to reproduce, and the base model completes text rather than answering questions ("What is 2+2?" may be continued with more exam questions). Instruction tuning and RLHF exist to close that gap — not to teach new knowledge.</div>
+ <div class="box link"><span class="label">Where this goes</span> Every later section modifies, serves or steers a model trained this way; Ch 16's compression-as-prediction is the theory of why the objective is so rich.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A model achieves 1.386 nats/token. What is its perplexity, and what does that number mean?<details class="sol"><summary>Solution</summary><div>$e^{1.386}=4.0$: on average, the model is as uncertain as a uniform choice among 4 tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does one forward pass over a sequence of length $T$ provide $T$ training signals, and what property of the architecture makes those signals valid?<details class="sol"><summary>Solution</summary><div>The causal mask makes position $t$'s output depend only on $x_{1:t}$, so it is a legitimate prediction of $x_{t+1}$; the $T$ cross-entropies are computed in parallel from one pass (Ch 21, causal attention). Without the mask, later positions would leak the answer.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two corpora: A is 1T tokens of deduplicated web text; B is the same 1T with one 1000-token document repeated $10^6$ extra times. Explain two distinct harms of training on B at equal compute.<details class="sol"><summary>Solution</summary><div>(1) Wasted compute and skewed distribution: $10^9$ tokens (0.1% of the budget) are spent re-learning one document, and the effective KL target is no longer the true text distribution but one with a huge spike — the model over-weights that document's style/claims everywhere. (2) Memorization: repeated sequences are memorized verbatim (extraction risk, benchmark contamination if the document is a test set, and degraded generalization since gradient steps on duplicates sharpen rather than generalize). Deduplication is thus a first-order data-pipeline concern, not hygiene trivia.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="data-pipelines">
+ <h2>Data pipelines</h2>
+ <p>The corpus is the curriculum, and it is manufactured, not found: crawl the web, strip boilerplate, filter for language and quality, deduplicate at document and substring level, remove toxic/PII content, decontaminate against benchmarks, then mix sources with chosen weights (web, code, books, math). At trillion-token scale, pipeline decisions move final capability more than most architecture choices.</p>
+ <div class="box def"><span class="label">Definition</span> A pretraining data pipeline is a sequence of transforms: extraction (HTML→text) → language ID → quality filtering (classifier or heuristic scores) → deduplication (exact hashes + near-dup via MinHash/suffix arrays) → safety/PII filtering → decontamination (n-gram overlap with eval sets) → mixture weighting and sampling (possibly multi-epoch per source). The output is a stream of token sequences with a defined sampling distribution.</div>
+ <div class="box ex"><span class="label">Worked example</span> MinHash near-duplicate detection: two documents with 3-gram Jaccard similarity $J=0.8$. Using 128 hash functions, each MinHash coordinate matches with probability $J$; expected matching coordinates $=128\cdot0.8=102.4$. Threshold at $\ge90$ matches: the probability a truly $J=0.5$ pair passes is $\Pr[\mathrm{Bin}(128,0.5)\ge90]\approx\Pr[Z\ge\frac{90-64}{\sqrt{32}}]=\Pr[Z\ge4.6]\approx2\times10^{-6}$ — sharp separation from 128 cheap hashes instead of $O(n^2)$ full comparisons.</div>
+ <div class="box think"><span class="label">Think first</span> Quality filtering uses a classifier trained to distinguish "high-quality reference text" from random web text. What bias does aggressive filtering introduce? <details class="sol"><summary>Reveal</summary><div>The model's distribution narrows toward the reference style (encyclopedic English prose): dialects, informal registers, low-resource languages and unconventional-but-valuable text (forums where problems get solved) are disproportionately removed. Capability on filtered-away distributions drops, and the filter's own biases (topic, ideology, formality) become the model's. Mixture weights and multiple filter signals mitigate this.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must decontamination happen against <em>evaluation</em> sets specifically?<details class="sol"><summary>Solution</summary><div>If test items appear in training data, benchmark scores measure memorization, not capability — results become uninterpretable and inflated (see benchmarks-and-contamination below).</div></details></li>
+  <li><span class="lvl m">MED</span> A source mixture is 60% web (5T tokens available), 20% code (1T available), 20% books (0.2T available), and the run needs 8T tokens. How many epochs of each source, and which is most at risk of memorization?<details class="sol"><summary>Solution</summary><div>Web: $4.8$T needed / 5T available $=0.96$ epochs. Code: $1.6$T/1T $=1.6$ epochs. Books: $1.6$T/0.2T $=8$ epochs. Books repeat 8 times — highest memorization and overfit risk; small high-quality sources are usually capped at a few epochs and the mixture rebalanced.</div></details></li>
+  <li><span class="lvl h">HARD</span> Exact deduplication removes identical documents; substring deduplication removes repeated 50-gram spans across different documents. Give a concrete failure that only substring dedup catches, and a cost it introduces.<details class="sol"><summary>Solution</summary><div>Boilerplate and templated spans — license headers, navigation text, quoted viral passages, seeded spam — recur inside otherwise-distinct documents; document-level hashing misses them entirely, yet they dominate memorization (the model learns to regurgitate the repeated span verbatim). Cost: substring removal can cut documents mid-thought, damaging coherence of the surviving text, and suffix-array/rolling-hash infrastructure at trillion-token scale is a major engineering expense; over-aggressive spans thresholds also delete legitimately re-used text (famous quotes, code idioms).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="byte-pair-encoding">
+ <h2>Byte-pair encoding</h2>
+ <p>BPE (introduced in Ch 21) is the tokenizer that feeds nearly every LLM: start from bytes, repeatedly merge the most frequent adjacent pair, stop at a target vocabulary size. Here we care about its systems consequences: vocabulary size trades embedding-table memory against sequence length, and merge tables learned on one distribution silently tax every other.</p>
+ <div class="box def"><span class="label">Definition</span> BPE training: initialize symbols = 256 bytes; repeat: merge the most frequent adjacent pair into a new token, until $|V|$ tokens exist. Encoding applies merges in learned priority order. Key metric: <em>fertility</em> = tokens per word (or per byte) on a given distribution; compression ratio = bytes per token.</div>
+ <div class="box ex"><span class="label">Worked example</span> Corpus (with word counts): "hug"×10, "pug"×5, "hugs"×5. Base symbols {h,u,g,p,s}. Pair counts: (h,u)=15, (u,g)=20, (g,s)=5, (p,u)=5. Merge (u,g)→"ug". New counts: (h,ug)=15, (p,ug)=5, (ug,s)=5. Merge (h,ug)→"hug". Now "hug" is one token (10 occurrences), "hugs"="hug"+"s", "pug"="p"+"ug". Vocabulary grew by 2; corpus length fell from $3\cdot10+3\cdot5+4\cdot5=65$ symbols to $10+2\cdot5+2\cdot5=30$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Tokenizer and model are married for life: changing the vocabulary invalidates the embedding table and every learned distribution over tokens. Numbers deserve special care — a tokenizer that merges "2023" as one token but splits "2024" into "20"+"24" makes arithmetic and date reasoning erratic; many modern tokenizers force digit-by-digit splitting for this reason.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With the worked example's final merges, tokenize "pugs".<details class="sol"><summary>Solution</summary><div>Apply merges in order: "p u g s" → (u,g): "p ug s" → (h,ug) doesn't apply. Result: ["p","ug","s"], 3 tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> A model has $d=4096$. Compare embedding+unembedding parameter cost of $V=32$k vs $V=256$k, and name what the larger vocabulary buys.<details class="sol"><summary>Solution</summary><div>32k: $2\cdot32768\cdot4096\approx0.27$B. 256k: $2\cdot262144\cdot4096\approx2.15$B — ~1.9B extra parameters. It buys shorter sequences (higher bytes/token, especially multilingual), so fewer positions per document: less attention compute, more effective context, better fertility for non-English text.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that BPE encoding of a string never produces more tokens than its byte length, and give a string family where BPE with an English-trained merge table performs near this worst case.<details class="sol"><summary>Solution</summary><div>Encoding starts from the byte sequence (length $n$) and each applied merge strictly reduces token count by 1; merges are the only operation, so the count is $\le n$ always, with equality iff no merge applies. Near-worst case: strings over byte patterns absent from training — e.g. random bytes, rare scripts, or base64/hex blobs — where almost no learned pair occurs; each byte stays its own token, tripling-to-quintupling cost versus English prose at ~4 chars/token.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="transformer-training-at-scale">
+ <h2>Transformer training at scale</h2>
+ <p>Training a frontier model is a months-long numerical experiment on tens of thousands of accelerators. The recipe: AdamW with weight decay, learning-rate warmup then decay, gradient clipping, enormous batch sizes measured in millions of tokens, and relentless attention to stability — loss spikes, divergences and hardware failures are expected events to be engineered around, not surprises.</p>
+ <div class="box def"><span class="label">Definition</span> A standard large-scale recipe: AdamW ($\beta_1{=}0.9,\beta_2{=}0.95$, wd $\approx0.1$), linear warmup over $\sim$0.1–1% of steps to peak LR $\sim10^{-4}\!\cdot\!(\text{scaled by width})$, cosine decay to $\sim$10% of peak, global-norm gradient clipping at 1.0, batch sizes of 1–16M tokens, pre-norm blocks, and checkpointing for fault tolerance. Total training flops $\approx6ND$ ($N$ params, $D$ tokens: forward $2ND$, backward $4ND$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A 70B-parameter model on 15T tokens: $C\approx6\cdot7\times10^{10}\cdot1.5\times10^{13}=6.3\times10^{24}$ flops. On 10,000 accelerators sustaining $4\times10^{14}$ flops/s each (40% utilization of 1 Pflop/s peak): $t=\frac{6.3\times10^{24}}{10^4\cdot4\times10^{14}}=1.575\times10^6$ s $\approx18$ days — before counting restarts, evaluations and data stalls.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Loss spikes: a batch of pathological data or an optimizer state glitch sends the loss vertical. Standard playbook — skip the offending batch, restart from the last checkpoint, sometimes lower LR briefly. Uncaught, a single spike can destabilize training permanently (activations/optimizer moments corrupted). This is why frequent checkpoints and batch-skipping machinery are core infrastructure.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Estimate training flops for a 7B model on 2T tokens.<details class="sol"><summary>Solution</summary><div>$6\cdot7\times10^9\cdot2\times10^{12}=8.4\times10^{22}$ flops.</div></details></li>
+  <li><span class="lvl m">MED</span> Why warmup? What goes wrong stepping at peak LR from step 0?<details class="sol"><summary>Solution</summary><div>At initialization, gradients are large and poorly scaled, Adam's second-moment estimates are unwarmed (tiny denominators → huge effective steps), and curvature is high in random directions. Full LR immediately produces destructive updates — loss divergence or dead-neuron damage that persists. Warmup lets moment estimates and activation scales settle while steps are small.</div></details></li>
+  <li><span class="lvl h">HARD</span> A 70B run uses 8-way tensor parallelism within nodes. Adam keeps two fp32 moments plus fp32 master weights; parameters are also held in bf16 for compute. Estimate per-parameter memory and total optimizer+weights memory, and explain why it must be sharded.<details class="sol"><summary>Solution</summary><div>Per parameter: bf16 weight (2B) + fp32 master (4B) + fp32 momentum (4B) + fp32 variance (4B) = 14 bytes; with bf16 gradients add 2 → 16B/param. For 70B params: $\approx1.12$TB — far beyond any single accelerator's ~80GB, before activations. Hence ZeRO/FSDP-style sharding of weights, gradients and optimizer states across the data-parallel group: each of $k$ workers holds $1/k$ of the state and materializes full layers only transiently.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="compute-optimal-scaling">
+ <h2>Compute-optimal scaling</h2>
+ <p>Given a fixed compute budget, should you train a bigger model on less data or a smaller one on more? The Chinchilla analysis answered: scale them together — parameters and tokens in roughly constant proportion, around 20 tokens per parameter — and famously showed earlier models were far too big for their data. When inference cost matters, the optimum shifts to smaller models trained much longer ("overtraining").</p>
+ <div class="box def"><span class="label">Definition</span> With $L(N,D)=E+AN^{-\alpha}+BD^{-\beta}$ and $C=6ND$, the compute-optimal choice is $$N^*(C)\propto C^{\frac{\beta}{\alpha+\beta}},\qquad D^*(C)\propto C^{\frac{\alpha}{\alpha+\beta}}$$ (derived in Ch 21). With Chinchilla's fitted $\alpha\approx0.34$, $\beta\approx0.28$: $N^*\propto C^{0.45}$, $D^*\propto C^{0.55}$, and the token/parameter ratio at the optimum is roughly constant $\approx20$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Fix a compute budget and slide the model size: watch loss trace a U-shape between "too big, undertrained" and "too small, saturated". The marker is the optimum; the dashed line marks 20 tokens/param.</p>
+  <canvas id="cv-chin"></canvas>
+  <div class="ctl"><label>log&#8321;&#8320; compute (flops) <input type="range" id="ch-c" min="20" max="26" step="0.1" value="23"></label>
+  <label>log&#8321;&#8320; model size N <input type="range" id="ch-n" min="7.5" max="12.5" step="0.05" value="10"></label></div>
+  <div class="out" id="ch-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Budget $C=10^{24}$ flops. Chinchilla-optimal: $ND=C/6\approx1.67\times10^{23}$, with $D\approx20N$: $20N^2=1.67\times10^{23}\Rightarrow N\approx9.1\times10^{10}$ (~91B params), $D\approx1.8\times10^{12}$ (~1.8T tokens). GPT-3 (175B on 0.3T tokens, ~1.7 tokens/param) spent similar compute drastically off-optimum — Chinchilla (70B on 1.4T) beat it at equal compute.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Compute-optimal" optimizes <em>training</em> loss per training flop only. A model served billions of times should be smaller than Chinchilla-optimal and trained far beyond 20 tokens/param (Llama-style, 100–2000+ tokens/param): the extra training compute is repaid on every inference. Optimal $N$ depends on the deployment integral, not just $C_{\text{train}}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> At the ~20 tokens/param rule, how many tokens should a 8B model train on to be Chinchilla-optimal?<details class="sol"><summary>Solution</summary><div>$\approx160$B tokens. (Modern 8B models train on 15T — ~1900 tokens/param — because inference-cost economics favor heavy overtraining.)</div></details></li>
+  <li><span class="lvl m">MED</span> With $\alpha=\beta$ exactly, show doubling compute multiplies both $N^*$ and $D^*$ by $\sqrt2$ and reduces the reducible loss $AN^{-\alpha}+BD^{-\beta}$ by a factor $2^{-\alpha/2}$.<details class="sol"><summary>Solution</summary><div>$N^*,D^*\propto C^{1/2}$: doubling $C$ scales each by $\sqrt2$. Reducible loss at the optimum $\propto N^{*-\alpha}\propto C^{-\alpha/2}$: factor $2^{-\alpha/2}$ (e.g. $\alpha=0.34$: ×0.889 per compute doubling — ~11% of the remaining gap closed).</div></details></li>
+  <li><span class="lvl h">HARD</span> A provider will serve $Q=10^{13}$ tokens of inference (cost $\approx2N$ flops/token). Total cost: $6ND+2NQ$. For a required loss level achieved along the trade-off $D(N)$ (larger $N$ needs fewer tokens), explain qualitatively — then show for the iso-loss family $N^{-\alpha}D^{-0}\!$… take iso-loss constraint $AN^{-\alpha}+BD^{-\beta}=\ell$ — how the inference term shifts optimal $N$ downward.<details class="sol"><summary>Solution</summary><div>Minimize $6ND+2NQ$ subject to $AN^{-\alpha}+BD^{-\beta}=\ell$. The Lagrangian condition balances marginal cost of shrinking loss via $N$ vs via $D$; the inference term adds $2Q$ to the cost of every unit of $N$ but nothing to $D$'s cost. So the shadow price of parameters rises by $2Q$ (here $2\times10^{13}$ flops per parameter — comparable to $6D$ when $D\sim3$T), pushing the optimum toward smaller $N$ and larger $D$ than the training-only solution: you overtrain a smaller model because its cheapness is re-earned $Q$ times at serving time.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mixed-precision-and-parallelism">
+ <h2>Mixed precision and parallelism</h2>
+ <p>Two engineering pillars make trillion-flop training feasible. Mixed precision runs matrix math in 16-bit (bf16) while keeping master weights and optimizer state in fp32 — half the memory and bandwidth, ~2× the throughput, with fp32 accumulation guarding correctness (Ch 18). Parallelism splits the work four ways: copies of the model over data (DP), layers over pipeline stages (PP), matrices over devices (TP), and optimizer state over the fleet (ZeRO/FSDP).</p>
+ <div class="box def"><span class="label">Definition</span> Mixed precision: compute GEMMs in bf16 (8-bit exponent — fp32's range, 8 fewer mantissa bits), accumulate in fp32, keep fp32 master weights; fp16 variants need loss scaling to avoid gradient underflow. Parallelism: <b>DP</b> replicates the model, splits the batch, all-reduces gradients; <b>TP</b> splits weight matrices column/row-wise with all-reduce inside each layer; <b>PP</b> assigns consecutive layers to stages, streaming micro-batches to fill the pipeline; <b>ZeRO/FSDP</b> shards parameters/gradients/optimizer states across DP ranks.</div>
+ <div class="box ex"><span class="label">Worked example</span> Pipeline bubble: $p=8$ stages, $m=32$ micro-batches. Idle fraction $\approx\frac{p-1}{m+p-1}=\frac{7}{39}\approx18\%$ of pipeline time wasted at ramp-up/drain. Doubling micro-batches to 64: $\frac{7}{71}\approx10\%$. This is why large PP degrees demand many micro-batches — and why batch sizes are partly a systems decision.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 18's floating-point and conditioning analysis explains what bf16 can and cannot represent; quantization (below) pushes the same idea into inference.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is bf16 preferred over fp16 for LLM training?<details class="sol"><summary>Solution</summary><div>bf16 keeps fp32's exponent range (~$10^{\pm38}$), so gradients/activations rarely overflow or underflow and no loss-scaling machinery is needed; the cost is precision (7 mantissa bits), which fp32 accumulation compensates.</div></details></li>
+  <li><span class="lvl m">MED</span> A batch of 4M tokens is trained by 512-way DP. Each rank computes gradients for a 7B-param model in bf16. How much gradient data does one all-reduce move per step (per rank, ring all-reduce ≈2× payload)?<details class="sol"><summary>Solution</summary><div>Payload: $7\times10^9\cdot2$ B $=14$ GB of gradients; ring all-reduce sends/receives $\approx2\times$ payload $\approx28$ GB per rank per step. At 400 GB/s effective interconnect: ~70 ms — which must overlap with backward compute or it becomes the bottleneck.</div></details></li>
+  <li><span class="lvl h">HARD</span> Tensor parallelism splits an MLP's $W_1\in\mathbb R^{d\times4d}$ column-wise over $k$ devices and $W_2\in\mathbb R^{4d\times d}$ row-wise. Show only one all-reduce is needed per MLP forward, and identify what limits practical $k$.<details class="sol"><summary>Solution</summary><div>Column-split $W_1$: each device computes $h_i=\mathrm{GELU}(xW_1^{(i)})\in\mathbb R^{4d/k}$ — no communication (each needs full $x$, already resident). Row-split $W_2$: device $i$ computes partial $y_i=h_iW_2^{(i)}\in\mathbb R^{d}$, and $y=\sum_iy_i$: one all-reduce. The nonlinearity sits between the splits where activations are local — that placement is the trick. Limits on $k$: the all-reduce happens inside <em>every layer</em> (latency-bound, needs NVLink-class bandwidth, so TP rarely crosses a node), and per-device matrix shards shrink until GEMMs lose efficiency.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mixture-of-experts">
+ <h2>Mixture of experts</h2>
+ <p>A mixture-of-experts layer holds many parallel MLPs ("experts") but routes each token to only one or two of them: parameter count grows enormously while per-token compute barely moves. The learned router is a tiny classifier per token; keeping experts evenly loaded — so hardware stays busy and no expert collapses — is the central engineering battle.</p>
+ <div class="box def"><span class="label">Definition</span> An MoE layer with $E$ experts $\{f_i\}$ and router logits $r(x)\in\mathbb R^E$: with top-$k$ routing, $$y=\sum_{i\in\mathrm{TopK}(r(x))}g_i(x)\,f_i(x),\qquad g=\mathrm{softmax}\ \text{over the selected logits},$$ typically $k=1$ or $2$. Active parameters per token $\approx k/E$ of expert parameters. A load-balancing auxiliary loss $\mathcal L_{\text{aux}}=E\sum_i \bar p_i\bar f_i$ (mean router probability × mean routed fraction per expert) pushes usage toward uniform.</div>
+ <div class="box ex"><span class="label">Worked example</span> $E=8$ experts, $k=2$, router logits for one token: $(2.0,1.5,0.3,\dots)$ with the rest smaller. Top-2: experts 1,2; renormalized gates: $\mathrm{softmax}(2.0,1.5)=(0.622,0.378)$. Output $=0.622f_1(x)+0.378f_2(x)$. If each expert is a 4d-MLP with $8d^2$ params, the layer holds $64d^2$ parameters but each token touches $16d^2$ — 8× the capacity at 2× the dense-MLP compute.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Router collapse: early in training a slightly-preferred expert receives more tokens, learns faster, gets preferred more — a rich-get-richer loop ending with a few overloaded experts and the rest dead. Auxiliary balance losses, per-expert capacity limits (dropping overflow tokens), and router noise are all countermeasures; capacity-dropped tokens silently skip the layer via the residual, a subtle quality tax.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An MoE model advertises "670B parameters, 37B active". What does "active" mean?<details class="sol"><summary>Solution</summary><div>The parameters actually used to process one token — shared layers plus the $k$ routed experts — which is what determines per-token inference flops; the rest sit in memory awaiting other tokens.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does MoE shift the systems bottleneck from flops to memory and communication?<details class="sol"><summary>Solution</summary><div>All $E$ experts' weights must be resident (huge memory footprint despite low active flops), and tokens must be physically shuffled to whichever devices host their assigned experts and back (all-to-all communication every MoE layer). Throughput becomes bound by interconnect and memory capacity rather than arithmetic — the opposite profile of a dense model.</div></details></li>
+  <li><span class="lvl h">HARD</span> With ideal balancing, each of $E=64$ experts receives $1/64$ of tokens. A capacity factor $c=1.25$ lets each expert accept up to $1.25\times$ its fair share per batch. If token-to-expert counts fluctuate as Poisson around the mean $\mu$ (large batch), estimate the dropped-token fraction for $\mu=256$, and explain the trade in raising $c$.<details class="sol"><summary>Solution</summary><div>Capacity $=320$ tokens. Overflow probability per expert: $\Pr[\mathrm{Pois}(256)>320]$; normal approximation $Z=\frac{320-256}{16}=4$: $\approx3\times10^{-5}$ per expert — negligible drops when balanced. The real drops come from <em>imbalance</em> (non-uniform routing), which Poisson-around-uniform doesn't model; raising $c$ absorbs imbalance but pads every expert's buffers (memory ∝ $c$) and wastes compute on padding — so systems prefer better balancing losses over large $c$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kv-cache">
+ <h2>KV cache</h2>
+ <p>Autoregressive generation would naively re-run attention over the whole prefix at every step. The KV cache fixes this: store every layer's keys and values for all past tokens; each new token computes only its own $q,k,v$, attends against the cache, and appends. Compute per step becomes constant-ish — but the cache itself becomes the memory monster that dictates serving economics.</p>
+ <div class="box def"><span class="label">Definition</span> For a model with $L$ layers, $H$ kv-heads of dimension $d_h$, context length $T$, batch $B$, precision $b$ bytes: $$\text{KV memory}=2\,B\,T\,L\,H\,d_h\,b$$ (the 2 counts K and V). Grouped-query attention (GQA) shares one KV head among several query heads, dividing $H$; multi-query attention (MQA) is the extreme $H=1$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide context length and batch size to see KV-cache memory for a 70B-class model (80 layers, $d_h=128$) under full multi-head (64 KV heads) vs GQA (8) vs MQA (1), fp16.</p>
+  <canvas id="cv-kv"></canvas>
+  <div class="ctl"><label>context length <input type="range" id="kv-t" min="1024" max="131072" step="1024" value="8192"></label>
+  <label>batch size <input type="range" id="kv-b" min="1" max="64" step="1" value="8"></label></div>
+  <div class="out" id="kv-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> 70B-class: $L=80$, GQA with $H=8$, $d_h=128$, fp16 ($b=2$). Per token per sequence: $2\cdot80\cdot8\cdot128\cdot2=327{,}680$ B $=320$ KB. At $T=8192$: 2.62 GB per sequence; a batch of 32 needs 84 GB — more than the weights of a 40B model, just for cache. This is why GQA/MQA, cache quantization and paged attention exist.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does the KV cache make generation step $t$ cost $O(t)$ attention work instead of $O(t^2)$?<details class="sol"><summary>Solution</summary><div>Past keys/values are reused, not recomputed: the new query attends against $t$ cached vectors — one row of the attention matrix — instead of rebuilding all $t^2$ scores.</div></details></li>
+  <li><span class="lvl m">MED</span> Recompute the worked example with MQA ($H=1$) and with full MHA ($H=64$), batch 32, $T=8192$.<details class="sol"><summary>Solution</summary><div>Scale linearly in $H$: MQA $=84/8=10.5$ GB; full MHA $=84\cdot8=672$ GB. An 8× GQA compression is the difference between "fits beside the weights" and "impossible".</div></details></li>
+  <li><span class="lvl h">HARD</span> Decoding is memory-bandwidth-bound: each generated token must read all model weights plus the KV cache. For a 70B fp16 model (140 GB weights) on hardware with 3.35 TB/s bandwidth, bound the single-stream decode speed, and explain why batching raises throughput but not per-stream latency.<details class="sol"><summary>Solution</summary><div>Per token: read $\ge140$ GB (weights) $\Rightarrow$ $\le3350/140\approx24$ tokens/s ceiling for batch 1 (cache reads and overheads push it lower). With batch $B$, one weight-read serves $B$ tokens: throughput approaches $24B$ tokens/s until compute or cache bandwidth binds — but each stream still waits for a full weight pass per its own token, so latency per stream is unchanged (or worsens). Serving economics is the art of choosing $B$ to trade latency against $/token cost.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="efficient-attention">
+ <h2>Efficient attention</h2>
+ <p>Attention's $O(T^2)$ cost and memory footprint is the tax on long context. Two attack routes: make the exact computation IO-efficient (FlashAttention never materializes the $T\times T$ matrix, tiling it through fast on-chip memory), or approximate the pattern (sliding windows, sparse blocks, linear attention) so most pairs are never scored at all.</p>
+ <div class="box def"><span class="label">Definition</span> <b>FlashAttention</b>: computes exact softmax attention in tiles using the online-softmax recurrence — maintaining running max $m$ and normalizer $\ell$ per query — with $O(T^2)$ flops but $O(T)$ memory and far fewer HBM reads/writes. <b>Sliding-window attention</b>: each token attends to the last $w$ tokens, cost $O(Tw)$; stacked layers reach $Lw$ effective range. <b>Linear attention</b>: replace $\mathrm{softmax}(QK^\top)V$ with $\phi(Q)(\phi(K)^\top V)$, cost $O(Td_k d_v)$, exploiting associativity.</div>
+ <div class="box ex"><span class="label">Worked example</span> Online softmax: merge two chunks with (max, sum) states $(m_1,\ell_1)=(2.0,\,3.0)$ and $(m_2,\ell_2)=(3.0,\,1.5)$. New max $m=3.0$; corrected normalizer $\ell=\ell_1e^{m_1-m}+\ell_2e^{m_2-m}=3.0e^{-1}+1.5=1.1036+1.5=2.6036$ — exactly the normalizer of the union, computed without revisiting chunk 1's scores. Outputs are rescaled by the same correction factors; this identity is why tiling is exact, not approximate.</div>
+ <div class="box link"><span class="label">Where this goes</span> Long context (below) is built on these mechanisms; the online-softmax trick is Ch 18's log-sum-exp stability in streaming form.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Sliding-window attention with $w=4096$ over $T=131072$: what fraction of the full attention pairs is computed?<details class="sol"><summary>Solution</summary><div>$\approx\frac{Tw}{T^2/2}=\frac{2w}{T}=\frac{8192}{131072}=6.25\%$ (per causal-half counting) — a 16× reduction.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is FlashAttention faster than the naive implementation despite performing the same $O(T^2)$ flops?<details class="sol"><summary>Solution</summary><div>Naive attention writes and re-reads the $T\times T$ score/probability matrices to HBM — at $T=8$k in fp16 that's 128 MB per head per layer of traffic, and attention is memory-bound, not compute-bound. Flash keeps tiles in SRAM, fusing score, softmax and value-weighting into one pass: HBM traffic drops from $O(T^2)$ to $O(T)$-ish, and runtime follows the memory traffic.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show linear attention's associativity trick, its cost, and what it loses versus softmax.<details class="sol"><summary>Solution</summary><div>$(\phi(Q)\phi(K)^\top)V$ costs $O(T^2)$ if left-associated, but $\phi(Q)\,(\phi(K)^\top V)$ computes the $d_k\times d_v$ matrix $S=\sum_t\phi(k_t)v_t^\top$ once — $O(Td_kd_v)$ total, and causally it becomes a running-state recurrence $S_t=S_{t-1}+\phi(k_t)v_t^\top$ (an RNN with matrix state!). Lost: the softmax's input-dependent <em>sharp</em> normalization — attention weights $\phi(q)^\top\phi(k)$ are a fixed low-rank kernel, poor at "retrieve exactly that one token" behaviors (needle recall degrades), which is why hybrid window+linear designs dominate pure linear ones.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sampling-and-decoding">
+ <h2>Sampling and decoding</h2>
+ <p>The model outputs a distribution; decoding decides what to do with it. Greedy takes the argmax (deterministic, repetitive), pure sampling honors the full distribution (diverse, occasionally derailed by the long tail), and beam search hunts high-probability sequences (good for translation, degenerate for open-ended text). Everything practical lives between these poles.</p>
+ <div class="box def"><span class="label">Definition</span> Given next-token distribution $p(\cdot\mid x_{<t})$: <b>greedy</b>: $x_t=\arg\max p$; <b>ancestral sampling</b>: $x_t\sim p$; <b>beam search</b> (width $k$): maintain the $k$ prefixes with highest cumulative log-probability, expand each, keep the best $k$. Repetition penalties and n-gram blocking modify $p$ to suppress loops.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two-step vocabulary $\{a,b\}$: $p(a)=0.6,p(b)=0.4$; after $a$: $p(a)=p(b)=0.5$; after $b$: $p(a)=0.9,p(b)=0.1$. Greedy: $a$ then either (tie) — total probability $0.30$. Beam-2 over full sequences: $ba$ has $0.4\cdot0.9=0.36>0.30$: beam search finds the higher-likelihood sequence greedy misses. Sampling: $\Pr(ba)=0.36$ — it produces $ba$ most often, matching the model's own joint.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The highest-likelihood sequence is often <em>bad</em> open-ended text: likelihood concentrates on short, generic, repetitive continuations ("I don't know." loops), a phenomenon called neural text degeneration. Human text is "surprisingly surprising" — good decoding deliberately keeps entropy, which is why truncated <em>sampling</em>, not search, is the default for chat.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is greedy decoding deterministic while sampling is not, given the same model and prompt?<details class="sol"><summary>Solution</summary><div>Greedy applies argmax — a deterministic function of the (deterministic) logits; sampling draws from the distribution using external randomness, so different runs take different branches.</div></details></li>
+  <li><span class="lvl m">MED</span> In the worked example, compute what beam search with width 2 keeps after step 1 and its final answer.<details class="sol"><summary>Solution</summary><div>Step 1: prefixes $a$ ($\log0.6$) and $b$ ($\log0.4$) — both kept (width 2). Step 2 expansions: $aa:0.30$, $ab:0.30$, $ba:0.36$, $bb:0.04$. Best: $ba$ (0.36). Beam-2 returns $ba$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Self-BLEU and distinct-n measure diversity across samples. Explain why beam search scores poorly on them even with beam width 100, while temperature-1 sampling scores well — and why the reverse holds for a translation quality metric.<details class="sol"><summary>Solution</summary><div>All beams descend from the same few high-probability stems: beam search is a <em>mode-seeking</em> search whose 100 outputs are near-duplicates around the MAP sequence — low diversity by construction. Sampling explores the distribution's bulk: high diversity. For translation, there is approximately one correct output; proximity to the mode is the goal, and sampling's diversity is just error. Open-ended generation wants coverage of many valid continuations; translation wants the single best. Decoding must match the task's tolerance for variance.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="temperature-top-k-and-top-p">
+ <h2>Temperature, top-k and top-p</h2>
+ <p>Three knobs reshape the next-token distribution before sampling. Temperature rescales logits, sharpening ($T<1$) or flattening ($T>1$) the whole distribution. Top-k throws away all but the $k$ most probable tokens. Top-p (nucleus) keeps the smallest set whose probabilities sum to $p$ — adapting the cut to the distribution's own confidence, which is why it became the default.</p>
+ <div class="box def"><span class="label">Definition</span> Temperature: $p_i\propto\exp(z_i/T)$. Top-k: renormalize over the $k$ highest-probability tokens. Top-p: sort descending, keep the minimal prefix with $\sum p_i\ge p$, renormalize. Applied in combination (typically temperature first, then truncation).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A toy 10-token distribution. Slide temperature and the top-p threshold; kept tokens are solid, truncated ones fade. Watch how a flat distribution keeps many tokens and a peaked one keeps few — top-p adapts, top-k would not.</p>
+  <canvas id="cv-samp"></canvas>
+  <div class="ctl"><label>temperature $T$ <input type="range" id="sp-temp" min="0.2" max="2.5" step="0.05" value="1"></label>
+  <label>top-p <input type="range" id="sp-p" min="0.1" max="1" step="0.01" value="0.9"></label></div>
+  <div class="out" id="sp-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Probabilities $(0.5,0.25,0.15,0.07,0.03)$. Top-k with $k=2$: keep $(0.5,0.25)$, renormalize to $(0.667,0.333)$. Top-p with $p=0.9$: cumulative sums $0.5,0.75,0.9$ — keep three tokens, renormalized $(0.556,0.278,0.167)$. Temperature $T=0.5$ (squares, then renormalize): $(0.25,0.0625,0.0225,0.0049,0.0009)/0.3408=(0.734,0.183,0.066,0.014,0.003)$ — sharpened toward the head.</div>
+ <div class="quiz" data-answer="2"><div class="q">A prompt has one obviously correct next token ($p=0.95$). Which setting changes the outcome distribution the most?</div><button class="opt">Top-p with p=0.9</button><button class="opt">Top-k with k=5</button><button class="opt">Temperature T=2.0</button><div class="why" hidden>Top-p keeps just the top token (0.95 ≥ 0.9): no change. Top-k keeps the head where ~all mass already is: tiny change. T=2 takes square roots of probabilities: 0.95 vs 0.01 becomes ~0.97 vs 0.1 ratio-wise — mass leaks substantially to the tail (the top token can drop toward ~0.6 depending on the tail shape). Temperature reshapes even confident distributions; truncation methods only clip tails.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What do $T\to0$ and $T\to\infty$ correspond to?<details class="sol"><summary>Solution</summary><div>$T\to0$: greedy (argmax); $T\to\infty$: uniform over the vocabulary (Ch 21, softmax drill).</div></details></li>
+  <li><span class="lvl m">MED</span> Apply temperature $T=0.5$ then top-p $0.9$ to $(0.5,0.25,0.15,0.07,0.03)$.<details class="sol"><summary>Solution</summary><div>From the worked example, $T=0.5$ gives $(0.734,0.183,0.066,0.014,0.003)$. Cumulative: $0.734,\,0.917$ — top-p 0.9 keeps two tokens; renormalize: $(0.8,0.2)$ (precisely $0.734/0.917=0.800$, $0.183/0.917=0.200$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does top-p dominate top-k across contexts with varying entropy? Construct the two failure cases of fixed $k$.<details class="sol"><summary>Solution</summary><div>(1) Peaked context ("The Eiffel Tower is in"): true mass on 1–2 tokens; $k=40$ re-admits 38 junk tokens whose renormalized mass, though individually small, sums to a real derail probability per step, compounding over a long generation. (2) Flat context (start of a story): hundreds of tokens are legitimately plausible; $k=40$ truncates valid diversity and biases toward the arbitrary head. Top-p keeps 1–2 tokens in case (1) and hundreds in case (2) — it conditions the cutoff on the model's own uncertainty, approximating "discard only the untrustworthy tail".</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fine-tuning">
+ <h2>Fine-tuning</h2>
+ <p>Fine-tuning continues training a pretrained model on a smaller, targeted dataset — a new domain, a task format, a company's style. The pretrained weights are an enormously informative initialization; a few thousand examples can redirect behavior that would take billions of tokens to learn from scratch. The risks are equally characteristic: overfitting the small set and forgetting general capabilities.</p>
+ <div class="box def"><span class="label">Definition</span> Full fine-tuning: continue minimizing cross-entropy on task data $\mathcal D_{\text{task}}$ starting from pretrained $\theta_0$, typically with a much smaller learning rate ($10^{-5}$–$10^{-6}$ vs pretraining's $10^{-4}$), few epochs, and often a loss mask (train only on the response tokens, not the prompt). Supervised fine-tuning (SFT) is this recipe on (instruction, response) pairs.</div>
+ <div class="box ex"><span class="label">Worked example</span> A 7B model is fine-tuned on 50k (prompt, response) pairs averaging 500 tokens with responses of 300. Loss is masked to responses: $50000\cdot300=1.5\times10^{7}$ supervised tokens per epoch, 3 epochs $=4.5\times10^7$ tokens — versus 2T pretraining tokens: the fine-tune is $0.002\%$ of the training signal, yet it flips the model from text-completer to instruction-follower, because it only needs to re-weight existing capabilities, not build them.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Catastrophic forgetting: aggressive fine-tuning on a narrow distribution degrades everything else (general knowledge, safety behavior, other languages). Mitigations: low LR and early stopping, mixing in general "replay" data, parameter-efficient methods (next), and evaluating on broad suites — not just the target task — before shipping.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why mask the loss to response tokens in SFT?<details class="sol"><summary>Solution</summary><div>The model should learn to <em>produce responses given prompts</em>, not to model prompt text (it will always be given the prompt). Training on prompts wastes capacity and teaches the model to imitate user quirks and formatting.</div></details></li>
+  <li><span class="lvl m">MED</span> Compare when you'd fine-tune vs prompt (in-context) for: (a) a strict JSON output schema used 10M times/day, (b) a one-off analysis task.<details class="sol"><summary>Solution</summary><div>(a) Fine-tune: the schema is stable, high-volume, and every prompt token spent re-explaining it costs money at $10^7$/day; a tuned model complies with near-zero instruction overhead and higher reliability. (b) Prompt: one-off tasks never repay tuning costs; in-context instructions are instant, reversible and require no infrastructure.</div></details></li>
+  <li><span class="lvl h">HARD</span> Fine-tuning on 2,000 examples of a niche format achieves 99% train accuracy but the model now answers unrelated questions in that format. Diagnose and give three fixes.<details class="sol"><summary>Solution</summary><div>Diagnosis: overfitting to a spurious, always-present feature of the fine-tune set — the format itself became the highest-salience pattern, and the small dataset offered no counterexamples showing when <em>not</em> to use it. Fixes: (1) mix in general instruction data (replay) so the format appears only in its trigger contexts; (2) reduce epochs/LR or add early stopping on a held-out general suite; (3) make the trigger explicit — condition the format on a system instruction present only in the niche examples, and include negatives (similar prompts with normal responses). Parameter-efficient tuning (LoRA) also limits drift.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="parameter-efficient-fine-tuning">
+ <h2>Parameter-efficient fine-tuning</h2>
+ <p>Full fine-tuning of a 70B model means storing and shipping 70B updated weights per task — and holding optimizer states 3× that during training. Parameter-efficient fine-tuning (PEFT) freezes the base model and trains a small add-on: low-rank adapters, small inserted layers, learned prompt vectors, or just biases. You get most of the quality for a thousandth of the trainable parameters, and tasks become swappable attachments.</p>
+ <div class="box def"><span class="label">Definition</span> PEFT trains $\Delta\theta$ with $|\Delta\theta|\ll|\theta|$ while freezing $\theta_0$: <b>adapters</b> (small bottleneck MLPs inserted per layer), <b>prompt/prefix tuning</b> (learned virtual tokens prepended to keys/values), <b>BitFit</b> (train biases only), and <b>LoRA</b> (low-rank weight deltas, next section). Memory saving: optimizer states exist only for trainable parameters.</div>
+ <div class="box ex"><span class="label">Worked example</span> 7B model, full fine-tune with Adam: $7\text{B}\times(2+4+4+4)$ B $=98$ GB of weights+optimizer (bf16 weights, fp32 master+moments). LoRA on attention projections with $r=16$: ~40M trainable params → optimizer+trainable memory $\approx40\text{M}\times14\text{B}\approx0.56$ GB plus the frozen 14 GB bf16 base — trainable on a single 24 GB GPU (with quantized base, even less).</div>
+ <div class="box link"><span class="label">Where this goes</span> LoRA (next) and quantization (after) combine into QLoRA — the standard recipe for tuning big models on small hardware.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does freezing the base model slash optimizer memory?<details class="sol"><summary>Solution</summary><div>Adam stores two fp32 moments (+ master weights) per <em>trainable</em> parameter; frozen weights need none. Cutting trainables 1000× cuts that state 1000×.</div></details></li>
+  <li><span class="lvl m">MED</span> A serving fleet must host 50 customer-specific variants of one 70B model. Compare full fine-tunes vs LoRA adapters operationally.<details class="sol"><summary>Solution</summary><div>Full: 50 × 140 GB = 7 TB of weights; each variant needs dedicated replicas — GPU count scales with variant count regardless of per-variant traffic. LoRA: one shared 140 GB base + 50 adapters of ~100–500 MB each; adapters can be hot-swapped or batched together (multi-LoRA serving) on the same replicas, so capacity follows total traffic, not variant count.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prefix tuning learns $m$ virtual key/value vectors per layer. Explain the mechanism (why prepending KV pairs steers behavior) and one expressiveness limit versus LoRA.<details class="sol"><summary>Solution</summary><div>Every real token's attention now includes the learned prefix pairs as extra candidates: softmax weights divert some mass to them, and their learned values inject a task-specific bias vector into every position's output — a persistent, content-independent "instruction" in activation space. Limit: prefixes only <em>add attendable content</em>; they cannot change how existing tokens transform each other (the frozen $W_{Q,K,V,O}$ and MLPs still process inter-token interactions identically), while LoRA modifies the maps themselves. Empirically prefix methods lag on tasks needing new input-output <em>mappings</em> rather than re-weighted behaviors, and long prefixes eat context budget.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lora">
+ <h2>LoRA</h2>
+ <p>LoRA bets that the <em>change</em> a fine-tune needs is low-rank: instead of updating a weight matrix $W$, learn a skinny pair $B A$ (rank $r$, with $r\ll d$) and use $W+BA$. Train ~0.1% of the parameters, keep the base frozen — and at deployment, either merge $BA$ into $W$ (zero inference overhead) or keep adapters separate and swap them per task.</p>
+ <div class="box def"><span class="label">Definition</span> For a frozen $W\in\mathbb R^{d_{\text{out}}\times d_{\text{in}}}$, LoRA parameterizes $$W'=W+\frac{\alpha}{r}BA,\qquad B\in\mathbb R^{d_{\text{out}}\times r},\ A\in\mathbb R^{r\times d_{\text{in}}},$$ with $A\sim\mathcal N(0,\sigma^2)$, $B=0$ at init (so training starts at the base model), scale $\alpha$, rank $r$ typically 4–64, applied to attention (and often MLP) projections.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide rank and the set of adapted matrices to see trainable parameters and their fraction of a 7B model ($d=4096$, 32 layers).</p>
+  <canvas id="cv-lora"></canvas>
+  <div class="ctl"><label>rank $r$ <input type="range" id="lo-r" min="1" max="128" step="1" value="16"></label>
+  <label>adapt MLPs too <input type="checkbox" id="lo-mlp"></label></div>
+  <div class="out" id="lo-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> One $4096\times4096$ projection, $r=16$: LoRA params $=16\cdot4096\cdot2=131{,}072$ vs $16.8$M full — 0.78%. Across $W_Q,W_K,W_V,W_O$ in 32 layers: $32\cdot4\cdot131072\approx16.8$M trainable parameters total, ~0.24% of 7B. Merge check: $y=Wx+\frac{\alpha}{r}B(Ax)$ costs two skinny GEMMs extra; merged, $W'=W+\frac\alpha rBA$ is a single dense matrix — identical output, zero overhead.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Initializing <em>both</em> $A$ and $B$ randomly makes $BA\ne0$ at step 0: the model starts perturbed away from the pretrained function, often visibly degraded before learning begins. The $B=0$ convention guarantees the fine-tune starts exactly at the base model. Also remember $\alpha/r$: changing $r$ without adjusting $\alpha$ silently rescales the update magnitude.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many trainable parameters does LoRA with $r=8$ add to a $1024\times1024$ matrix, and what fraction of full fine-tuning is that?<details class="sol"><summary>Solution</summary><div>$8\cdot1024\cdot2=16{,}384$ vs $1{,}048{,}576$: 1.56%.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is rank-$r$ a plausible restriction for fine-tuning updates — what evidence or intuition supports it?<details class="sol"><summary>Solution</summary><div>A fine-tune redirects existing capabilities rather than learning new features; behavior changes of that kind concentrate in a few directions of each weight matrix. Empirically, measured intrinsic dimensionality of fine-tuning is tiny (good task performance from optimizing in random subspaces of dimension ~$10^2$–$10^4$), the singular-value spectrum of full fine-tune deltas decays fast, and LoRA at $r\le64$ matches full tuning on most instruction/domain tasks — while tasks demanding genuinely new knowledge show the gap where the hypothesis fails.</div></details></li>
+  <li><span class="lvl h">HARD</span> You LoRA-tune with $r=16$, $\alpha=32$, then decide to retry with $r=64$ "for more capacity" keeping $\alpha=32$. What changed beyond capacity, and how do you make the comparison fair? Also: can two LoRA adapters trained separately be added?<details class="sol"><summary>Solution</summary><div>The effective scale $\alpha/r$ fell from 2 to 0.5: the new run's updates are 4× smaller per unit of $BA$, effectively shrinking the learning rate of the delta — differences in results may be scale artifacts, not capacity. Fair comparison: keep $\alpha/r$ constant (e.g. $\alpha=128$ for $r=64$) or use rank-stabilized scaling $\alpha/\sqrt r$. Adding adapters: $W+B_1A_1+B_2A_2$ is well-defined and often works roughly (task arithmetic), but the adapters were each trained assuming the other absent; interference is uncontrolled — sums of low-rank updates can double-count shared directions, so merged behavior needs re-evaluation, not trust.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quantization">
+ <h2>Quantization</h2>
+ <p>Weights don't need 16 bits each. Quantization stores them in 8 or 4 bits (sometimes less), with per-group scale factors mapping the small integer grid back to real values. Memory shrinks 2–4×, and because inference is memory-bandwidth-bound, speed rises almost proportionally — at a usually-small accuracy tax that careful methods (group-wise scales, outlier handling, quantization-aware calibration) keep tiny.</p>
+ <div class="box def"><span class="label">Definition</span> Uniform affine quantization of a group of weights $w$: $$q=\mathrm{clamp}\Big(\mathrm{round}\big(\tfrac{w}{s}\big)+z,\ 0,\ 2^b-1\Big),\qquad \hat w=s\,(q-z),$$ with scale $s$ and zero-point $z$ chosen per group (e.g. 64–128 weights) from its min/max or by error minimization. Weight-only quantization (GPTQ/AWQ-style) quantizes $W$ but computes in 16-bit; NF4 (QLoRA) uses a nonuniform 4-bit grid matched to Gaussian weight statistics.</div>
+ <div class="box ex"><span class="label">Worked example</span> Group $w=(-0.9,\,0.1,\,0.4,\,1.1)$, 4-bit asymmetric ($0..15$). Range $[-0.9,1.1]$: $s=\frac{1.1-(-0.9)}{15}=0.1333$, $z=\mathrm{round}(0.9/0.1333)=7$ (so $\hat w=s(q-7)$; check $q=0\mapsto-0.933$, $q=15\mapsto1.067$). Quantize: $-0.9\to q=\mathrm{round}(-6.75)+7=0$, $\hat w=-0.933$; $0.1\to q=8$, $\hat w=0.133$; $0.4\to q=10$, $\hat w=0.4$; $1.1\to q=15$, $\hat w=1.067$. Max error $\approx0.037$, about $s/2\cdot$... within $s/2=0.067$ ✓ except the clamped endpoint at $0.033$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Outliers: a single weight of magnitude 8 in a group of typical magnitude 0.1 stretches $s$ by 80×, crushing everyone else's resolution. LLM weights and especially <em>activations</em> have systematic outlier channels; that is why per-group scales, outlier-aware methods (AWQ keeps salient channels finer) and mixed-precision channels exist — and why naive whole-tensor scaling fails hard on real models.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A 70B model in fp16, int8, int4: memory for weights?<details class="sol"><summary>Solution</summary><div>140 GB, 70 GB, 35 GB (plus small per-group scale overhead, ~3–6% at group size 64–128).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does weight-only 4-bit quantization speed up <em>decoding</em> nearly 3–4× but barely help large-batch <em>prefill</em>?<details class="sol"><summary>Solution</summary><div>Decoding is memory-bound: time ≈ bytes of weights read per token; 4× fewer bytes → up to ~4× faster (minus dequantize overhead). Prefill on large batches is compute-bound (big GEMMs): the arithmetic still runs in 16-bit after dequantization, so flops are unchanged and the speedup mostly disappears.</div></details></li>
+  <li><span class="lvl h">HARD</span> With $b$-bit uniform quantization at scale $s$, model rounding error as $U[-s/2,s/2]$. Derive its variance, and estimate the SNR (in dB) for weights $\sim\mathcal N(0,\sigma_w^2)$ when the grid covers $[-4\sigma_w,4\sigma_w]$ with $b=4$ vs $b=8$.<details class="sol"><summary>Solution</summary><div>$\mathrm{Var}=\int_{-s/2}^{s/2}\frac{u^2}{s}du=\frac{s^2}{12}$. Grid: $s=\frac{8\sigma_w}{2^b}$. SNR $=\frac{\sigma_w^2}{s^2/12}=\frac{12\cdot2^{2b}}{64}=0.1875\cdot2^{2b}$. $b=4$: $48$ → $10\log_{10}48\approx16.8$ dB. $b=8$: $12288$ → $\approx40.9$ dB — the classic ~6 dB/bit. At 4 bits, per-weight noise is ~15% of $\sigma_w$; models tolerate it because the error is zero-mean and averaged over thousands of weights per dot product ($\sqrt n$ cancellation), which is also why <em>activations</em> (fewer per dot product, heavy outliers) are much harder to quantize than weights.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="instruction-tuning">
+ <h2>Instruction tuning</h2>
+ <p>A base model completes text; users want it to follow instructions. Instruction tuning is SFT on a broad mixture of (instruction, good response) pairs — thousands of task types, formats and tones — teaching the model the <em>social contract</em> of assistance: read the request, answer it, stop. Crucially, it generalizes: models follow instruction types never seen in tuning.</p>
+ <div class="box def"><span class="label">Definition</span> Instruction tuning fine-tunes on $\mathcal D=\{(\text{instruction}_i,\text{response}_i)\}$ rendered in a chat template (system/user/assistant roles with special tokens), loss on response tokens only. Data comes from human writers, curated task collections (FLAN-style), or stronger-model distillation; diversity of instructions matters more than raw count past a few thousand high-quality examples.</div>
+ <div class="box ex"><span class="label">Worked example</span> Before: prompt "Explain photosynthesis" → base model continues "…to a 5-year-old. Explain gravity. Explain evolution." (it pattern-matches a list of homework prompts). After tuning on ~10k varied instruction pairs, the same prompt yields an actual explanation, and the never-trained instruction "Explain photosynthesis as a pirate shanty" also works: the model learned the <em>mapping</em> instruction→compliance, and composition with existing style knowledge does the rest.</div>
+ <div class="box link"><span class="label">Where this goes</span> Instruction tuning is stage one of alignment training; RLHF/DPO (below) refine it with preference signal, and Ch 35 examines what these methods do and don't guarantee.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does the chat template use special role tokens rather than plain text like "User:"?<details class="sol"><summary>Solution</summary><div>Reserved special tokens can't be produced by user text, so the model can always distinguish real role boundaries from content that merely <em>says</em> "User:" — a basic injection defense and a reliable stop/turn signal for the serving stack.</div></details></li>
+  <li><span class="lvl m">MED</span> Dataset A: 1M templated examples from 20 task types. Dataset B: 20k examples from 2,000 task types. Which generalizes better to novel instructions and why?<details class="sol"><summary>Solution</summary><div>B, robustly (the FLAN finding). Generalization to unseen instructions depends on instruction-space coverage: with 20 templates the model learns 20 stimulus-response rules; with 2,000 it must learn the general instruction-following mapping to compress them all (Ch 20: diverse tasks shrink the viable hypothesis class toward the intended one). A's extra volume mostly re-treads the same 20 rules.</div></details></li>
+  <li><span class="lvl h">HARD</span> Distilling instruction data from a stronger model is cheap and effective. Give two specific risks it introduces beyond ordinary SFT risks.<details class="sol"><summary>Solution</summary><div>(1) Style-over-substance imitation: the student copies the teacher's confident, polished register without the underlying knowledge, yielding fluent wrongness that <em>looks</em> aligned — evaluation by style-sensitive judges (including humans) overestimates the gain. (2) Inherited bias/error amplification and license/ToS issues: teacher hallucinations, refusal patterns and idiosyncrasies become training targets, teacher-specific phrasings leak in, and mode collapse toward the teacher's typical outputs shrinks diversity (Ch 21, synthetic data). Verifier filtering and mixing human data mitigate both.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reward-models">
+ <h2>Reward models</h2>
+ <p>To optimize "be helpful", you need a number for it. A reward model is a copy of the LLM with a scalar head, trained on human <em>comparisons</em> — "response A is better than B" — via the Bradley–Terry model: the probability A beats B is a logistic function of the reward gap. It converts cheap, reliable relative judgments into an absolute score that RL can climb.</p>
+ <div class="box def"><span class="label">Definition</span> A reward model $r_\psi(x,y)$ maps (prompt, response) to a scalar. Bradley–Terry training on preference pairs $(x,y_w,y_l)$: $$\mathcal L(\psi)=-\,\mathbb E\big[\log\sigma\big(r_\psi(x,y_w)-r_\psi(x,y_l)\big)\big],$$ i.e. maximize the modeled probability that the chosen response outranks the rejected one. Rewards are identifiable only up to a per-prompt additive constant.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the reward gap $\Delta=r(y_w)-r(y_l)$ to see the Bradley–Terry win probability $\sigma(\Delta)$ and the training loss $-\log\sigma(\Delta)$ — small gaps still leave real disagreement probability.</p>
+  <canvas id="cv-bt"></canvas>
+  <div class="ctl"><label>reward gap Δ <input type="range" id="bt-d" min="-4" max="4" step="0.05" value="1"></label></div>
+  <div class="out" id="bt-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> $r(y_w)=2.3$, $r(y_l)=1.1$: gap $1.2$, modeled win probability $\sigma(1.2)=0.769$, loss $-\ln0.769=0.263$. If annotators actually prefer $y_w$ only 77% of the time (real preferences are noisy), this gap is <em>calibrated</em> — pushing the gap further would overfit annotation noise. A gap of 4 claims 98.2% agreement; few human preference distinctions are that clean.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The RM is a proxy learned from finite, biased comparisons. Optimizing hard against it finds its failure modes: length bias (longer ≈ better in the data → verbose outputs), sycophancy, format fetishes, confident tone over correctness. This is reward hacking of a learned reward (Ch 25's reward hacking, Ch 35's specification gaming) — the reason RLHF constrains the policy with a KL leash.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why train on comparisons instead of asking annotators for absolute 1–10 scores?<details class="sol"><summary>Solution</summary><div>Human absolute scales drift across annotators, sessions and items (miscalibration); comparisons are far more consistent and cheap to make. Bradley–Terry converts consistent relative data into a coherent scalar scale.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that adding any prompt-dependent constant $c(x)$ to $r_\psi$ leaves the Bradley–Terry loss unchanged, and name a consequence.<details class="sol"><summary>Solution</summary><div>The loss depends only on $r(x,y_w)-r(x,y_l)$; $c(x)$ cancels. Consequence: raw reward values are not comparable across prompts — only within-prompt differences mean anything — so analyses that average absolute rewards across prompts, or set global reward thresholds, are statistically meaningless without per-prompt normalization (e.g. subtracting a baseline response's reward).</div></details></li>
+  <li><span class="lvl h">HARD</span> Annotators agree with each other 70% of the time on a pair distribution. The RM reaches 78% held-out accuracy predicting the <em>recorded</em> choice. Interpret, and derive the ceiling accuracy if 70% is the symmetric inter-annotator agreement... assume each label is the "true" preference flipped with probability $\epsilon$ where agreement $=(1-\epsilon)^2+\epsilon^2=0.7$.<details class="sol"><summary>Solution</summary><div>Solve $(1-\epsilon)^2+\epsilon^2=0.7$: $2\epsilon^2-2\epsilon+0.3=0$, $\epsilon=\frac{2\pm\sqrt{4-2.4}}{4}=\frac{1\pm\sqrt{0.4}}{2}$ → $\epsilon\approx0.184$. A perfect predictor of the true preference matches a noisy label with probability $1-\epsilon\approx0.816$: the ceiling is ~81.6%. The RM's 78% is thus close to optimal — most residual "error" is label noise, and squeezing accuracy further risks fitting noise. It also warns: the RM inherits whatever the annotator pool systematically prefers, at whatever consistency they have.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rlhf">
+ <h2>RLHF</h2>
+ <p>Reinforcement learning from human feedback closes the loop: generate responses with the current policy, score them with the reward model, and update the policy to produce higher-reward responses — while a KL penalty tethers it to the SFT model so it can't wander into the reward model's blind spots. It optimizes for <em>judged quality</em> directly, rather than imitating any particular demonstration.</p>
+ <div class="box def"><span class="label">Definition</span> RLHF objective over prompts $x\sim\mathcal D$: $$\max_\theta\ \mathbb E_{y\sim\pi_\theta(\cdot\mid x)}\big[r_\psi(x,y)\big]-\beta\,\mathrm{KL}\big(\pi_\theta(\cdot\mid x)\,\|\,\pi_{\text{ref}}(\cdot\mid x)\big),$$ with $\pi_{\text{ref}}$ the frozen SFT model and $\beta$ the leash strength. Pipeline: SFT → reward model → RL (typically PPO, next section).</div>
+ <div class="box thm"><span class="label">Theorem (optimal tilted policy)</span> The exact maximizer is $$\pi^*(y\mid x)=\frac{1}{Z(x)}\,\pi_{\text{ref}}(y\mid x)\,e^{r_\psi(x,y)/\beta}$$ — the reference policy exponentially re-weighted by reward. RL is needed only because sampling/normalizing this tilted distribution directly is intractable; DPO (below) exploits the formula instead.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three candidate responses with $\pi_{\text{ref}}=(0.5,0.3,0.2)$ and rewards $(1.0,\,2.0,\,0.0)$, $\beta=1$. Tilted weights: $0.5e^{1}=1.359$, $0.3e^{2}=2.217$, $0.2e^{0}=0.2$; $Z=3.776$. $\pi^*=(0.360,\,0.587,\,0.053)$: the middle response — good reward <em>and</em> decent prior — dominates; the low-reward one is suppressed but not eliminated. With $\beta\to0$, all mass → response 2; with $\beta\to\infty$, $\pi^*\to\pi_{\text{ref}}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Over-optimization: reward-model score keeps rising while true quality peaks then falls (Goodhart). Symptoms: verbosity, sycophancy, formulaic hedging, KL exploding. Monitor gold evaluations (human or held-out judges) versus RM score, keep KL budgets modest, and treat "RM went up" as a hypothesis, never a conclusion.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the three trained artifacts of the classic RLHF pipeline, in order?<details class="sol"><summary>Solution</summary><div>(1) SFT model from instruction data; (2) reward model from preference comparisons; (3) RL-tuned policy optimizing RM score with KL to the SFT model.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the tilted-policy theorem: maximize $\mathbb E_\pi[r]-\beta\mathrm{KL}(\pi\|\pi_{\text{ref}})$ over distributions $\pi$.<details class="sol"><summary>Solution</summary><div>Lagrangian over the simplex: $\sum_y\pi(y)r(y)-\beta\sum_y\pi(y)\log\frac{\pi(y)}{\pi_{\text{ref}}(y)}+\lambda(\sum\pi-1)$. Stationarity: $r(y)-\beta(\log\frac{\pi}{\pi_{\text{ref}}}+1)+\lambda=0\Rightarrow\pi(y)\propto\pi_{\text{ref}}(y)e^{r(y)/\beta}$. Normalizing gives $Z(x)$. (Same Gibbs-variational calculation as Ch 16's maximum entropy.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does RLHF often <em>reduce</em> output diversity and calibration relative to the base model, even when it improves helpfulness?<details class="sol"><summary>Solution</summary><div>The tilted optimum sharpens $\pi_{\text{ref}}$ toward high-reward modes: entropy necessarily drops (exponential tilting concentrates mass), and since the RM rarely rewards exploring minority-but-valid styles, diversity narrows to reward-safe archetypes. Calibration: the base model's token probabilities approximate corpus frequencies (well-calibrated by the pretraining objective); RL re-weights tokens by reward considerations, decoupling probability from frequency — measured calibration on factual multiple-choice degrades after RLHF. Both are intrinsic costs of distribution sharpening, tunable via $\beta$ but not eliminable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ppo-for-language-models">
+ <h2>PPO for language models</h2>
+ <p>PPO is the RL workhorse (its general form arrives in Ch 25) adapted to token generation: the "environment" is trivial — a prompt in, a response out, one reward at the end — but the policy has billions of parameters, so updates must be small and safe. PPO's clipped ratio objective takes several gradient steps per batch of generations while preventing any token's probability from moving too far.</p>
+ <div class="box def"><span class="label">Definition</span> For each token $t$ with advantage estimate $\hat A_t$ and ratio $\rho_t(\theta)=\frac{\pi_\theta(y_t\mid s_t)}{\pi_{\theta_{\text{old}}}(y_t\mid s_t)}$: $$\mathcal L^{\text{clip}}=\mathbb E_t\big[\min\big(\rho_t\hat A_t,\ \mathrm{clip}(\rho_t,1-\epsilon,1+\epsilon)\hat A_t\big)\big],$$ maximized with $\epsilon\approx0.2$. In RLHF, per-token reward is $-\beta\log\frac{\pi_\theta}{\pi_{\text{ref}}}$ plus the RM score on the final token; a learned value head supplies baselines for advantages (GAE).</div>
+ <div class="box ex"><span class="label">Worked example</span> A token has $\hat A=+2$ and new/old ratio $\rho=1.5$, $\epsilon=0.2$. Unclipped term: $3.0$; clipped: $1.2\cdot2=2.4$; $\min=2.4$ — and since the clipped branch is a constant w.r.t. $\theta$ once $\rho>1.2$, the gradient through this token is <em>zero</em>: PPO refuses to push a already-over-increased probability further. With $\hat A=-1$ and $\rho=0.7$: unclipped $-0.7$, clipped $0.8\cdot(-1)=-0.8$; $\min=-0.8$… careful: $\min(-0.7,-0.8)=-0.8$ — the objective takes the more pessimistic value, keeping gradient pressure to fix over-shrunk good tokens symmetric.</div>
+ <div class="box pit"><span class="label">Pitfall</span> LLM-specific PPO instabilities: value head mis-scaled relative to rewards (normalize rewards; whiten advantages), KL term double-counted (as reward penalty <em>and</em> objective term), generation/optimization distribution drift within an epoch (stale ratios), and length exploitation (reward per response, not per token, makes longer responses accumulate KL bonus asymmetries). Most "PPO won't converge" reports trace to one of these.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What plays the role of state, action and episode when PPO trains an LLM?<details class="sol"><summary>Solution</summary><div>State: prompt + tokens generated so far; action: the next token (vocabulary-sized action space); episode: one complete response, with reward at termination (plus per-token KL penalties).</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the clipped objective term for $\hat A=+1$, $\rho=0.5$, $\epsilon=0.2$, and state whether this token still receives gradient.<details class="sol"><summary>Solution</summary><div>Unclipped: $0.5$; clipped: $0.8$. $\min=0.5$, the unclipped branch — which depends on $\theta$, so yes: gradient flows, pushing the good token's probability back up. Clipping only kills gradients that would move the ratio <em>further outside</em> the trust band in the advantageous direction.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does PPO for LLMs need a value function at all, given the reward arrives only at the end — couldn't the trajectory return serve as the signal for every token (REINFORCE)?<details class="sol"><summary>Solution</summary><div>It can (and simplified variants do), but the whole-return signal assigns identical credit to all ~500 tokens: variance is enormous — one lucky sample inflates every token it contains, requiring many samples to average out. A per-state value baseline $V(s_t)$ converts returns into advantages $\hat A_t=R-V(s_t)$ (or GAE), canceling prompt difficulty and already-determined quality, cutting gradient variance by orders of magnitude (Ch 25, baselines). The cost — a second large network and its instabilities — is exactly what motivates the RL-free method next door: DPO.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dpo">
+ <h2>DPO</h2>
+ <p>Direct Preference Optimization notices that the RLHF optimum has a closed form ($\pi^*\propto\pi_{\text{ref}}e^{r/\beta}$), inverts it to express the reward in terms of the policy itself, and substitutes into the Bradley–Terry loss. Result: preference optimization becomes a plain classification-style loss on the policy — no reward model, no sampling loop, no PPO — at the price of being tied to the fixed preference dataset.</p>
+ <div class="box def"><span class="label">Definition</span> DPO loss on preference triples $(x,y_w,y_l)$: $$\mathcal L=-\,\mathbb E\Big[\log\sigma\Big(\beta\log\tfrac{\pi_\theta(y_w\mid x)}{\pi_{\text{ref}}(y_w\mid x)}-\beta\log\tfrac{\pi_\theta(y_l\mid x)}{\pi_{\text{ref}}(y_l\mid x)}\Big)\Big],$$ derived by substituting the implicit reward $r(x,y)=\beta\log\frac{\pi_\theta(y\mid x)}{\pi_{\text{ref}}(y\mid x)}+\beta\log Z(x)$ into Bradley–Terry (the $Z$ cancels in the difference).</div>
+ <div class="box ex"><span class="label">Worked example</span> Sequence log-probs: chosen $\log\pi_\theta(y_w)=-40$, $\log\pi_{\text{ref}}(y_w)=-42$ (ratio $+2$); rejected $\log\pi_\theta(y_l)=-38$, $\log\pi_{\text{ref}}(y_l)=-37$ (ratio $-1$). With $\beta=0.1$: margin $=0.1[(+2)-(-1)]=0.3$; loss $=-\log\sigma(0.3)=-\log(0.5744)=0.554$. Gradient pushes chosen log-ratio up and rejected down, weighted by $1-\sigma(0.3)=0.426$ — pairs the model already ranks correctly (large margin) get vanishing weight.</div>
+ <div class="box think"><span class="label">Think first</span> DPO's loss can be minimized by <em>lowering</em> $\pi_\theta(y_w)$ — as long as $\pi_\theta(y_l)$ falls faster. Why is that a real concern? <details class="sol"><summary>Reveal</summary><div>The loss depends only on the <em>difference</em> of log-ratios: nothing anchors the absolute likelihood of the chosen response. Empirically both likelihoods often decline during DPO, with probability mass leaking to sequences outside the preference set — sometimes degrading generation quality despite improving pairwise ranking. Variants (IPO, adding an SFT/NLL term on $y_w$, cDPO) add exactly this anchoring.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List three components of PPO-RLHF that DPO eliminates.<details class="sol"><summary>Solution</summary><div>The trained reward model, online sampling from the policy during training, and the value network/PPO machinery (clipping, GAE, KL controllers). What remains: a reference model and a preference dataset.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that in DPO's implicit reward, the intractable $\beta\log Z(x)$ term vanishes from the loss.<details class="sol"><summary>Solution</summary><div>Both $y_w$ and $y_l$ share the same prompt $x$, so both implicit rewards carry the identical $\beta\log Z(x)$; the Bradley–Terry loss uses only $r(x,y_w)-r(x,y_l)$, where it cancels. This cancellation is the entire reason the substitution is tractable.</div></details></li>
+  <li><span class="lvl h">HARD</span> Contrast DPO and PPO-RLHF on: (a) distribution of training data, (b) susceptibility to reward hacking, (c) ability to exceed the preference dataset's quality.<details class="sol"><summary>Solution</summary><div>(a) DPO trains offline on fixed pairs (often from other models); PPO trains on the current policy's own samples — on-policy data that tracks the model's actual failure modes. (b) PPO can hack the learned RM in regions far from data (unbounded extrapolated rewards); DPO has no explicit RM to hack but can overfit dataset artifacts (e.g. length correlates with "chosen") — both Goodhart, different surfaces. (c) PPO can iterate: new samples → new comparisons → improvement beyond the initial data; vanilla DPO is bounded by the information in its fixed pairs — iterated/online DPO variants re-introduce sampling to close this gap. In practice DPO is the cheap robust baseline; online RL wins when fresh preference collection is affordable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="constitutional-and-ai-feedback-methods">
+ <h2>Constitutional and AI feedback methods</h2>
+ <p>Human feedback is slow, expensive, and inconsistent at scale. Constitutional AI (RLAIF's flagship) replaces much of it with <em>principles plus AI labor</em>: a written constitution of rules, a model that critiques and revises its own outputs against those rules (making SFT data), and a model that judges response pairs against them (making preference data for RL). Humans move up a level — from labeling every example to writing and auditing the rules.</p>
+ <div class="box def"><span class="label">Definition</span> Constitutional AI (Bai et al., 2022): <b>Phase 1 (SL-CAI)</b>: sample responses to red-team prompts; ask the model to critique its response against a sampled constitutional principle, then revise; fine-tune on the revisions. <b>Phase 2 (RLAIF)</b>: for response pairs, ask a model which better satisfies a principle; train a preference model on these AI labels; run RL against it. The constitution is a small set of natural-language principles (drawing on, e.g., harmlessness and honesty norms).</div>
+ <div class="box ex"><span class="label">Worked example</span> Prompt: "How do I pick a lock?" Draft response: detailed instructions. Critique step (principle: avoid assisting illegal acts while being helpful): "The response provides instructions that could enable break-ins; it should instead address legitimate contexts (own property, locksmiths) and decline specifics." Revision: explains being locked out options, recommends a locksmith, declines a technique walkthrough. The (prompt, revision) pair enters SFT; separately, (draft, revision) judged by the AI against the principle becomes a preference pair. No human labeled this example — humans wrote the principle.</div>
+ <div class="box pit"><span class="label">Pitfall</span> AI feedback inherits and <em>amplifies</em> the judge model's biases: sycophancy toward confident phrasing, verbosity preference, self-preference (judging its own style as better), and systematic blind spots become the training signal itself. Auditing requires human spot checks calibrated against the AI labels, adversarial probes of the judge, and diverse judge ensembles — the oversight problem recursing one level up (Ch 35, scalable oversight).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In Constitutional AI, what do humans provide, and what do models provide?<details class="sol"><summary>Solution</summary><div>Humans: the constitution (principles), red-team prompts, and audit/oversight. Models: critiques, revisions (SFT data) and pairwise judgments (preference data) — the per-example labor.</div></details></li>
+  <li><span class="lvl m">MED</span> Why can AI preference labels be <em>more consistent</em> than human ones while still being <em>less trustworthy</em>?<details class="sol"><summary>Solution</summary><div>A single judge model applies the same decision function to every pair — near-zero inter-rater variance, unlike human pools (70% agreement typical). But consistency is not validity: the judge can be consistently wrong (systematic bias toward length, confidence, its own idioms), and its errors are correlated across the whole dataset, so they don't average out the way independent human noise does — they become the optimization target.</div></details></li>
+  <li><span class="lvl h">HARD</span> Iterated AI feedback: model $M_{k+1}$ is trained on preferences judged by $M_k$. Model the judge's systematic bias as a vector $b$ added to the true quality score. What happens to the bias across iterations, and what breaks the loop?<details class="sol"><summary>Solution</summary><div>Each round optimizes quality-plus-bias, so $M_{k+1}$ over-expresses $b$-favored features; if $M_{k+1}$ also becomes the next judge, its judgments now <em>embody</em> the amplified bias — a positive feedback loop with bias compounding roughly geometrically until $b$-features saturate (all outputs maximally verbose/sycophantic/etc.). Breaking it requires signals uncorrelated with $b$: fresh human audits, external verifiers (tests, checkers) with ground truth, fixed frozen judges rather than self-updating ones, and explicit bias probes (e.g. length-controlled comparisons) that subtract $b$'s known components.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="in-context-learning">
+ <h2>In-context learning</h2>
+ <p>Show a pretrained LLM a few input→output examples in its prompt and it performs the task on the next input — no weight updates at all. The forward pass itself implements a learning algorithm: attention heads locate the examples, extract the mapping, and apply it (the induction-head circuit of Ch 21's capstone is the simplest case). Prompts became the new training sets.</p>
+ <div class="box def"><span class="label">Definition</span> In-context learning (ICL): for a task with examples $\{(x_i,y_i)\}_{i=1}^{k}$, the model computes $p_\theta(y\mid x,\ (x_1,y_1),\dots,(x_k,y_k))$ — conditioning, not gradient descent. $k=0$: zero-shot (instruction only); $k\ge1$: few-shot. Performance typically rises with $k$, model scale, and example quality/order.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prompt: "sea → mar&#10;dog → perro&#10;house → casa&#10;moon →". The model outputs "luna". Nothing about Spanish translation was updated in the weights; the prompt's pattern selected a capability already latent from pretraining (parallel text on the web). Swap the examples to French pairs and the same weights output "lune" — the "task variable" lives in activations.</div>
+ <div class="box pit"><span class="label">Pitfall</span> ICL is spooky-sensitive to surface details: example <em>order</em> can swing accuracy by double digits, majority-label imbalance biases predictions, and separators/format matter. Worse, models sometimes ignore flipped labels in the examples (relying on priors rather than the demonstrated mapping) — so "it did the task" doesn't establish it <em>learned from</em> your examples. Always test with permuted orders and label-flip controls.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How does in-context learning differ from fine-tuning in what changes inside the model?<details class="sol"><summary>Solution</summary><div>Fine-tuning changes weights permanently; ICL changes only activations (the KV cache) for the duration of the context — the "learning" evaporates when the context ends.</div></details></li>
+  <li><span class="lvl m">MED</span> Give two mechanistic hypotheses for how a transformer performs few-shot regression-like ICL, with one piece of supporting evidence each.<details class="sol"><summary>Solution</summary><div>(1) Induction/copy circuits: paired heads match the current query against earlier example inputs and copy the associated outputs — evidence: induction heads appear at the same training moment ICL ability jumps, and ablating them destroys ICL. (2) Implicit optimization: for linear-regression-style tasks, trained transformers' in-context predictions match gradient-descent/least-squares solutions computed from the prompt examples — evidence: constructions showing attention layers can implement GD steps, and empirical match between transformer ICL and ridge-regression predictions on synthetic tasks.</div></details></li>
+  <li><span class="lvl h">HARD</span> Frame ICL as implicit Bayesian inference over latent tasks and derive one testable prediction.<details class="sol"><summary>Solution</summary><div>Pretraining text is a mixture over latent "tasks/concepts" $\phi$: $p(\text{doc})=\int p(\text{doc}\mid\phi)p(\phi)d\phi$. An optimal predictor conditions on the prompt to form a posterior over $\phi$ and predicts $p(y\mid x,\text{prompt})=\int p(y\mid x,\phi)\,p(\phi\mid\text{prompt})d\phi$. Prediction: ICL accuracy should grow as the posterior concentrates — i.e. with more examples, and with examples that are more <em>distinctive</em> of the task (higher likelihood ratio against competing tasks) — and prompts consistent with two tasks should produce mixture behavior. Both are observed: ambiguous formats yield blended predictions, and rare/distinctive formats need fewer shots.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="chain-of-thought">
+ <h2>Chain-of-thought</h2>
+ <p>Ask a model to "think step by step" and accuracy on math and multi-hop problems jumps. The reason is computational, not psychological: a transformer does a fixed amount of computation per token, so hard problems need more tokens. Generated reasoning steps are scratch space — intermediate results written into the context where later tokens can attend to them.</p>
+ <div class="box def"><span class="label">Definition</span> Chain-of-thought (CoT) prompting elicits intermediate reasoning $z$ before the answer $a$: the model samples $z\sim p(\cdot\mid x)$, then $a\sim p(\cdot\mid x,z)$ — marginalizing over reasoning paths $p(a\mid x)=\sum_zp(a\mid x,z)p(z\mid x)$. Variants: few-shot CoT (exemplars contain worked reasoning), zero-shot CoT ("Let's think step by step"), and self-consistency (sample many $z$, majority-vote the answers — Ch 30).</div>
+ <div class="box ex"><span class="label">Worked example</span> "A bat and ball cost \$1.10; the bat costs \$1 more than the ball. What does the ball cost?" Direct answer: models (like humans) blurt "\$0.10". With CoT: "Let ball $=x$; bat $=x+1$; $2x+1=1.10$; $x=0.05$." The intermediate equation is written into context, and the final token attends to "$x=0.05$" rather than pattern-matching the "\$1.10/\$1" surface form. Each step is individually easy; the chain composes them.</div>
+ <div class="box thm"><span class="label">Theorem (expressivity of CoT, informal)</span> A fixed-depth transformer computes only functions in a small circuit class per token (roughly $\mathsf{TC}^0$); with $t$ steps of generated scratch tokens, it can simulate $t$ steps of sequential computation — polynomially many CoT tokens lift it to polynomial-time computation. Reasoning length is a compute budget (Ch 30, test-time compute).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does CoT help a transformer when the same weights failed to answer directly?<details class="sol"><summary>Solution</summary><div>Per-token compute is fixed; a direct answer must solve the whole problem in one forward pass's depth. CoT spreads the computation across many tokens, storing intermediate results in the context where attention can retrieve them — serial computation the architecture otherwise lacks.</div></details></li>
+  <li><span class="lvl m">MED</span> Self-consistency samples $n=20$ CoT paths and votes. If each path independently reaches the correct answer with $p=0.6$ (errors split among many wrong answers), why does voting help so much, and when does it fail?<details class="sol"><summary>Solution</summary><div>The correct answer needs only a plurality: with wrong mass fragmented, the modal answer is correct with probability far above 0.6 — e.g. if wrong answers are spread over many values, correct-mode probability approaches $\Pr[\mathrm{Bin}(20,0.6)>\text{each wrong count}]\approx0.99$. Fails when errors are <em>correlated</em> (a systematically tempting wrong answer concentrates the 0.4, e.g. the "\$0.10" trap) — voting then confidently returns the shared mistake.</div></details></li>
+  <li><span class="lvl h">HARD</span> Stated reasoning is not necessarily the computation that produced the answer. Describe an experiment demonstrating unfaithful CoT and its implication.<details class="sol"><summary>Solution</summary><div>Bias experiment (Turpin et al.): add a spurious cue to prompts (e.g. reorder multiple-choice options so the answer is always "A", or note "a Stanford professor thinks the answer is B"). Models shift answers toward the cue while their CoT never mentions it, instead producing plausible-sounding justifications for the biased answer. Implication: CoT text is a rationalization channel, not a transparent trace — auditing model reasoning by reading its stated steps can miss the true causal factors, motivating process supervision and interpretability tools (Ch 30, Ch 35).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="retrieval-augmented-generation">
+ <h2>Retrieval-augmented generation</h2>
+ <p>Instead of hoping the weights memorized the fact you need, fetch it: embed the query, search a document index, and paste the top passages into the prompt for the model to read. RAG turns a parametric memory problem into a search problem — knowledge becomes updatable (re-index, don't retrain), citable (here's the source), and auditable.</p>
+ <div class="box def"><span class="label">Definition</span> A RAG pipeline: (1) offline, chunk documents and index them (dense embeddings and/or BM25 — Ch 31); (2) online, retrieve top-$k$ chunks for the query, optionally rerank; (3) generate conditioned on query + retrieved context: $p(a\mid q)\approx\sum_{d\in\mathrm{TopK}(q)}p(a\mid q,d)\,\mathrm{relevance}(d,q)$ in spirit, implemented as one generation over concatenated evidence.</div>
+ <div class="box ex"><span class="label">Worked example</span> Query: "What is our refund window for enterprise plans?" Embedding search over the policy wiki returns: chunk A (consumer refunds, score 0.71), chunk B (enterprise terms §4.2: "45 days", score 0.68), chunk C (SLA credits, 0.55). A reranker reading full text reorders: B (0.95), A (0.40), C (0.2). The prompt includes B and A; the model answers "45 days, per §4.2" with a citation. Without the reranker, the consumer chunk's higher embedding score would have seeded a wrong answer — retrieval quality, not generation, was the binding constraint.</div>
+ <div class="box pit"><span class="label">Pitfall</span> RAG fails quietly at the seams: chunking splits the answer across boundaries; the embedder misses vocabulary mismatch ("refund window" vs "return period" — hybrid BM25+dense helps); the model answers from its weights when retrieval returns junk (no abstention); and irrelevant retrieved text actively degrades accuracy (distraction). Evaluate retrieval (recall@k) separately from generation (faithfulness to provided context) or you cannot localize failures.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 31 builds the retrieval stack in full: sparse vs dense, ANN indexes, hybrid fusion, reranking, and memory for agents.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name three advantages of RAG over fine-tuning for keeping a model current on company documents.<details class="sol"><summary>Solution</summary><div>Instant updates (re-index vs retrain), provenance (citations to sources), and access control/auditability (retrieve only what this user may see; you can inspect exactly what the model was shown).</div></details></li>
+  <li><span class="lvl m">MED</span> Retrieval returns $k=5$ chunks with recall@5 = 0.8 (the gold passage is present 80% of the time). Given the gold passage, the model answers correctly 90% of the time; without it, 30%. What is end-to-end accuracy, and where should improvement effort go?<details class="sol"><summary>Solution</summary><div>$0.8\cdot0.9+0.2\cdot0.3=0.72+0.06=0.78$. Sensitivities: raising generation 90→95% gains $0.8\cdot0.05=4$ points; raising recall 80→90% gains $0.1\cdot(0.9-0.3)=6$ points. Retrieval is the higher-leverage (and usually cheaper) fix — a general pattern in RAG systems.</div></details></li>
+  <li><span class="lvl h">HARD</span> Long-context models can ingest whole document sets. Give three reasons RAG persists anyway, with quantitative flavor.<details class="sol"><summary>Solution</summary><div>(1) Cost/latency: attention over $10^6$ context tokens costs orders of magnitude more per query than retrieving 2k relevant tokens (prefill flops scale $\propto12Td^2+2T^2d$; at $T=10^6$ the quadratic term alone is ~$10^{12}\cdot d$ per layer) — and the corpus may be $10^9$+ tokens, beyond any context. (2) Effective use degrades with length: needle-recall and reasoning accuracy fall in the middle of very long contexts ("lost in the middle"), while top-k retrieval keeps the evidence density high. (3) Freshness and permissions: an index updates per-document in seconds and enforces per-user ACLs at query time; context stuffing re-sends everything to everyone. Hybrid systems (retrieval into a long context) dominate both extremes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="long-context">
+ <h2>Long context</h2>
+ <p>Stretching context from 4k to a million tokens is not one problem but three: the $O(T^2)$ attention bill (efficient/windowed attention, Flash), the KV-cache memory bill (GQA, quantized cache, paging), and the modeling problem — positional schemes must generalize to lengths never trained, and attention must stay <em>useful</em> when one query competes with a million keys.</p>
+ <div class="box def"><span class="label">Definition</span> Long-context methods: <b>position scaling</b> — RoPE frequency adjustments (position interpolation divides positions by a factor $s$; NTK/YaRN-style scaling stretches low frequencies more) so trained phase ranges cover longer spans; <b>continued pretraining</b> on long documents at the target length; <b>attention/memory engineering</b> — sliding windows plus a few global/"attention sink" tokens, ring attention across devices, KV compression. Evaluation: needle-in-a-haystack recall, long-document QA, and aggregation tasks at many depths and lengths.</div>
+ <div class="box ex"><span class="label">Worked example</span> RoPE position interpolation: a model trained to 8k must serve 32k. Rescale positions $t\to t/4$: every rotation angle $\omega_it/4$ now stays within the trained range $[0,\omega_i\cdot8192]$ at $t\le32768$. The cost: adjacent tokens' angular separation shrinks 4× — fine distinctions between nearby positions blur, so a brief fine-tune at the new scaling restores local acuity. (NTK-aware scaling instead rescales $\omega_i$ nonuniformly, preserving high-frequency/local resolution while stretching the low-frequency clock.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Supports 1M tokens" ≠ "uses 1M tokens": models pass needle tests (exact-match retrieval) yet fail aggregation ("how many times was X mentioned?") and middle-of-context reasoning at a fraction of advertised length. Position on the context-length spec sheet is a memory-capacity claim; verify task-relevant capability at the depths and lengths you'll actually use.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Doubling context from 64k to 128k: how do attention flops and KV-cache memory scale for a full-attention model?<details class="sol"><summary>Solution</summary><div>Attention score/value flops ($\propto T^2$): 4×. KV cache ($\propto T$): 2×. Linear-in-$T$ projection/MLP flops: 2×.</div></details></li>
+  <li><span class="lvl m">MED</span> Why do untrained position extrapolations fail for RoPE — what specifically goes out of distribution?<details class="sol"><summary>Solution</summary><div>Attention scores depend on relative rotations $q^\top R_{\theta(s-t)}k$; at unseen offsets, low-frequency dimensions reach phase combinations never observed in training, producing score patterns (often large/miscalibrated logits) the network never learned to interpret — attention entropy collapses or explodes and recall craters beyond the trained window. Interpolation keeps phases in-distribution by compressing positions instead.</div></details></li>
+  <li><span class="lvl h">HARD</span> A sliding-window model ($w=4$k) with $L=32$ layers claims effective range $Lw=128$k via layer-stacked propagation. Why is information at that range much weaker than direct attention, and what hybrid fixes it?<details class="sol"><summary>Solution</summary><div>Reaching 128k needs the signal to hop through ~32 sequential layer-steps, each a lossy aggregation (softmax-weighted average mixed with thousands of other tokens, then MLP compression): effective signal decays roughly multiplicatively per hop, and there is no way to sharply retrieve a specific distant token — only diffuse summaries survive. Hybrids: interleave a few full-attention (or strided/global) layers so any token is $\le2$ hops from any other via global "hub" layers, or add a retrieval/memory mechanism (landmark tokens, kNN over cached keys) providing direct long-range edges. Empirically a handful of global layers recovers most needle recall at a fraction of full-attention cost.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hallucination">
+ <h2>Hallucination</h2>
+ <p>A language model is a text-plausibility engine: when the truth is absent from its weights and context, the most <em>probable-sounding</em> continuation is still emitted with fluent confidence. Hallucination is not a bug in the sampler — it is the training objective doing its job on out-of-support questions. Fixes therefore combine grounding (give it the truth to copy), calibration (let it say "I don't know"), and verification (check the output).</p>
+ <div class="box def"><span class="label">Definition</span> Hallucination: generated content unsupported by (or contradicting) the model's provided context or verifiable reality — spanning fabricated facts, citations, entities, or unfaithful summaries. Distinguish <em>intrinsic</em> (contradicts given source) vs <em>extrinsic</em> (unverifiable addition). Contributing mechanisms: MLE's mass-covering pressure (Ch 22), exposure bias, sampling randomness, RLHF-induced confident style, and questions beyond the knowledge cutoff or corpus.</div>
+ <div class="box ex"><span class="label">Worked example</span> "Give me 3 papers on X by author Y" where Y wrote only 1. The joint pattern "numbered list of plausible titles + venue + year" has high probability; each token is locally plausible given the previous ones, and no token is the "lie" — the fabrication emerges from the chain. The same model asked "Did Y write [fabricated title]?" often says no: <em>generation</em> samples from plausibility, while <em>verification</em> queries stored associations — the asymmetry behind generate-then-verify pipelines.</div>
+ <div class="box think"><span class="label">Think first</span> Perfect calibration at the token level does not prevent hallucination at the claim level. Why? <details class="sol"><summary>Reveal</summary><div>A claim is a conjunction of many tokens; each can be modestly uncertain while the sampled sequence asserts a specific composite fact whose probability of being <em>entirely</em> correct is the product — small — yet the surface text carries no hedge. Calibration lives in the distribution; assertion lives in the sample. Claim-level honesty needs mechanisms above token probabilities: abstention thresholds, sampled-consistency checks (divergent samples ⇒ unknown), or explicit verification against sources.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does grounding (RAG) reduce hallucination for factual queries?<details class="sol"><summary>Solution</summary><div>It converts recall into reading comprehension: the answer is present in context, so copying/quoting outscores fabricating, and the model's uncertainty about world facts is replaced by (much lower) uncertainty about text it can attend to.</div></details></li>
+  <li><span class="lvl m">MED</span> Design a sampling-based hallucination detector requiring no external knowledge, and state its assumption.<details class="sol"><summary>Solution</summary><div>SelfCheck-style: sample $n$ independent answers to the same question at moderate temperature; extract the target claim from each; measure agreement (exact match or NLI consistency). High divergence ⇒ the claim is not stably encoded ⇒ flag as likely hallucination. Assumption: knowledge the model genuinely has is reproduced consistently across samples, while fabrications vary — which fails for consistently-stored <em>misinformation</em> (confident, stable, wrong).</div></details></li>
+  <li><span class="lvl h">HARD</span> RLHF can increase hallucination even while improving helpfulness ratings. Explain the mechanism and one training-time countermeasure.<details class="sol"><summary>Solution</summary><div>Raters reward confident, complete, fluent answers and (absent verification) cannot penalize plausible fabrications they don't recognize; hedging and "I don't know" rate poorly. The reward model internalizes this, so RL shifts the policy toward assertive completion of every request — including unanswerable ones — trading truthfulness for perceived helpfulness. Countermeasures: preference data where verified-wrong confident answers are ranked below calibrated abstentions (fact-checked comparisons), rewarding citation-backed claims, or adding a truthfulness-specific reward term from an external verifier — i.e., putting ground truth, not vibes, into the reward.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="llm-evaluation">
+ <h2>LLM evaluation</h2>
+ <p>Evaluating a system that can do "anything" is the field's quiet crisis. The toolkit: automatic benchmarks (cheap, gameable), human preference tests (gold-ish, expensive, style-biased), and LLM-as-judge (scalable, biased in knowable ways). Serious evaluation triangulates all three, reports uncertainty, and — above all — matches the metric to the capability actually claimed.</p>
+ <div class="box def"><span class="label">Definition</span> Main paradigms: <b>closed-form benchmarks</b> (accuracy on MMLU-style multiple choice, exact-match math, unit-test pass@k for code); <b>pairwise human preference</b> (Elo/Bradley–Terry ratings from battles, e.g. Arena-style); <b>LLM-as-judge</b> (a strong model scores or compares outputs against a rubric); plus capability-specific suites (long-context, agentic tasks, safety). pass@k: probability $\ge1$ of $k$ samples passes tests $=1-\binom{n-c}{k}/\binom{n}{k}$ estimated from $n$ samples with $c$ passes.</div>
+ <div class="box ex"><span class="label">Worked example</span> A code model: from $n=20$ samples per problem, $c=4$ pass. Unbiased pass@1 $=4/20=0.2$. pass@5 $=1-\binom{16}{5}/\binom{20}{5}=1-\frac{4368}{15504}=1-0.2817=0.718$ — with 5 attempts and a test oracle, a 20%-per-shot model solves 72% of such problems. The gap between pass@1 and pass@k is exactly the value of verification (Ch 30, test-time compute).</div>
+ <div class="box pit"><span class="label">Pitfall</span> LLM-judge biases are systematic: position bias (first answer preferred — swap and average), length bias (longer preferred — control or penalize), self-preference (judging its own family's style up), and rubric drift. Human evals have their own: style over substance, fatigue, demographic skew of raters. Every reported number should carry its protocol; a bare "GPQA: 61%" hides prompt, shots, sampling, and extraction choices that swing results by several points.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must pass@k be estimated with the combinatorial formula rather than "did any of the first $k$ of my $n$ samples pass"?<details class="sol"><summary>Solution</summary><div>Using the first $k$ of $n$ wastes the other samples and has high variance; the estimator $1-\binom{n-c}{k}/\binom{n}{k}$ is the unbiased probability over all $\binom nk$ subsets — same data, minimal variance.</div></details></li>
+  <li><span class="lvl m">MED</span> Model A beats model B in 58 of 100 pairwise battles. Compute the implied Elo gap and the 95% margin of error on the win rate; is the result significant?<details class="sol"><summary>Solution</summary><div>Elo: $p=\frac{1}{1+10^{-\Delta/400}}\Rightarrow\Delta=400\log_{10}\frac{0.58}{0.42}\approx400\cdot0.1401\approx56$ Elo. Margin: $1.96\sqrt{0.58\cdot0.42/100}\approx1.96\cdot0.0494\approx0.097$ — the CI $[0.483,0.677]$ includes 0.5: <em>not</em> significant at 95% with only 100 battles. Arena-style rankings need thousands of battles per pair; treat small-sample win rates as anecdotes.</div></details></li>
+  <li><span class="lvl h">HARD</span> Design an evaluation for "helpful customer-support agent" that resists the three classic gaming strategies: verbosity, sycophancy, and benchmark memorization.<details class="sol"><summary>Solution</summary><div>(1) Outcome-grounded tasks: simulated tickets with ground-truth resolutions (correct refund amount, correct troubleshooting step verified by a simulator/tests) — resolution accuracy, not text quality, is primary; verbosity earns nothing. (2) Judge protocol: length-controlled pairwise comparisons with position swapping, rubric penalizing unsupported claims and needless apology/flattery; separate scores for correctness, efficiency (turns/tokens to resolution), and policy compliance. (3) Contamination control: procedurally generated tickets from templates + fresh entity/values per run (answers can't be memorized), held-out private set rotated over time, plus n-gram/embedding overlap checks against training data. Report per-axis scores with CIs from $\ge$1k tickets and audit a human-graded subsample to calibrate the judge.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="benchmarks-and-contamination">
+ <h2>Benchmarks and contamination</h2>
+ <p>Benchmarks steer the field — and rot under three forces: contamination (test items leak into pretraining corpora), saturation (top models cluster at the ceiling where the remaining errors are label noise), and Goodharting (labs optimize the number, not the capability). A benchmark score is evidence only jointly with evidence about what the model trained on.</p>
+ <div class="box def"><span class="label">Definition</span> Contamination: overlap between evaluation items (inputs and/or answers) and training data — direct (verbatim test items), paraphrase-level, or answer-key leakage (solutions discussed online). Detection: n-gram overlap scans, embedding similarity, membership-inference-style probes (perplexity gaps, or asking the model to complete test items verbatim / reproduce ordering it could only know from the file). Defenses: canary strings, private held-out sets, live/rotating benchmarks, and post-cutoff test construction.</div>
+ <div class="box ex"><span class="label">Worked example</span> A model scores 85% on a public math benchmark but 61% on a fresh set of problems generated from the same templates with new numbers. The 24-point gap is a contamination signature: capability transfers across surface changes, memorization does not. Corroboration: the model can complete several test problems' exact wording from their first half (verbatim recall), and its per-item perplexity on the benchmark file is anomalously low versus matched fresh items.</div>
+ <div class="quiz" data-answer="1"><div class="q">A benchmark's remaining error rate among top models is ~3%, and inspection shows ~3% of its labels are wrong or ambiguous. What does a further 1-point gain between two frontier models most likely reflect?</div><button class="opt">A genuine capability difference</button><button class="opt">Fitting the benchmark's label noise and idiosyncrasies</button><button class="opt">Contamination of the weaker model</button><div class="why" hidden>At the noise ceiling, differences within the label-error band mostly measure agreement with the erroneous/ambiguous labels — i.e., overfitting to the artifact, not the capability. The benchmark is saturated; discrimination requires a harder or cleaner test.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does contamination inflate scores even when the model wasn't "trained on the test set" deliberately?<details class="sol"><summary>Solution</summary><div>Web-scale corpora passively absorb public test sets, their discussions and solution write-ups; next-token training on those memorizes answers. No malice needed — the crawl did it.</div></details></li>
+  <li><span class="lvl m">MED</span> What is a canary string, and what does its recall demonstrate (and not demonstrate)?<details class="sol"><summary>Solution</summary><div>A unique random token sequence (e.g. a GUID) embedded in a benchmark's files. If a model can reproduce the canary, its training data included the file — proof of ingestion. Non-recall proves little (deduplication may drop the canary while keeping items; paraphrases evade it), and recall doesn't quantify how much the <em>scores</em> inflated — it's a tripwire, not a meter.</div></details></li>
+  <li><span class="lvl h">HARD</span> Propose a statistical membership test for benchmark contamination using only logprob access, and name its confound.<details class="sol"><summary>Solution</summary><div>Exchangeability test: for each test item, present its multiple-choice options (or its example list) in the canonical file order vs random permutations; compute the model's log-likelihood of each ordering. On uncontaminated data all orders should be near-exchangeable; systematically higher likelihood for the canonical order (paired test across items, e.g. Wilcoxon) indicates the model saw the file. Confound: canonical orders are sometimes non-random by construction (alphabetized options, difficulty-sorted examples) or appear in many independent sources — so calibrate against models with known-clean cutoffs and against synthetic reorderings of the same content.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Budgeting a training run.</b> You have $C=3\times10^{23}$ flops. (a) Chinchilla-optimal $N$ and $D$ (use $D\approx20N$, $C=6ND$). (b) The model will serve $10^{12}$ tokens over its life at $2N$ flops/token; compare inference compute to training compute at your answer from (a), and state qualitatively how the optimal design shifts. (c) At 400 accelerators × $3\times10^{14}$ flops/s sustained, how long does training take?<details class="sol"><summary>Solution</summary><div>(a) $6N\cdot20N=3\times10^{23}\Rightarrow N^2=2.5\times10^{21}\Rightarrow N=5\times10^{10}$ (50B), $D=10^{12}$ (1T tokens). (b) Inference: $2\cdot5\times10^{10}\cdot10^{12}=10^{23}$ flops — a third of training compute. Since inference cost scales with $N$ but not $D$, shift to a smaller, overtrained model (e.g. ~half the parameters, several× the tokens): slightly worse training-loss-per-training-flop, better loss-per-total-flop. (c) $t=\frac{3\times10^{23}}{400\cdot3\times10^{14}}=2.5\times10^{6}$ s $\approx29$ days.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>The alignment pipeline in numbers.</b> An SFT model assigns two candidate responses log-probs $\log\pi_{\text{ref}}(y_1)=-20$, $\log\pi_{\text{ref}}(y_2)=-22$; the reward model scores $r_1=1.0$, $r_2=3.0$; $\beta=0.5$. (a) Compute the RLHF-optimal policy's preference ratio $\pi^*(y_2)/\pi^*(y_1)$. (b) After training, a DPO-style implicit reward is measured: $\log\pi_\theta(y_1)=-21$, $\log\pi_\theta(y_2)=-20.5$. Compute both implicit rewards (up to the shared constant) and check consistency with the RM ordering. (c) The KL to the reference for this two-candidate slice: which response's probability moved more in log-space, and what does the $\beta$ choice control here?<details class="sol"><summary>Solution</summary><div>(a) $\frac{\pi^*(y_2)}{\pi^*(y_1)}=\frac{\pi_{\text{ref}}(y_2)e^{r_2/\beta}}{\pi_{\text{ref}}(y_1)e^{r_1/\beta}}=e^{-2}\cdot e^{(3-1)/0.5}=e^{-2+4}=e^{2}\approx7.39$ — the reference preferred $y_1$ by $e^2$, but reward reverses it to favor $y_2$ by $e^2$. (b) Implicit rewards $\hat r_i=\beta\log\frac{\pi_\theta(y_i)}{\pi_{\text{ref}}(y_i)}$: $\hat r_1=0.5(-21+20)=-0.5$; $\hat r_2=0.5(-20.5+22)=+0.75$. Ordering $\hat r_2>\hat r_1$ ✓ consistent with $r_2>r_1$; gap $=1.25$ vs RM gap $2.0$ — the policy internalized the preference partially (finite training / KL leash). (c) Log-prob moves: $y_1$: $-1.0$; $y_2$: $+1.5$ — $y_2$ moved more. $\beta$ sets the exchange rate between reward and divergence: smaller $\beta$ licenses larger moves (sharper tilting, more hacking risk), larger $\beta$ pins the policy to the reference.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Serving economics.</b> A 70B fp16 model (140 GB) serves chat with mean 500-token responses. Hardware: 8×H100-class, aggregate 26.8 TB/s HBM bandwidth, 640 GB memory. GQA KV: 320 KB/token/sequence. (a) Batch-1 decode ceiling (tokens/s) from weight reads on the aggregate bandwidth. (b) With batch 24 at 8k mean context, does the KV cache fit beside the weights? (c) Estimate aggregate throughput at batch 24 assuming weight reads dominate and are amortized across the batch, plus per-token KV reads. (d) Name two techniques to double throughput without new hardware.<details class="sol"><summary>Solution</summary><div>(a) $26.8\,\text{TB/s}/140\,\text{GB}\approx191$ tokens/s ceiling (real: lower). (b) KV: $24\cdot8192\cdot320$ KB $\approx62.9$ GB; $140+63=203$ GB $\le640$ ✓ fits. (c) Per decode step: weights 140 GB (shared) + KV reads $\approx62.9$ GB (each sequence reads its own cache) $\approx203$ GB per step producing 24 tokens → $26.8/0.203\approx132$ steps/s → $\approx3.2$k tokens/s aggregate; per-stream ≈132 tokens/s. (d) Quantize weights to int4 (weight traffic 4×↓ → roughly 2×+ throughput while memory-bound), quantize/GQA-shrink KV cache, continuous batching to keep batches full, or speculative decoding (draft model proposes, target verifies several tokens per weight pass).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three exercises: a BPE trainer, a sampling suite, and DPO on a toy bandit-style preference set.</p>
+ <div class="box ex"><span class="label">Task 1 — BPE from scratch</span> Implement BPE training (on word frequency dicts) and encoding; train on a small corpus and verify merges and tokenization.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>from collections import Counter
+
+def train_bpe(word_freqs, num_merges):
+    # word_freqs: {word: count}; words as tuples of symbols
+    vocab = {tuple(w): c for w, c in word_freqs.items()}
+    merges = []
+    for _ in range(num_merges):
+        pairs = Counter()
+        for w, c in vocab.items():
+            for i in range(len(w)-1):
+                pairs[(w[i], w[i+1])] += c
+        if not pairs: break
+        best = max(pairs, key=pairs.get)
+        merges.append(best)
+        new_vocab = {}
+        for w, c in vocab.items():
+            out, i = [], 0
+            while i &lt; len(w):
+                if i &lt; len(w)-1 and (w[i], w[i+1]) == best:
+                    out.append(w[i]+w[i+1]); i += 2
+                else:
+                    out.append(w[i]); i += 1
+            new_vocab[tuple(out)] = new_vocab.get(tuple(out), 0) + c
+        vocab = new_vocab
+    return merges
+
+def encode(word, merges):
+    w = list(word)
+    for a, b in merges:                 # apply merges in learned order
+        i, out = 0, []
+        while i &lt; len(w):
+            if i &lt; len(w)-1 and w[i] == a and w[i+1] == b:
+                out.append(a+b); i += 2
+            else:
+                out.append(w[i]); i += 1
+        w = out
+    return w
+
+freqs = {'hug': 10, 'pug': 5, 'hugs': 5}
+merges = train_bpe(freqs, 3)
+print(merges)                # [('u','g'), ('h','ug'), ...]
+print(encode('pugs', merges))  # ['p', 'ug', 's']
+print(encode('hug',  merges))  # ['hug']</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Temperature / top-k / top-p sampler</span> Implement the three transforms on a logit vector, verify the worked-example numbers from this chapter, and plot kept-token counts vs top-p for a peaked and a flat distribution.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def softmax(z):
+    z = z - z.max(); e = np.exp(z); return e/e.sum()
+
+def apply_temperature(logits, T):
+    return softmax(np.asarray(logits, float)/T)
+
+def top_k(p, k):
+    idx = np.argsort(p)[::-1][:k]
+    q = np.zeros_like(p); q[idx] = p[idx]
+    return q/q.sum()
+
+def top_p(p, pth):
+    order = np.argsort(p)[::-1]
+    csum = np.cumsum(p[order])
+    keep = order[:np.searchsorted(csum, pth) + 1]
+    q = np.zeros_like(p); q[keep] = p[keep]
+    return q/q.sum()
+
+p = np.array([0.5, 0.25, 0.15, 0.07, 0.03])
+print(top_k(p, 2))        # [0.667 0.333 0 0 0]
+print(top_p(p, 0.9))      # [0.556 0.278 0.167 0 0]
+logits = np.log(p)
+print(apply_temperature(logits, 0.5).round(3))  # [0.734 0.183 0.066 0.014 0.003]
+q = apply_temperature(logits, 0.5)
+print(top_p(q, 0.9).round(3))                   # [0.8 0.2 0 0 0]
+
+for name, dist in [('peaked', np.array([0.95]+[0.05/9]*9)),
+                   ('flat',   np.ones(10)/10)]:
+    kept = [(top_p(dist, x) &gt; 0).sum() for x in (0.5, 0.9, 0.99)]
+    print(name, 'tokens kept at p=0.5/0.9/0.99:', kept)</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — DPO on a toy policy</span> A "policy" is a softmax over 4 responses per prompt. Given preference pairs, implement the DPO loss against a fixed reference and verify the policy shifts toward chosen responses while the implicit reward ordering emerges.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import torch
+torch.manual_seed(0)
+# 1 prompt, 4 candidate responses; policy + frozen reference are logit vectors
+ref_logits = torch.tensor([1.0, 0.5, 0.0, -0.5])
+logits = ref_logits.clone().requires_grad_(True)
+beta = 0.5
+# preferences: (winner, loser) — humans prefer 2 over 0, 2 over 1, 3 over 0
+prefs = [(2,0), (2,1), (3,0)]
+opt = torch.optim.Adam([logits], lr=0.05)
+
+def logp(lg): return torch.log_softmax(lg, -1)
+
+for step in range(300):
+    lp, lref = logp(logits), logp(ref_logits)
+    loss = 0.
+    for w, l in prefs:
+        margin = beta*((lp[w]-lref[w]) - (lp[l]-lref[l]))
+        loss = loss - torch.nn.functional.logsigmoid(margin)
+    loss = loss/len(prefs)
+    opt.zero_grad(); loss.backward(); opt.step()
+
+with torch.no_grad():
+    pi = torch.softmax(logits, -1)
+    imp_r = beta*(logp(logits) - logp(ref_logits))
+print('policy      ', pi.numpy().round(3))     # mass moved to responses 2,3
+print('implicit r  ', imp_r.numpy().round(3))  # r[2],r[3] &gt; r[0],r[1]
+print('ref policy  ', torch.softmax(ref_logits,-1).numpy().round(3))</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://arxiv.org/abs/2005.14165">Brown et al. — Language Models are Few-Shot Learners (GPT-3, 2020)</a> — scaling, in-context learning and the modern LLM template.</li>
+  <li><a href="https://arxiv.org/abs/2203.15556">Hoffmann et al. — Chinchilla (2022)</a> — compute-optimal scaling; the $N^*,D^*$ derivations behind two sections here.</li>
+  <li><a href="https://arxiv.org/abs/2203.02155">Ouyang et al. — InstructGPT (2022)</a> — the SFT→RM→PPO pipeline, with honest discussion of alignment tax.</li>
+  <li><a href="https://arxiv.org/abs/2305.18290">Rafailov et al. — Direct Preference Optimization (2023)</a> — the DPO derivation this chapter's section follows.</li>
+  <li><a href="https://arxiv.org/abs/2212.08073">Bai et al. — Constitutional AI (2022)</a> — critique-revision SFT plus RLAIF from principles.</li>
+  <li><a href="https://arxiv.org/abs/2106.09685">Hu et al. — LoRA (2021)</a> — low-rank adaptation; pair with <a href="https://arxiv.org/abs/2305.14314">Dettmers et al., QLoRA (2023)</a> for 4-bit fine-tuning.</li>
+  <li><a href="https://arxiv.org/abs/2205.14135">Dao et al. — FlashAttention (2022)</a> — IO-aware exact attention; the systems half of long context.</li>
+  <li><a href="https://karpathy.ai/zero-to-hero.html">Karpathy — Zero to Hero (nanoGPT lectures)</a> — build and train the whole decoder stack, tokenizer included, from scratch.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch22.html">&larr; 22 · Generative Models</a>
+ <a class="btn" href="ch24.html">24 · Decision and Game Theory &rarr;</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function ready(f){if(document.readyState!=='loading')f();else document.addEventListener('DOMContentLoaded',f);}
+ ready(function(){
+  var mono='13px "JetBrains Mono", monospace';
+
+  // Explorer 1: Chinchilla U-curve at fixed compute
+  (function(){
+   var c=document.getElementById('cv-chin'); if(!c) return;
+   var cctl=document.getElementById('ch-c'),nctl=document.getElementById('ch-n'),out=document.getElementById('ch-out');
+   var E=1.69,A=406.4,B=410.7,al=0.34,be=0.28;
+   function loss(N,D){return E+A/Math.pow(N,al)+B/Math.pow(D,be);}
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var C=Math.pow(10,parseFloat(cctl.value)), lNsel=parseFloat(nctl.value);
+    g.clearRect(0,0,w,h);
+    var pts=[],best={L:1e9};
+    for(var i=0;i<=240;i++){var lN=7.5+5*i/240,N=Math.pow(10,lN),D=C/(6*N);
+     if(D<1e7)continue;var L=loss(N,D);pts.push([lN,L]);
+     if(L<best.L)best={L:L,lN:lN,N:N,D:D};}
+    if(pts.length<2)return;
+    var lo=Math.min.apply(null,pts.map(function(p){return p[1];}));
+    var hi=Math.max.apply(null,pts.map(function(p){return p[1];}));
+    hi=Math.min(hi,lo+1.5);
+    var x0=pts[0][0],x1=pts[pts.length-1][0];
+    function px(x){return 50+(w-70)*(x-x0)/(x1-x0);}
+    function py(y){return 16+(h-56)*(Math.min(y,hi)-lo)/(hi-lo+1e-9);}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(50,h-40);g.lineTo(w-20,h-40);g.moveTo(50,16);g.lineTo(50,h-40);g.stroke();g.globalAlpha=1;
+    g.font=mono;g.fillStyle=cssVar('--ink-2');
+    g.fillText('log10 N →',w-100,h-24);g.fillText('loss',8,26);
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+    pts.forEach(function(p,i2){var X=px(p[0]),Y=py(p[1]);if(i2===0)g.moveTo(X,Y);else g.lineTo(X,Y);});
+    g.stroke();
+    // 20 tok/param dashed marker: N where D=20N -> 120N^2=C
+    var lN20=0.5*(Math.log10(C/120));
+    if(lN20>x0&&lN20<x1){g.setLineDash([4,4]);g.strokeStyle=cssVar('--ink-2');
+     g.beginPath();g.moveTo(px(lN20),16);g.lineTo(px(lN20),h-40);g.stroke();g.setLineDash([]);
+     g.fillText('20 tok/param',px(lN20)-40,14);}
+    g.fillStyle=cssVar('--orange');g.beginPath();g.arc(px(best.lN),py(best.L),5,0,2*Math.PI);g.fill();
+    // selected N marker
+    if(lNsel>x0&&lNsel<x1){var Dsel=C/(6*Math.pow(10,lNsel));var Lsel=loss(Math.pow(10,lNsel),Dsel);
+     g.fillStyle=cssVar('--green');g.beginPath();g.arc(px(lNsel),py(Lsel),5,0,2*Math.PI);g.fill();
+     if(out)out.textContent='your N=10^'+lNsel.toFixed(2)+' → D='+Dsel.toExponential(1)+' tokens ('+(Dsel/Math.pow(10,lNsel)).toFixed(1)+' tok/param), loss '+Lsel.toFixed(3)+' | optimum: N≈'+best.N.toExponential(1)+', loss '+best.L.toFixed(3);}
+    else if(out)out.textContent='optimum: N≈'+best.N.toExponential(1)+', D≈'+best.D.toExponential(1)+', loss '+best.L.toFixed(3);
+   }
+   cctl.addEventListener('input',draw);nctl.addEventListener('input',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 2: KV cache memory
+  (function(){
+   var c=document.getElementById('cv-kv'); if(!c) return;
+   var tctl=document.getElementById('kv-t'),bctl=document.getElementById('kv-b'),out=document.getElementById('kv-out');
+   var Lyr=80,dh=128,bytes=2;
+   var cfgs=[{n:'MHA (64 kv heads)',H:64,col:'--red'},{n:'GQA (8)',H:8,col:'--cobalt'},{n:'MQA (1)',H:1,col:'--green'}];
+   function mem(T,Bt,H){return 2*Bt*T*Lyr*H*dh*bytes;} // bytes
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var Tsel=parseInt(tctl.value,10),Bt=parseInt(bctl.value,10);
+    g.clearRect(0,0,w,h);
+    var Tmax=131072;
+    function px(T){return 50+(w-70)*T/Tmax;}
+    var maxGB=mem(Tmax,Bt,64)/1e9;
+    function py(GB){return 16+(h-56)*(1-Math.min(GB,maxGB)/maxGB);}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(50,h-40);g.lineTo(w-20,h-40);g.moveTo(50,16);g.lineTo(50,h-40);g.stroke();g.globalAlpha=1;
+    g.font=mono;g.fillStyle=cssVar('--ink-2');
+    g.fillText('context length →',w-150,h-24);g.fillText('GB',8,26);
+    // 640GB node line if visible
+    if(640<maxGB){g.setLineDash([4,4]);g.strokeStyle=cssVar('--orange');g.beginPath();g.moveTo(50,py(640));g.lineTo(w-20,py(640));g.stroke();g.setLineDash([]);g.fillStyle=cssVar('--orange');g.fillText('640 GB node',54,py(640)-4);}
+    cfgs.forEach(function(cf){
+     g.strokeStyle=cssVar(cf.col);g.lineWidth=2;g.beginPath();
+     for(var i=0;i<=100;i++){var T=Tmax*i/100;var GB=mem(T,Bt,cf.H)/1e9;
+      var X=px(T),Y=py(GB);if(i===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+     g.stroke();});
+    var lx=56;cfgs.forEach(function(cf){g.fillStyle=cssVar(cf.col);g.fillText(cf.n,lx,14);lx+=g.measureText(cf.n).width+14;});
+    // selected marker on GQA
+    g.fillStyle=cssVar('--cobalt');g.beginPath();g.arc(px(Tsel),py(mem(Tsel,Bt,8)/1e9),5,0,2*Math.PI);g.fill();
+    if(out)out.textContent='T='+Tsel+', batch '+Bt+': MHA '+(mem(Tsel,Bt,64)/1e9).toFixed(1)+' GB · GQA '+(mem(Tsel,Bt,8)/1e9).toFixed(1)+' GB · MQA '+(mem(Tsel,Bt,1)/1e9).toFixed(2)+' GB (80 layers, d_h=128, fp16)';
+   }
+   tctl.addEventListener('input',draw);bctl.addEventListener('input',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 3: temperature + top-p on a toy distribution
+  (function(){
+   var c=document.getElementById('cv-samp'); if(!c) return;
+   var tctl=document.getElementById('sp-temp'),pctl=document.getElementById('sp-p'),out=document.getElementById('sp-out');
+   var logits=[3.2,2.5,2.1,1.6,1.2,0.7,0.2,-0.4,-1.0,-1.8];
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var T=parseFloat(tctl.value),pth=parseFloat(pctl.value);
+    g.clearRect(0,0,w,h);
+    var m=Math.max.apply(null,logits)/T;
+    var e=logits.map(function(z){return Math.exp(z/T-m);}),S=e.reduce(function(a,b){return a+b;},0);
+    var p=e.map(function(v){return v/S;});
+    // top-p keep set (p already sorted descending)
+    var csum=0,keep=[],cut=p.length;
+    for(var i=0;i<p.length;i++){csum+=p[i];keep.push(true);if(csum>=pth){cut=i+1;break;}}
+    var base=h-34,bw=(w-70)/10-8;
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(30,base);g.lineTo(w-10,base);g.stroke();g.globalAlpha=1;
+    g.font=mono;
+    var kept=0,keptMass=0;
+    for(i=0;i<10;i++){
+     var x=40+i*((w-70)/10),bh=p[i]*(h-80);
+     var isKept=i<cut;if(isKept){kept++;keptMass+=p[i];}
+     g.fillStyle=cssVar(isKept?'--cobalt':'--ink-2');
+     g.globalAlpha=isKept?0.9:0.25;
+     g.fillRect(x,base-bh,bw,bh);g.globalAlpha=1;
+     if(p[i]>0.02){g.fillStyle=cssVar('--ink');g.fillText((p[i]*100).toFixed(0)+'%',x,base-bh-5);}
+    }
+    var H=-p.reduce(function(a,pi){return a+(pi>0?pi*Math.log(pi):0);},0);
+    if(out)out.textContent='T='+T.toFixed(2)+', top-p='+pth.toFixed(2)+' → keeps '+kept+'/10 tokens ('+(keptMass*100).toFixed(1)+'% mass before renorm); entropy '+H.toFixed(2)+' nats';
+   }
+   tctl.addEventListener('input',draw);pctl.addEventListener('input',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 4: Bradley-Terry curve
+  (function(){
+   var c=document.getElementById('cv-bt'); if(!c) return;
+   var dctl=document.getElementById('bt-d'),out=document.getElementById('bt-out');
+   function sig(x){return 1/(1+Math.exp(-x));}
+   function draw(){
+    var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h;
+    var d=parseFloat(dctl.value);
+    g.clearRect(0,0,w,h);
+    function px(x){return 40+(w-60)*(x+4)/8;}
+    function py(y){return h-40-(h-70)*y;}   // y in [0,1]
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;
+    g.beginPath();g.moveTo(40,h-40);g.lineTo(w-20,h-40);g.moveTo(px(0),20);g.lineTo(px(0),h-40);g.stroke();g.globalAlpha=1;
+    g.font=mono;g.fillStyle=cssVar('--ink-2');
+    g.fillText('-4',36,h-24);g.fillText('0',px(0)-3,h-24);g.fillText('+4',w-34,h-24);
+    g.fillText('Δ = r(y_w) − r(y_l)',w/2-70,h-8);
+    // win prob curve
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+    for(var i=0;i<=200;i++){var x=-4+8*i/200;var X=px(x),Y=py(sig(x));if(i===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+    g.stroke();
+    // loss curve scaled: -log sigma in [0, ~4.02] -> normalize /4.2
+    g.strokeStyle=cssVar('--orange');g.lineWidth=2;g.setLineDash([5,3]);g.beginPath();
+    for(i=0;i<=200;i++){var x2=-4+8*i/200;var L=-Math.log(sig(x2));var X2=px(x2),Y2=py(Math.min(L/4.2,1));if(i===0)g.moveTo(X2,Y2);else g.lineTo(X2,Y2);}
+    g.stroke();g.setLineDash([]);
+    // marker
+    g.fillStyle=cssVar('--cobalt');g.beginPath();g.arc(px(d),py(sig(d)),5,0,2*Math.PI);g.fill();
+    g.fillStyle=cssVar('--orange');g.beginPath();g.arc(px(d),py(Math.min(-Math.log(sig(d))/4.2,1)),5,0,2*Math.PI);g.fill();
+    g.fillStyle=cssVar('--cobalt');g.fillText('σ(Δ) win prob',44,20);
+    g.fillStyle=cssVar('--orange');g.fillText('−log σ(Δ) loss (scaled)',44,38);
+    if(out)out.textContent='Δ='+d.toFixed(2)+' → P(chosen wins)='+ (sig(d)*100).toFixed(1)+'%, loss='+(-Math.log(sig(d))).toFixed(3)+' nats';
+   }
+   dctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+ });
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 13 Statistics</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','13')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">13</div><h1>Statistics</h1><p class="lede">Learning about the world from data.</p>
+   <div class="meta"><span class="chip">44 topics</span><span class="chip">needs: chapters 7, 8, 11, 12</span><span class="chip">feeds: chapters 16, 19, 20, 22, 23</span></div>
+  </div>
+
+<section class="topic" id="sampling">
+ <h2>Sampling</h2>
+ <p>Statistics starts with a humbling fact: you almost never see the whole population, only a sample. The whole game is to say something true about the big thing (a distribution, a population, a model) from the small thing you actually observed. How the sample was drawn decides what you may conclude.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>random sample</em> of size $n$ from a distribution $F$ is a collection of random variables $X_1,\dots,X_n$ that are independent and identically distributed (i.i.d.) with $X_i \sim F$. A <em>statistic</em> is any function $T(X_1,\dots,X_n)$ of the sample that does not depend on unknown parameters.</div>
+ <div class="box ex"><span class="label">Worked example</span> A factory's bolts have unknown mean length $\mu$. We measure $n=5$ bolts: $10.1,\ 9.8,\ 10.3,\ 10.0,\ 9.8$ cm. The sample mean is $\bar X = (10.1+9.8+10.3+10.0+9.8)/5 = 50.0/5 = 10.0$ cm. The sample variance is $s^2=\frac{1}{n-1}\sum (x_i-\bar X)^2 = \frac{0.01+0.04+0.09+0+0.04}{4} = \frac{0.18}{4} = 0.045$, so $s\approx 0.212$ cm. Both $\bar X$ and $s^2$ are statistics: computable from data alone.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Non-random sampling breaks everything downstream. If bolts were sampled only from the morning shift, $\bar X$ estimates the morning-shift mean, not $\mu$. No amount of clever inference repairs a biased sampling mechanism — the same failure appears in ML as dataset bias.</div>
+ <div class="box link"><span class="label">Where this goes</span> The i.i.d. assumption underlies empirical risk minimization in Ch 19 and generalization bounds in Ch 20; distribution shift (Ch 19) is what happens when it fails.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the sample mean of $2, 4, 4, 6, 9$. <details class="sol"><summary>Solution</summary><div>$\bar X = (2+4+4+6+9)/5 = 25/5 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> For the same data, compute the sample variance $s^2$ with the $n-1$ denominator. <details class="sol"><summary>Solution</summary><div>Deviations from 5: $-3,-1,-1,1,4$. Squares: $9,1,1,1,16$; sum $=28$. $s^2 = 28/4 = 7$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X_1,\dots,X_n$ i.i.d. with mean $\mu$, variance $\sigma^2$. Show $\mathbb{E}[\bar X]=\mu$ and $\mathrm{Var}(\bar X)=\sigma^2/n$. <details class="sol"><summary>Solution</summary><div>Linearity: $\mathbb{E}[\bar X]=\frac1n\sum\mathbb{E}[X_i]=\frac1n\cdot n\mu=\mu$. Independence makes variances add: $\mathrm{Var}(\bar X)=\frac{1}{n^2}\sum\mathrm{Var}(X_i)=\frac{n\sigma^2}{n^2}=\frac{\sigma^2}{n}$. So averaging shrinks noise by $1/n$ in variance, $1/\sqrt n$ in standard deviation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sampling-distributions">
+ <h2>Sampling distributions</h2>
+ <p>A statistic computed from random data is itself random: rerun the experiment and you get a different $\bar X$. The distribution of a statistic over hypothetical repeated samples is its sampling distribution — the central object of frequentist statistics, because it tells you how much your estimate wobbles.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>sampling distribution</em> of a statistic $T(X_1,\dots,X_n)$ is the probability distribution of $T$ induced by the randomness of the sample. Its standard deviation is called the <em>standard error</em> (SE). For the mean of i.i.d. data, $\mathrm{SE}(\bar X)=\sigma/\sqrt n$.</div>
+ <div class="box thm"><span class="label">Theorem</span> If $X_i \sim \mathcal N(\mu,\sigma^2)$ i.i.d., then exactly $\bar X \sim \mathcal N(\mu, \sigma^2/n)$. For any distribution with finite variance, the CLT (Ch 11) gives the same result approximately for large $n$: $\sqrt n(\bar X-\mu)/\sigma \to \mathcal N(0,1)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> IQ scores are $\mathcal N(100, 15^2)$. For samples of $n=25$, $\bar X \sim \mathcal N(100, 15^2/25) = \mathcal N(100, 9)$, i.e. SE $=3$. So $P(\bar X > 106) = P(Z > (106-100)/3) = P(Z>2) \approx 0.0228$. A single person above 106 is common ($P\approx 0.345$); a class average above 106 is rare.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Draw samples from a skewed distribution and watch the histogram of sample means turn Gaussian as $n$ grows — the CLT in action.</p>
+  <canvas id="cv-sampdist"></canvas>
+  <div class="ctl"><label>sample size n <input type="range" id="sd-n" min="1" max="100" step="1" value="5"></label><button class="btn" id="sd-run">Run 3000 samples</button></div>
+  <div class="out" id="sd-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\sigma=20$, $n=100$. What is the standard error of $\bar X$? <details class="sol"><summary>Solution</summary><div>$\mathrm{SE}=20/\sqrt{100}=2$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many samples do you need to halve the standard error? <details class="sol"><summary>Solution</summary><div>SE $\propto 1/\sqrt n$, so halving SE needs $4\times$ the samples. This square-root law is why "more data" has diminishing returns.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X_i\sim\mathrm{Uniform}(0,1)$, $n=12$. Approximate $P(\bar X > 0.55)$ with the CLT. <details class="sol"><summary>Solution</summary><div>$\mu=1/2$, $\sigma^2=1/12$, so $\mathrm{Var}(\bar X)=\frac{1/12}{12}=\frac{1}{144}$, SE $=1/12$. $Z=(0.55-0.5)/(1/12)=0.6$. $P(Z>0.6)\approx 0.274$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sufficient-statistics">
+ <h2>Sufficient statistics</h2>
+ <p>Sometimes a summary of the data carries every drop of information about the parameter — once you know it, the rest of the data is uninformative noise. Such a summary is sufficient. It is lossless compression of data with respect to a parameter, a theme that returns in information theory.</p>
+ <div class="box def"><span class="label">Definition</span> $T(X)$ is <em>sufficient</em> for $\theta$ if the conditional distribution of the data given $T(X)$ does not depend on $\theta$. <strong>Fisher–Neyman factorization:</strong> $T$ is sufficient iff the likelihood factors as $p(x_1,\dots,x_n\mid\theta)=g(T(x),\theta)\,h(x)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Coin flips $X_i\sim\mathrm{Bernoulli}(p)$: $p(x\mid p)=\prod p^{x_i}(1-p)^{1-x_i} = p^{\sum x_i}(1-p)^{n-\sum x_i}$. This depends on the data only through $T=\sum x_i$, so the number of heads is sufficient — the <em>order</em> of heads and tails tells you nothing more about $p$. With $g(T,p)=p^T(1-p)^{n-T}$ and $h(x)=1$, factorization is verified.</div>
+ <div class="box think"><span class="label">Think first</span> For $X_i\sim\mathcal N(\mu,1)$, guess a one-number sufficient statistic for $\mu$. <details class="sol"><summary>Reveal</summary><div>$\bar X$ (equivalently $\sum X_i$). Expanding the joint density, the only term coupling data and $\mu$ is $\exp(\mu\sum x_i - n\mu^2/2)$, so $\sum x_i$ is sufficient by factorization.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Sufficiency is data compression without information loss — formalized by the data processing inequality in Ch 16, where $T$ sufficient means $I(\theta;T)=I(\theta;X)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $X_i\sim\mathrm{Poisson}(\lambda)$, use factorization to find a sufficient statistic. <details class="sol"><summary>Solution</summary><div>$p(x\mid\lambda)=\prod \frac{\lambda^{x_i}e^{-\lambda}}{x_i!} = \lambda^{\sum x_i}e^{-n\lambda}\cdot\frac{1}{\prod x_i!}$. Take $g=\lambda^{\sum x_i}e^{-n\lambda}$, $h=1/\prod x_i!$: $T=\sum X_i$ is sufficient.</div></details></li>
+  <li><span class="lvl m">MED</span> For $X_i\sim\mathrm{Uniform}(0,\theta)$, show $T=\max_i X_i$ is sufficient. <details class="sol"><summary>Solution</summary><div>$p(x\mid\theta)=\theta^{-n}\prod \mathbf 1[0\le x_i\le\theta] = \theta^{-n}\mathbf 1[\max_i x_i \le \theta]\cdot \mathbf 1[\min_i x_i\ge 0]$. The first two factors form $g(\max x_i,\theta)$; the last is $h(x)$. So the maximum alone is sufficient.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $X_i\sim\mathcal N(\mu,\sigma^2)$ with both unknown, find a two-dimensional sufficient statistic. <details class="sol"><summary>Solution</summary><div>The joint density is $(2\pi\sigma^2)^{-n/2}\exp\!\big(-\frac{1}{2\sigma^2}\sum(x_i-\mu)^2\big)$ and $\sum(x_i-\mu)^2 = \sum x_i^2 - 2\mu\sum x_i + n\mu^2$. The density depends on data only through $(\sum x_i, \sum x_i^2)$, which is therefore jointly sufficient; equivalently $(\bar X, s^2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="estimators">
+ <h2>Estimators</h2>
+ <p>An estimator is a recipe: feed it data, it outputs a guess of an unknown parameter. Since the data are random, the guess is random too, so we judge estimators by the distribution of their errors, not by any single answer.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>estimator</em> of $\theta$ is a statistic $\hat\theta_n = \hat\theta(X_1,\dots,X_n)$ intended to be close to $\theta$. The realized value on observed data is an <em>estimate</em>. Its quality is often measured by mean squared error: $\mathrm{MSE}(\hat\theta)=\mathbb{E}[(\hat\theta-\theta)^2]$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three estimators of a population mean $\mu$ from $X_1,\dots,X_n$: (a) $\hat\mu_1=\bar X$, (b) $\hat\mu_2 = X_1$ (just use the first point), (c) $\hat\mu_3 = 0$ (ignore the data). All are legal estimators. With $\sigma^2=1$, $n=100$: $\mathrm{MSE}(\hat\mu_1)=1/100$, $\mathrm{MSE}(\hat\mu_2)=1$, $\mathrm{MSE}(\hat\mu_3)=\mu^2$ — great if $\mu\approx 0$, terrible otherwise. Estimators trade off across possible truths.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\hat\theta = 42$ (a constant) a valid estimator? What is its variance? <details class="sol"><summary>Solution</summary><div>Yes — any function of the data (including a constant function) is an estimator. Its variance is 0; its bias is $42-\theta$, so its MSE is $(42-\theta)^2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the bias–variance decomposition: $\mathrm{MSE}(\hat\theta)=\mathrm{Bias}(\hat\theta)^2+\mathrm{Var}(\hat\theta)$. <details class="sol"><summary>Solution</summary><div>Let $m=\mathbb{E}[\hat\theta]$. $\mathbb{E}[(\hat\theta-\theta)^2]=\mathbb{E}[(\hat\theta-m+m-\theta)^2]=\mathbb{E}[(\hat\theta-m)^2]+2(m-\theta)\mathbb{E}[\hat\theta-m]+(m-\theta)^2$. The cross term vanishes since $\mathbb{E}[\hat\theta-m]=0$, leaving $\mathrm{Var}(\hat\theta)+\mathrm{Bias}^2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $X_i\sim\mathcal N(\mu,\sigma^2)$, compare $\hat\sigma^2_a=\frac1n\sum(X_i-\bar X)^2$ and $s^2=\frac{1}{n-1}\sum(X_i-\bar X)^2$ in MSE. Which is smaller? <details class="sol"><summary>Solution</summary><div>Using $\sum(X_i-\bar X)^2\sim\sigma^2\chi^2_{n-1}$ (mean $n-1$, variance $2(n-1)$): $s^2$ is unbiased with $\mathrm{Var}(s^2)=\frac{2\sigma^4}{n-1}=\mathrm{MSE}(s^2)$. For $\hat\sigma^2_a$: bias $=\frac{n-1}{n}\sigma^2-\sigma^2=-\sigma^2/n$, variance $=\frac{2(n-1)\sigma^4}{n^2}$, so $\mathrm{MSE}=\frac{\sigma^4}{n^2}(2(n-1)+1)=\frac{(2n-1)\sigma^4}{n^2}$. Compare: $\frac{2n-1}{n^2}$ vs $\frac{2}{n-1}$. Cross-multiplying, $(2n-1)(n-1)=2n^2-3n+1 &lt; 2n^2$, so the biased estimator has strictly smaller MSE. Bias can buy you accuracy.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="point-estimation">
+ <h2>Point estimation</h2>
+ <p>Point estimation asks for a single best number for the parameter: one $\hat\theta$, no error bars. The classical toolkit contains two big recipes — the method of moments (match sample averages to theoretical ones) and maximum likelihood (pick the parameter that makes the data most probable).</p>
+ <div class="box def"><span class="label">Definition</span> <em>Method of moments:</em> if $\theta\in\mathbb R^k$, solve the $k$ equations $\frac1n\sum_i X_i^j = \mathbb{E}_\theta[X^j]$, $j=1,\dots,k$, for $\theta$. Maximum likelihood is defined in its own section below.</div>
+ <div class="box ex"><span class="label">Worked example</span> $X_i\sim\mathrm{Exponential}(\lambda)$ has $\mathbb{E}[X]=1/\lambda$. Method of moments: set $\bar X = 1/\lambda$, so $\hat\lambda = 1/\bar X$. Data: waiting times $2, 1, 3, 2$ minutes give $\bar X=2$, so $\hat\lambda = 0.5$ per minute. (Here MoM and MLE happen to coincide.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X_i\sim\mathrm{Bernoulli}(p)$. Give the method-of-moments estimator of $p$. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X]=p$, so $\hat p = \bar X$, the fraction of successes.</div></details></li>
+  <li><span class="lvl m">MED</span> $X_i\sim\mathrm{Uniform}(0,\theta)$. Find the MoM estimator of $\theta$ and note a defect. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X]=\theta/2$, so $\hat\theta=2\bar X$. Defect: with data $1, 2, 9$, $\hat\theta=8 &lt; 9=\max x_i$ — the estimate can be inconsistent with data actually observed.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X_i\sim\mathrm{Gamma}(\alpha,\beta)$ (mean $\alpha/\beta$, variance $\alpha/\beta^2$). Find MoM estimators of $(\alpha,\beta)$. <details class="sol"><summary>Solution</summary><div>Let $m_1=\bar X$ and $v=\frac1n\sum(X_i-\bar X)^2$. Match: $\alpha/\beta=m_1$, $\alpha/\beta^2=v$. Dividing: $\beta = m_1/v$, then $\alpha = m_1\beta = m_1^2/v$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bias">
+ <h2>Bias</h2>
+ <p>Bias is systematic error: the amount by which an estimator misses the truth on average, even with infinite repetitions of the experiment. Zero bias sounds like an obvious requirement, but as the MSE drill above showed, a little bias traded for a lot less variance is often a bargain.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathrm{Bias}(\hat\theta) = \mathbb{E}_\theta[\hat\theta] - \theta$. An estimator is <em>unbiased</em> if this is $0$ for all $\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Why divide by $n-1$ in the sample variance? Compute $\mathbb{E}\big[\sum(X_i-\bar X)^2\big]$. Write $X_i-\bar X = (X_i-\mu)-(\bar X-\mu)$. Then $\sum(X_i-\bar X)^2 = \sum(X_i-\mu)^2 - n(\bar X-\mu)^2$. Taking expectations: $n\sigma^2 - n\cdot\frac{\sigma^2}{n} = (n-1)\sigma^2$. So $\mathbb{E}[s^2]=\sigma^2$ only with the $n-1$ denominator; dividing by $n$ underestimates variance by the factor $\frac{n-1}{n}$, because deviations are measured from $\bar X$, which has already chased the data.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Unbiasedness is not preserved by nonlinear transformations: $s^2$ unbiased for $\sigma^2$ does <em>not</em> make $s$ unbiased for $\sigma$ (in fact $\mathbb E[s]&lt;\sigma$ by Jensen, since $\sqrt{\cdot}$ is concave).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $\bar X$ unbiased for $\mu$? <details class="sol"><summary>Solution</summary><div>Yes: $\mathbb{E}[\bar X]=\mu$ by linearity (shown earlier), for any distribution with a mean.</div></details></li>
+  <li><span class="lvl m">MED</span> $X\sim\mathrm{Binomial}(n,p)$. Show $\hat p = X/n$ is unbiased and $\widehat{p^2}=(X/n)^2$ is biased for $p^2$. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}[X/n]=np/n=p$: unbiased. $\mathbb{E}[(X/n)^2]=\frac{\mathrm{Var}(X)+(\mathbb E X)^2}{n^2}=\frac{np(1-p)+n^2p^2}{n^2}=p^2+\frac{p(1-p)}{n} &gt; p^2$: biased upward by $p(1-p)/n$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $X_i\sim\mathrm{Uniform}(0,\theta)$, $T=\max_i X_i$. Find $\mathbb{E}[T]$ and de-bias it. <details class="sol"><summary>Solution</summary><div>$P(T\le t)=(t/\theta)^n$, density $nt^{n-1}/\theta^n$ on $[0,\theta]$. $\mathbb{E}[T]=\int_0^\theta t\cdot\frac{nt^{n-1}}{\theta^n}dt = \frac{n}{n+1}\theta$. So $\hat\theta = \frac{n+1}{n}\max_i X_i$ is unbiased.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="consistency">
+ <h2>Consistency</h2>
+ <p>Consistency is the promise that more data eventually gets you the truth: as $n\to\infty$, the estimator homes in on the parameter. An estimator can be biased yet consistent (the bias fades), or unbiased yet inconsistent (the noise never fades). Consistency is the bare-minimum sanity check.</p>
+ <div class="box def"><span class="label">Definition</span> $\hat\theta_n$ is <em>consistent</em> for $\theta$ if $\hat\theta_n \xrightarrow{P} \theta$: for every $\varepsilon>0$, $P(|\hat\theta_n-\theta|>\varepsilon)\to 0$ as $n\to\infty$. A sufficient condition: $\mathrm{Bias}(\hat\theta_n)\to 0$ and $\mathrm{Var}(\hat\theta_n)\to 0$ (then MSE $\to0$ and Chebyshev finishes the job).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\bar X$ is consistent for $\mu$: bias is $0$ and $\mathrm{Var}(\bar X)=\sigma^2/n\to 0$. By Chebyshev, $P(|\bar X-\mu|>\varepsilon)\le \frac{\sigma^2}{n\varepsilon^2}\to 0$ — this is exactly the weak Law of Large Numbers from Ch 11. In contrast, $\hat\mu=X_1$ is unbiased but not consistent: its distribution never tightens.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is the biased variance estimator $\frac1n\sum(X_i-\bar X)^2$ consistent for $\sigma^2$? <details class="sol"><summary>Solution</summary><div>Yes. Its bias is $-\sigma^2/n\to0$ and its variance $\to 0$, so MSE $\to0$, which implies consistency.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\hat\theta=\frac{n+1}{n}\max X_i$ is consistent for $\theta$ in $\mathrm{Uniform}(0,\theta)$. <details class="sol"><summary>Solution</summary><div>For $\varepsilon\in(0,\theta)$: $P(\max X_i \le \theta-\varepsilon)=\left(\frac{\theta-\varepsilon}{\theta}\right)^n\to0$, and $\max X_i\le\theta$ always, so $\max X_i\xrightarrow P\theta$; the factor $\frac{n+1}{n}\to1$ doesn't change the limit.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give an estimator that is consistent but biased for every finite $n$. <details class="sol"><summary>Solution</summary><div>Example: $\hat\mu_n = \bar X + \frac{1}{n}$. Bias $=1/n\neq0$ for all finite $n$, but $\hat\mu_n\xrightarrow{P}\mu$ since $\bar X\to\mu$ and $1/n\to0$. Also $\frac1n\sum(X_i-\bar X)^2$ (previous drill) and the MLE $\max X_i$ for the uniform are natural examples.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="efficiency">
+ <h2>Efficiency</h2>
+ <p>Among unbiased estimators, the best one wastes the least data: it has the smallest variance. The Cramér–Rao bound sets a hard floor on that variance, determined by the Fisher information — how sharply the likelihood curves around the true parameter. Estimators that hit the floor are called efficient.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>Fisher information</em> is $I(\theta) = \mathbb{E}_\theta\!\left[\left(\frac{\partial}{\partial\theta}\log p(X\mid\theta)\right)^{\!2}\right] = -\mathbb{E}_\theta\!\left[\frac{\partial^2}{\partial\theta^2}\log p(X\mid\theta)\right]$ (under regularity). <strong>Cramér–Rao:</strong> any unbiased $\hat\theta$ from $n$ i.i.d. samples satisfies $\mathrm{Var}(\hat\theta)\ge \frac{1}{n I(\theta)}$. The <em>efficiency</em> of $\hat\theta$ is the ratio of this bound to its actual variance.</div>
+ <div class="box ex"><span class="label">Worked example</span> $X\sim\mathrm{Bernoulli}(p)$: $\log p(x)=x\log p+(1-x)\log(1-p)$, so $\frac{\partial^2}{\partial p^2}\log p(x) = -\frac{x}{p^2}-\frac{1-x}{(1-p)^2}$, and $I(p)=\frac{p}{p^2}+\frac{1-p}{(1-p)^2}=\frac1p+\frac{1}{1-p}=\frac{1}{p(1-p)}$. Cramér–Rao floor: $\frac{p(1-p)}{n}$. Since $\mathrm{Var}(\bar X)=\frac{p(1-p)}{n}$ exactly, $\hat p=\bar X$ is efficient — no unbiased estimator of $p$ can do better.</div>
+ <div class="box link"><span class="label">Where this goes</span> Fisher information reappears as the local curvature of KL divergence (Ch 16) and in natural-gradient optimization; asymptotically the MLE achieves the Cramér–Rao bound.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $X\sim\mathcal N(\mu,\sigma^2)$ with $\sigma$ known, compute $I(\mu)$ for one observation. <details class="sol"><summary>Solution</summary><div>$\log p = -\frac{(x-\mu)^2}{2\sigma^2}+c$; $\frac{\partial}{\partial\mu}=\frac{x-\mu}{\sigma^2}$; $\frac{\partial^2}{\partial\mu^2}=-\frac{1}{\sigma^2}$. So $I(\mu)=1/\sigma^2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Conclude that $\bar X$ is an efficient estimator of the normal mean. <details class="sol"><summary>Solution</summary><div>Cramér–Rao bound: $\frac{1}{nI(\mu)}=\frac{\sigma^2}{n}$. $\mathrm{Var}(\bar X)=\sigma^2/n$ meets it exactly, so $\bar X$ is efficient (it is the minimum-variance unbiased estimator).</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $I(\lambda)$ for $X\sim\mathrm{Poisson}(\lambda)$ and give the Cramér–Rao bound for $n$ samples. <details class="sol"><summary>Solution</summary><div>$\log p = x\log\lambda-\lambda-\log x!$; $\frac{\partial^2}{\partial\lambda^2}=-x/\lambda^2$; $I(\lambda)=\mathbb{E}[X]/\lambda^2=\lambda/\lambda^2=1/\lambda$. Bound: $\mathrm{Var}(\hat\lambda)\ge \lambda/n$, attained by $\bar X$ (whose variance is $\lambda/n$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="maximum-likelihood">
+ <h2>Maximum likelihood</h2>
+ <p>Maximum likelihood is the workhorse of all of statistics and most of machine learning: choose the parameter under which the observed data would have been most probable. Training a neural network with cross-entropy loss is exactly maximum likelihood in disguise.</p>
+ <div class="box def"><span class="label">Definition</span> Given data $x_1,\dots,x_n$ i.i.d. from $p(\cdot\mid\theta)$, the likelihood is $L(\theta)=\prod_i p(x_i\mid\theta)$ and the log-likelihood is $\ell(\theta)=\sum_i \log p(x_i\mid\theta)$. The <em>maximum likelihood estimator</em> is $\hat\theta_{\mathrm{MLE}}=\arg\max_\theta \ell(\theta)$. Under regularity conditions the MLE is consistent, asymptotically normal, $\sqrt n(\hat\theta-\theta)\to\mathcal N(0, I(\theta)^{-1})$, and asymptotically efficient.</div>
+ <div class="box ex"><span class="label">Worked example</span> Coin: 7 heads in 10 flips. $\ell(p)=7\log p + 3\log(1-p)$. Set $\ell'(p)=\frac7p-\frac{3}{1-p}=0 \Rightarrow 7(1-p)=3p \Rightarrow p=0.7$. Check: $\ell''(p)=-7/p^2-3/(1-p)^2 &lt; 0$, a maximum. In general $\hat p = k/n$, the observed frequency.</div>
+ <div class="box think"><span class="label">Think first</span> For $X_i\sim\mathcal N(\mu,\sigma^2)$, what does maximizing the log-likelihood over $\mu$ minimize? <details class="sol"><summary>Reveal</summary><div>$\ell(\mu) = -\frac{1}{2\sigma^2}\sum(x_i-\mu)^2 + \text{const}$, so maximizing likelihood $=$ minimizing the sum of squared errors. MLE under Gaussian noise IS least squares — the bridge to regression below.</div></details></div>
+ <div class="box pit"><span class="label">Pitfall</span> Always maximize the <em>log</em>-likelihood, never the raw product: multiplying a thousand densities underflows floating point, and sums are easier to differentiate. Also check boundary maxima — the uniform's MLE $\hat\theta=\max x_i$ is not a stationary point.</div>
+ <div class="box link"><span class="label">Where this goes</span> MLE $=$ minimizing cross-entropy $=$ minimizing KL to the data distribution (Ch 16); it is the training objective of language models (Ch 23).</div>
+  <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the MLE of $\lambda$ for Poisson data $3, 5, 4$. <details class="sol"><summary>Solution</summary><div>$\ell(\lambda)=\sum x_i\log\lambda - n\lambda + c = 12\log\lambda-3\lambda+c$. $\ell'=12/\lambda-3=0\Rightarrow\hat\lambda=4=\bar x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the MLE of $\lambda$ for $X_i\sim\mathrm{Exponential}(\lambda)$, density $\lambda e^{-\lambda x}$. <details class="sol"><summary>Solution</summary><div>$\ell(\lambda)=n\log\lambda-\lambda\sum x_i$; $\ell'=n/\lambda-\sum x_i=0\Rightarrow\hat\lambda=n/\sum x_i = 1/\bar x$. Second derivative $-n/\lambda^2&lt;0$ confirms a max.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive both MLEs for $\mathcal N(\mu,\sigma^2)$. <details class="sol"><summary>Solution</summary><div>$\ell=-\frac n2\log(2\pi\sigma^2)-\frac{1}{2\sigma^2}\sum(x_i-\mu)^2$. $\partial_\mu\ell=\frac{1}{\sigma^2}\sum(x_i-\mu)=0\Rightarrow\hat\mu=\bar x$. Let $v=\sigma^2$: $\partial_v \ell = -\frac{n}{2v}+\frac{1}{2v^2}\sum(x_i-\bar x)^2=0\Rightarrow \hat\sigma^2=\frac1n\sum(x_i-\bar x)^2$ — the biased ($n$-denominator) variance. MLEs need not be unbiased.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">The MLE for a Bernoulli parameter after seeing 0 heads in 5 flips is:</div><button class="opt">0.1, by smoothing</button><button class="opt">exactly 0</button><button class="opt">undefined</button><div class="why" hidden>$\hat p=k/n=0/5=0$. That's the honest MLE — and a warning: it assigns probability 0 to heads ever occurring. Regularization/priors (MAP, next) fix this overconfidence.</div></div>
+</section>
+
+<section class="topic" id="map-estimation">
+ <h2>MAP estimation</h2>
+ <p>Maximum a posteriori estimation is maximum likelihood with a thumb on the scale: multiply the likelihood by a prior expressing what parameter values are plausible, then take the peak. In log space the prior becomes an additive penalty — which is why regularized loss functions are secretly MAP.</p>
+ <div class="box def"><span class="label">Definition</span> $\hat\theta_{\mathrm{MAP}} = \arg\max_\theta\, p(\theta\mid x) = \arg\max_\theta\, \big[\log p(x\mid\theta) + \log p(\theta)\big]$ (the evidence $p(x)$ is constant in $\theta$ and drops out).</div>
+ <div class="box ex"><span class="label">Worked example</span> Coin with prior $p\sim\mathrm{Beta}(2,2)$ (density $\propto p(1-p)$), data 7 heads in 10 flips. Objective: $7\log p + 3\log(1-p) + \log p + \log(1-p) = 8\log p + 4\log(1-p)$. Maximize: $\frac8p = \frac{4}{1-p} \Rightarrow p = \frac{8}{12} = \frac23 \approx 0.667$. The prior pulls the MLE $0.7$ toward $0.5$. In general with $\mathrm{Beta}(\alpha,\beta)$: $\hat p_{\mathrm{MAP}} = \frac{k+\alpha-1}{n+\alpha+\beta-2}$.</div>
+ <div class="box link"><span class="label">Where this goes</span> A Gaussian prior $\theta\sim\mathcal N(0,\tau^2 I)$ adds $-\|\theta\|^2/2\tau^2$ to the log-posterior: MAP with a Gaussian prior IS L2 regularization / weight decay (Ch 15, 19); a Laplace prior gives L1.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With prior $\mathrm{Beta}(1,1)$ (uniform), what is the MAP estimate? <details class="sol"><summary>Solution</summary><div>$\hat p=\frac{k+0}{n+0}=k/n$: with a flat prior, MAP $=$ MLE.</div></details></li>
+  <li><span class="lvl m">MED</span> 0 heads in 5 flips, prior $\mathrm{Beta}(2,2)$. MAP estimate? <details class="sol"><summary>Solution</summary><div>$\hat p = \frac{0+2-1}{5+2+2-2} = \frac17 \approx 0.143$. The prior prevents the pathological $\hat p = 0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $x_i\mid\mu \sim \mathcal N(\mu,\sigma^2)$, prior $\mu\sim\mathcal N(0,\tau^2)$. Derive $\hat\mu_{\mathrm{MAP}}$. <details class="sol"><summary>Solution</summary><div>Maximize $-\frac{1}{2\sigma^2}\sum(x_i-\mu)^2 - \frac{\mu^2}{2\tau^2}$. Derivative: $\frac{1}{\sigma^2}\sum(x_i-\mu) - \frac{\mu}{\tau^2} = 0 \Rightarrow \frac{n\bar x}{\sigma^2} = \mu\big(\frac{n}{\sigma^2}+\frac{1}{\tau^2}\big)$, so $\hat\mu_{\mathrm{MAP}} = \frac{n/\sigma^2}{n/\sigma^2 + 1/\tau^2}\,\bar x$ — the data mean shrunk toward the prior mean 0, with shrinkage vanishing as $n\to\infty$ or $\tau\to\infty$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bayesian-estimation">
+ <h2>Bayesian estimation</h2>
+ <p>The full Bayesian answer to "what is $\theta$?" is not a number but a distribution: the posterior. If you must report one number, you extract it from the posterior — its mean, median, or mode — and each choice is optimal under a different loss.</p>
+ <div class="box def"><span class="label">Definition</span> Given loss $L(\theta,\hat\theta)$, the <em>Bayes estimator</em> minimizes posterior expected loss $\mathbb{E}[L(\theta,\hat\theta)\mid x]$. Squared loss $\Rightarrow$ posterior mean; absolute loss $\Rightarrow$ posterior median; 0–1 loss $\Rightarrow$ posterior mode (MAP).</div>
+ <div class="box ex"><span class="label">Worked example</span> Coin, prior $\mathrm{Beta}(2,2)$, data 7/10 heads. Posterior: $\mathrm{Beta}(2+7, 2+3)=\mathrm{Beta}(9,5)$. Posterior mean $=\frac{9}{9+5}=\frac{9}{14}\approx 0.643$; posterior mode (MAP) $=\frac{9-1}{9+5-2}=\frac{8}{12}\approx 0.667$; MLE $=0.7$. Three defensible point estimates from the same data, ordered by how much they trust the prior.</div>
+ <div class="box think"><span class="label">Think first</span> Why does squared loss give the posterior mean? <details class="sol"><summary>Reveal</summary><div>$\frac{d}{da}\mathbb{E}[(\theta-a)^2\mid x] = -2\,\mathbb{E}[\theta\mid x] + 2a = 0 \Rightarrow a = \mathbb{E}[\theta\mid x]$; the second derivative is $2&gt;0$, a minimum.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Posterior is $\mathrm{Beta}(3,7)$. Give the Bayes estimate under squared loss. <details class="sol"><summary>Solution</summary><div>Posterior mean $=\frac{3}{3+7}=0.3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show the posterior-mean estimate for the Beta–Bernoulli is a weighted blend of prior mean and MLE. <details class="sol"><summary>Solution</summary><div>Posterior mean $=\frac{\alpha+k}{\alpha+\beta+n} = \frac{\alpha+\beta}{\alpha+\beta+n}\cdot\frac{\alpha}{\alpha+\beta} + \frac{n}{\alpha+\beta+n}\cdot\frac kn$: prior mean weighted by pseudo-count $\alpha+\beta$, MLE weighted by data count $n$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $x\mid\mu\sim\mathcal N(\mu,1)$ (one observation), $\mu\sim\mathcal N(0,1)$. Find the posterior and the Bayes estimate under squared loss. <details class="sol"><summary>Solution</summary><div>Posterior $\propto e^{-(x-\mu)^2/2}e^{-\mu^2/2} \propto e^{-(2\mu^2 - 2\mu x)/2} = e^{-(\mu - x/2)^2}$: this is $\mathcal N(x/2,\ 1/2)$. Bayes estimate $=x/2$ — halfway between data and prior mean, since both have equal precision 1.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="confidence-intervals">
+ <h2>Confidence intervals</h2>
+ <p>A point estimate without error bars is a bluff. A confidence interval is a data-dependent range built by a procedure that, over many repetitions, traps the true parameter a guaranteed fraction of the time. The randomness is in the interval, not the parameter.</p>
+ <div class="box def"><span class="label">Definition</span> A $1-\alpha$ <em>confidence interval</em> for $\theta$ is a pair of statistics $(L(X), U(X))$ with $P_\theta(L\le\theta\le U)\ge 1-\alpha$ for all $\theta$. For a mean with known $\sigma$: $\bar X \pm z_{\alpha/2}\,\sigma/\sqrt n$, where $z_{0.025}\approx 1.96$. With $\sigma$ estimated by $s$ and Gaussian data, use the $t_{n-1}$ quantile instead.</div>
+ <div class="box ex"><span class="label">Worked example</span> $n=100$ response times, $\bar X = 250$ ms, $s = 40$ ms. 95% CI: $250 \pm 1.96\cdot\frac{40}{\sqrt{100}} = 250 \pm 7.84 = (242.2,\ 257.8)$ ms. ($n$ is large, so $z$ vs $t_{99}$, 1.984, barely matters; with $t$: $\pm7.94$.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> A 95% CI does <em>not</em> mean "the parameter is in this interval with probability 0.95." Once computed, the interval either contains $\theta$ or not. The 95% describes the procedure: 95% of the intervals it produces (over repeated experiments) cover the truth. The statement "given the data, $\theta$ is in here with probability 0.95" belongs to Bayesian credible intervals.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Generate many experiments and watch which 95% intervals miss the true mean (drawn as a line). About 1 in 20 should miss.</p>
+  <canvas id="cv-ci"></canvas>
+  <div class="ctl"><label>n per experiment <input type="range" id="ci-n" min="5" max="200" step="5" value="30"></label><button class="btn" id="ci-run">New 60 experiments</button></div>
+  <div class="out" id="ci-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\bar X = 52$, $\sigma=10$ known, $n=25$. Give the 95% CI for $\mu$. <details class="sol"><summary>Solution</summary><div>$52 \pm 1.96\cdot 10/5 = 52\pm 3.92 = (48.08,\ 55.92)$.</div></details></li>
+  <li><span class="lvl m">MED</span> How large must $n$ be so a 95% CI for a mean with $\sigma=15$ has half-width at most 2? <details class="sol"><summary>Solution</summary><div>Need $1.96\cdot 15/\sqrt n \le 2 \Rightarrow \sqrt n \ge 14.7 \Rightarrow n\ge 216.1$, so $n = 217$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Poll: 540 of 1000 voters favor A. Build a 95% CI for the true proportion using $\hat p \pm 1.96\sqrt{\hat p(1-\hat p)/n}$ and interpret. <details class="sol"><summary>Solution</summary><div>$\hat p=0.54$; SE $=\sqrt{0.54\cdot0.46/1000}=\sqrt{0.0002484}\approx0.01576$. CI: $0.54\pm 1.96\cdot 0.01576 = 0.54\pm0.0309 = (0.509,\ 0.571)$. The interval excludes 0.5, so the lead is statistically distinguishable from a tie at the 5% level.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bootstrap">
+ <h2>Bootstrap</h2>
+ <p>What if you can't derive the sampling distribution of your statistic — say, the median, or a neural net's AUC? The bootstrap's trick: treat the sample as a stand-in for the population, resample from it with replacement many times, and watch how the statistic varies. The data pulls itself up by its own bootstraps.</p>
+ <div class="box def"><span class="label">Definition</span> Given data $x_1,\dots,x_n$, a <em>bootstrap sample</em> draws $n$ points from the data with replacement. Compute the statistic $\hat\theta^{*b}$ on each of $B$ bootstrap samples. The bootstrap SE is the standard deviation of $\{\hat\theta^{*b}\}$; the <em>percentile interval</em> takes the $\alpha/2$ and $1-\alpha/2$ empirical quantiles of $\{\hat\theta^{*b}\}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data: $1, 3, 5$ (tiny for illustration), statistic $=$ mean. Two bootstrap draws might be $(3,3,1)$ giving $\hat\theta^{*1}=2.33$ and $(5,1,5)$ giving $\hat\theta^{*2}=3.67$. Doing this $B=2000$ times yields a histogram of means whose spread estimates $\mathrm{SE}(\bar X)$ — here about $s/\sqrt3\cdot\sqrt{2/3}\approx 0.94$ (bootstrap uses the $n$-denominator variance), close to the plug-in value $\sqrt{\frac{8/3}{3}}\approx0.94$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Bootstrap resamples must be the SAME size $n$ as the data, drawn WITH replacement (each bootstrap sample typically omits $\approx 1/e \approx 37\%$ of points). It also fails for statistics dominated by extremes (e.g. $\max x_i$) and for dependent data unless you use block variants.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Data $\{2, 6\}$. List all possible bootstrap samples of size 2 and their probabilities. <details class="sol"><summary>Solution</summary><div>$(2,2)$, $(2,6)$, $(6,2)$, $(6,6)$, each with probability $1/4$. Bootstrap means: 2 (prob 1/4), 4 (prob 1/2), 6 (prob 1/4).</div></details></li>
+  <li><span class="lvl m">MED</span> For the previous drill, compute the bootstrap variance of the mean and compare to the plug-in $\hat\sigma^2/n$ where $\hat\sigma^2=\frac1n\sum(x_i-\bar x)^2$. <details class="sol"><summary>Solution</summary><div>Bootstrap mean of means $=4$; variance $=\frac14(2-4)^2+\frac12(4-4)^2+\frac14(6-4)^2 = 1+0+1=2$. Plug-in: $\hat\sigma^2 = \frac{(2-4)^2+(6-4)^2}{2}=4$; $\hat\sigma^2/n = 2$. They agree exactly — the bootstrap is the plug-in principle automated.</div></details></li>
+  <li><span class="lvl h">HARD</span> What is the probability that a given data point appears in a particular bootstrap sample, and its limit as $n\to\infty$? <details class="sol"><summary>Solution</summary><div>$P(\text{point } i \text{ absent}) = (1-\tfrac1n)^n \to e^{-1}\approx 0.368$. So $P(\text{present}) = 1-(1-\tfrac1n)^n \to 1-e^{-1}\approx 0.632$. This is the basis of out-of-bag error estimates in random forests (Ch 19).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hypothesis-testing">
+ <h2>Hypothesis testing</h2>
+ <p>A hypothesis test is a stylized argument by contradiction with noise: assume the boring explanation (the null), compute how surprising your data would be under it, and reject the null only if the data would be very surprising. It never proves the null; it can only fail to embarrass it.</p>
+ <div class="box def"><span class="label">Definition</span> A test of $H_0$ (null) versus $H_1$ (alternative) at <em>significance level</em> $\alpha$ is a decision rule (reject/don't reject) with $P(\text{reject}\mid H_0 \text{ true})\le\alpha$. A standard recipe: compute a test statistic with known null distribution, reject when it falls in the tail region of probability $\alpha$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Claim: a die's six comes up fairly. In $n=180$ rolls we see 42 sixes; expected $180/6=30$, SD $=\sqrt{180\cdot\frac16\cdot\frac56}=\sqrt{25}=5$. $z = (42-30)/5 = 2.4$. Two-sided test at $\alpha=0.05$: reject if $|z|&gt;1.96$. Since $2.4&gt;1.96$, reject $H_0$ — the die looks loaded. (Exact binomial gives the same verdict.)</div>
+ <div class="box link"><span class="label">Where this goes</span> The same logic — "is this improvement bigger than noise?" — is how you compare two models on a benchmark (Ch 23) or two policies in an A/B test.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $H_0:\mu=100$, $\sigma=15$ known, $n=36$, $\bar X=106$. Compute $z$ and decide at $\alpha=0.05$ (two-sided). <details class="sol"><summary>Solution</summary><div>SE $=15/6=2.5$; $z=(106-100)/2.5=2.4&gt;1.96$: reject $H_0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Same setup but $\bar X = 104$. Decide, and state carefully what "fail to reject" means. <details class="sol"><summary>Solution</summary><div>$z=4/2.5=1.6&lt;1.96$: fail to reject. It does NOT mean $\mu=100$ is true — only that the data are compatible with 100 (and with 103, 105, ... : see the CI $104\pm4.9$).</div></details></li>
+  <li><span class="lvl h">HARD</span> One-sided vs two-sided: with $z=1.8$, what are the verdicts at $\alpha=0.05$ for $H_1:\mu&gt;100$ vs $H_1:\mu\ne100$, and why must you choose the sidedness BEFORE seeing data? <details class="sol"><summary>Solution</summary><div>One-sided threshold $z_{0.05}=1.645$: reject. Two-sided threshold 1.96: fail to reject. Choosing the sidedness after peeking (picking whichever rejects) makes the true false-positive rate up to $2\alpha$, not $\alpha$ — a form of p-hacking.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="null-hypotheses">
+ <h2>Null hypotheses</h2>
+ <p>The null hypothesis is the skeptic's default: no effect, no difference, pure chance. It is chosen not because we believe it but because it is precise enough to compute with — you can only measure surprise against a fully specified baseline.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>null hypothesis</em> $H_0$ specifies a default value or set of values for the parameter (e.g. $H_0:\mu=\mu_0$, $H_0: p_A = p_B$). A <em>simple</em> null fixes the distribution completely; a <em>composite</em> null leaves nuisance parameters free. The alternative $H_1$ is what you conclude upon rejection.</div>
+ <div class="box ex"><span class="label">Worked example</span> A/B test of two buttons. Let $p_A, p_B$ be click rates. Null: $H_0: p_A = p_B$ (the new button changes nothing); alternative $H_1: p_A \ne p_B$. Under $H_0$, the difference of observed rates $\hat p_A - \hat p_B$ has mean 0 and estimable variance — that's the computable baseline the test needs. Note the null is composite (the common $p$ is unspecified) but the pooled estimate handles it.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Don't put the thing you hope to prove in the null. The test controls errors about rejecting $H_0$; the asymmetry means "fail to reject" is weak evidence. If you want to demonstrate equivalence, you need equivalence testing (e.g. TOST), not a failed t-test.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> You suspect a new optimizer trains faster than Adam. State $H_0$ and $H_1$ for mean epochs-to-target $\mu_{\text{new}}, \mu_{\text{adam}}$. <details class="sol"><summary>Solution</summary><div>$H_0: \mu_{\text{new}} = \mu_{\text{adam}}$ (or $\ge$), $H_1: \mu_{\text{new}} &lt; \mu_{\text{adam}}$. The hoped-for conclusion sits in $H_1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Classify as simple or composite: (a) $H_0: \lambda = 3$ for Poisson; (b) $H_0: \mu = 0$ for $\mathcal N(\mu,\sigma^2)$, $\sigma$ unknown. <details class="sol"><summary>Solution</summary><div>(a) Simple — the distribution is fully pinned down. (b) Composite — $\sigma$ is free; this is why the t-test must estimate it and pay with heavier-tailed $t$ quantiles.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why must the null distribution of the test statistic be (approximately) known? What breaks if it isn't? <details class="sol"><summary>Solution</summary><div>The rejection threshold is calibrated so that $P(\text{reject}\mid H_0)=\alpha$; that computation requires the statistic's distribution under $H_0$. If it's unknown or wrong (e.g., dependence ignored, variance misestimated), the actual Type I rate can be far from $\alpha$ and reported p-values are meaningless. Permutation tests and the bootstrap are ways to get a null distribution empirically.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="p-values">
+ <h2>P-values</h2>
+ <p>The p-value converts "how surprising is my data under the null?" into a single number: the probability, computed assuming the null is true, of data at least as extreme as what you saw. Small p means either the null is false or something unlikely happened.</p>
+ <div class="box def"><span class="label">Definition</span> $p = P_{H_0}(T \ge t_{\mathrm{obs}})$ for a one-sided test with statistic $T$ (or $P_{H_0}(|T|\ge|t_{\mathrm{obs}}|)$ two-sided). Reject at level $\alpha$ iff $p\le\alpha$. Under a continuous simple null, the p-value is distributed $\mathrm{Uniform}(0,1)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> From the die example, $z_{\mathrm{obs}}=2.4$. Two-sided p-value: $p = 2P(Z\ge 2.4) = 2(1-\Phi(2.4)) = 2\cdot 0.0082 = 0.0164$. At $\alpha=0.05$: reject; at $\alpha=0.01$: don't. The p-value carries the whole curve of verdicts.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The p-value is NOT $P(H_0\mid\text{data})$ — that quantity needs a prior (Bayes). $p=0.03$ does not mean "97% chance of a real effect." Also, $p$ measures surprise, not size: with $n$ huge, a trivially small effect gets a tiny p-value.</div>
+ <div class="quiz" data-answer="2"><div class="q">You run a test and get $p = 0.20$. Which conclusion is correct?</div><button class="opt">$H_0$ is true with probability 0.20</button><button class="opt">The effect is zero</button><button class="opt">Data this extreme would occur 20% of the time if $H_0$ were true</button><div class="why" hidden>The p-value conditions on $H_0$, not on the data. It says nothing direct about $P(H_0)$, and failing to reject never proves the effect is zero.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $z_{\mathrm{obs}} = 1.96$ two-sided. What is $p$? <details class="sol"><summary>Solution</summary><div>$p = 2(1-\Phi(1.96)) = 2\cdot 0.025 = 0.05$ — exactly the boundary.</div></details></li>
+  <li><span class="lvl m">MED</span> A fair coin is flipped 10 times, 9 heads. Compute the exact one-sided p-value for $H_0: p=0.5$ vs $H_1: p&gt;0.5$. <details class="sol"><summary>Solution</summary><div>$p = P(X\ge 9) = \frac{\binom{10}{9}+\binom{10}{10}}{2^{10}} = \frac{10+1}{1024} = \frac{11}{1024} \approx 0.0107$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $T$ has continuous CDF $F$ under $H_0$ and we reject for large $T$, then $p = 1-F(T)$ is $\mathrm{Uniform}(0,1)$ under $H_0$. <details class="sol"><summary>Solution</summary><div>For $u\in(0,1)$: $P(p\le u) = P(1-F(T)\le u) = P(F(T)\ge 1-u) = P(T \ge F^{-1}(1-u)) = 1-F(F^{-1}(1-u)) = u$, using continuity and monotonicity of $F$. Uniform p-values under the null are exactly what makes "reject iff $p\le\alpha$" have Type I rate $\alpha$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="type-i-errors">
+ <h2>Type I errors</h2>
+ <p>A Type I error is a false alarm: rejecting a null that is actually true — declaring an effect that isn't there. The significance level $\alpha$ is precisely the false-alarm rate you agree to tolerate.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>Type I error</em> occurs when $H_0$ is true but the test rejects it. Its probability is the test's <em>size</em>; a level-$\alpha$ test guarantees size $\le\alpha$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A lab runs a level-$0.05$ test on each of 100 drug candidates, all of which are actually useless ($H_0$ true every time, tests independent). Expected false discoveries: $100\times0.05 = 5$. Probability of at least one: $1-0.95^{100} \approx 1-0.0059 = 0.994$. Virtually guaranteed to "discover" something — the seed of the multiple testing problem below.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A test rejects when $|z|&gt;2.58$. What is its Type I error rate? <details class="sol"><summary>Solution</summary><div>$P(|Z|&gt;2.58) = 2(1-\Phi(2.58)) \approx 2\cdot0.0049 = 0.0098 \approx 0.01$.</div></details></li>
+  <li><span class="lvl m">MED</span> Two independent level-0.05 tests are both run when both nulls are true. What is the probability of at least one Type I error? <details class="sol"><summary>Solution</summary><div>$1-(1-0.05)^2 = 1-0.9025 = 0.0975$ — nearly double the per-test rate.</div></details></li>
+  <li><span class="lvl h">HARD</span> A stopping-rule hack: test after every new observation and stop when $p\le0.05$. Why does this inflate Type I error beyond 0.05? <details class="sol"><summary>Solution</summary><div>The overall Type I rate is $P(\exists\, n: p_n\le 0.05\mid H_0)$ — a union over many correlated chances rather than one; each look adds probability mass. By the law of the iterated logarithm, $|z_n|$ crosses ANY fixed threshold infinitely often under $H_0$, so with unbounded looks the false-alarm probability tends to 1. Sequential testing needs corrected boundaries (e.g. O'Brien–Fleming, always-valid p-values).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="type-ii-errors">
+ <h2>Type II errors</h2>
+ <p>A Type II error is a miss: the effect is real, but your test fails to detect it — usually because the sample is too small, the noise too big, or the effect too subtle. Its probability is denoted $\beta$, and it depends on which alternative is true.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>Type II error</em> occurs when $H_1$ is true but the test fails to reject $H_0$. Its probability at a specific alternative $\theta_1$ is $\beta(\theta_1) = P_{\theta_1}(\text{fail to reject})$. Power $=1-\beta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $H_0:\mu=0$ vs one-sided $H_1:\mu&gt;0$, $\sigma=1$, $n=25$, level 0.05: reject when $\bar X &gt; 1.645/\sqrt{25} = 0.329$. If truly $\mu=0.2$: $\beta = P(\bar X \le 0.329) = \Phi\!\big(\frac{0.329-0.2}{0.2}\big) = \Phi(0.645) \approx 0.74$. A 74% chance of missing a real effect — this test is badly underpowered for effects of size 0.2.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\alpha$ and $\beta$ trade off: demanding fewer false alarms (smaller $\alpha$) pushes the rejection threshold out and raises misses ($\beta$). The only way to lower both is more data or a better test statistic.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the worked example, what is $\beta$ if the true mean is $\mu = 0.5$? <details class="sol"><summary>Solution</summary><div>$\beta = \Phi\!\big(\frac{0.329-0.5}{0.2}\big) = \Phi(-0.855) \approx 0.196$. Power $\approx 0.80$.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain why $\beta$ is a function, not a number, for composite alternatives. <details class="sol"><summary>Solution</summary><div>$H_1:\mu&gt;0$ contains infinitely many possible truths; the miss probability depends on which one holds — big effects are easy to detect ($\beta$ small), tiny ones nearly impossible ($\beta\to1-\alpha$ as $\mu\to0^+$). Hence power curves rather than power numbers.</div></details></li>
+  <li><span class="lvl h">HARD</span> Which error should be $\alpha$ and which $\beta$ when testing "this reactor is safe to restart"? Discuss the asymmetry. <details class="sol"><summary>Solution</summary><div>The test's guaranteed error control is on Type I only, so put the catastrophic mistake there: $H_0$ = "reactor unsafe"; rejecting $H_0$ (declaring it safe) when it's unsafe is then the controlled, rare error. If instead $H_0$ = "safe", the dangerous mistake is a Type II miss, whose probability is not controlled by design. Choose the null so the controlled error is the costly one.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="statistical-power">
+ <h2>Statistical power</h2>
+ <p>Power is the probability your experiment detects an effect of a given size if it exists. Underpowered studies waste effort and, worse, the effects they do detect are systematically exaggerated. Power analysis before collecting data tells you how big $n$ must be.</p>
+ <div class="box def"><span class="label">Definition</span> Power $=1-\beta(\theta_1)=P_{\theta_1}(\text{reject }H_0)$. For a one-sided z-test of a mean with effect size $\delta = (\mu_1-\mu_0)/\sigma$: power $=\Phi(\delta\sqrt n - z_\alpha)$, giving the sample-size formula $n = \big(\frac{z_\alpha + z_\beta}{\delta}\big)^2$ for target power $1-\beta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Detect $\delta = 0.5$ (a "medium" effect) with one-sided $\alpha = 0.05$ and power 0.80: $z_{0.05}=1.645$, $z_{0.20}=0.842$. $n = \big(\frac{1.645+0.842}{0.5}\big)^2 = (4.974)^2 \approx 24.7 \Rightarrow n=25$ per the formula. For power 0.9: $z_{0.10}=1.282$, $n=(5.854)^2\approx 34.3 \Rightarrow 35$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Move the true effect and sample size; watch the null and alternative sampling distributions separate and the shaded power area grow.</p>
+  <canvas id="cv-power"></canvas>
+  <div class="ctl"><label>effect δ <input type="range" id="pw-d" min="0" max="1.5" step="0.05" value="0.5"></label><label>n <input type="range" id="pw-n" min="4" max="100" step="1" value="25"></label></div>
+  <div class="out" id="pw-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> All else fixed, does power increase or decrease when (a) $n$ grows, (b) $\alpha$ shrinks, (c) the true effect grows? <details class="sol"><summary>Solution</summary><div>(a) increases; (b) decreases (stricter threshold); (c) increases.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute power for $\delta=0.3$, $n=50$, one-sided $\alpha=0.05$. <details class="sol"><summary>Solution</summary><div>Power $= \Phi(0.3\sqrt{50} - 1.645) = \Phi(2.121-1.645) = \Phi(0.476) \approx 0.68$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why do statistically significant results from underpowered studies overestimate effect sizes ("winner's curse")? <details class="sol"><summary>Solution</summary><div>With low power, the rejection region lies far in the tail of the alternative's sampling distribution; the estimate $\hat\delta$ crosses the threshold only when noise happens to push it up. Conditioning on significance, $\mathbb{E}[\hat\delta \mid \text{reject}] &gt; \delta$ — a truncated distribution's mean exceeds its untruncated mean. E.g. $\delta=0.2$, $n=25$: only estimates $\hat\delta&gt;0.329$ get published, all at least 65% too large.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="effect-sizes">
+ <h2>Effect sizes</h2>
+ <p>Significance answers "is there an effect?"; effect size answers "how big?" — the question people actually care about. Standardized effect sizes express the difference in units of noise so studies with different scales can be compared.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Cohen's d</em> for two groups: $d = \frac{\bar X_1 - \bar X_2}{s_{\text{pooled}}}$, with $s^2_{\text{pooled}} = \frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}$. Conventional anchors: $d\approx0.2$ small, $0.5$ medium, $0.8$ large. Other effect sizes: correlation $r$, odds ratio, $R^2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> New tutoring method: treatment group $n_1=40$, $\bar X_1 = 78$, $s_1=10$; control $n_2=40$, $\bar X_2=74$, $s_2=10$. $s_{\text{pooled}}=10$, so $d = (78-74)/10 = 0.4$ — a small-to-medium effect. With $n=40$ per group the standard error of the difference is $10\sqrt{2/40}\approx 2.24$, so $t\approx1.79$, $p\approx0.08$: not significant, yet possibly practically important. Significance and size are different axes.</div>
+ <div class="quiz" data-answer="0"><div class="q">Study A: $p=0.001$, $d=0.05$, $n=100{,}000$. Study B: $p=0.04$, $d=0.6$, $n=90$. Which found the more practically important effect?</div><button class="opt">B — the effect is 12× larger</button><button class="opt">A — the p-value is smaller</button><button class="opt">They're equally important</button><div class="why" hidden>Huge $n$ makes trivial effects significant. Study A's effect is a twentieth of a standard deviation — usually negligible. P-values measure evidence against the null, not importance.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Group means 12 and 10, pooled SD 4. Compute $d$. <details class="sol"><summary>Solution</summary><div>$d = 2/4 = 0.5$: a medium effect.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $s_{\text{pooled}}$ and $d$: $n_1=10$, $s_1=3$, $\bar X_1=20$; $n_2=15$, $s_2=5$, $\bar X_2=16$. <details class="sol"><summary>Solution</summary><div>$s^2_p = \frac{9\cdot9 + 14\cdot25}{23} = \frac{81+350}{23} = \frac{431}{23} \approx 18.74$, $s_p\approx4.33$. $d = 4/4.33 \approx 0.92$: large.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $d=0.5$, what fraction of the treatment distribution lies above the control mean (assume equal-variance normals)? <details class="sol"><summary>Solution</summary><div>Treatment $\sim\mathcal N(\mu+0.5\sigma,\sigma^2)$; $P(X &gt; \mu) = P(Z &gt; -0.5) = \Phi(0.5) \approx 0.69$. So a "medium" effect means 69% of treated units beat the average control — a concrete way to feel effect sizes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multiple-testing">
+ <h2>Multiple testing</h2>
+ <p>Test twenty useless hypotheses at $\alpha=0.05$ and you expect one "discovery" by chance. Modern pipelines test thousands — genes, hyperparameters, prompts — so uncorrected p-values are almost worthless. Corrections either control the chance of any false alarm (FWER) or the fraction of discoveries that are false (FDR).</p>
+ <div class="box def"><span class="label">Definition</span> For $m$ tests: <em>Bonferroni</em> rejects when $p_i \le \alpha/m$ and controls the family-wise error rate: $P(\text{any false rejection})\le\alpha$. <em>Benjamini–Hochberg (BH)</em>: sort $p_{(1)}\le\dots\le p_{(m)}$, find the largest $k$ with $p_{(k)}\le \frac km\alpha$, reject $H_{(1)},\dots,H_{(k)}$; this controls the false discovery rate $\mathbb{E}\big[\frac{\#\text{false rejections}}{\#\text{rejections}\vee 1}\big]\le\alpha$ (for independent or positively dependent tests).</div>
+ <div class="box ex"><span class="label">Worked example</span> Five p-values: $0.001, 0.008, 0.039, 0.041, 0.20$; $\alpha=0.05$. <em>Bonferroni:</em> threshold $0.05/5 = 0.01$: reject tests 1 and 2 only. <em>BH:</em> compare $p_{(k)}$ to $0.01k$: $0.001\le0.01$ ✓, $0.008\le0.02$ ✓, $0.039\le0.03$ ✗, $0.041\le0.04$ ✗, $0.20\le0.05$ ✗. Largest passing $k=2$: BH also rejects tests 1 and 2 here. (Change $0.039\to0.029$: BH would reject three; Bonferroni still two — BH is more permissive as it should be.)</div>
+ <div class="box link"><span class="label">Where this goes</span> Hyperparameter sweeps and benchmark leaderboards (Ch 23) are massive multiple-testing exercises; "best of 50 runs beats baseline, $p&lt;0.05$" is usually a Type I error in costume.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $m=100$ null tests at uncorrected $\alpha=0.05$, how many false rejections do you expect? <details class="sol"><summary>Solution</summary><div>$100\times0.05 = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Apply Bonferroni at $\alpha=0.05$ to p-values $0.004, 0.011, 0.02$ ($m=3$). <details class="sol"><summary>Solution</summary><div>Threshold $0.0167$: reject the first two ($0.004, 0.011 \le 0.0167$), keep the third.</div></details></li>
+  <li><span class="lvl h">HARD</span> Apply BH at $\alpha = 0.05$ to $p = 0.003, 0.012, 0.025, 0.03, 0.7, 0.9$ ($m=6$). <details class="sol"><summary>Solution</summary><div>Thresholds $\frac km\alpha$: $0.0083, 0.0167, 0.025, 0.0333, 0.0417, 0.05$. Compare in order: $0.003\le0.0083$ ✓, $0.012\le0.0167$ ✓, $0.025\le0.025$ ✓, $0.03\le0.0333$ ✓, $0.7$ ✗, $0.9$ ✗. Largest passing index $k=4$: reject the four smallest. (Bonferroni threshold $0.0083$ would reject only the first — FDR control buys power.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-regression">
+ <h2>Linear regression</h2>
+ <p>Linear regression fits the best straight line through a cloud of $(x,y)$ points: predict $y$ as an affine function of $x$. It is the simplest supervised learning model, the prototype for everything in Ch 19, and — under Gaussian noise — an exercise in maximum likelihood.</p>
+ <div class="box def"><span class="label">Definition</span> Model: $y_i = \beta_0 + \beta_1 x_i + \varepsilon_i$, $\varepsilon_i$ i.i.d. mean $0$, variance $\sigma^2$. The least-squares estimates are $$\hat\beta_1 = \frac{\sum (x_i-\bar x)(y_i-\bar y)}{\sum (x_i-\bar x)^2} = \frac{S_{xy}}{S_{xx}},\qquad \hat\beta_0 = \bar y - \hat\beta_1 \bar x.$$ Also $\hat\beta_1 = r\,\frac{s_y}{s_x}$ where $r$ is the sample correlation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data $(1,2), (2,3), (3,5), (4,6)$. $\bar x = 2.5$, $\bar y = 4$. $S_{xy} = (-1.5)(-2)+(-0.5)(-1)+(0.5)(1)+(1.5)(2) = 3+0.5+0.5+3 = 7$. $S_{xx} = 2.25+0.25+0.25+2.25 = 5$. $\hat\beta_1 = 7/5 = 1.4$; $\hat\beta_0 = 4 - 1.4\cdot2.5 = 0.5$. Line: $\hat y = 0.5 + 1.4x$. Check at $x=3$: $\hat y = 4.7$ vs actual 5 — residual $0.3$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the sliders to move a candidate line and watch the sum of squared residuals; then hit Fit to snap to the least-squares line.</p>
+  <canvas id="cv-reg"></canvas>
+  <div class="ctl"><label>intercept b₀ <input type="range" id="rg-b0" min="-3" max="6" step="0.1" value="3"></label><label>slope b₁ <input type="range" id="rg-b1" min="-1" max="3" step="0.05" value="0"></label><button class="btn" id="rg-fit">Fit</button><button class="btn" id="rg-new">New data</button></div>
+  <div class="out" id="rg-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Fit a line to $(0,1), (1,3), (2,5)$. <details class="sol"><summary>Solution</summary><div>$\bar x=1$, $\bar y=3$; $S_{xy} = (-1)(-2)+0+1\cdot2 = 4$; $S_{xx}=2$. $\hat\beta_1=2$, $\hat\beta_0=3-2=1$: $\hat y = 1+2x$ (a perfect fit — all residuals 0).</div></details></li>
+  <li><span class="lvl m">MED</span> Show the least-squares line always passes through $(\bar x, \bar y)$ and residuals sum to zero. <details class="sol"><summary>Solution</summary><div>At $x=\bar x$: $\hat y = \hat\beta_0+\hat\beta_1\bar x = (\bar y - \hat\beta_1\bar x) + \hat\beta_1\bar x = \bar y$. Residual sum: $\sum(y_i - \hat\beta_0 - \hat\beta_1 x_i) = n\bar y - n\hat\beta_0 - n\hat\beta_1\bar x = n(\bar y - (\bar y - \hat\beta_1\bar x) - \hat\beta_1\bar x)=0$. (Both facts are the $\partial/\partial\beta_0 = 0$ normal equation.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive $\hat\beta_0, \hat\beta_1$ by minimizing $Q(\beta_0,\beta_1)=\sum(y_i-\beta_0-\beta_1x_i)^2$. <details class="sol"><summary>Solution</summary><div>$\partial Q/\partial\beta_0 = -2\sum(y_i-\beta_0-\beta_1x_i) = 0 \Rightarrow \beta_0 = \bar y - \beta_1\bar x$. Substitute into $\partial Q/\partial\beta_1 = -2\sum x_i(y_i-\beta_0-\beta_1x_i)=0$: $\sum x_i\big((y_i-\bar y) - \beta_1(x_i-\bar x)\big) = 0$. Since $\sum \bar x\big((y_i-\bar y)-\beta_1(x_i-\bar x)\big)=0$, we may replace $x_i$ by $x_i-\bar x$: $\sum(x_i-\bar x)(y_i-\bar y) = \beta_1\sum(x_i-\bar x)^2$, giving $\hat\beta_1 = S_{xy}/S_{xx}$. $Q$ is convex (its Hessian is $2X^\top X\succeq0$), so this stationary point is the global min.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multiple-regression">
+ <h2>Multiple regression</h2>
+ <p>With several predictors, the line becomes a hyperplane and the tidy formulas become one matrix equation. Each coefficient now means "the effect of this variable holding the others fixed" — a subtle and easily abused phrase.</p>
+ <div class="box def"><span class="label">Definition</span> Model $y = X\beta + \varepsilon$ with $X\in\mathbb R^{n\times p}$ (first column all 1s for the intercept). The least-squares solution solves the <em>normal equations</em> $X^\top X\beta = X^\top y$: $$\hat\beta = (X^\top X)^{-1}X^\top y$$ when $X$ has full column rank. Fitted values $\hat y = X\hat\beta = Hy$ with hat matrix $H = X(X^\top X)^{-1}X^\top$, the orthogonal projection onto the column space of $X$ (Ch 8).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two-feature toy (no intercept): $X = \begin{pmatrix}1&amp;0\\1&amp;1\\0&amp;1\end{pmatrix}$, $y = (1, 3, 2)^\top$. $X^\top X = \begin{pmatrix}2&amp;1\\1&amp;2\end{pmatrix}$, $X^\top y = (4, 5)^\top$. Inverse $= \frac13\begin{pmatrix}2&amp;-1\\-1&amp;2\end{pmatrix}$. $\hat\beta = \frac13(2\cdot4-5,\ -4+2\cdot5)^\top = (1, 2)^\top$. Fitted $\hat y = (1, 3, 2)^\top = y$: exact fit is a coincidence of this data ($y$ lies in the column space).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Collinearity: if two columns of $X$ are nearly parallel, $X^\top X$ is nearly singular, coefficient estimates blow up in variance and flip signs between samples, even while predictions stay fine. Interpret individual coefficients only after checking conditioning (Ch 8's condition number; ridge regularization in Ch 15/19 is the standard fix).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must $X$ have full column rank for $\hat\beta$ to be unique? <details class="sol"><summary>Solution</summary><div>If columns are linearly dependent, $Xv = 0$ for some $v\ne0$, so $\hat\beta + tv$ gives identical fits for all $t$: infinitely many minimizers. $X^\top X$ is then singular.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that residuals $e = y - \hat y$ are orthogonal to every column of $X$. <details class="sol"><summary>Solution</summary><div>$X^\top e = X^\top(y - X\hat\beta) = X^\top y - X^\top X(X^\top X)^{-1}X^\top y = 0$. Geometrically: $\hat y$ is the projection of $y$ onto $\mathrm{col}(X)$, so the error is perpendicular to that subspace.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $H$ is symmetric and idempotent ($H^2 = H$), and that $\mathrm{tr}(H) = p$. <details class="sol"><summary>Solution</summary><div>Symmetry: $H^\top = X((X^\top X)^{-1})^\top X^\top = H$ since $X^\top X$ is symmetric. Idempotent: $H^2 = X(X^\top X)^{-1}X^\top X(X^\top X)^{-1}X^\top = X(X^\top X)^{-1}X^\top = H$ — projecting twice changes nothing. Trace: $\mathrm{tr}(H) = \mathrm{tr}\big((X^\top X)^{-1}X^\top X\big) = \mathrm{tr}(I_p) = p$ by the cyclic property. $\mathrm{tr}(H)$ is the model's degrees of freedom.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="regression-assumptions">
+ <h2>Regression assumptions</h2>
+ <p>The least-squares formula always produces numbers; the assumptions decide what those numbers mean. Linearity and exogeneity make $\hat\beta$ unbiased; independence and equal variance make the standard errors honest; normality makes the small-sample t and F tests exact.</p>
+ <div class="box def"><span class="label">Definition</span> The classical linear model assumes: (1) <em>linearity</em>: $\mathbb{E}[y\mid X] = X\beta$; (2) <em>independence</em> of errors; (3) <em>homoscedasticity</em>: $\mathrm{Var}(\varepsilon_i) = \sigma^2$ constant; (4) <em>normality</em>: $\varepsilon_i\sim\mathcal N(0,\sigma^2)$ (needed only for exact inference); plus no perfect collinearity. <strong>Gauss–Markov theorem:</strong> under (1)–(3), OLS is the Best Linear Unbiased Estimator (minimum variance among linear unbiased estimators) — no normality needed.</div>
+ <div class="box ex"><span class="label">Worked example</span> Predicting income from age: true relation is curved (income rises then falls). A linear fit violates (1); coefficients are biased for any "slope of income in age" and residuals show a ∩ shape against age. Fix: add $x^2$ as a feature — the model $y=\beta_0+\beta_1x+\beta_2x^2$ is still LINEAR in $\beta$, so all OLS machinery applies. "Linear" in linear regression means linear in parameters, not in inputs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which assumption does time-series data (today's error correlated with yesterday's) violate, and what breaks? <details class="sol"><summary>Solution</summary><div>Independence (2). $\hat\beta$ can remain unbiased, but standard errors computed under independence are typically too small — confidence intervals too narrow, p-values overconfident.</div></details></li>
+  <li><span class="lvl m">MED</span> Errors have $\mathrm{Var}(\varepsilon_i) = \sigma^2 x_i^2$ (larger spread for larger $x$). Which assumption fails, and name a remedy. <details class="sol"><summary>Solution</summary><div>Homoscedasticity (3). Remedies: weighted least squares with weights $1/x_i^2$ (equivalently regress $y_i/x_i$ suitably), a variance-stabilizing transform like $\log y$, or robust (heteroscedasticity-consistent) standard errors.</div></details></li>
+  <li><span class="lvl h">HARD</span> State precisely what Gauss–Markov does and does not claim. <details class="sol"><summary>Solution</summary><div>Claims: among estimators of the form $\hat\beta = Ay$ that are unbiased for all $\beta$, OLS has minimum variance (in the matrix sense: $\mathrm{Var}(\tilde\beta)-\mathrm{Var}(\hat\beta)\succeq0$), assuming linearity, exogeneity, homoscedasticity, uncorrelated errors. Does NOT claim: OLS beats <em>biased</em> estimators (ridge can win on MSE), or <em>nonlinear</em> estimators (under heavy-tailed noise the median-based fits can win), or anything when assumptions fail.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="residual-analysis">
+ <h2>Residual analysis</h2>
+ <p>The residuals are what the model couldn't explain — so any visible structure in them is a confession: curvature you missed, variance that grows, outliers that dominate. Plotting residuals is the cheapest, most powerful diagnostic in statistics.</p>
+ <div class="box def"><span class="label">Definition</span> Residuals $e_i = y_i - \hat y_i$. Key diagnostics: residuals-vs-fitted plot (should be a structureless horizontal band), QQ-plot of residuals vs normal quantiles (should be straight), leverage $h_{ii}$ (diagonal of the hat matrix; points with $h_{ii}$ large pull the fit) and standardized residuals $e_i / (\hat\sigma\sqrt{1-h_{ii}})$. $R^2 = 1 - \frac{\sum e_i^2}{\sum(y_i-\bar y)^2}$ is the fraction of variance explained.</div>
+ <div class="box ex"><span class="label">Worked example</span> From the linear-regression example ($\hat y = 0.5+1.4x$ on $(1,2),(2,3),(3,5),(4,6)$): fitted $1.9, 3.3, 4.7, 6.1$; residuals $0.1, -0.3, 0.3, -0.1$. $\sum e_i^2 = 0.01+0.09+0.09+0.01 = 0.2$. Total sum of squares: $\sum(y_i-4)^2 = 4+1+1+4 = 10$. $R^2 = 1-0.2/10 = 0.98$. Residual signs alternate $+,-,+,-$ — no trend, no fan shape; the linear model is adequate.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A high $R^2$ does not validate a model (overfit models have high $R^2$; Anscombe's quartet has four wildly different datasets with identical $R^2$ and coefficients), and a low $R^2$ does not damn one (high-noise domains cap achievable $R^2$). Look at the residuals, not just the summary number.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Residuals fan out (wider for larger fitted values). Diagnosis? <details class="sol"><summary>Solution</summary><div>Heteroscedasticity — variance grows with the mean. Consider $\log$ or square-root transform of $y$, or weighted least squares.</div></details></li>
+  <li><span class="lvl m">MED</span> Fits: $\hat y = (2, 4, 6)$, actual $y = (3, 3, 7)$, $\bar y = 13/3$. Compute $R^2$. <details class="sol"><summary>Solution</summary><div>Residuals $(1,-1,1)$: SSE $=3$. SST $= (3-\frac{13}3)^2+(3-\frac{13}3)^2+(7-\frac{13}3)^2 = \frac{16}9+\frac{16}9+\frac{64}9 = \frac{96}{9}$. $R^2 = 1 - \frac{3}{96/9} = 1-\frac{27}{96} = 1 - 0.28125 = 0.719$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why do residuals at high-leverage points look deceptively small, and how do standardized residuals correct this? <details class="sol"><summary>Solution</summary><div>$e = (I-H)y$ gives $\mathrm{Var}(e_i) = \sigma^2(1-h_{ii})$: a high-leverage point ($h_{ii}$ near 1) drags the fitted line toward itself, so its raw residual has small variance even if it's an outlier. Dividing by $\hat\sigma\sqrt{1-h_{ii}}$ restores comparability (each standardized residual has variance $\approx1$), exposing influential outliers that raw residuals hide.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="least-squares">
+ <h2>Least squares</h2>
+ <p>Least squares deserves its own throne: it is at once geometry (project $y$ onto the model subspace), algebra (solve the normal equations), statistics (MLE under Gaussian noise), and optimization (minimize a convex quadratic). Every view illuminates a different corner of machine learning.</p>
+ <div class="box def"><span class="label">Definition</span> $\hat\beta = \arg\min_\beta \|y - X\beta\|_2^2$. Geometric characterization: $\hat y = X\hat\beta$ is the orthogonal projection of $y$ onto $\mathrm{col}(X)$, i.e. $X^\top(y - X\hat\beta) = 0$. Statistical: if $\varepsilon\sim\mathcal N(0,\sigma^2 I)$ then least squares $=$ maximum likelihood, and $\hat\beta \sim \mathcal N(\beta,\ \sigma^2(X^\top X)^{-1})$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit a constant model $y_i \approx c$ (design matrix a single column of 1s). Normal equation: $\mathbf 1^\top\mathbf 1\, c = \mathbf 1^\top y \Rightarrow nc = \sum y_i \Rightarrow \hat c = \bar y$. The sample mean is itself a least-squares fit — the projection of $y$ onto the line spanned by $(1,\dots,1)$. Fit instead $y_i \approx c$ minimizing $\sum|y_i - c|$: you get the median. Loss functions embody assumptions.</div>
+ <div class="box link"><span class="label">Where this goes</span> Least squares is the prototype of empirical risk minimization (Ch 19, 20); its normal equations are solved at scale by gradient methods (Ch 15) and by QR/Cholesky (Ch 18).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve least squares for $y=(1,2,4)$ with the constant model. <details class="sol"><summary>Solution</summary><div>$\hat c = \bar y = 7/3 \approx 2.33$; SSE $= (1-\frac73)^2+(2-\frac73)^2+(4-\frac73)^2 = \frac{16+1+25}{9} = \frac{42}9 \approx 4.67$.</div></details></li>
+  <li><span class="lvl m">MED</span> Fit $y = \beta x$ (no intercept) to $(1,2), (2,3), (3,7)$. <details class="sol"><summary>Solution</summary><div>Normal equation: $\hat\beta = \frac{\sum x_iy_i}{\sum x_i^2} = \frac{2+6+21}{1+4+9} = \frac{29}{14} \approx 2.07$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive $\mathrm{Var}(\hat\beta) = \sigma^2(X^\top X)^{-1}$. <details class="sol"><summary>Solution</summary><div>$\hat\beta = (X^\top X)^{-1}X^\top y = (X^\top X)^{-1}X^\top(X\beta + \varepsilon) = \beta + (X^\top X)^{-1}X^\top\varepsilon$. With $A = (X^\top X)^{-1}X^\top$: $\mathrm{Var}(\hat\beta) = A\,\mathrm{Var}(\varepsilon)\,A^\top = \sigma^2 (X^\top X)^{-1}X^\top X (X^\top X)^{-1} = \sigma^2(X^\top X)^{-1}$. Ill-conditioned $X^\top X$ (collinearity) means huge coefficient variance — the algebraic root of the collinearity pitfall.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="anova">
+ <h2>ANOVA</h2>
+ <p>Analysis of variance asks: do several groups share a mean, or does at least one differ? Its idea is an accounting identity — total variation splits into between-group and within-group parts — and its test statistic is the ratio: signal variance over noise variance.</p>
+ <div class="box def"><span class="label">Definition</span> One-way ANOVA, $k$ groups, $n_j$ observations each, $N = \sum n_j$. $$\mathrm{SSB} = \sum_j n_j(\bar y_j - \bar y)^2,\quad \mathrm{SSW} = \sum_j\sum_i (y_{ij}-\bar y_j)^2,\quad F = \frac{\mathrm{SSB}/(k-1)}{\mathrm{SSW}/(N-k)}.$$ Under $H_0$ (all means equal, normal errors, equal variances), $F \sim F_{k-1,\,N-k}$; reject for large $F$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three teaching methods, 3 students each. Scores: A $= (80, 85, 90)$, B $= (70, 75, 80)$, C $= (90, 95, 100)$. Group means $85, 75, 95$; grand mean $85$. SSB $= 3(0)^2 + 3(-10)^2 + 3(10)^2 = 600$ with $k-1=2$ df. SSW: each group contributes $(−5)^2+0+5^2 = 50$, total $150$ with $N-k = 6$ df. $F = \frac{600/2}{150/6} = \frac{300}{25} = 12$. Critical value $F_{2,6}(0.05) \approx 5.14$: reject — the methods differ. (Which ones differ needs post-hoc pairwise tests with multiple-testing control.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $k=2$ groups, ANOVA reduces to which familiar test? <details class="sol"><summary>Solution</summary><div>The two-sample t-test (equal variances); in fact $F = t^2$ and the p-values coincide.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the decomposition SST $=$ SSB $+$ SSW on the worked example. <details class="sol"><summary>Solution</summary><div>SST $=\sum(y_{ij}-85)^2$: A: $25+0+25=50$; B: $225+100+25=350$; C: $25+100+225=350$. Total $750 = 600+150$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove SST $=$ SSB $+$ SSW in general. <details class="sol"><summary>Solution</summary><div>$y_{ij}-\bar y = (y_{ij}-\bar y_j) + (\bar y_j - \bar y)$. Square and sum: $\mathrm{SST} = \mathrm{SSW} + \mathrm{SSB} + 2\sum_j (\bar y_j-\bar y)\sum_i (y_{ij}-\bar y_j)$. The inner sum $\sum_i(y_{ij}-\bar y_j) = 0$ for each group, killing the cross term. This is Pythagoras in $\mathbb R^N$: within-group and between-group deviation vectors are orthogonal.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bayesian-inference">
+ <h2>Bayesian inference</h2>
+ <p>Bayesian inference treats the unknown parameter itself as a random variable: start with a prior belief, observe data, and let Bayes' theorem (Ch 11) turn prior into posterior. Everything you want — estimates, intervals, predictions, decisions — is then read off one object, the posterior distribution.</p>
+ <div class="box def"><span class="label">Definition</span> $$p(\theta\mid x) = \frac{p(x\mid\theta)\,p(\theta)}{p(x)},\qquad p(x) = \int p(x\mid\theta)\,p(\theta)\,d\theta.$$ Posterior $\propto$ likelihood $\times$ prior. A $1-\alpha$ <em>credible interval</em> is any set with posterior probability $1-\alpha$ — and it DOES support the statement "given the data, $\theta$ lies here with probability $1-\alpha$."</div>
+ <div class="box ex"><span class="label">Worked example</span> Disease testing as inference about a binary $\theta$. Prior: $P(\text{disease}) = 0.01$. Likelihoods: sensitivity $P(+\mid D)=0.95$, false-positive rate $P(+\mid \bar D) = 0.05$. Posterior after a positive test: $$P(D\mid +) = \frac{0.95\cdot0.01}{0.95\cdot0.01 + 0.05\cdot0.99} = \frac{0.0095}{0.0095+0.0495} = \frac{0.0095}{0.059} \approx 0.161.$$ The same arithmetic with a continuous $\theta$ is all of Bayesian statistics.</div>
+ <div class="box think"><span class="label">Think first</span> If you test the same patient again (independent test, also positive), what's the new posterior? <details class="sol"><summary>Reveal</summary><div>Yesterday's posterior is today's prior: $P(D\mid ++) = \frac{0.95\cdot0.161}{0.95\cdot0.161 + 0.05\cdot0.839} = \frac{0.1530}{0.1530+0.0420} \approx 0.785$. Bayesian updating chains — evidence compounds.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> The posterior over model weights is the ideal that variational inference (below) and deep ensembles approximate; Bayes-optimal prediction is the gold standard in decision theory (Ch 24).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prior odds of a hypothesis are 1:4 and the likelihood ratio of the observed data is 8. Posterior odds? <details class="sol"><summary>Solution</summary><div>Posterior odds $=$ likelihood ratio $\times$ prior odds $= 8\times\frac14 = 2$:1, i.e. posterior probability $2/3$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\theta\in\{0.3, 0.7\}$ with prior $(0.5, 0.5)$; observe one Bernoulli success. Posterior? <details class="sol"><summary>Solution</summary><div>$p(\theta=0.7\mid x=1) = \frac{0.7\cdot0.5}{0.7\cdot0.5+0.3\cdot0.5} = \frac{0.35}{0.5} = 0.7$; $p(\theta=0.3\mid x{=}1) = 0.3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Contrast a 95% confidence interval and a 95% credible interval on the same data — can they differ substantially? <details class="sol"><summary>Solution</summary><div>Yes. The CI's guarantee is over repeated sampling with $\theta$ fixed; the credible interval conditions on the observed data with $\theta$ random. With strong priors or small $n$ they can differ a lot: e.g. 0 successes in 3 Bernoulli trials gives a Wald CI degenerate at 0, while a $\mathrm{Beta}(1,1)$ prior yields posterior $\mathrm{Beta}(1,4)$ with 95% credible interval $\approx(0.0,\ 0.53)$. With flat priors and large $n$, the Bernstein–von Mises theorem says they asymptotically agree.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="prior-distributions">
+ <h2>Prior distributions</h2>
+ <p>The prior encodes what you believe before the data arrive — from hard-won domain knowledge to deliberate vagueness. Critics call it subjective; the Bayesian reply is that priors are assumptions stated in the open, and with enough data the likelihood drowns any reasonable prior.</p>
+ <div class="box def"><span class="label">Definition</span> A prior $p(\theta)$ is a distribution on the parameter space. <em>Informative</em> priors concentrate mass where knowledge lives; <em>weakly informative</em> priors gently regularize; a <em>flat/uniform</em> prior is constant; an <em>improper</em> prior (e.g. $p(\mu)\propto 1$ on $\mathbb R$) doesn't integrate to 1 but may still give a proper posterior. <em>Jeffreys prior</em> $p(\theta)\propto\sqrt{I(\theta)}$ is invariant under reparameterization.</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimating a click-through rate. Historical campaigns cluster around 2–4%. Encode as $\mathrm{Beta}(3, 97)$: mean $= 3/100 = 0.03$, and it acts like 100 pseudo-observations. After 10 clicks in 200 new impressions, posterior $= \mathrm{Beta}(13, 287)$, mean $\approx 0.0433$ — between the prior 0.03 and the MLE 0.05, closer to the MLE as the real data (200) outweighs the pseudo-data (100)... here weights are 100 vs 200, so it lands two-thirds of the way to the MLE: $\frac13(0.03)+\frac23(0.05)\approx0.0433$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Uninformative" flat priors are not assumption-free: a prior flat on $\theta$ is NOT flat on $\theta^2$ or $\log\theta$ — flatness depends on parameterization (Jeffreys priors exist to fix exactly this). And a flat prior on a huge space can be absurdly informative, e.g. flat on $p\in[0,1]$ says "50% chance the rate exceeds one half."</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What Beta prior encodes "about 70% success rate, worth roughly 10 observations"? <details class="sol"><summary>Solution</summary><div>$\mathrm{Beta}(7,3)$: mean $0.7$, pseudo-count $\alpha+\beta = 10$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the Jeffreys prior for the Bernoulli parameter. <details class="sol"><summary>Solution</summary><div>$I(p) = \frac{1}{p(1-p)}$ (from the Efficiency section), so $p(p)\propto p^{-1/2}(1-p)^{-1/2}$ — a $\mathrm{Beta}(\frac12,\frac12)$, U-shaped with extra mass near 0 and 1.</div></details></li>
+  <li><span class="lvl h">HARD</span> With improper prior $p(\mu)\propto1$ and one observation $x\sim\mathcal N(\mu,1)$, show the posterior is proper and find it. <details class="sol"><summary>Solution</summary><div>$p(\mu\mid x)\propto e^{-(x-\mu)^2/2}\cdot1$, which as a function of $\mu$ is the kernel of $\mathcal N(x, 1)$ — integrable, hence proper. The posterior mean is $x$: with total prior ignorance, Bayes reproduces the frequentist answer, and the 95% credible interval $x\pm1.96$ coincides with the CI.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="posterior-distributions">
+ <h2>Posterior distributions</h2>
+ <p>The posterior is the complete answer: a distribution over parameters given everything observed. Fatter posterior = more uncertainty; as data accumulate it narrows and, under mild conditions, piles up at the truth like a Gaussian of width $1/\sqrt{n}$.</p>
+ <div class="box def"><span class="label">Definition</span> $p(\theta\mid x_{1:n}) \propto p(\theta)\prod_{i=1}^n p(x_i\mid\theta)$. Summaries: posterior mean/median/mode, posterior variance, and the $1-\alpha$ highest-density interval (the shortest credible interval). <em>Bernstein–von Mises:</em> under regularity, $p(\theta\mid x_{1:n}) \approx \mathcal N\big(\hat\theta_{\mathrm{MLE}},\ \frac{1}{n I(\hat\theta)}\big)$ for large $n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Coin, uniform prior $\mathrm{Beta}(1,1)$, then 7 heads in 10 flips: posterior $\mathrm{Beta}(8,4)$. Mean $= 8/12 = 0.667$; variance $= \frac{8\cdot4}{12^2\cdot13} = \frac{32}{1872} \approx 0.0171$, SD $\approx 0.131$. After 70/100: posterior $\mathrm{Beta}(71,31)$, mean $0.696$, SD $= \sqrt{\frac{71\cdot31}{102^2\cdot103}} \approx 0.045$. Ten times the data, roughly $\sqrt{10}\approx3$ times narrower.</div>
+  <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prior $\mathrm{Beta}(2,3)$, data: 4 successes, 1 failure. Posterior? <details class="sol"><summary>Solution</summary><div>$\mathrm{Beta}(2+4,\ 3+1) = \mathrm{Beta}(6,4)$; mean $0.6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that the posterior from processing data in two batches equals the posterior from processing all data at once. <details class="sol"><summary>Solution</summary><div>$p(\theta\mid x_{1:2}) \propto p(x_2\mid\theta)\,p(\theta\mid x_1) \propto p(x_2\mid\theta)\,p(x_1\mid\theta)\,p(\theta)$ — the same product (data conditionally i.i.d. given $\theta$). Bayesian updating is order-free and incremental; this coherence is its deepest selling point.</div></details></li>
+  <li><span class="lvl h">HARD</span> Gaussian with known variance: prior $\mu\sim\mathcal N(\mu_0,\tau^2)$, data $x_{1:n}$ i.i.d. $\mathcal N(\mu,\sigma^2)$. Derive the posterior. <details class="sol"><summary>Solution</summary><div>Log-posterior (in $\mu$): $-\frac{1}{2\tau^2}(\mu-\mu_0)^2 - \frac{1}{2\sigma^2}\sum(x_i-\mu)^2 + c$. Collecting terms in $\mu$: precision $\frac{1}{\tau^2}+\frac{n}{\sigma^2}$, linear term $\frac{\mu_0}{\tau^2}+\frac{n\bar x}{\sigma^2}$. So $\mu\mid x \sim \mathcal N(\mu_n, \tau_n^2)$ with $$\tau_n^2 = \Big(\frac1{\tau^2}+\frac n{\sigma^2}\Big)^{-1},\qquad \mu_n = \tau_n^2\Big(\frac{\mu_0}{\tau^2}+\frac{n\bar x}{\sigma^2}\Big).$$ Precisions add; the posterior mean is a precision-weighted average of prior mean and sample mean.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="posterior-predictive-distributions">
+ <h2>Posterior predictive distributions</h2>
+ <p>You rarely care about the parameter for its own sake — you want to predict the next observation. The posterior predictive averages the likelihood of new data over the whole posterior, so it is honestly wider than any single-parameter prediction: it carries both noise and parameter uncertainty.</p>
+ <div class="box def"><span class="label">Definition</span> $$p(x_{\text{new}}\mid x_{1:n}) = \int p(x_{\text{new}}\mid\theta)\,p(\theta\mid x_{1:n})\,d\theta.$$ For Beta–Bernoulli with posterior $\mathrm{Beta}(a,b)$: $P(x_{\text{new}}=1\mid x) = \frac{a}{a+b}$ (the posterior mean) — with a $\mathrm{Beta}(1,1)$ prior this is <em>Laplace's rule of succession</em> $\frac{k+1}{n+2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The sun has risen every day of your 10,000-day life; probability it rises tomorrow? Laplace: $\frac{10000+1}{10000+2} \approx 0.9999$. Cheekier: after 7 heads in 10 flips (uniform prior, posterior $\mathrm{Beta}(8,4)$), $P(\text{head next}) = \frac{8}{12} = \frac23$ — not the MLE 0.7, because the posterior's spread hedges toward $\frac12$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The plug-in prediction $p(x_{\text{new}}\mid\hat\theta)$ is overconfident: it pretends $\hat\theta$ is exact. The gap matters most with small data and in the tails — exactly where overconfidence is costliest. (The frequentist echo: predicting with $t$ rather than $z$ intervals.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Posterior $\mathrm{Beta}(3,1)$ after some flips. Probability the next flip is heads? <details class="sol"><summary>Solution</summary><div>$3/(3+1) = 0.75$.</div></details></li>
+  <li><span class="lvl m">MED</span> Under Laplace's rule, you've seen 2 successes in 2 trials. Compare $P(\text{success next})$ to the MLE plug-in. <details class="sol"><summary>Solution</summary><div>Laplace: $\frac{2+1}{2+2} = 0.75$. Plug-in MLE: $2/2 = 1$ — certain success after two observations, an absurd overreach the predictive avoids.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the posterior predictive for Gaussian data ($\sigma^2$ known, posterior $\mu\mid x\sim\mathcal N(\mu_n,\tau_n^2)$) is $\mathcal N(\mu_n,\ \sigma^2+\tau_n^2)$. <details class="sol"><summary>Solution</summary><div>Write $x_{\text{new}} = \mu + \varepsilon$ with $\mu\sim\mathcal N(\mu_n,\tau_n^2)$ and independent $\varepsilon\sim\mathcal N(0,\sigma^2)$. A sum of independent Gaussians is Gaussian with means and variances adding: $x_{\text{new}}\mid x \sim \mathcal N(\mu_n,\ \tau_n^2+\sigma^2)$. Observation noise plus parameter uncertainty — the two sources visibly additive.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conjugate-priors">
+ <h2>Conjugate priors</h2>
+ <p>For some likelihood–prior pairs, the posterior stays in the prior's family: only the parameters update. These conjugate pairs make Bayesian updating a bookkeeping exercise — add the counts, done — and they're the exactly-solvable cases against which all approximate inference is tested.</p>
+ <div class="box def"><span class="label">Definition</span> A family $\mathcal F$ of priors is <em>conjugate</em> to a likelihood if the posterior is in $\mathcal F$ for every dataset. Classic table: Beta–Bernoulli/Binomial ($\alpha{+}k$, $\beta{+}n{-}k$); Gamma–Poisson ($\alpha{+}\sum x_i$, $\beta{+}n$); Gamma–Exponential ($\alpha{+}n$, $\beta{+}\sum x_i$); Dirichlet–Categorical (add counts per category); Gaussian–Gaussian (precision-weighted mean, precisions add).</div>
+ <div class="box ex"><span class="label">Worked example</span> Server crashes per day $\sim\mathrm{Poisson}(\lambda)$, prior $\lambda\sim\mathrm{Gamma}(2, 1)$ (shape 2, rate 1; mean 2). One week of data: $0, 1, 0, 2, 1, 0, 3$ ($\sum x_i = 7$, $n=7$). Posterior: $\mathrm{Gamma}(2+7,\ 1+7) = \mathrm{Gamma}(9, 8)$, mean $9/8 = 1.125$ crashes/day, between prior mean 2 and MLE $1$, and much closer to the data. Posterior SD $= \sqrt{9}/8 = 0.375$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prior $\mathrm{Gamma}(1, 2)$ on a Poisson rate; observe $x = 4, 6$. Posterior? <details class="sol"><summary>Solution</summary><div>$\mathrm{Gamma}(1+10,\ 2+2) = \mathrm{Gamma}(11, 4)$; mean $2.75$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify Beta–Bernoulli conjugacy by multiplying prior and likelihood. <details class="sol"><summary>Solution</summary><div>$p(p\mid x) \propto \underbrace{p^{\alpha-1}(1-p)^{\beta-1}}_{\text{prior}}\cdot \underbrace{p^{k}(1-p)^{n-k}}_{\text{likelihood}} = p^{\alpha+k-1}(1-p)^{\beta+n-k-1}$ — the kernel of $\mathrm{Beta}(\alpha+k,\ \beta+n-k)$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Rolls of a die: counts $(1,2,0,3,1,5)$ over 12 rolls, prior $\mathrm{Dirichlet}(1,\dots,1)$. Posterior, and posterior mean probability of rolling a 6? <details class="sol"><summary>Solution</summary><div>Posterior $=\mathrm{Dirichlet}(2, 3, 1, 4, 2, 6)$ (add one to each count). Posterior mean for face 6: $\frac{6}{2+3+1+4+2+6} = \frac{6}{18} = \frac13$ — smoothed down from the MLE $5/12$. This "add-one" is Laplace smoothing, used verbatim in naive Bayes and n-gram language models.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="monte-carlo-estimation">
+ <h2>Monte Carlo estimation</h2>
+ <p>When an expectation has no closed form, gamble: draw random samples and average. The Law of Large Numbers guarantees convergence and the CLT prices the error at $O(1/\sqrt N)$ — independent of dimension, which is why Monte Carlo owns high-dimensional integration.</p>
+ <div class="box def"><span class="label">Definition</span> To estimate $I = \mathbb{E}_{p}[f(X)] = \int f(x)p(x)dx$: draw $X_1,\dots,X_N\sim p$ i.i.d. and use $\hat I_N = \frac1N\sum f(X_i)$. Then $\mathbb{E}[\hat I_N] = I$ (unbiased) and $\mathrm{Var}(\hat I_N) = \frac{\mathrm{Var}_p(f)}{N}$, giving error bars $\hat I_N \pm 1.96\,\hat\sigma_f/\sqrt N$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimate $\pi$: throw darts uniformly at $[0,1]^2$; $P(\text{inside quarter circle}) = \pi/4$. With $N = 10^4$ darts and $7852$ hits: $\hat\pi = 4\cdot0.7852 = 3.1408$. Error bar: $f$ is $4\cdot$Bernoulli$(\pi/4)$, so SD $= 4\sqrt{\frac{0.785\cdot0.215}{10^4}} \approx 0.0164$ — the estimate $3.1408\pm0.032$ comfortably brackets $\pi$. To get one more digit ($10\times$ accuracy) you need $100\times$ the darts.</div>
+ <div class="box link"><span class="label">Where this goes</span> Estimating expected reward from sampled episodes (Ch 25), the ELBO gradient by sampled latents (Ch 22), and dropout/ensemble predictions are all Monte Carlo estimates.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Estimate $\mathbb{E}[X^2]$ for $X\sim\mathrm{Uniform}(0,1)$ from samples $0.2, 0.5, 0.9$. What is the true value? <details class="sol"><summary>Solution</summary><div>$\hat I = \frac{0.04+0.25+0.81}{3} = \frac{1.10}{3} \approx 0.367$. Truth: $\int_0^1 x^2dx = \frac13$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many samples for the $\pi$ estimator's SD to drop below $0.001$? <details class="sol"><summary>Solution</summary><div>SD $= 4\sqrt{\frac{p(1-p)}{N}}$ with $p = \pi/4 \approx 0.7854$: $16\cdot\frac{0.7854\cdot0.2146}{N} \le 10^{-6} \Rightarrow N \ge 16\cdot0.1686\cdot10^{6} \approx 2.70\times10^6$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does Monte Carlo beat a grid: compare error rates of a product grid vs MC for integrating a smooth function on $[0,1]^d$. <details class="sol"><summary>Solution</summary><div>A grid with $N$ total points has spacing $h = N^{-1/d}$ per axis; e.g. the midpoint rule's error scales as $O(h^2) = O(N^{-2/d})$, collapsing catastrophically with $d$ (for $d = 20$: $N^{-0.1}$). MC error is $O(N^{-1/2})$ for ANY $d$ (constants aside). For $d &gt; 4$, MC already wins asymptotically over a second-order grid rule. That dimension-independence is the entire reason sampling methods dominate statistics and ML.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="importance-sampling">
+ <h2>Importance sampling</h2>
+ <p>What if you can't sample from $p$, or the interesting region is rare under $p$? Sample from a convenient $q$ instead and reweight each draw by $p/q$ — paying attention where it matters. Done well, it slashes variance; done badly, a few huge weights silently own your whole estimate.</p>
+ <div class="box def"><span class="label">Definition</span> If $q(x)&gt;0$ wherever $f(x)p(x)\ne0$: $$\mathbb{E}_p[f(X)] = \mathbb{E}_q\!\Big[f(X)\frac{p(X)}{q(X)}\Big] \approx \frac1N\sum_i f(X_i)w(X_i),\quad X_i\sim q,\ w = \frac pq.$$ With unnormalized densities, the <em>self-normalized</em> estimator $\frac{\sum w_if(x_i)}{\sum w_i}$ works (slightly biased, consistent). Diagnostic: effective sample size $\mathrm{ESS} = \frac{(\sum w_i)^2}{\sum w_i^2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimate $P(X&gt;4)$ for $X\sim\mathcal N(0,1)$ (truth $\approx 3.17\times10^{-5}$). Naive MC needs millions of draws to see even one hit. Instead sample from $q = \mathcal N(4,1)$: about half the draws land in $\{x&gt;4\}$, each weighted by $w(x) = \frac{\phi(x)}{\phi(x-4)} = e^{-4x+8}$. E.g. a draw at $x = 4.2$: $w = e^{-8.8} \approx 1.5\times10^{-4}$; averaging $\mathbf 1[x&gt;4]\,w(x)$ over a few thousand draws nails the tail probability to three digits — a variance reduction of roughly $10^4$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The weights' variance is finite only if $q$ has tails at least as heavy as $p$ (where $f p \ne 0$). Sampling a heavy-tailed target with a Gaussian proposal gives an estimator that converges — officially — but in practice lurches whenever a rare astronomical weight lands. Always check ESS, and prefer over-dispersed proposals.</div>
+ <div class="box link"><span class="label">Where this goes</span> Off-policy RL corrections (Ch 25) and sequential Monte Carlo are importance sampling; PPO's clipped ratio (Ch 23, 25) tames exactly these weights.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Target $p=\mathcal N(0,1)$, proposal $q = \mathcal N(0,2^2)$ (density ratio at $x$: $w(x)=\frac{\phi(x)}{\frac12\phi(x/2)}$). Is $q$ a safe proposal tail-wise? <details class="sol"><summary>Solution</summary><div>Yes: $q$'s tails ($e^{-x^2/8}$) are heavier than $p$'s ($e^{-x^2/2}$), so $w(x) = 2e^{-3x^2/8}$ is bounded and its variance is finite.</div></details></li>
+  <li><span class="lvl m">MED</span> Weights from 4 draws: $0.1, 0.2, 0.1, 3.6$. Compute the ESS and interpret. <details class="sol"><summary>Solution</summary><div>$\mathrm{ESS} = \frac{(4)^2}{0.01+0.04+0.01+12.96} = \frac{16}{13.02} \approx 1.23$. Four draws are worth barely more than one — the last weight dominates; the proposal is badly matched.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the importance-sampling estimator is unbiased and derive its variance. <details class="sol"><summary>Solution</summary><div>$\mathbb{E}_q[f(X)w(X)] = \int f(x)\frac{p(x)}{q(x)}q(x)dx = \int f(x)p(x)dx = \mathbb{E}_p[f]$: unbiased. Variance of one draw: $\mathrm{Var}_q(fw) = \int \frac{f^2p^2}{q}dx - I^2$. Minimizing over $q$ (Cauchy–Schwarz, or calculus of variations with $\int q=1$) gives $q^*(x) \propto |f(x)|p(x)$ — sample where the integrand is big. For $f\ge0$, $q^*\propto fp$ achieves zero variance (every weighted sample equals $I$ exactly); unreachable in practice since normalizing $q^*$ requires knowing $I$, but it's the design principle.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="markov-chain-monte-carlo">
+ <h2>Markov Chain Monte Carlo</h2>
+ <p>To sample a distribution you can only evaluate up to a constant — like a posterior $\propto$ likelihood $\times$ prior — build a Markov chain (Ch 12) whose stationary distribution is the target, run it, and harvest the states it visits. The chain wanders the parameter space, spending time in proportion to probability.</p>
+ <div class="box def"><span class="label">Definition</span> An MCMC method constructs a transition kernel $T(x'\mid x)$ with the target $\pi$ as stationary distribution, typically by enforcing <em>detailed balance</em>: $\pi(x)T(x'\mid x) = \pi(x')T(x\mid x')$. If the chain is also ergodic (irreducible, aperiodic), then time averages converge: $\frac1N\sum f(x_t) \to \mathbb{E}_\pi[f]$. Practicalities: discard an initial <em>burn-in</em>; correlated samples reduce ESS by the autocorrelation time.</div>
+ <div class="box ex"><span class="label">Worked example</span> Why detailed balance suffices: sum both sides over $x$. $\sum_x \pi(x)T(x'\mid x) = \sum_x \pi(x')T(x\mid x') = \pi(x')\sum_x T(x\mid x') = \pi(x')$. The left side is the distribution after one step starting from $\pi$ — so $\pi$ maps to itself: stationary. One line of algebra underwrites the whole MCMC industry.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "The sampler ran" is not "the sampler mixed." A chain stuck in one mode of a multimodal posterior looks perfectly converged. Run multiple chains from dispersed starts and check the Gelman–Rubin $\hat R \approx 1$ (between-chain variance ≈ within-chain variance) before trusting anything.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is it enough to know $\pi$ up to a normalizing constant for MCMC? <details class="sol"><summary>Solution</summary><div>Detailed balance and (below) the Metropolis ratio involve only ratios $\pi(x')/\pi(x)$, in which the constant cancels. That's precisely the situation with posteriors, where $p(x)$ is the intractable constant.</div></details></li>
+  <li><span class="lvl m">MED</span> A chain has autocorrelation time $\tau = 50$. How many effective samples do $10^5$ iterations give? <details class="sol"><summary>Solution</summary><div>$\mathrm{ESS} \approx N/\tau = 10^5/50 = 2000$. Error bars scale with $1/\sqrt{2000}$, not $1/\sqrt{10^5}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Verify that the two-state chain with $\pi = (2/3, 1/3)$ and transitions $T(2\mid1) = 0.15$, $T(1\mid2) = 0.3$ satisfies detailed balance, and find the spectral gap. <details class="sol"><summary>Solution</summary><div>Detailed balance: $\pi_1 T(2\mid1) = \frac23\cdot0.15 = 0.1$ and $\pi_2 T(1\mid2) = \frac13\cdot0.3 = 0.1$ ✓. Transition matrix $\begin{pmatrix}0.85&amp;0.15\\0.3&amp;0.7\end{pmatrix}$ has eigenvalues $1$ and $1-0.15-0.3 = 0.55$. Spectral gap $= 0.45$; correlations decay like $0.55^t$, mixing time $\sim 1/0.45 \approx 2$ steps (Ch 12).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="metropolis-hastings">
+ <h2>Metropolis-Hastings</h2>
+ <p>The universal MCMC recipe: propose a move from a distribution of your choosing, then accept or reject it with a probability cooked to enforce detailed balance. Uphill moves (toward higher probability) are always accepted; downhill moves survive with probability equal to the probability ratio.</p>
+ <div class="box def"><span class="label">Definition</span> From state $x$: propose $x'\sim q(\cdot\mid x)$; accept with probability $$A(x'\mid x) = \min\!\Big(1,\ \frac{\pi(x')\,q(x\mid x')}{\pi(x)\,q(x'\mid x)}\Big),$$ else stay at $x$. For symmetric proposals ($q(x'\mid x) = q(x\mid x')$, e.g. Gaussian random walk) this is the Metropolis rule $\min(1, \pi(x')/\pi(x))$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Target $\pi \propto e^{-x^2/2}$, random-walk proposal $x' = x + \mathcal N(0, 1)$. At $x = 1$, propose $x' = 2$: ratio $= e^{(1-4)/2} = e^{-1.5} \approx 0.223$ — accept with probability 0.223. Propose instead $x' = 0.5$: ratio $= e^{(1-0.25)/2} = e^{0.375} \approx 1.45 &gt; 1$ — accept surely. The chain drifts toward the mode but keeps exploring the tails.</div>
+ <div class="box think"><span class="label">Think first</span> What goes wrong with a tiny proposal step? A huge one? <details class="sol"><summary>Reveal</summary><div>Tiny: nearly every move accepted but the chain creeps — enormous autocorrelation. Huge: proposals land in low-probability wastelands and get rejected; the chain freezes in place. Optimal random-walk acceptance is famously $\approx 0.234$ in high dimension — tune the step size toward that.</div></details></div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch a Metropolis random walk sample a two-mode density. Tune the step size and see acceptance rate and mode-hopping change.</p>
+  <canvas id="cv-mcmc"></canvas>
+  <div class="ctl"><label>step size <input type="range" id="mc-step" min="0.05" max="4" step="0.05" value="0.6"></label><button class="btn" id="mc-run">Run / Pause</button><button class="btn" id="mc-reset">Reset</button></div>
+  <div class="out" id="mc-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Metropolis on $\pi\propto e^{-x^2/2}$ at $x = 0$, proposal $x' = 1.5$. Acceptance probability? <details class="sol"><summary>Solution</summary><div>$\min(1, e^{(0 - 2.25)/2}) = e^{-1.125} \approx 0.325$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the Metropolis–Hastings kernel satisfies detailed balance. <details class="sol"><summary>Solution</summary><div>For $x\ne x'$, the transition density is $T(x'\mid x) = q(x'\mid x)A(x'\mid x)$. Then $\pi(x)T(x'\mid x) = \pi(x)q(x'\mid x)\min\big(1, \frac{\pi(x')q(x\mid x')}{\pi(x)q(x'\mid x)}\big) = \min\big(\pi(x)q(x'\mid x),\ \pi(x')q(x\mid x')\big)$, which is symmetric in $x\leftrightarrow x'$ — hence equals $\pi(x')T(x\mid x')$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Independence sampler: propose $x'\sim q(x')$ ignoring the current state. Write the acceptance ratio and explain when this sampler is excellent or terrible. <details class="sol"><summary>Solution</summary><div>$A = \min\big(1, \frac{\pi(x')q(x)}{\pi(x)q(x')}\big) = \min\big(1, \frac{w(x')}{w(x)}\big)$ with $w = \pi/q$ — importance weights again. If $q\approx\pi$, almost everything is accepted and samples are nearly independent: excellent. If $q$ misses mass where $\pi$ has it (light tails), the chain occasionally lands where $w$ is astronomical and then rejects everything for ages: the same heavy-tail disease as importance sampling, now causing sticking instead of variance.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gibbs-sampling">
+ <h2>Gibbs sampling</h2>
+ <p>When a joint distribution is hard but each variable given the others is easy, cycle: sample $x_1$ from its conditional, then $x_2$, and so on. Every move is accepted — Gibbs is Metropolis–Hastings whose proposals (the exact conditionals) are never rejected.</p>
+ <div class="box def"><span class="label">Definition</span> For target $\pi(x_1,\dots,x_d)$, one Gibbs sweep replaces each coordinate in turn: $x_j^{(t+1)} \sim \pi(x_j \mid x_1^{(t+1)},\dots,x_{j-1}^{(t+1)}, x_{j+1}^{(t)},\dots,x_d^{(t)})$. Each conditional update leaves $\pi$ invariant; the composition is a valid MCMC kernel with acceptance probability 1.</div>
+ <div class="box ex"><span class="label">Worked example</span> Bivariate Gaussian, correlation $\rho$: $\pi(x, y) = \mathcal N\big(\mathbf 0, \begin{pmatrix}1&amp;\rho\\\rho&amp;1\end{pmatrix}\big)$. Conditionals (Ch 11): $x\mid y \sim \mathcal N(\rho y,\ 1-\rho^2)$ and symmetrically. With $\rho = 0.9$, from $(x,y) = (2, 2)$: draw $x\mid y{=}2 \sim \mathcal N(1.8, 0.19)$, say $x = 1.7$; then $y \mid x{=}1.7 \sim \mathcal N(1.53, 0.19)$, say $y = 1.4$. The chain staircases down the ridge — legal moves only parallel to the axes, which is why high correlation makes Gibbs slow.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Strongly coupled variables cripple Gibbs: with $\rho \to 1$ the conditional variances $1-\rho^2 \to 0$ and the chain inches along the diagonal it cannot move along directly. Reparameterize (rotate to decorrelate) or update blocks of variables jointly.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does Gibbs sampling never reject? <details class="sol"><summary>Solution</summary><div>Plug $q(x_j'\mid x) = \pi(x_j'\mid x_{-j})$ into the MH ratio: $\frac{\pi(x')q(x\mid x')}{\pi(x)q(x'\mid x)} = \frac{\pi(x_j'\mid x_{-j})\pi(x_{-j})\ \pi(x_j\mid x_{-j})}{\pi(x_j\mid x_{-j})\pi(x_{-j})\ \pi(x_j'\mid x_{-j})} = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> For the $\rho = 0.9$ Gaussian, the $x$-marginal of the Gibbs chain is approximately an AR(1) process $x_{t+1} \approx \rho^2 x_t + \text{noise}$. Estimate the autocorrelation time. <details class="sol"><summary>Solution</summary><div>One full sweep multiplies the state by $\rho^2 = 0.81$ in expectation. Autocorrelation at lag $k$: $0.81^k$; integrated autocorrelation time $\tau \approx \frac{1+0.81}{1-0.81} \approx 9.5$ sweeps. At $\rho = 0.99$: $\tau \approx 100$ — quadratic blow-up as $\frac{2}{1-\rho^2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two binary variables with $\pi(0,0) = \pi(1,1) = 0.49$, $\pi(0,1) = \pi(1,0) = 0.01$. Compute the Gibbs conditional $P(x{=}1\mid y{=}1)$ and explain the mixing problem. <details class="sol"><summary>Solution</summary><div>$P(x{=}1\mid y{=}1) = \frac{0.49}{0.49+0.01} = 0.98$. Each conditional overwhelmingly keeps the pair matched, so flipping from the $(0,0)$ mode to $(1,1)$ requires passing through a state of probability 0.01: expected waiting time $\sim 50$ sweeps per escape attempt sequence — the two modes act like separated islands. Discrete multimodality defeats coordinate-wise samplers just as continuous multimodality defeats random walks.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hamiltonian-monte-carlo">
+ <h2>Hamiltonian Monte Carlo</h2>
+ <p>Random walks diffuse — slow, timid exploration. HMC instead gives the sample a momentum and rolls it along the posterior landscape using physics: the negative log-density becomes potential energy, and frictionless motion glides to distant states that are still accepted with high probability. It's the engine of modern Bayesian software (Stan, PyMC, NumPyro).</p>
+ <div class="box def"><span class="label">Definition</span> Augment $\theta$ with momentum $r\sim\mathcal N(0, M)$ and define the Hamiltonian $H(\theta, r) = U(\theta) + \frac12 r^\top M^{-1}r$ where $U(\theta) = -\log\pi(\theta)$. One iteration: resample $r$; simulate Hamilton's equations $\dot\theta = M^{-1}r$, $\dot r = -\nabla U(\theta)$ for $L$ leapfrog steps of size $\epsilon$; accept the endpoint with probability $\min(1, e^{H(\theta,r)-H(\theta',r')})$. Exact simulation would conserve $H$ and always accept; leapfrog is close, so acceptance stays high even for long jumps.</div>
+ <div class="box ex"><span class="label">Worked example</span> One leapfrog step for $U(\theta) = \theta^2/2$ (standard Gaussian target), $M = 1$, $\epsilon = 0.1$, from $(\theta, r) = (1, 0.5)$: half-kick $r \leftarrow 0.5 - 0.05\cdot U'(1) = 0.5 - 0.05 = 0.45$; drift $\theta \leftarrow 1 + 0.1\cdot0.45 = 1.045$; half-kick $r \leftarrow 0.45 - 0.05\cdot1.045 = 0.39775$. Energy check: before $H = 0.5+0.125 = 0.625$; after $H = 0.546 + 0.0791 = 0.625$ (to 3 decimals) — nearly conserved, so this trajectory will be accepted with probability $\approx 1$ despite moving deterministically.</div>
+ <div class="box link"><span class="label">Where this goes</span> HMC needs $\nabla\log\pi$ — the score function. The same gradient drives Langevin dynamics (Ch 12) and score-based diffusion models (Ch 22); stochastic-gradient variants (SGLD) blur into optimization (Ch 15).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is the momentum resampled fresh each iteration? <details class="sol"><summary>Solution</summary><div>Hamiltonian flow conserves $H$, so it explores only one energy shell. Resampling $r\sim\mathcal N(0,M)$ jumps between shells, making the chain ergodic over the whole joint $(\theta, r)$ space — whose $\theta$-marginal is the target.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does HMC scale better with dimension than random-walk Metropolis? <details class="sol"><summary>Solution</summary><div>A random walk must shrink its step like $d^{-1/2}$ to keep acceptance reasonable and needs $O(d)$ steps to cross the typical set; leapfrog errors accumulate more gently, allowing step size $\sim d^{-1/4}$ — so HMC needs $O(d^{1/4})$ gradient evaluations per effective sample versus $O(d)$ proposals for the walk. Gradient information converts diffusion into ballistic transport.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the leapfrog integrator is exactly time-reversible, and why reversibility matters for correctness. <details class="sol"><summary>Solution</summary><div>A leapfrog step is the map $(\theta,r)\mapsto(\theta',r')$: $r_{1/2} = r - \frac\epsilon2\nabla U(\theta)$, $\theta' = \theta + \epsilon M^{-1}r_{1/2}$, $r' = r_{1/2} - \frac\epsilon2\nabla U(\theta')$. Negate the final momentum and run the same three sub-steps: the half-kick undoes the last half-kick, the drift retraces (momentum is exactly $-r_{1/2}$), and the final half-kick recovers $-r$. So flipping momentum conjugates the map to its inverse. Together with volume preservation (each sub-step is a shear with unit Jacobian), this makes the proposal density symmetric, so the simple Metropolis ratio $e^{-\Delta H}$ yields detailed balance.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="variational-inference">
+ <h2>Variational inference</h2>
+ <p>MCMC samples the posterior; variational inference replaces it. Pick a tractable family of distributions, then optimize its parameters to sit as close to the true posterior as possible in KL divergence. Inference becomes optimization — trading MCMC's asymptotic exactness for speed, scalability and gradients.</p>
+ <div class="box def"><span class="label">Definition</span> Choose a family $\{q_\phi(\theta)\}$ and solve $$\phi^* = \arg\min_\phi\ \mathrm{KL}\big(q_\phi(\theta)\,\|\,p(\theta\mid x)\big).$$ The <em>mean-field</em> family factorizes: $q(\theta) = \prod_j q_j(\theta_j)$. Since the posterior is unknown, one minimizes KL indirectly by maximizing the ELBO (next section), which requires only the joint $p(x,\theta)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Approximate a correlated Gaussian posterior $p = \mathcal N\big(\mathbf 0, \begin{pmatrix}1&amp;0.9\\0.9&amp;1\end{pmatrix}\big)$ with a factorized Gaussian $q = \mathcal N(0,\sigma_1^2)\times\mathcal N(0,\sigma_2^2)$. Minimizing $\mathrm{KL}(q\|p)$ gives $\sigma_1^2 = \sigma_2^2 = 1-0.9^2 = 0.19$ (the precision matrix of $p$ has diagonal $\frac{1}{1-\rho^2}$; matching diagonals of the precision is what reverse KL does). The approximation gets the mean right but claims SD $0.44$ where the truth is $1$: mean-field VI is characteristically overconfident under correlation.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Reverse KL, $\mathrm{KL}(q\|p)$, is <em>mode-seeking</em>: $q$ pays infinite penalty for putting mass where $p$ has none, so it huddles inside one mode and underestimates variance. Forward KL ($\mathrm{KL}(p\|q)$, used in expectation propagation) is mass-covering and overestimates instead. Know which error your approximation makes before trusting its uncertainties.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the key computational advantage of VI over MCMC and the key cost. <details class="sol"><summary>Solution</summary><div>Advantage: it's optimization — fast, minibatch-friendly, GPU-friendly, with a monitorable objective. Cost: the answer is biased by the family; no amount of compute recovers the exact posterior (MCMC does, asymptotically).</div></details></li>
+  <li><span class="lvl m">MED</span> True posterior is an equal mixture of $\mathcal N(-3, 1)$ and $\mathcal N(3, 1)$; $q$ is a single Gaussian fit by reverse KL. Roughly what does $q$ look like? <details class="sol"><summary>Solution</summary><div>It locks onto ONE mode: $q \approx \mathcal N(\pm3, 1)$ (either one). The mass-covering alternative $\mathcal N(0, \approx 10)$ has $q$ mass in the valley where $p\approx0$, which reverse KL punishes with a huge $\mathbb E_q[\log\frac qp]$ contribution.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\mathrm{KL}\big(\mathcal N(0,\sigma^2)\,\|\,\mathcal N(0,1)\big)$ and verify mode-seeking shrinkage: for the marginal-matching choice $\sigma = 1$ vs the mean-field answer above. <details class="sol"><summary>Solution</summary><div>$\mathrm{KL} = \frac12(\sigma^2 - 1 - \log\sigma^2)$. General 1-D formula: $\mathrm{KL}(\mathcal N(\mu_0,\sigma_0^2)\|\mathcal N(\mu_1,\sigma_1^2)) = \log\frac{\sigma_1}{\sigma_0} + \frac{\sigma_0^2 + (\mu_0-\mu_1)^2}{2\sigma_1^2} - \frac12$. In the 2-D example, the true conditional SD is $\sqrt{0.19}$ and reverse KL picks marginals matching the CONDITIONALS ($\sigma^2 = 0.19$), not the marginals ($\sigma^2 = 1$): plugging into the joint KL objective, factorized-$q$ cross terms force each factor to match $p$'s conditional precision, confirming the shrinkage computed above.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="elbo">
+ <h2>ELBO</h2>
+ <p>The Evidence Lower BOund is the objective that makes variational inference runnable: a quantity you can estimate and differentiate that equals the log evidence minus the KL gap to the true posterior. Maximizing the ELBO simultaneously fits the approximation and scores the model.</p>
+ <div class="box def"><span class="label">Definition</span> For any $q$: $$\log p(x) = \underbrace{\mathbb{E}_{q(\theta)}\big[\log p(x,\theta) - \log q(\theta)\big]}_{\mathrm{ELBO}(q)} + \mathrm{KL}\big(q(\theta)\|p(\theta\mid x)\big).$$ Since KL $\ge 0$: $\mathrm{ELBO} \le \log p(x)$, with equality iff $q$ is the exact posterior. Equivalent form: $\mathrm{ELBO} = \mathbb{E}_q[\log p(x\mid\theta)] - \mathrm{KL}(q(\theta)\|p(\theta))$ — expected data fit minus a complexity penalty pulling $q$ toward the prior.</div>
+ <div class="box ex"><span class="label">Worked example</span> Tiny discrete check. $\theta\in\{A, B\}$, prior $(\frac12,\frac12)$; likelihoods $p(x\mid A) = 0.8$, $p(x\mid B) = 0.2$ for the observed $x$. Evidence: $p(x) = 0.5$, $\log p(x) = -0.693$. True posterior: $(0.8, 0.2)$. Take $q = (0.5, 0.5)$: $\mathrm{ELBO} = 0.5[\log(0.4) - \log 0.5] + 0.5[\log(0.1) - \log 0.5] = 0.5\log 0.8 + 0.5\log 0.2 = -0.916$. Gap: $-0.693 - (-0.916) = 0.223 = \mathrm{KL}(q\|\text{posterior})$ ✓ (check: $0.5\log\frac{0.5}{0.8}+0.5\log\frac{0.5}{0.2} = 0.5(-0.470 + 0.916) = 0.223$).</div>
+ <div class="box link"><span class="label">Where this goes</span> The ELBO is the training loss of the variational autoencoder (Ch 22) — with $q_\phi(z\mid x)$ an encoder network and $p_\theta(x\mid z)$ a decoder — and the "evidence" view underlies model selection and MDL (Ch 16).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is maximizing the ELBO over $q$ the same as minimizing $\mathrm{KL}(q\|p(\theta\mid x))$? <details class="sol"><summary>Solution</summary><div>Their sum, $\log p(x)$, is a constant with respect to $q$. Raising one lowers the other, one-for-one.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the ELBO decomposition from Jensen's inequality. <details class="sol"><summary>Solution</summary><div>$\log p(x) = \log\int p(x,\theta)d\theta = \log \mathbb{E}_q\big[\frac{p(x,\theta)}{q(\theta)}\big] \ge \mathbb{E}_q\big[\log\frac{p(x,\theta)}{q(\theta)}\big] = \mathrm{ELBO}$, by Jensen with the concave $\log$ (Ch 11). The slack in Jensen's inequality is exactly the KL term.</div></details></li>
+  <li><span class="lvl h">HARD</span> In the worked example, compute the ELBO for $q = (0.8, 0.2)$ (the true posterior) and for $q = (1, 0)$; interpret. <details class="sol"><summary>Solution</summary><div>$q = (0.8, 0.2)$: $\mathrm{ELBO} = 0.8\log\frac{0.4}{0.8} + 0.2\log\frac{0.1}{0.2} = 0.8(-0.693)+0.2(-0.693) = -0.693 = \log p(x)$ — the bound is tight at the exact posterior. $q = (1, 0)$: $\mathrm{ELBO} = 1\cdot\log\frac{0.4}{1} = -0.916$. Collapsing onto the mode costs $0.223$ nats — the ELBO punishes overconfident approximations even when they pick the right mode, because it charges for lost entropy ($\mathbb E_q[-\log q]$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="uncertainty-quantification">
+ <h2>Uncertainty quantification</h2>
+ <p>A prediction without an honest uncertainty is half an answer. UQ distinguishes two kinds of not-knowing: aleatoric uncertainty (irreducible randomness in the world — the dice) and epistemic uncertainty (your ignorance from limited data — reducible with more of it). Systems that act on predictions — doctors, traders, agents — need both.</p>
+ <div class="box def"><span class="label">Definition</span> For a predictive distribution $p(y\mid x, \mathcal D)$: <em>aleatoric</em> uncertainty is the noise in $y$ given the true function; <em>epistemic</em> uncertainty is uncertainty about the function itself, $p(\theta\mid\mathcal D)$. In the Bayesian decomposition of predictive variance: $$\mathrm{Var}(y\mid x) = \underbrace{\mathbb{E}_{\theta}[\mathrm{Var}(y\mid x,\theta)]}_{\text{aleatoric}} + \underbrace{\mathrm{Var}_{\theta}(\mathbb{E}[y\mid x,\theta])}_{\text{epistemic}}$$ (law of total variance, Ch 11).</div>
+ <div class="box ex"><span class="label">Worked example</span> An ensemble of 3 regression nets predicts at $x$: means $(2.0, 2.4, 2.2)$ with per-model noise variances $(0.5, 0.7, 0.6)$. Aleatoric $\approx$ mean noise $= 0.6$. Epistemic $=$ variance of means $= \frac{(2-2.2)^2+(2.4-2.2)^2+0}{3} = \frac{0.08}{3} \approx 0.027$. Total predictive variance $\approx 0.627$. On a far-away out-of-distribution input, the means might read $(1, 5, -2)$: epistemic explodes ($\approx 8.2$) while aleatoric stays put — the ensemble is telling you it doesn't know, which no single model can say.</div>
+ <div class="box link"><span class="label">Where this goes</span> Epistemic uncertainty drives exploration in bandits and RL (Ch 24, 25), abstention ("I don't know") in deployed agents (Ch 32), and out-of-distribution detection (Ch 19); hallucination in LLMs (Ch 23) is a UQ failure.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify: (a) coin-flip outcome uncertainty; (b) uncertainty about whether the coin is fair. Which shrinks with more flips? <details class="sol"><summary>Solution</summary><div>(a) aleatoric, (b) epistemic. Only (b): flips pin down $p$ but never determine the next outcome.</div></details></li>
+  <li><span class="lvl m">MED</span> A model's predictive interval is well-calibrated in-distribution but far too narrow on novel inputs. Which uncertainty is it missing and why do point-estimate (MLE) models have this disease? <details class="sol"><summary>Solution</summary><div>Epistemic. An MLE/MAP model conditions on a single $\hat\theta$, so $\mathrm{Var}_\theta(\cdot) = 0$ by construction: it reports only aleatoric noise, which extrapolates blindly off-distribution.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use the law of total variance to verify the decomposition on: $\theta\sim$ fair coin choosing between $y\sim\mathcal N(0,1)$ and $y\sim\mathcal N(4,1)$. <details class="sol"><summary>Solution</summary><div>Aleatoric term: $\mathbb E_\theta[\mathrm{Var}(y\mid\theta)] = 1$. Epistemic term: $\mathrm{Var}_\theta(\mathbb E[y\mid\theta]) = \mathrm{Var}(\{0,4\}\text{ equally}) = \frac{(0-2)^2+(4-2)^2}{2} = 4$. Total: 5. Direct check: mixture mean 2; $\mathbb E[y^2] = \frac12(0+1) + \frac12(16+1) = 9$; $\mathrm{Var} = 9-4 = 5$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="calibration">
+ <h2>Calibration</h2>
+ <p>A forecaster is calibrated if its stated confidences mean what they say: of all the times it announces "70%", the event happens 70% of the time. Calibration is orthogonal to accuracy — a model can be accurate but overconfident, or perfectly calibrated but useless — and modern neural nets are famously miscalibrated out of the box.</p>
+ <div class="box def"><span class="label">Definition</span> A probabilistic classifier with confidence $\hat p(x)$ is <em>calibrated</em> if $P(Y = 1 \mid \hat p(X) = p) = p$ for all $p$ (and analogously per class). Diagnostic: the <em>reliability diagram</em> — bin predictions by confidence, plot observed frequency against mean confidence; calibrated models track the diagonal. Common fix: <em>temperature scaling</em> — replace logits $z$ by $z/T$ and tune $T&gt;0$ on validation data ($T&gt;1$ softens overconfident models).</div>
+ <div class="box ex"><span class="label">Worked example</span> A weather model's forecasts, bucketed: of 200 days it said "80% rain", it rained 130 times (65%) — overconfident. Of 100 days at "30%", it rained 33 times — spot on. The reliability curve sags below the diagonal at high confidence: the signature of overconfidence. Applying temperature $T = 1.6$ to its logits drags the "80%" claims down toward 67% where the world actually lives.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Adjust the temperature applied to an overconfident classifier's logits and watch the reliability diagram bend toward the diagonal.</p>
+  <canvas id="cv-calib"></canvas>
+  <div class="ctl"><label>temperature T <input type="range" id="cb-t" min="0.4" max="3" step="0.05" value="1"></label></div>
+  <div class="out" id="cb-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A model says "90%" on 50 cases; 36 are correct. Calibrated? <details class="sol"><summary>Solution</summary><div>Observed accuracy $= 36/50 = 72\%$ vs claimed 90%: overconfident by 18 points in this bin.</div></details></li>
+  <li><span class="lvl m">MED</span> Show a classifier can be perfectly calibrated yet uninformative. <details class="sol"><summary>Solution</summary><div>Predict the base rate always: if 30% of emails are spam and the model says "30%" on every email, then among "30%" predictions the frequency is 30% — calibrated, resolution zero. Calibration must be paired with sharpness (confidence spread) to be useful.</div></details></li>
+  <li><span class="lvl h">HARD</span> Does temperature scaling change the model's accuracy or ranking (AUC)? Prove it. <details class="sol"><summary>Solution</summary><div>No. $z\mapsto z/T$ with $T&gt;0$ is strictly monotone in each logit and preserves the argmax (accuracy unchanged) and all pairwise orderings of confidence scores (ROC/AUC unchanged). Only the probability VALUES move — temperature scaling is purely a recalibration, which is exactly why it can't fix a model that ranks badly.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="expected-calibration-error">
+ <h2>Expected Calibration Error</h2>
+ <p>ECE compresses the reliability diagram into one number: the average gap between confidence and accuracy, weighted by how many predictions fall in each confidence bin. It's the standard headline metric for miscalibration — convenient, and gameable in instructive ways.</p>
+ <div class="box def"><span class="label">Definition</span> Partition predictions into $M$ confidence bins $B_m$. $$\mathrm{ECE} = \sum_{m=1}^M \frac{|B_m|}{n}\,\big|\mathrm{acc}(B_m) - \mathrm{conf}(B_m)\big|,$$ where $\mathrm{acc}(B_m)$ is the fraction correct in bin $m$ and $\mathrm{conf}(B_m)$ the mean stated confidence. (For multiclass, confidence $=$ probability of the predicted class.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $n = 100$ predictions, three bins: $B_1$: 20 preds, conf 0.55, acc 0.50; $B_2$: 30 preds, conf 0.75, acc 0.70; $B_3$: 50 preds, conf 0.95, acc 0.82. $$\mathrm{ECE} = 0.2(0.05) + 0.3(0.05) + 0.5(0.13) = 0.01 + 0.015 + 0.065 = 0.09.$$ The high-confidence bin dominates the error — typical of overconfident deep nets, where the "99% sure" bucket is only 85% right.</div>
+ <div class="box pit"><span class="label">Pitfall</span> ECE depends on the binning: few bins hide miscalibration by averaging over it; many bins add noise. And because gaps are aggregated with absolute values per bin, over- and under-confidence in the SAME bin cancel invisibly. Report the reliability diagram alongside, and consider debiased or adaptive-bin variants.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> One bin: 10 predictions at conf 0.8, 6 correct. ECE? <details class="sol"><summary>Solution</summary><div>$|0.6 - 0.8| = 0.2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Two bins of 50 each: (conf 0.6, acc 0.7) and (conf 0.9, acc 0.8). Compute ECE. Is the model over- or under-confident? <details class="sol"><summary>Solution</summary><div>$\mathrm{ECE} = 0.5(0.1) + 0.5(0.1) = 0.1$. Both at once: underconfident at low confidence, overconfident at high — a too-flat reliability curve, common after aggressive label smoothing.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct predictions with substantial miscalibration but ECE $= 0$ under a single bin. <details class="sol"><summary>Solution</summary><div>Half the predictions at conf 0.9 with accuracy 0.7 (overconfident by 0.2), half at conf 0.5 with accuracy 0.7 (underconfident by 0.2). One bin: mean conf $= 0.7$, overall acc $= 0.7$, ECE $= 0$. Every individual prediction is miscalibrated; the aggregate hides it. Finer bins reveal it — which is why the binning caveat is not pedantry.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="brier-score">
+ <h2>Brier score</h2>
+ <p>The Brier score judges probabilistic forecasts by squared error against reality: predict 0.9, event happens, pay $(0.9-1)^2$. It is a proper scoring rule — you minimize your expected penalty by reporting your true belief — and it decomposes exactly into calibration and refinement pieces, tying this chapter's last threads together.</p>
+ <div class="box def"><span class="label">Definition</span> For forecasts $\hat p_i$ of binary outcomes $y_i\in\{0,1\}$: $$\mathrm{BS} = \frac1n\sum_{i=1}^n (\hat p_i - y_i)^2 \in [0, 1],\ \text{lower is better.}$$ <em>Propriety:</em> if the true probability is $p$, expected score $\mathbb E[(\hat p - Y)^2] = (\hat p - p)^2 + p(1-p)$ is uniquely minimized at $\hat p = p$. <em>Murphy decomposition</em> (binned): $\mathrm{BS} = \text{reliability} - \text{resolution} + \text{uncertainty}$, where reliability is the (squared-gap) calibration error, resolution rewards confident discrimination, and uncertainty $= \bar y(1-\bar y)$ is the base rate's inherent noise.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three forecasts: $\hat p = (0.9, 0.3, 0.7)$, outcomes $y = (1, 0, 0)$. $\mathrm{BS} = \frac{(0.9-1)^2 + (0.3-0)^2 + (0.7-0)^2}{3} = \frac{0.01 + 0.09 + 0.49}{3} = \frac{0.59}{3} \approx 0.197$. Benchmarks: always predicting $0.5$ scores $0.25$; a perfect oracle scores $0$; predicting the base rate $\bar y = 1/3$ everywhere scores $\bar y(1-\bar y) = 0.222$. Our forecaster beats both fenceposts.</div>
+ <div class="box think"><span class="label">Think first</span> Under squared penalty, could hedging (reporting 0.5 when you believe 0.9) ever help on average? <details class="sol"><summary>Reveal</summary><div>No — that's propriety. If your true belief is $p = 0.9$: reporting 0.9 costs $0.9(0.1) = 0.09$ expected; reporting 0.5 costs $(0.5-0.9)^2 + 0.09 = 0.25$. The quadratic penalty is engineered so honesty is the unique optimum. (Log loss, Ch 16/19, is proper too; raw accuracy is not.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Forecast 0.8 for rain; it rains. Brier contribution? And if it doesn't? <details class="sol"><summary>Solution</summary><div>Rain: $(0.8-1)^2 = 0.04$. No rain: $(0.8-0)^2 = 0.64$ — sixteen times worse.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that among constant forecasts $\hat p = c$, the base rate $c = \bar y$ minimizes the Brier score. <details class="sol"><summary>Solution</summary><div>$\mathrm{BS}(c) = \frac1n\sum(c - y_i)^2$, a quadratic in $c$; $\frac{d}{dc} = \frac2n\sum(c - y_i) = 0 \Rightarrow c = \bar y$. Minimum value $\frac1n\sum(\bar y - y_i)^2 = \bar y(1-\bar y)$ for binary $y$ — the "uncertainty" floor in Murphy's decomposition.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the Brier score is a proper scoring rule from the expected-score identity. <details class="sol"><summary>Solution</summary><div>With $Y\sim\mathrm{Bernoulli}(p)$: $\mathbb E[(\hat p - Y)^2] = \hat p^2 - 2\hat p\,\mathbb E[Y] + \mathbb E[Y^2] = \hat p^2 - 2\hat p p + p = (\hat p - p)^2 + p(1-p)$. The second term is out of the forecaster's control; the first is $\ge 0$ with equality iff $\hat p = p$. Strictly proper: honesty is the unique minimizer. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>The full Bayesian pipeline.</strong> A spam filter's feature "contains FREE" appears in spam with unknown probability $\theta$. Prior: $\theta\sim\mathrm{Beta}(2, 2)$. In 20 spam emails, the feature appears 12 times. (a) Posterior? (b) MLE, MAP, posterior mean? (c) Posterior predictive probability the next spam email contains the feature? (d) A central 95% credible interval via the normal approximation to the posterior. <details class="sol"><summary>Solution</summary><div>(a) $\mathrm{Beta}(2{+}12,\ 2{+}8) = \mathrm{Beta}(14, 10)$. (b) MLE $= 12/20 = 0.6$; MAP $= \frac{14-1}{14+10-2} = \frac{13}{22} \approx 0.591$; posterior mean $= \frac{14}{24} \approx 0.583$. (c) Predictive $=$ posterior mean $= 0.583$. (d) Posterior variance $= \frac{14\cdot10}{24^2\cdot25} = \frac{140}{14400} \approx 0.00972$, SD $\approx 0.0986$. Interval: $0.583 \pm 1.96\cdot0.0986 \approx (0.390,\ 0.777)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Test, power, and multiplicity.</strong> You A/B test 10 independent site changes. Each test uses $n = 400$ users per arm on a metric with $\sigma = 1$; true effects: 9 changes do nothing, one improves the metric by $0.25$. Tests are two-sided z-tests on the difference of means. (a) SE of each difference and the per-test power at $\alpha = 0.05$ for the real effect. (b) Expected number of false positives without correction. (c) With Bonferroni, the new threshold and power. (d) Is the trade worth it? <details class="sol"><summary>Solution</summary><div>(a) SE $= \sigma\sqrt{2/n} = \sqrt{2/400} = 0.0707$. $z$-shift $= 0.25/0.0707 = 3.536$. Power $= P(|Z + 3.536| &gt; 1.96) \approx \Phi(3.536 - 1.96) = \Phi(1.576) \approx 0.942$. (b) $9\times0.05 = 0.45$ expected false alarms — nearly a coin flip that you ship a dud. (c) Threshold $\alpha/10 = 0.005$, $z_{0.0025} = 2.807$; power $= \Phi(3.536 - 2.807) = \Phi(0.729) \approx 0.767$. (d) Power drops 94% → 77% while expected false positives drop 0.45 → 0.045. If shipping a dud is costly, yes; if missing the one good change is costlier, use BH (FDR) as the middle path — with one true effect this strong, its p-value $\approx 0.0004$ typically survives BH at rank 1 ($0.0004 \le 0.005$), keeping most of the power.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Regression meets inference.</strong> For the model $y = X\beta + \varepsilon$, $\varepsilon\sim\mathcal N(0, \sigma^2 I)$, with $X$ the $4\times2$ design $[\mathbf 1, x]$, $x = (0, 1, 2, 3)^\top$ and $y = (1.1,\ 1.9,\ 3.2,\ 3.8)^\top$: (a) fit $\hat\beta$; (b) estimate $\sigma^2$ via $\hat\sigma^2 = \mathrm{SSE}/(n-2)$; (c) give $\mathrm{Var}(\hat\beta_1)$ and a 95% CI using $t_{2}(0.975) = 4.303$; (d) test $H_0: \beta_1 = 0$. <details class="sol"><summary>Solution</summary><div>(a) $\bar x = 1.5$, $\bar y = 2.5$. $S_{xx} = 2.25+0.25+0.25+2.25 = 5$. $S_{xy} = (-1.5)(-1.4) + (-0.5)(-0.6) + (0.5)(0.7) + (1.5)(1.3) = 2.1+0.3+0.35+1.95 = 4.7$. $\hat\beta_1 = 0.94$, $\hat\beta_0 = 2.5 - 0.94\cdot1.5 = 1.09$. (b) Fitted: $1.09, 2.03, 2.97, 3.91$; residuals: $0.01, -0.13, 0.23, -0.11$; SSE $= 0.0001+0.0169+0.0529+0.0121 = 0.082$; $\hat\sigma^2 = 0.082/2 = 0.041$. (c) $\mathrm{Var}(\hat\beta_1) = \hat\sigma^2/S_{xx} = 0.041/5 = 0.0082$, SE $= 0.0906$. CI: $0.94 \pm 4.303\cdot0.0906 = 0.94\pm0.39 = (0.55,\ 1.33)$. (d) $t = 0.94/0.0906 = 10.4 \gg 4.303$: reject decisively; $p \approx 0.009$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p><strong>Task 1 — Bootstrap confidence interval.</strong> Implement the percentile bootstrap for the median of a skewed sample and compare with the analytic CI for the mean.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+data = rng.lognormal(mean=0.0, sigma=1.0, size=200)   # skewed sample
+
+def bootstrap_ci(data, stat, B=5000, alpha=0.05, rng=rng):
+    n = len(data)
+    idx = rng.integers(0, n, size=(B, n))
+    boots = stat(data[idx], axis=1)          # stat on each resample
+    lo, hi = np.quantile(boots, [alpha/2, 1 - alpha/2])
+    return lo, hi, boots.std()
+
+lo, hi, se = bootstrap_ci(data, np.median)
+print(f"median = {np.median(data):.3f}, 95% CI = ({lo:.3f}, {hi:.3f}), boot SE = {se:.3f}")
+
+# analytic CI for the MEAN, for contrast
+m, s, n = data.mean(), data.std(ddof=1), len(data)
+print(f"mean 95% CI = ({m - 1.96*s/np.sqrt(n):.3f}, {m + 1.96*s/np.sqrt(n):.3f})")</code></pre></div></details>
+ <p><strong>Task 2 — Metropolis–Hastings from scratch.</strong> Sample the posterior of a Bernoulli parameter (uniform prior, 7 heads / 10 flips) with a random-walk sampler; verify against the exact $\mathrm{Beta}(8,4)$.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+
+k, n = 7, 10
+def log_post(p):                      # log Beta(8,4) kernel
+    if p &lt;= 0 or p &gt;= 1: return -np.inf
+    return k*np.log(p) + (n-k)*np.log(1-p)
+
+T, step = 50_000, 0.15
+chain = np.empty(T); p = 0.5; lp = log_post(p); acc = 0
+for t in range(T):
+    q = p + step*rng.standard_normal()
+    lq = log_post(q)
+    if np.log(rng.random()) &lt; lq - lp:   # Metropolis accept
+        p, lp = q, lq; acc += 1
+    chain[t] = p
+
+burn = chain[5000:]
+print(f"acceptance = {acc/T:.2f}")
+print(f"MCMC  mean = {burn.mean():.4f}, sd = {burn.std():.4f}")
+print(f"exact mean = {8/12:.4f}, sd = {np.sqrt(8*4/(12**2*13)):.4f}")</code></pre></div></details>
+ <p><strong>Task 3 — Calibration: reliability, ECE and temperature scaling.</strong> Train logistic regression on noisy 2-class data, artificially sharpen its logits to simulate overconfidence, then find the temperature that minimizes NLL and report ECE before/after.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(2)
+
+# synthetic 1-D logistic data
+n = 4000
+x = rng.normal(size=n)
+p_true = 1/(1 + np.exp(-1.5*x))
+y = (rng.random(n) &lt; p_true).astype(float)
+
+logits = 3.0 * 1.5 * x          # overconfident: true logits scaled by 3
+
+def ece(probs, y, bins=10):
+    edges = np.linspace(0, 1, bins+1); e = 0.0
+    conf = np.maximum(probs, 1-probs); correct = (probs &gt; .5) == (y == 1)
+    for i in range(bins):
+        m = (conf &gt;= edges[i]) &amp; (conf &lt; edges[i+1] + (i==bins-1))
+        if m.sum(): e += m.mean() * abs(correct[m].mean() - conf[m].mean())
+    return e
+
+def nll(T):
+    p = 1/(1 + np.exp(-logits/T))
+    p = np.clip(p, 1e-12, 1-1e-12)
+    return -(y*np.log(p) + (1-y)*np.log(1-p)).mean()
+
+Ts = np.linspace(0.5, 6, 200)
+T_best = Ts[np.argmin([nll(T) for T in Ts])]
+p0  = 1/(1 + np.exp(-logits))
+pT  = 1/(1 + np.exp(-logits/T_best))
+print(f"T* = {T_best:.2f} (expect ~3)")
+print(f"ECE before = {ece(p0, y):.3f}, after = {ece(pT, y):.3f}")</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.stat.cmu.edu/~larry/all-of-statistics/">Wasserman, <em>All of Statistics</em></a> — the fastest serious route through estimation, testing and inference; Chs 6–11 map onto this chapter.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-650-statistics-for-applications-fall-2016/">MIT OCW 18.650 Statistics for Applications</a> — full lectures on MLE, tests, and regression with proofs.</li>
+  <li><a href="https://www.khanacademy.org/math/statistics-probability">Khan Academy: Statistics and Probability</a> — gentle drills for sampling distributions, CIs and hypothesis tests.</li>
+  <li><a href="http://www.stat.columbia.edu/~gelman/book/">Gelman et al., <em>Bayesian Data Analysis</em> (free PDF)</a> — priors, posteriors, hierarchical models and MCMC from the masters.</li>
+  <li><a href="https://arxiv.org/abs/1701.02434">Betancourt, "A Conceptual Introduction to Hamiltonian Monte Carlo"</a> — the why of HMC, typical sets and energy shells, beautifully told.</li>
+  <li><a href="https://arxiv.org/abs/1601.00670">Blei, Kucukelbir &amp; McAuliffe, "Variational Inference: A Review for Statisticians"</a> — the ELBO, mean-field and modern VI in 30 readable pages.</li>
+  <li><a href="https://arxiv.org/abs/1706.04599">Guo et al., "On Calibration of Modern Neural Networks"</a> — the paper that made ECE and temperature scaling standard practice.</li>
+  <li><a href="https://setosa.io/ev/ordinary-least-squares-regression/">Setosa: OLS regression, visually</a> — drag points and watch the least-squares line respond.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch12.html">← 12 · Stochastic Processes</a>
+ <a href="ch14.html">14 · Fourier Analysis and Signals →</a>
+</div>
+
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var e=document.getElementById(id); if(e)e.addEventListener(ev,fn); return e;}
+function val(id){var e=document.getElementById(id); return e?parseFloat(e.value):0;}
+function out(id,t){var e=document.getElementById(id); if(e)e.textContent=t;}
+function axes(g,w,h,pad){g.strokeStyle=cssVar('--ink-2');g.lineWidth=1;g.beginPath();g.moveTo(pad,h-pad);g.lineTo(w-8,h-pad);g.moveTo(pad,h-pad);g.lineTo(pad,8);g.stroke();g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';}
+function gauss(rng){var u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+/* 1. Sampling distribution of the mean (exponential population) */
+var c1=document.getElementById('cv-sampdist');
+function drawSamp(){
+ if(!c1)return; var n=Math.round(val('sd-n'));
+ var means=[],i,j,s;
+ for(i=0;i<3000;i++){s=0;for(j=0;j<n;j++)s+=-Math.log(1-Math.random());means.push(s/n);}
+ var st=setupCanvas(c1,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var xmax=3,bins=60,hist=new Array(bins).fill(0);
+ for(i=0;i<means.length;i++){var b=Math.floor(means[i]/xmax*bins);if(b>=0&&b<bins)hist[b]++;}
+ var hmax=Math.max.apply(null,hist);
+ g.fillStyle=cssVar('--cobalt');
+ for(i=0;i<bins;i++){var bh=hist[i]/hmax*(h-pad-20);g.fillRect(pad+i/bins*(w-pad-16),h-pad-bh,(w-pad-16)/bins-1,bh);}
+ // overlay normal approx N(1, 1/n)
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();
+ var sd=1/Math.sqrt(n), peakCount=3000*(xmax/bins)/(sd*Math.sqrt(2*Math.PI));
+ for(i=0;i<=200;i++){var x=i/200*xmax;var y=Math.exp(-(x-1)*(x-1)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI));
+  var yy=h-pad-(y*3000*(xmax/bins)/hmax)*(h-pad-20)/1;
+  var px=pad+x/xmax*(w-pad-16); if(i===0)g.moveTo(px,Math.max(8,yy));else g.lineTo(px,Math.max(8,yy));}
+ g.stroke();
+ g.fillText('0',pad-4,h-pad+16);g.fillText('1',pad+(1/xmax)*(w-pad-16)-4,h-pad+16);g.fillText('3',w-24,h-pad+16);
+ g.fillText('x̄ histogram, Exp(1) population',pad+8,20);
+ var m=0;for(i=0;i<means.length;i++)m+=means[i];m/=means.length;
+ var v=0;for(i=0;i<means.length;i++)v+=(means[i]-m)*(means[i]-m);v/=means.length;
+ out('sd-out','n='+n+'  mean of x̄ ≈ '+m.toFixed(3)+'  SD of x̄ ≈ '+Math.sqrt(v).toFixed(3)+'  (theory: 1 and '+(1/Math.sqrt(n)).toFixed(3)+')');
+}
+on('sd-n','input',drawSamp);on('sd-run','click',drawSamp);
+
+/* 2. Confidence interval coverage */
+var c2=document.getElementById('cv-ci'),ciData=null;
+function makeCI(){var n=Math.round(val('ci-n')),ex=[],k;
+ for(k=0;k<60;k++){var s=0,s2=0,i;for(i=0;i<n;i++){var x=5+2*gauss();s+=x;s2+=x*x;}
+  var m=s/n,sd=Math.sqrt(Math.max(0,(s2-n*m*m)/(n-1))),hw=1.96*sd/Math.sqrt(n);
+  ex.push([m-hw,m+hw]);}
+ ciData=ex; drawCI();}
+function drawCI(){
+ if(!c2||!ciData)return; var st=setupCanvas(c2,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var lo=3,hi=7,miss=0,k;
+ function X(v){return pad+(v-lo)/(hi-lo)*(w-pad-16);}
+ g.strokeStyle=cssVar('--ink-2');g.setLineDash([4,4]);g.beginPath();g.moveTo(X(5),8);g.lineTo(X(5),h-pad);g.stroke();g.setLineDash([]);
+ for(k=0;k<ciData.length;k++){var y=14+k*(h-pad-20)/60;var cover=ciData[k][0]<=5&&5<=ciData[k][1];if(!cover)miss++;
+  g.strokeStyle=cover?cssVar('--cobalt'):(cssVar('--red')||'#c33');g.lineWidth=2;
+  g.beginPath();g.moveTo(X(ciData[k][0]),y);g.lineTo(X(ciData[k][1]),y);g.stroke();}
+ g.fillText('μ = 5',X(5)+4,18);g.fillText('3',pad-4,h-pad+16);g.fillText('7',w-24,h-pad+16);
+ out('ci-out',miss+' of 60 intervals miss the truth ('+(miss/60*100).toFixed(0)+'%; expect ≈5%)');
+}
+on('ci-n','input',makeCI);on('ci-run','click',makeCI);
+
+/* 3. Power of a one-sided z-test */
+var c3=document.getElementById('cv-power');
+function phi(x){ // standard normal CDF via erf approx (Abramowitz-Stegun)
+ var t=1/(1+0.2316419*Math.abs(x));
+ var d=0.3989423*Math.exp(-x*x/2);
+ var p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274))));
+ return x>=0?1-p:p;}
+function drawPow(){
+ if(!c3)return; var d=val('pw-d'),n=Math.round(val('pw-n'));
+ var st=setupCanvas(c3,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var se=1/Math.sqrt(n),lo=-4*se,hi=d+4*se,crit=1.645*se;
+ function X(v){return pad+(v-lo)/(hi-lo)*(w-pad-16);}
+ function curve(mu,fill){g.beginPath();var i,scale=(h-pad-30)*se*Math.sqrt(2*Math.PI);
+  for(i=0;i<=300;i++){var x=lo+i/300*(hi-lo);var y=Math.exp(-(x-mu)*(x-mu)/(2*se*se))/(se*Math.sqrt(2*Math.PI));
+   var py=h-pad-y*scale; if(i===0)g.moveTo(X(x),py);else g.lineTo(X(x),py);}
+  g.stroke();
+  if(fill){g.lineTo(X(hi),h-pad);g.lineTo(X(crit),h-pad);g.closePath();g.globalAlpha=0.25;g.fill();g.globalAlpha=1;}}
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;curve(0,false);
+ g.strokeStyle=cssVar('--cobalt');g.fillStyle=cssVar('--cobalt');g.lineWidth=2;
+ // fill only region x>crit under alternative: redraw from crit
+ g.beginPath();var i,scale=(h-pad-30)*se*Math.sqrt(2*Math.PI);
+ g.moveTo(X(crit),h-pad);
+ for(i=0;i<=200;i++){var x=crit+i/200*(hi-crit);var y=Math.exp(-(x-d)*(x-d)/(2*se*se))/(se*Math.sqrt(2*Math.PI));g.lineTo(X(x),h-pad-y*scale);}
+ g.lineTo(X(hi),h-pad);g.closePath();g.globalAlpha=0.3;g.fill();g.globalAlpha=1;
+ curve(d,false);
+ g.strokeStyle=cssVar('--ink-2');g.setLineDash([4,4]);g.beginPath();g.moveTo(X(crit),h-pad);g.lineTo(X(crit),12);g.stroke();g.setLineDash([]);
+ g.fillStyle=cssVar('--ink-2');g.fillText('H₀',X(0)-8,16);g.fillText('H₁ (μ='+d.toFixed(2)+')',X(d)-8,28);g.fillText('reject →',X(crit)+4,h-pad-6);
+ var power=1-phi((crit-d)/se);
+ out('pw-out','critical x̄ = '+crit.toFixed(3)+'   power = '+(power*100).toFixed(1)+'%   (α = 5%, one-sided)');
+}
+on('pw-d','input',drawPow);on('pw-n','input',drawPow);
+
+/* 4. Least-squares fit */
+var c4=document.getElementById('cv-reg'),pts=[];
+function newData(){pts=[];var b0=1+Math.random()*2,b1=0.5+Math.random()*1.5,i;
+ for(i=0;i<12;i++){var x=0.3+i/11*4.4;pts.push([x,b0+b1*x+gauss()*0.6]);}drawReg();}
+function fitLS(){var n=pts.length,sx=0,sy=0,sxy=0,sxx=0,i;
+ for(i=0;i<n;i++){sx+=pts[i][0];sy+=pts[i][1];sxy+=pts[i][0]*pts[i][1];sxx+=pts[i][0]*pts[i][0];}
+ var b1=(sxy-sx*sy/n)/(sxx-sx*sx/n),b0=sy/n-b1*sx/n;return [b0,b1];}
+function drawReg(){
+ if(!c4)return; var b0=val('rg-b0'),b1=val('rg-b1');
+ var st=setupCanvas(c4,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var xm=5,ym=10;
+ function X(x){return pad+x/xm*(w-pad-16);} function Y(y){return h-pad-Math.max(-1,Math.min(ym,y))/ym*(h-pad-20);}
+ var sse=0,i;
+ g.strokeStyle=cssVar('--ink-2');g.globalAlpha=0.5;
+ for(i=0;i<pts.length;i++){var yh=b0+b1*pts[i][0];sse+=(pts[i][1]-yh)*(pts[i][1]-yh);
+  g.beginPath();g.moveTo(X(pts[i][0]),Y(pts[i][1]));g.lineTo(X(pts[i][0]),Y(yh));g.stroke();}
+ g.globalAlpha=1;
+ g.fillStyle=cssVar('--cobalt');
+ for(i=0;i<pts.length;i++){g.beginPath();g.arc(X(pts[i][0]),Y(pts[i][1]),4,0,7);g.fill();}
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();g.moveTo(X(0),Y(b0));g.lineTo(X(xm),Y(b0+b1*xm));g.stroke();
+ g.fillStyle=cssVar('--ink-2');g.fillText('ŷ = '+b0.toFixed(2)+' + '+b1.toFixed(2)+'x',pad+8,20);
+ var f=fitLS();
+ out('rg-out','SSE = '+sse.toFixed(2)+'   (least-squares line: '+f[0].toFixed(2)+' + '+f[1].toFixed(2)+'x)');
+}
+on('rg-b0','input',drawReg);on('rg-b1','input',drawReg);
+on('rg-fit','click',function(){var f=fitLS();document.getElementById('rg-b0').value=f[0].toFixed(2);document.getElementById('rg-b1').value=f[1].toFixed(2);drawReg();});
+on('rg-new','click',newData);
+
+/* 5. Metropolis sampler on a bimodal target */
+var c5=document.getElementById('cv-mcmc'),mcChain=[],mcX=0,mcAcc=0,mcTot=0,mcOn=false,mcRAF=null;
+function target(x){return Math.exp(-(x+2)*(x+2)/1.0)+0.7*Math.exp(-(x-2.5)*(x-2.5)/0.8);}
+function mcStepFn(){var s=val('mc-step'),i;
+ for(i=0;i<20;i++){var q=mcX+s*gauss();mcTot++;
+  if(Math.random()<target(q)/target(mcX)){mcX=q;mcAcc++;}
+  mcChain.push(mcX); if(mcChain.length>6000)mcChain.shift();}
+ drawMC(); if(mcOn)mcRAF=requestAnimationFrame(mcStepFn);}
+function drawMC(){
+ if(!c5)return; var st=setupCanvas(c5,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var lo=-6,hi=6,bins=80,hist=new Array(bins).fill(0),i;
+ function X(v){return pad+(v-lo)/(hi-lo)*(w-pad-16);}
+ for(i=0;i<mcChain.length;i++){var b=Math.floor((mcChain[i]-lo)/(hi-lo)*bins);if(b>=0&&b<bins)hist[b]++;}
+ var hmax=Math.max(1,Math.max.apply(null,hist));
+ g.fillStyle=cssVar('--cobalt');
+ for(i=0;i<bins;i++){var bh=hist[i]/hmax*(h-pad-40);g.fillRect(X(lo+i/bins*(hi-lo)),h-pad-bh,(w-pad-16)/bins-1,bh);}
+ // true target (scaled)
+ var tmax=target(-2);g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();
+ for(i=0;i<=300;i++){var x=lo+i/300*(hi-lo);var y=h-pad-target(x)/tmax*(h-pad-40);if(i===0)g.moveTo(X(x),y);else g.lineTo(X(x),y);}
+ g.stroke();
+ g.fillStyle=cssVar('--red')||'#c33';g.beginPath();g.arc(X(mcX),h-pad-6,5,0,7);g.fill();
+ g.fillStyle=cssVar('--ink-2');g.fillText('-6',pad-6,h-pad+16);g.fillText('0',X(0)-4,h-pad+16);g.fillText('6',w-24,h-pad+16);
+ out('mc-out','samples: '+mcChain.length+'   acceptance: '+(mcTot?(100*mcAcc/mcTot).toFixed(0):0)+'%   current x = '+mcX.toFixed(2));
+}
+on('mc-run','click',function(){mcOn=!mcOn;if(mcOn)mcStepFn();else if(mcRAF)cancelAnimationFrame(mcRAF);});
+on('mc-reset','click',function(){mcChain=[];mcX=0;mcAcc=0;mcTot=0;drawMC();});
+on('mc-step','input',drawMC);
+
+/* 6. Calibration / reliability with temperature */
+var c6=document.getElementById('cv-calib'),calZ=[],calY=[];
+(function(){var i;for(i=0;i<4000;i++){var x=gauss();var pt=1/(1+Math.exp(-1.5*x));calZ.push(3*1.5*x);calY.push(Math.random()<pt?1:0);}})();
+function drawCal(){
+ if(!c6)return; var T=val('cb-t');
+ var st=setupCanvas(c6,280),g=st.g,w=st.w,h=st.h,pad=40;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ function X(v){return pad+v*(w-pad-16);} function Y(v){return h-pad-v*(h-pad-24);}
+ g.strokeStyle=cssVar('--ink-2');g.setLineDash([4,4]);g.beginPath();g.moveTo(X(0.5),Y(0.5));g.moveTo(X(0),Y(0));g.lineTo(X(1),Y(1));g.stroke();g.setLineDash([]);
+ var bins=10,cnt=new Array(bins).fill(0),conf=new Array(bins).fill(0),acc=new Array(bins).fill(0),i,ece=0;
+ for(i=0;i<calZ.length;i++){var p=1/(1+Math.exp(-calZ[i]/T));var cf=Math.max(p,1-p);var ok=((p>0.5)?1:0)===calY[i]?1:0;
+  var b=Math.min(bins-1,Math.floor((cf-0.5)/0.5*bins));cnt[b]++;conf[b]+=cf;acc[b]+=ok;}
+ g.strokeStyle=cssVar('--cobalt');g.fillStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();var started=false;
+ for(i=0;i<bins;i++){if(!cnt[i])continue;var cx=conf[i]/cnt[i],cy=acc[i]/cnt[i];ece+=cnt[i]/calZ.length*Math.abs(cy-cx);
+  if(!started){g.moveTo(X(cx),Y(cy));started=true;}else g.lineTo(X(cx),Y(cy));}
+ g.stroke();
+ for(i=0;i<bins;i++){if(!cnt[i])continue;g.beginPath();g.arc(X(conf[i]/cnt[i]),Y(acc[i]/cnt[i]),4,0,7);g.fill();}
+ g.fillStyle=cssVar('--ink-2');g.fillText('confidence →',w/2-30,h-8);
+ g.save();g.translate(14,h/2+30);g.rotate(-Math.PI/2);g.fillText('accuracy →',0,0);g.restore();
+ out('cb-out','T = '+T.toFixed(2)+'   ECE = '+ece.toFixed(3)+'   (true miscalibration factor 3: try T ≈ 3)');
+}
+on('cb-t','input',drawCal);
+
+function drawAll(){drawSamp();drawPow();drawReg();drawMC();drawCal();if(ciData)drawCI();else makeCI();}
+window.addEventListener('resize',drawAll);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',function(){newData();drawAll();});
+else {newData();drawAll();}
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 04 Functions</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','04')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">04</div><h1>Functions</h1><p class="lede">Rules that turn inputs into outputs, and every shape they take.</p>
+   <div class="meta"><span class="chip">58 topics</span><span class="chip">needs: chapters 01–03</span><span class="chip">feeds: chapters 05–08, 19, 21</span></div>
+  </div>
+
+<section class="topic" id="relations">
+ <h2>Relations</h2>
+ <p>A relation is any collection of pairings between two sets — "is a friend of", "divides", "$x &lt; y$". Formally it is just a subset of a Cartesian product: the set of exactly those pairs for which the relationship holds. Functions will turn out to be relations with one extra discipline.</p>
+ <div class="box def"><span class="label">Definition</span> A relation $R$ from $A$ to $B$ is a subset $R \subseteq A\times B$; we write $a\,R\,b$ for $(a,b) \in R$. A relation <em>on</em> $A$ is a subset of $A\times A$. Properties on $A$: reflexive ($a\,R\,a$ for all $a$), symmetric ($a\,R\,b \Rightarrow b\,R\,a$), transitive ($a\,R\,b, b\,R\,c \Rightarrow a\,R\,c$).</div>
+ <div class="box ex"><span class="label">Worked example</span> On $A = \{1,2,3\}$, the relation "$&lt;$" is $\{(1,2),(1,3),(2,3)\}$: not reflexive ($1 \not&lt; 1$), not symmetric, transitive ✓. The relation "divides" on $\{1,2,3,4,6\}$ contains $(2,4), (2,6), (3,6), (1, k)$ for all $k$, and every $(k,k)$: reflexive and transitive but not symmetric.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is "$\le$" on $\mathbb{R}$ reflexive? Symmetric? Transitive? <details class="sol"><summary>Solution</summary><div>Reflexive ✓ ($x \le x$), transitive ✓, not symmetric ($2 \le 3$ but $3 \not\le 2$).</div></details></li>
+  <li><span class="lvl m">MED</span> List all pairs in the relation "same parity" on $\{1,2,3,4\}$. <details class="sol"><summary>Solution</summary><div>$(1,1),(1,3),(3,1),(3,3)$ and $(2,2),(2,4),(4,2),(4,4)$ — 8 pairs; reflexive, symmetric, transitive.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give a relation that is symmetric and transitive but not reflexive, and explain why "symmetric + transitive ⟹ reflexive" fails. <details class="sol"><summary>Solution</summary><div>The empty relation on $\{1\}$: symmetric and transitive vacuously, but $(1,1) \notin R$. The fake proof "$a\,R\,b \Rightarrow b\,R\,a \Rightarrow a\,R\,a$" silently assumes some $b$ related to $a$ exists.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="equivalence-relations">
+ <h2>Equivalence relations</h2>
+ <p>An equivalence relation is a rigorous "sameness": reflexive, symmetric, transitive. Its power is that it carves the whole set into disjoint clusters — equivalence classes — where everything in a cluster counts as one object. Fractions ($\tfrac12 \sim \tfrac24$), clock arithmetic, and "same remainder mod $n$" are all this pattern.</p>
+ <div class="box def"><span class="label">Definition</span> $\sim$ is an equivalence relation if it is reflexive, symmetric and transitive. The class of $a$ is $[a] = \{x : x \sim a\}$. The classes partition the set: they are disjoint and cover everything; conversely every partition defines an equivalence relation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Congruence mod 3 on $\mathbb{Z}$: $a \sim b$ iff $3 \mid (a - b)$. Classes: $[0] = \{\dots,-3,0,3,6,\dots\}$, $[1] = \{\dots,-2,1,4,\dots\}$, $[2] = \{\dots,-1,2,5,\dots\}$. Three classes, disjoint, union $= \mathbb{Z}$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> "Same label" partitions datasets into classes (Ch 19); "same value under the model" is how embeddings cluster inputs (Ch 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is "has the same birthday as" an equivalence relation on people? <details class="sol"><summary>Solution</summary><div>Yes — reflexive, symmetric, transitive; the classes are the 366 birthday groups.</div></details></li>
+  <li><span class="lvl m">MED</span> Show "$|x| = |y|$" is an equivalence on $\mathbb{R}$ and describe the classes. <details class="sol"><summary>Solution</summary><div>All three properties follow from $=$ being an equivalence on the values $|x|$. Classes: $\{a, -a\}$ for $a &gt; 0$, and $\{0\}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Is "$x - y \in \mathbb{Q}$" an equivalence relation on $\mathbb{R}$? <details class="sol"><summary>Solution</summary><div>Yes: $x - x = 0 \in \mathbb{Q}$; $x - y \in \mathbb{Q} \Rightarrow y - x = -(x-y) \in \mathbb{Q}$; sum of rationals is rational for transitivity. Classes are "rational translates": $[\sqrt2] = \{\sqrt2 + q : q \in \mathbb{Q}\}$ — uncountably many classes, each countable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ordered-pairs">
+ <h2>Ordered pairs</h2>
+ <p>An ordered pair $(a, b)$ remembers which item came first — unlike the set $\{a, b\}$. Pairs are the atoms of coordinates, graphs, and datasets: every plotted point, every (input, output) example a model trains on, is an ordered pair.</p>
+ <div class="box def"><span class="label">Definition</span> $(a, b) = (c, d) \iff a = c$ and $b = d$. (Kuratowski's set-theoretic encoding: $(a,b) := \{\{a\},\{a,b\}\}$ makes pairs out of pure sets.) Tuples generalize: $(a_1, \dots, a_n)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $(2, 5) \ne (5, 2)$, though $\{2,5\} = \{5,2\}$. Solve $(x + 1,\ 2y) = (4,\ 10)$: equate coordinates: $x = 3$, $y = 5$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For which $x, y$ is $(x, y) = (y, x)$? <details class="sol"><summary>Solution</summary><div>Exactly when $x = y$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $(2a - b,\ a + b) = (1,\ 5)$. <details class="sol"><summary>Solution</summary><div>$2a - b = 1$, $a + b = 5$. Add: $3a = 6$, $a = 2$, $b = 3$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Using Kuratowski's definition, show $(a,b) = (c,d) \Rightarrow a = c$ when $a \ne b$. <details class="sol"><summary>Solution</summary><div>$\{\{a\},\{a,b\}\} = \{\{c\},\{c,d\}\}$. The singleton $\{a\}$ must equal $\{c\}$ or $\{c,d\}$. If $\{a\} = \{c,d\}$ then $c = d = a$, making both sides $\{\{a\}\}$, forcing $\{a,b\} = \{a\}$, i.e. $a = b$ — excluded. So $\{a\} = \{c\}$, giving $a = c$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-definition">
+ <h2>Function definition</h2>
+ <p>A function is a relation with a contract: <em>every</em> input gets <em>exactly one</em> output. No input left behind, no input with two answers. That determinism is the whole point — feed the same input twice, get the same output twice. A neural network, however huge, is one function.</p>
+ <div class="box def"><span class="label">Definition</span> $f : A \to B$ assigns to each $a \in A$ exactly one $f(a) \in B$. As a relation: $f \subseteq A\times B$ such that for every $a\in A$ there is exactly one $b$ with $(a,b) \in f$. $A$ is the domain, $B$ the codomain.</div>
+ <div class="box ex"><span class="label">Worked example</span> On $A = \{1,2,3\}$, $B = \{x,y\}$: $\{(1,x),(2,x),(3,y)\}$ is a function (each input once). $\{(1,x),(1,y),(2,x),(3,x)\}$ is not (1 has two outputs). $\{(1,x),(3,y)\}$ is not (2 is unserved).</div>
+ <div class="box pit"><span class="label">Pitfall</span> "$y^2 = x$" does not define $y$ as a function of $x$: input $x = 4$ has two candidate outputs $\pm2$. Choosing $y = \sqrt x$ (the non-negative root) repairs it — a function requires the choice.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is "each person ↦ their age in years" a function? Is "each person ↦ their sibling"? <details class="sol"><summary>Solution</summary><div>Yes — one age each. No — some have none, some several.</div></details></li>
+  <li><span class="lvl m">MED</span> Does $\{(1,2),(2,2),(3,2)\}$ define a function from $\{1,2,3\}$? <details class="sol"><summary>Solution</summary><div>Yes — a constant function. Different inputs may share an output; one input may not have two.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many functions are there from an $m$-element set to an $n$-element set? <details class="sol"><summary>Solution</summary><div>Each of the $m$ inputs independently picks one of $n$ outputs: $n^m$ (product rule from Ch 3).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-notation">
+ <h2>Function notation</h2>
+ <p>$f(x)$ names the output of machine $f$ on input $x$ — the parentheses mean "apply", not "multiply". The declaration $f: \mathbb{R}\to\mathbb{R},\ f(x) = x^2 + 1$ gives the machine's name, its input/output types, and its rule: a full function signature, as in code.</p>
+ <div class="box def"><span class="label">Definition</span> "$f : A \to B$" declares domain and codomain; "$x \mapsto$ expression" or "$f(x) = $ expression" gives the rule. $f$ is the function; $f(x)$ is a <em>value</em>. Anonymous form: the map $x \mapsto 3x + 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> If $g(t) = t^2 - 3t$, then $g(5) = 25 - 15 = 10$, $g(-1) = 1 + 3 = 4$, and $g(x + 1) = (x+1)^2 - 3(x+1) = x^2 - x - 2$ — substitute the whole expression wherever $t$ appeared.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $f(a + b) \ne f(a) + f(b)$ in general (true only for linear maps): with $f(x) = x^2$, $f(1+1) = 4$ but $f(1) + f(1) = 2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = 2x - 7$: find $f(0)$, $f(4)$. <details class="sol"><summary>Solution</summary><div>$-7$ and $1$.</div></details></li>
+  <li><span class="lvl m">MED</span> $h(x) = x^2 + 1$: simplify $h(2a) - 2h(a)$. <details class="sol"><summary>Solution</summary><div>$4a^2 + 1 - 2a^2 - 2 = 2a^2 - 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f(x) = \dfrac{1}{1 - x}$: compute $f(f(f(x)))$. <details class="sol"><summary>Solution</summary><div>$f(f(x)) = \dfrac{1}{1 - \frac{1}{1-x}} = \dfrac{1-x}{-x} = \dfrac{x-1}{x}$. Then $f\!\left(\tfrac{x-1}{x}\right) = \dfrac{1}{1 - \frac{x-1}{x}} = \dfrac{1}{1/x} = x$. Composing three times returns $x$ — $f$ has order 3.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="domain">
+ <h2>Domain</h2>
+ <p>The domain is the set of inputs the function accepts. When a formula is given without one, the convention is the <em>natural domain</em>: every real input for which the expression computes — no division by zero, no even roots of negatives, no logs of non-positives.</p>
+ <div class="box def"><span class="label">Definition</span> The domain of $f: A \to B$ is $A$. Natural-domain rules: denominators $\ne 0$; radicands of even roots $\ge 0$; log arguments $&gt; 0$; and combinations intersect the constraints.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{\sqrt{x + 2}}{x - 3}$: need $x + 2 \ge 0$ (so $x \ge -2$) and $x \ne 3$. Domain: $[-2, 3)\cup(3, \infty)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the domain of $f(x) = \dfrac{1}{x + 5}$. <details class="sol"><summary>Solution</summary><div>All reals except $-5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the domain of $g(x) = \ln(2x - 6)$. <details class="sol"><summary>Solution</summary><div>$2x - 6 &gt; 0$: $(3, \infty)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the domain of $h(x) = \sqrt{\dfrac{x-1}{x+2}}$. <details class="sol"><summary>Solution</summary><div>Need the fraction $\ge 0$ and $x \ne -2$. Sign chart: both factors positive when $x \ge 1$; both negative when $x &lt; -2$. Domain: $(-\infty, -2)\cup[1, \infty)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="range">
+ <h2>Range</h2>
+ <p>The range is the set of outputs actually hit — possibly smaller than the codomain, the set of outputs merely allowed. Finding a range means asking: for which $y$ does $f(x) = y$ have a solution? It is the "solve for $x$" question turned inside out.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{range}(f) = \{f(a) : a \in A\} \subseteq B$ (also called the image). $f$ is surjective exactly when range $=$ codomain.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 - 4x + 7 = (x-2)^2 + 3$: since $(x-2)^2 \ge 0$ takes every value $\ge 0$, the range is $[3, \infty)$. Completing the square exposed the minimum.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Range of $f(x) = |x| + 2$? <details class="sol"><summary>Solution</summary><div>$[2, \infty)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Range of $g(x) = \dfrac{1}{x^2 + 1}$? <details class="sol"><summary>Solution</summary><div>$x^2 + 1 \in [1, \infty)$, so $g \in (0, 1]$ — maximum 1 at $x=0$, approaching 0 but never reaching it.</div></details></li>
+  <li><span class="lvl h">HARD</span> Range of $f(x) = \dfrac{2x + 1}{x - 1}$? <details class="sol"><summary>Solution</summary><div>Set $y = \tfrac{2x+1}{x-1}$, solve for $x$: $y(x - 1) = 2x + 1 \Rightarrow x(y - 2) = y + 1 \Rightarrow x = \tfrac{y+1}{y-2}$ — solvable for every $y \ne 2$. Range: $\mathbb{R}\setminus\{2\}$ (2 is the horizontal asymptote).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="independent-variables">
+ <h2>Independent variables</h2>
+ <p>The independent variable is the input — the quantity you choose freely, plotted on the horizontal axis. In an experiment it is what you control (dose, learning rate); the function then dictates everything downstream.</p>
+ <div class="box def"><span class="label">Definition</span> In $y = f(x)$, $x$ is the independent variable: it ranges over the domain, unconstrained by the function. Multivariable functions have several: $z = f(x, y)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Training cost $C(h) = 12 + 3.5h$ for $h$ GPU-hours: $h$ is independent — you decide how long to train; $C$ merely responds. On a plot, $h$ runs along the $x$-axis.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In "reaction time as a function of caffeine dose", which is independent? <details class="sol"><summary>Solution</summary><div>Caffeine dose.</div></details></li>
+  <li><span class="lvl m">MED</span> In $A(r) = \pi r^2$, what is the independent variable and its natural domain in context? <details class="sol"><summary>Solution</summary><div>The radius $r$, with $r \ge 0$ (or $r &gt; 0$ for an actual circle) — context restricts beyond algebra.</div></details></li>
+  <li><span class="lvl h">HARD</span> Loss depends on learning rate and batch size: $L = f(\eta, B)$. When you plot $L$ vs $\eta$ at fixed $B = 32$, what happened to the variables? <details class="sol"><summary>Solution</summary><div>$\eta$ stays independent; $B$ was frozen into a constant (a parameter). Slicing a multivariable function at a fixed value of one input yields a one-variable function per slice.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dependent-variables">
+ <h2>Dependent variables</h2>
+ <p>The dependent variable is the output — its value <em>depends</em> on the input through the rule. It is what you measure rather than set, and it lives on the vertical axis. One dependent value per input: that is the function contract restated.</p>
+ <div class="box def"><span class="label">Definition</span> In $y = f(x)$, $y$ is the dependent variable: determined once $x$ is chosen. Changing notation ($y$, $f(x)$, output, response, label) never changes the role.</div>
+ <div class="box ex"><span class="label">Worked example</span> For $y = 3x + 2$: choose $x = 4$ (free) and $y = 14$ is forced. You cannot independently demand $x = 4$ <em>and</em> $y = 10$ — the second is not yours to choose.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In $d = 60t$ (distance at 60 km/h), which variable is dependent? <details class="sol"><summary>Solution</summary><div>$d$ — it responds to the chosen time $t$.</div></details></li>
+  <li><span class="lvl m">MED</span> Can two different inputs give the same dependent value? Can one input give two? <details class="sol"><summary>Solution</summary><div>Yes (e.g. $x^2$ at $\pm2$); no — that would break the function contract.</div></details></li>
+  <li><span class="lvl h">HARD</span> In supervised learning, data comes as pairs $(x_i, y_i)$. In what sense is $y$ "dependent" if the data is noisy? <details class="sol"><summary>Solution</summary><div>The model assumes $y_i = f(x_i) + \varepsilon_i$: a deterministic dependence plus noise. The <em>learned</em> function predicts the deterministic part; "dependent" refers to the target's modeled dependence on the input, not exact determinism. (Ch 11 makes $\varepsilon$ precise; Ch 19 fits $f$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-evaluation">
+ <h2>Function evaluation</h2>
+ <p>Evaluation runs the machine: substitute the input everywhere the variable appears, then compute with the order of operations. The input can itself be an expression, another function's output, or the variable plus a nudge — the substitution rule never changes: replace <em>every</em> occurrence, wrapped in parentheses.</p>
+ <div class="box def"><span class="label">Definition</span> To evaluate $f$ at $a$: textually substitute $(a)$ for the variable in $f$'s rule, then simplify. The <em>difference quotient</em> $\dfrac{f(x+h) - f(x)}{h}$ is the evaluation pattern to master now.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 - 3x$: compute $\dfrac{f(x+h) - f(x)}{h}$. $f(x+h) = x^2 + 2xh + h^2 - 3x - 3h$. Subtract $f(x)$: $2xh + h^2 - 3h$. Divide by $h$: $2x + h - 3$. (As $h \to 0$ this becomes the derivative $2x - 3$ — Ch 7.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> $f(x + h) \neq f(x) + h$ and $\neq f(x) + f(h)$. Substitute, don't distribute the function symbol.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = 5 - 2x^2$: find $f(-3)$. <details class="sol"><summary>Solution</summary><div>$5 - 2(9) = -13$.</div></details></li>
+  <li><span class="lvl m">MED</span> $g(x) = \dfrac{x}{x+1}$: find $g\!\left(\dfrac{1}{t}\right)$ simplified. <details class="sol"><summary>Solution</summary><div>$\dfrac{1/t}{1/t + 1} = \dfrac{1}{1 + t}$ (multiply top and bottom by $t$; requires $t \ne 0, -1$).</div></details></li>
+  <li><span class="lvl h">HARD</span> $f(x) = \dfrac1x$: simplify the difference quotient $\dfrac{f(x+h)-f(x)}{h}$. <details class="sol"><summary>Solution</summary><div>$\dfrac{\frac{1}{x+h} - \frac1x}{h} = \dfrac{\frac{x - (x+h)}{x(x+h)}}{h} = \dfrac{-h}{h\,x(x+h)} = \dfrac{-1}{x(x+h)}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-graphs">
+ <h2>Function graphs</h2>
+ <p>The graph of $f$ is the set of all points $(x, f(x))$ — the function drawn as a curve. It converts algebra into geometry: solving $f(x) = 0$ becomes finding axis crossings; solving $f(x) = g(x)$ becomes finding intersections; the function's whole personality is visible at a glance.</p>
+ <div class="box def"><span class="label">Definition</span> $\operatorname{graph}(f) = \{(x, f(x)) : x \in \operatorname{dom} f\} \subseteq \mathbb{R}^2$. A point $(a,b)$ lies on the graph iff $f(a) = b$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Does $(2, 5)$ lie on the graph of $f(x) = x^2 + 1$? $f(2) = 5$ ✓ yes. Does $(3, 8)$? $f(3) = 10 \ne 8$ — no. Membership is one evaluation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Where does the graph of $f(x) = 2x - 6$ cross the $x$-axis? <details class="sol"><summary>Solution</summary><div>Where $f(x) = 0$: $x = 3$, the point $(3, 0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> From a graph, how do you read off $f(2)$ and solve $f(x) = 1$? <details class="sol"><summary>Solution</summary><div>$f(2)$: go to $x = 2$, read the height. $f(x) = 1$: draw the horizontal line $y = 1$, read the $x$-coordinates of every intersection.</div></details></li>
+  <li><span class="lvl h">HARD</span> The graphs of $f(x) = x^2$ and $g(x) = x + 2$ intersect where? <details class="sol"><summary>Solution</summary><div>$x^2 = x + 2 \Rightarrow x^2 - x - 2 = (x-2)(x+1) = 0$: points $(2, 4)$ and $(-1, 1)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vertical-line-test">
+ <h2>Vertical line test</h2>
+ <p>A curve is the graph of a function exactly when no vertical line hits it twice — because two hits on the line $x = a$ would mean input $a$ has two outputs. The test is the function contract made visible.</p>
+ <div class="box def"><span class="label">Definition</span> A set $S \subseteq \mathbb{R}^2$ is a function's graph iff for every $a$, the vertical line $x = a$ meets $S$ in at most one point.</div>
+ <div class="box ex"><span class="label">Worked example</span> The unit circle $x^2 + y^2 = 1$ fails: the line $x = 0$ hits $(0, 1)$ and $(0, -1)$. Splitting into upper half $y = \sqrt{1 - x^2}$ and lower half $y = -\sqrt{1-x^2}$ yields two genuine functions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is a horizontal straight line a function's graph? A vertical one? <details class="sol"><summary>Solution</summary><div>Horizontal: yes (constant function). Vertical: no — one input, infinitely many outputs.</div></details></li>
+  <li><span class="lvl m">MED</span> Does $x = y^2$ define $y$ as a function of $x$? Does it define $x$ as a function of $y$? <details class="sol"><summary>Solution</summary><div>No ($x = 4$ gives $y = \pm2$); yes — each $y$ gives exactly one $x = y^2$. Which variable is "input" decides.</div></details></li>
+  <li><span class="lvl h">HARD</span> A curve passes the vertical line test. Must every horizontal line hit it at most once too? <details class="sol"><summary>Solution</summary><div>No — that is the <em>horizontal</em> line test, testing injectivity, a separate property. $y = x^2$ passes vertical, fails horizontal at $y = 4$ (hit by $x = \pm2$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="one-to-one-injective">
+ <h2>One-to-one functions &amp; injective functions <span style="font-weight:400">(merged: two names, one property)</span></h2>
+ <p>A function is one-to-one (injective) when distinct inputs always produce distinct outputs — no collisions. Injective functions forget nothing: the output uniquely identifies the input, which is exactly what makes them invertible on their range. Graphically: every horizontal line hits at most once.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is injective iff $f(a) = f(b) \Rightarrow a = b$ (equivalently $a \ne b \Rightarrow f(a) \ne f(b)$). Horizontal line test: each $y$-value is reached at most once. Strictly monotonic functions are injective.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = 3x - 5$ is injective: $3a - 5 = 3b - 5 \Rightarrow a = b$. $g(x) = x^2$ on $\mathbb{R}$ is not: $g(2) = g(-2) = 4$. Restricted to $[0, \infty)$, $g$ becomes injective — domains matter.</div>
+ <div class="box link"><span class="label">Where this goes</span> Injectivity = invertibility on the image: the foundation of inverse functions below, of normalizing flows (Ch 22), and of "no information lost" arguments in Ch 16.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = x^3$ injective on $\mathbb{R}$? <details class="sol"><summary>Solution</summary><div>Yes: $a^3 = b^3 \Rightarrow a = b$ (cube roots are unique for reals); strictly increasing.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $f(x) = \dfrac{x}{x^2 + 1}$ injective on $\mathbb{R}$? <details class="sol"><summary>Solution</summary><div>No: $f(2) = \tfrac25$ and $f(1/2) = \tfrac{1/2}{5/4} = \tfrac25$. (In general $f(x) = f(1/x)$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: if $g \circ f$ is injective then $f$ is injective. Must $g$ be? <details class="sol"><summary>Solution</summary><div>If $f(a) = f(b)$ then $g(f(a)) = g(f(b))$, and injectivity of $g\circ f$ forces $a = b$. $g$ need not be: $f(x) = e^x$ into $g(x) = x^2$ has $g\circ f = e^{2x}$ injective while $g$ is not — $g$ only needs to be injective on the range of $f$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="many-to-one-functions">
+ <h2>Many-to-one functions</h2>
+ <p>Many-to-one is the opposite failure-of-forgetting: several inputs collapse to the same output. Perfectly legal — most functions are like this — but irreversible: from the output alone you cannot recover the input. Hash functions, classifiers, and $x^2$ all deliberately live here.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is many-to-one if some output has multiple preimages: $\exists a \ne b$ with $f(a) = f(b)$. The <em>preimage</em> of $y$ is $f^{-1}(\{y\}) = \{x : f(x) = y\}$ — a set, possibly large.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2$: preimage of 9 is $\{-3, 3\}$; of 0 is $\{0\}$; of $-4$ is $\emptyset$. A classifier mapping images to "cat"/"dog" sends millions of images to two labels — many-to-one by design, and that is why you cannot reconstruct the image from the label.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = |x|$ many-to-one? <details class="sol"><summary>Solution</summary><div>Yes: $f(3) = f(-3)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the preimage of 5 under $f(x) = x^2 + 1$. <details class="sol"><summary>Solution</summary><div>$x^2 = 4$: $\{-2, 2\}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f: \{1,\dots,10\} \to \{1,2,3\}$. Show some output has at least 4 preimages. <details class="sol"><summary>Solution</summary><div>Pigeonhole: 10 inputs into 3 outputs, some output receives $\lceil 10/3\rceil = 4$. Many-to-one-ness is forced whenever the domain outnumbers the codomain.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="surjective-functions">
+ <h2>Surjective functions</h2>
+ <p>A function is surjective (onto) when it covers its whole codomain: every allowed output actually happens. Surjectivity depends on the declared codomain — the same rule can be onto one codomain and not another — which is why the codomain declaration matters.</p>
+ <div class="box def"><span class="label">Definition</span> $f: A \to B$ is surjective iff for every $b \in B$ there is some $a \in A$ with $f(a) = b$; equivalently $\operatorname{range}(f) = B$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2$ as $\mathbb{R}\to\mathbb{R}$: not surjective ($-1$ unreached). As $\mathbb{R}\to[0,\infty)$: surjective — every $y \ge 0$ is $f(\sqrt y)$. Same rule, different verdicts.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = x + 1$ surjective as $\mathbb{Z}\to\mathbb{Z}$? <details class="sol"><summary>Solution</summary><div>Yes: any $b$ is hit by $a = b - 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $f(x) = e^x$ surjective as $\mathbb{R}\to\mathbb{R}$? As $\mathbb{R}\to(0,\infty)$? <details class="sol"><summary>Solution</summary><div>No — outputs are strictly positive. Yes — every $y &gt; 0$ equals $e^{\ln y}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f: \mathbb{N}\to\mathbb{N}$, $f(n) = \lceil n/2 \rceil$. Injective? Surjective? <details class="sol"><summary>Solution</summary><div>Not injective: $f(1) = f(2) = 1$. Surjective: any $m$ is $f(2m)$. A function can be onto while collapsing — compression with full coverage.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bijective-functions">
+ <h2>Bijective functions</h2>
+ <p>Bijective = injective + surjective: every output hit exactly once. A bijection is a perfect pairing between two sets — a lossless relabeling — and it is exactly the condition for a full two-sided inverse to exist. Bijections are also how set sizes are compared, finite or infinite (Ch 3's countability).</p>
+ <div class="box def"><span class="label">Definition</span> $f: A \to B$ is bijective iff every $b \in B$ has exactly one preimage. Then $f^{-1}: B \to A$ exists with $f^{-1}(f(a)) = a$ and $f(f^{-1}(b)) = b$. Finite sets admit a bijection iff they have equal cardinality.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = 2x + 3$ on $\mathbb{R}$: injective (slope $\ne 0$), surjective (solve $y = 2x+3$: $x = \tfrac{y-3}{2}$ always works) — bijective, with inverse $f^{-1}(y) = \tfrac{y-3}{2}$.</div>
+ <div class="box think"><span class="label">Think first</span> Can a finite set have a bijection with a proper subset of itself? An infinite set? <details class="sol"><summary>Reveal</summary><div>Finite: no — a proper subset has strictly fewer elements. Infinite: yes — $n \mapsto 2n$ bijects $\mathbb{N}$ with the even numbers. This is Dedekind's <em>definition</em> of infinite.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = x^3$ a bijection $\mathbb{R}\to\mathbb{R}$? <details class="sol"><summary>Solution</summary><div>Yes: strictly increasing (injective) and every real has a cube root (surjective).</div></details></li>
+  <li><span class="lvl m">MED</span> How many bijections are there from a 5-element set to itself? <details class="sol"><summary>Solution</summary><div>$5! = 120$ — bijections of a set to itself are exactly permutations.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $f(x) = \dfrac{x}{1 + |x|}$ is a bijection $\mathbb{R}\to(-1, 1)$. <details class="sol"><summary>Solution</summary><div>Outputs lie in $(-1,1)$ since $|x| &lt; 1 + |x|$. Injective: $f$ is strictly increasing (for $x\ge0$, $\tfrac{x}{1+x}$ increases; odd symmetry handles $x&lt;0$). Surjective: given $y \in (0,1)$ solve $y = \tfrac{x}{1+x}$: $x = \tfrac{y}{1-y} &gt; 0$; $y=0 \mapsto x=0$; negative $y$ by symmetry. Whole infinite line, squeezed bijectively into a bounded interval.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-functions">
+ <h2>Linear functions</h2>
+ <p>A linear function changes at a constant rate: equal steps in $x$ produce equal steps in $y$, so the graph is a straight line. Two numbers pin it down completely — the rate (slope) and one anchor point. It is the simplest nontrivial model, and the local approximation of every smooth function.</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = mx + b$: slope $m$, $y$-intercept $b$. (Strictly, algebraists call this <em>affine</em>; "linear" in the vector-space sense of Ch 8 requires $b = 0$, so that $f(x+y) = f(x) + f(y)$.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = 2x + 1$: inputs $0, 1, 2, 3$ give outputs $1, 3, 5, 7$ — each unit step in $x$ adds exactly 2. Constant differences are the fingerprint of linearity in a data table.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $m$ and $b$; watch the line pivot (slope) and glide (intercept), with the rise/run triangle drawn.</p>
+  <canvas id="cv-line"></canvas>
+  <div class="ctl">
+   <label>m <input type="range" id="ln-m" min="-4" max="4" step="0.1" value="1.5"></label>
+   <label>b <input type="range" id="ln-b" min="-5" max="5" step="0.1" value="-1"></label>
+  </div>
+  <div class="out" id="ln-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $f(x) = -3x + 7$: slope and $y$-intercept? <details class="sol"><summary>Solution</summary><div>$m = -3$, intercept $(0, 7)$.</div></details></li>
+  <li><span class="lvl m">MED</span> A table gives $f(1) = 5$, $f(4) = 17$. Assuming linearity, find $f(x)$. <details class="sol"><summary>Solution</summary><div>$m = \tfrac{17-5}{4-1} = 4$; $f(x) = 5 + 4(x - 1) = 4x + 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show a linear function with $m \ne 0$ is a bijection $\mathbb{R}\to\mathbb{R}$. <details class="sol"><summary>Solution</summary><div>Injective: $ma + b = mc + b \Rightarrow m(a - c) = 0 \Rightarrow a = c$ since $m \ne 0$. Surjective: $y = mx + b$ solves to $x = \tfrac{y - b}{m}$ for every $y$. Hence bijective, inverse $f^{-1}(y) = \tfrac{y-b}{m}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="slope">
+ <h2>Slope</h2>
+ <p>Slope is rise over run: how much $y$ changes per unit of $x$. It is the same for any two points on a line — that constancy <em>is</em> straightness. Positive slopes climb, negative slopes fall, zero is flat, and undefined (vertical) means "not a function of $x$ at all."</p>
+ <div class="box def"><span class="label">Definition</span> Through $(x_1, y_1)$ and $(x_2, y_2)$ with $x_1 \ne x_2$: $\;m = \dfrac{y_2 - y_1}{x_2 - x_1} = \dfrac{\Delta y}{\Delta x}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Through $(-1, 4)$ and $(3, -2)$: $m = \dfrac{-2 - 4}{3 - (-1)} = \dfrac{-6}{4} = -\dfrac32$. Every 2 steps right, drop 3.</div>
+ <div class="box link"><span class="label">Where this goes</span> The derivative (Ch 7) is slope localized to a point; the gradient (Ch 9) is slope in many directions; gradient descent (Ch 15) walks against it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Slope through $(0,0)$ and $(4, 6)$? <details class="sol"><summary>Solution</summary><div>$\tfrac64 = \tfrac32$.</div></details></li>
+  <li><span class="lvl m">MED</span> A line has slope $\tfrac25$ and passes through $(10, 3)$. What is $y$ at $x = 25$? <details class="sol"><summary>Solution</summary><div>$\Delta x = 15$, so $\Delta y = \tfrac25 \cdot 15 = 6$: $y = 9$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Points $(2, 5)$, $(4, 9)$, $(7, k)$ are collinear. Find $k$. <details class="sol"><summary>Solution</summary><div>Slope from first two: $\tfrac{9-5}{4-2} = 2$. Collinearity: $\tfrac{k - 9}{7 - 4} = 2 \Rightarrow k = 15$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="slope-intercept-form">
+ <h2>Slope-intercept form</h2>
+ <p>$y = mx + b$ is the line solved for $y$: slope and starting height displayed on the surface. It is the form for graphing (start at $b$, step by $m$) and for reading a line's behavior at a glance.</p>
+ <div class="box def"><span class="label">Definition</span> $y = mx + b$: slope $m$, and $b = $ the $y$-coordinate where the line crosses $x = 0$. Any non-vertical line has exactly one such form.</div>
+ <div class="box ex"><span class="label">Worked example</span> Put $3x + 2y = 12$ in slope-intercept form: $2y = -3x + 12 \Rightarrow y = -\tfrac32 x + 6$. Slope $-\tfrac32$, intercept $(0,6)$ — invisible in the original, obvious now.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Graph data: slope 2, $y$-intercept $-3$. Write the equation. <details class="sol"><summary>Solution</summary><div>$y = 2x - 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Rewrite $x - 4y + 8 = 0$ in slope-intercept form. <details class="sol"><summary>Solution</summary><div>$4y = x + 8 \Rightarrow y = \tfrac14 x + 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For which $b$ does $y = 2x + b$ pass at distance exactly $\sqrt5$ from the origin? <details class="sol"><summary>Solution</summary><div>Distance from $(0,0)$ to $2x - y + b = 0$ is $\tfrac{|b|}{\sqrt{2^2 + 1}} = \tfrac{|b|}{\sqrt5} = \sqrt5 \Rightarrow |b| = 5$: $b = \pm5$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="point-slope-form">
+ <h2>Point-slope form</h2>
+ <p>Know one point and the slope? Then the line is $y - y_1 = m(x - x_1)$ — a direct transcription of the slope formula. It is the fastest route from data to equation, and the form in which tangent lines (Ch 7) are always born.</p>
+ <div class="box def"><span class="label">Definition</span> The line through $(x_1, y_1)$ with slope $m$: $\;y - y_1 = m(x - x_1)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Line through $(2, -1)$ and $(5, 8)$: $m = \tfrac{8 - (-1)}{5 - 2} = 3$. Point-slope with $(2,-1)$: $y + 1 = 3(x - 2)$, i.e. $y = 3x - 7$. Using $(5, 8)$ instead: $y - 8 = 3(x - 5)$ — same line, different dress.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the line through $(1, 4)$ with slope $-2$. <details class="sol"><summary>Solution</summary><div>$y - 4 = -2(x - 1)$, i.e. $y = -2x + 6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find where the line through $(3, 2)$ with slope $\tfrac12$ crosses the $x$-axis. <details class="sol"><summary>Solution</summary><div>$0 - 2 = \tfrac12(x - 3) \Rightarrow x = -1$: the point $(-1, 0)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A curve has tangent line at $(4, 5)$ with slope $\tfrac34$. Use it to estimate the curve's value at $x = 4.2$. <details class="sol"><summary>Solution</summary><div>Tangent: $y = 5 + \tfrac34(x - 4)$. At $4.2$: $y = 5 + 0.15 = 5.15$. This is linear approximation (Ch 7) — point-slope as a prediction machine.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="standard-form">
+ <h2>Standard form</h2>
+ <p>Standard form $Ax + By = C$ treats $x$ and $y$ symmetrically and can express <em>every</em> line, vertical ones included — the one thing $y = mx + b$ cannot do. It is also the natural shape for systems of equations and for reading off intercepts by zeroing a variable.</p>
+ <div class="box def"><span class="label">Definition</span> $Ax + By = C$ with $A, B$ not both 0. Slope $= -\tfrac{A}{B}$ (if $B \ne 0$); $x$-intercept $\tfrac{C}{A}$, $y$-intercept $\tfrac{C}{B}$. Vertical line: $B = 0$ (e.g. $x = 3$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $4x + 3y = 24$: set $y = 0$: $x$-intercept $(6, 0)$; set $x = 0$: $y$-intercept $(0, 8)$. Two intercepts, one ruler — the fastest graph in the west. Slope: $-\tfrac43$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $y = \tfrac23 x - 4$ in standard form with integer coefficients. <details class="sol"><summary>Solution</summary><div>$3y = 2x - 12 \Rightarrow 2x - 3y = 12$.</div></details></li>
+  <li><span class="lvl m">MED</span> Which lines can standard form express that slope-intercept cannot? <details class="sol"><summary>Solution</summary><div>Vertical lines $x = c$ ($A = 1, B = 0$): infinite slope breaks $y = mx + b$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A budget: CPU hours cost \$2, GPU hours \$5, total \$100. Write the constraint, its intercepts, and interpret the slope. <details class="sol"><summary>Solution</summary><div>$2c + 5g = 100$. Intercepts: $(50, 0)$ (all CPU) and $(0, 20)$ (all GPU). Slope $\tfrac{dg}{dc} = -\tfrac25$: each extra CPU hour costs $\tfrac25$ of a GPU hour — the exchange rate along the budget line (the first "feasible set boundary" of Ch 15).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="intercepts">
+ <h2>Intercepts</h2>
+ <p>Intercepts are where a graph touches the axes: $y$-intercept at $x = 0$ (the "starting value"), $x$-intercepts where $f(x) = 0$ (the roots). They are the first features to compute when sketching anything, and often the most meaningful numbers in a model — initial cost, break-even point.</p>
+ <div class="box def"><span class="label">Definition</span> $y$-intercept: the point $(0, f(0))$ — at most one for a function. $x$-intercepts: all points $(r, 0)$ with $f(r) = 0$ — possibly many or none.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 - x - 6$: $y$-intercept $f(0) = -6$. Roots: $(x-3)(x+2) = 0$ at $x = 3, -2$. Three axis touchings: $(0,-6), (3,0), (-2,0)$ — the skeleton of the parabola's sketch.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Intercepts of $y = 3x - 9$? <details class="sol"><summary>Solution</summary><div>$y$: $(0, -9)$; $x$: $(3, 0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Intercepts of $f(x) = \dfrac{x - 2}{x + 1}$? <details class="sol"><summary>Solution</summary><div>$y$: $f(0) = -2$, point $(0,-2)$. $x$: numerator zero, $x = 2$ (and $x=2$ is in the domain): $(2, 0)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Can a function have two $y$-intercepts? Can it have zero $x$-intercepts but negative values? <details class="sol"><summary>Solution</summary><div>No — two $y$-intercepts means input 0 has two outputs, violating the function contract. Yes to the second: $f(x) = -1 - x^2$ is always negative and never zero — no $x$-intercepts, all values below the axis.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="parallel-lines">
+ <h2>Parallel lines</h2>
+ <p>Parallel lines have the same slope and never meet: same direction, different offset. In systems language they are the "no solution" case; in modeling they are quantities changing at identical rates from different baselines.</p>
+ <div class="box def"><span class="label">Definition</span> Non-vertical lines are parallel iff their slopes are equal (and intercepts differ; equal intercepts too means they coincide). All vertical lines are mutually parallel.</div>
+ <div class="box ex"><span class="label">Worked example</span> Line through $(1, 2)$ parallel to $y = 3x - 5$: same slope 3, point-slope: $y - 2 = 3(x - 1)$, i.e. $y = 3x - 1$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Are $y = 2x + 1$ and $4x - 2y = 6$ parallel? <details class="sol"><summary>Solution</summary><div>Second: $y = 2x - 3$. Same slope 2, different intercepts: parallel ✓.</div></details></li>
+  <li><span class="lvl m">MED</span> Find $k$ so that $kx + 3y = 1$ is parallel to $y = 4x + 7$. <details class="sol"><summary>Solution</summary><div>Slope of first: $-\tfrac{k}{3} = 4 \Rightarrow k = -12$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the distance between parallel lines $y = mx + b_1$ and $y = mx + b_2$ is $\dfrac{|b_1 - b_2|}{\sqrt{1 + m^2}}$. <details class="sol"><summary>Solution</summary><div>Take the point $(0, b_1)$ on line 1. Distance to $mx - y + b_2 = 0$ is $\dfrac{|m\cdot0 - b_1 + b_2|}{\sqrt{m^2 + 1}} = \dfrac{|b_2 - b_1|}{\sqrt{1 + m^2}}$. The vertical gap $|b_1 - b_2|$ shrinks by the tilt factor.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="perpendicular-lines">
+ <h2>Perpendicular lines</h2>
+ <p>Perpendicular lines meet at a right angle; their slopes multiply to $-1$. The rule comes from rotating a direction 90°: run becomes rise and rise becomes negative run, so slope $m$ becomes $-\tfrac1m$ — the negative reciprocal.</p>
+ <div class="box def"><span class="label">Definition</span> Non-vertical lines with slopes $m_1, m_2$ are perpendicular iff $m_1 m_2 = -1$. A vertical line is perpendicular to every horizontal line.</div>
+ <div class="box ex"><span class="label">Worked example</span> Line through $(4, 1)$ perpendicular to $y = -\tfrac23x + 5$: new slope $= \tfrac32$ (negative reciprocal of $-\tfrac23$). Equation: $y - 1 = \tfrac32(x - 4)$, i.e. $y = \tfrac32 x - 5$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Perpendicularity generalizes to orthogonality of vectors via the dot product (Ch 5, Ch 8) — the geometric heart of projections and least squares.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Slope perpendicular to $m = 5$? <details class="sol"><summary>Solution</summary><div>$-\tfrac15$.</div></details></li>
+  <li><span class="lvl m">MED</span> Are the lines $3x + 4y = 8$ and $8x - 6y = 1$ perpendicular? <details class="sol"><summary>Solution</summary><div>Slopes $-\tfrac34$ and $\tfrac{8}{6} = \tfrac43$. Product $= -1$ ✓ perpendicular.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the foot of the perpendicular from $(3, 7)$ to $y = 2x - 1$. <details class="sol"><summary>Solution</summary><div>Perpendicular through $(3,7)$: slope $-\tfrac12$: $y = 7 - \tfrac12(x - 3)$. Intersect: $2x - 1 = 7 - \tfrac12 x + \tfrac32 \Rightarrow \tfrac52 x = \tfrac{19}{2} \Rightarrow x = \tfrac{19}{5}$, $y = 2\cdot\tfrac{19}{5} - 1 = \tfrac{33}{5}$. Foot: $\left(\tfrac{19}{5}, \tfrac{33}{5}\right)$ — the nearest point on the line, a baby projection.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quadratic-functions">
+ <h2>Quadratic functions</h2>
+ <p>A quadratic function $f(x) = ax^2 + bx + c$ bends: its rate of change itself changes at a constant rate. The graph is a parabola — the shape of thrown balls, satellite dishes, and every smooth function near its minimum, which is why quadratics rule optimization.</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = ax^2 + bx + c$, $a \ne 0$. Opens up if $a &gt; 0$, down if $a &lt; 0$. Vertex at $x = -\tfrac{b}{2a}$; axis of symmetry $x = -\tfrac{b}{2a}$; range $[f(-\tfrac{b}{2a}), \infty)$ for $a &gt; 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = 2x^2 - 8x + 5$: vertex at $x = \tfrac{8}{4} = 2$, $f(2) = 8 - 16 + 5 = -3$. Opens up, so minimum value $-3$; range $[-3, \infty)$; symmetric about $x = 2$: $f(1) = f(3) = -1$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> Near a minimum, every smooth loss looks quadratic (Taylor, Ch 7/9); Newton's method (Ch 15) exploits exactly this.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Vertex of $f(x) = x^2 - 6x + 11$? <details class="sol"><summary>Solution</summary><div>$x = 3$, $f(3) = 9 - 18 + 11 = 2$: vertex $(3, 2)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Maximum of $f(x) = -3x^2 + 12x - 7$? <details class="sol"><summary>Solution</summary><div>$x = \tfrac{-12}{-6} = 2$, $f(2) = -12 + 24 - 7 = 5$. Opens down: maximum 5.</div></details></li>
+  <li><span class="lvl h">HARD</span> A farmer has 60 m of fence for a rectangular pen against a wall (no fence on the wall side). Maximize the area. <details class="sol"><summary>Solution</summary><div>Sides $x, x$ (perpendicular) and $60 - 2x$ (parallel). Area $A(x) = x(60 - 2x) = -2x^2 + 60x$: vertex $x = 15$, $A = 15 \cdot 30 = 450$ m². Dimensions $15 \times 30$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vertex-form">
+ <h2>Vertex form</h2>
+ <p>Vertex form $a(x - h)^2 + k$ names the parabola by its most important point: the vertex $(h, k)$, with $a$ setting width and direction. Converting to it is completing the square; reading from it is instant — the entire graph is "the standard parabola, shifted to $(h,k)$, stretched by $a$."</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = a(x - h)^2 + k$ has vertex $(h, k)$, axis $x = h$, extreme value $k$ (min if $a&gt;0$, max if $a&lt;0$). Expand to recover standard form; complete the square to get here.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 + 10x + 18 = (x^2 + 10x + 25) - 25 + 18 = (x + 5)^2 - 7$. Vertex $(-5, -7)$, minimum $-7$, axis $x = -5$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The sign flip: $(x + 5)^2$ means $h = -5$, not $+5$. Vertex form is $(x - h)^2$; match signs carefully.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Vertex of $f(x) = 3(x - 2)^2 + 1$? <details class="sol"><summary>Solution</summary><div>$(2, 1)$, opening up, min value 1.</div></details></li>
+  <li><span class="lvl m">MED</span> Convert $f(x) = 2x^2 + 4x - 1$ to vertex form. <details class="sol"><summary>Solution</summary><div>$2(x^2 + 2x) - 1 = 2\big((x+1)^2 - 1\big) - 1 = 2(x+1)^2 - 3$. Vertex $(-1, -3)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the quadratic with vertex $(3, -2)$ passing through $(5, 6)$. <details class="sol"><summary>Solution</summary><div>$f(x) = a(x-3)^2 - 2$; at $x = 5$: $4a - 2 = 6 \Rightarrow a = 2$. $f(x) = 2(x-3)^2 - 2 = 2x^2 - 12x + 16$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="parabolas">
+ <h2>Parabolas</h2>
+ <p>A parabola is the graph of a quadratic — and also, geometrically, the set of points equidistant from a focus point and a directrix line. That reflective definition is why satellite dishes and headlights are parabolic: rays parallel to the axis all bounce through the focus.</p>
+ <div class="box def"><span class="label">Definition</span> $y = \tfrac{1}{4p}x^2$ is the parabola with vertex at the origin, focus $(0, p)$ and directrix $y = -p$: each point is equidistant from focus and directrix. General quadratics are translations/stretches of this.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = \tfrac18 x^2$: $\tfrac{1}{4p} = \tfrac18 \Rightarrow p = 2$: focus $(0, 2)$, directrix $y = -2$. Check point $(4, 2)$: distance to focus $= \sqrt{16 + 0} = 4$; distance to directrix $= 2 - (-2) = 4$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which way do $y = -2x^2$ and $x = y^2$ open? <details class="sol"><summary>Solution</summary><div>Down; rightward (the second is not a function of $x$).</div></details></li>
+  <li><span class="lvl m">MED</span> Find the focus of $y = x^2$. <details class="sol"><summary>Solution</summary><div>$\tfrac{1}{4p} = 1 \Rightarrow p = \tfrac14$: focus $\left(0, \tfrac14\right)$, directrix $y = -\tfrac14$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A dish antenna is 2 m wide and 0.25 m deep. Where is the focus? <details class="sol"><summary>Solution</summary><div>Rim point $(1, 0.25)$ on $y = \tfrac{1}{4p}x^2$: $0.25 = \tfrac{1}{4p} \Rightarrow p = 1$. Focus 1 m above the vertex — receivers hang exactly there.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="polynomial-functions">
+ <h2>Polynomial functions</h2>
+ <p>Polynomials are sums of power terms — the functions you can compute with only + and ×. Degree controls their large-scale destiny: the leading term takes over as $|x|$ grows, while the lower terms sculpt the wiggles in the middle. Smooth, flexible, and dense among continuous functions: the original universal approximators.</p>
+ <div class="box def"><span class="label">Definition</span> $p(x) = a_nx^n + \cdots + a_1 x + a_0$, $a_n \ne 0$: degree $n$, leading coefficient $a_n$. End behavior: $p(x) \sim a_n x^n$ as $x \to \pm\infty$. A degree-$n$ polynomial has at most $n$ real roots and at most $n - 1$ turning points.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p(x) = -2x^3 + 5x^2 + 4$: degree 3, leading term $-2x^3$. As $x\to\infty$, $p \to -\infty$; as $x \to -\infty$, $p \to +\infty$ (odd degree, negative leader: falls right, rises left).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> End behavior of $p(x) = x^4 - 100x^3$? <details class="sol"><summary>Solution</summary><div>Even degree, positive leader: $p \to +\infty$ on both ends (the $-100x^3$ loses eventually — at $x = 100$ they tie).</div></details></li>
+  <li><span class="lvl m">MED</span> Can a degree-4 polynomial have exactly 3 real roots? <details class="sol"><summary>Solution</summary><div>Yes — one root doubled: e.g. $x^2(x-1)(x-2)$ has roots $0$ (multiplicity 2), $1$, $2$: three distinct.</div></details></li>
+  <li><span class="lvl h">HARD</span> A cubic satisfies $p(0)=1, p(1)=2, p(-1)=6, p(2)=3$. Find it. <details class="sol"><summary>Solution</summary><div>$p = ax^3+bx^2+cx+d$; $d = 1$. $a+b+c = 1$; $-a+b-c = 5$; $8a+4b+2c = 2$. Add first two: $2b = 6, b = 3$. Then $a + c = -2$ and $8a + 2c = -10 \Rightarrow 4a + c = -5$. Subtract: $3a = -3, a = -1$, $c = -1$. $p(x) = -x^3 + 3x^2 - x + 1$. Check $p(2) = -8 + 12 - 2 + 1 = 3$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="polynomial-roots">
+ <h2>Polynomial roots</h2>
+ <p>Roots are where a polynomial vanishes — and by the factor theorem, each root $r$ contributes a factor $(x - r)$. Multiplicity governs the geometry at the crossing: odd multiplicity cuts through the axis, even multiplicity bounces off it.</p>
+ <div class="box def"><span class="label">Definition</span> $r$ is a root of multiplicity $m$ if $(x - r)^m \mid p(x)$ but $(x-r)^{m+1} \nmid p(x)$. Counting multiplicity, a degree-$n$ polynomial has exactly $n$ complex roots (FTA, Ch 2). Odd $m$: sign change (graph crosses); even $m$: touch without crossing.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p(x) = x(x - 2)^2(x + 1)^3$: roots 0 (cross), 2 (bounce, multiplicity 2), $-1$ (cross with a flattened "inflection" shape, multiplicity 3). Degree $1 + 2 + 3 = 6$ ✓.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Roots and multiplicities of $p(x) = (x-1)^2(x+4)$? <details class="sol"><summary>Solution</summary><div>$1$ with multiplicity 2 (bounce), $-4$ with multiplicity 1 (cross).</div></details></li>
+  <li><span class="lvl m">MED</span> Write a degree-3 polynomial with roots $-2, 0, 5$ passing through $(1, 24)$. <details class="sol"><summary>Solution</summary><div>$p(x) = a\,x(x+2)(x-5)$; $p(1) = a(1)(3)(-4) = -12a = 24 \Rightarrow a = -2$: $p(x) = -2x(x+2)(x-5)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $p$ has real coefficients, degree 5, and roots $2i$ and $3 - i$, how many real roots does it have? <details class="sol"><summary>Solution</summary><div>Conjugates $-2i$ and $3+i$ are also roots: four non-real roots. Degree 5 leaves exactly one more — and it must be real (non-real roots pair up). One real root.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rational-functions">
+ <h2>Rational functions</h2>
+ <p>A rational function is a ratio of polynomials — algebra's fractions promoted to functions. Their drama happens where the denominator dies: poles shoot to infinity, and the large-$x$ contest between numerator and denominator degrees decides the horizon. They are the simplest functions with genuinely wild behavior.</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = \dfrac{P(x)}{Q(x)}$, defined where $Q(x)\ne0$. If $P, Q$ share a factor $(x - a)$, cancelling leaves a <em>hole</em> at $a$ (removable); a zero of $Q$ alone gives a vertical asymptote (pole).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x^2 - 1}{x^2 - x - 2} = \dfrac{(x-1)(x+1)}{(x-2)(x+1)}$. At $x = -1$: common factor — a hole at $\left(-1, \tfrac{-1-1}{-1-2}\right) = (-1, \tfrac23)$. At $x = 2$: pole — vertical asymptote. Same-degree horizon: $y \to 1$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the pole and the numerator degree; watch vertical and horizontal/slant asymptotes reorganize the curve.</p>
+  <canvas id="cv-rat"></canvas>
+  <div class="ctl">
+   <label>pole a <input type="range" id="rt-a" min="-3" max="3" step="0.1" value="1"></label>
+   <label>num degree <input type="range" id="rt-d" min="0" max="2" step="1" value="1"></label>
+  </div>
+  <div class="out" id="rt-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Where is $f(x) = \dfrac{3}{x - 4}$ undefined, and what happens there? <details class="sol"><summary>Solution</summary><div>$x = 4$: a pole — $f \to +\infty$ from the right, $-\infty$ from the left.</div></details></li>
+  <li><span class="lvl m">MED</span> Identify holes and poles of $f(x) = \dfrac{x^2 - 4}{x^2 - 2x}$. <details class="sol"><summary>Solution</summary><div>$\dfrac{(x-2)(x+2)}{x(x-2)}$: hole at $x = 2$ (value $\tfrac{4}{2} = 2$), pole at $x = 0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch features of $f(x) = \dfrac{2x^2 - 2}{x^2 - 4}$: intercepts, asymptotes, sign. <details class="sol"><summary>Solution</summary><div>$f = \dfrac{2(x-1)(x+1)}{(x-2)(x+2)}$. Zeros $\pm1$; $y$-intercept $f(0) = \tfrac{-2}{-4} = \tfrac12$. Poles $\pm2$; horizontal asymptote $y = 2$ (degree tie, ratio of leaders). Sign alternates across $-2, -1, 1, 2$: positive on $(-\infty,-2)$, negative on $(-2,-1)$, positive on $(-1,1)$... check $f(0) = \tfrac12 &gt; 0$ ✓, negative on $(1,2)$, positive after.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="asymptotes">
+ <h2>Asymptotes</h2>
+ <p>An asymptote is a line a curve approaches ever more closely without (necessarily) touching — the curve's behavior at the edges of its world. Three species: vertical (blow-ups at finite $x$), horizontal (settling as $x \to \pm\infty$), and slant (growing like a line). Asymptotes are the skeleton you draw first.</p>
+ <div class="box def"><span class="label">Definition</span> Vertical: $x = a$ with $|f(x)| \to \infty$ as $x \to a$. Horizontal: $y = L$ with $f(x) \to L$ as $x\to\infty$ or $-\infty$. Slant: $f(x) - (mx + b) \to 0$. A graph can cross horizontal/slant asymptotes in the middle — the promise is only about the tails.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{3x + 1}{x - 2}$: vertical at $x = 2$; horizontal at $y = 3$ (leading ratio). Note $f(x) = 3 + \dfrac{7}{x-2}$: the "$+\tfrac{7}{x-2}$" is the shrinking correction — asymptotics made explicit by division.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Asymptotes of $f(x) = \dfrac{1}{x} + 5$? <details class="sol"><summary>Solution</summary><div>Vertical $x = 0$, horizontal $y = 5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Can a function cross its horizontal asymptote? Give an example or refute. <details class="sol"><summary>Solution</summary><div>Yes: $f(x) = \dfrac{x}{x^2+1}$ has asymptote $y = 0$ and crosses it at $x = 0$. Only the limit at infinity is promised.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many horizontal asymptotes can one function have? <details class="sol"><summary>Solution</summary><div>At most two — one for $x \to +\infty$, one for $x \to -\infty$. Example with two: $f(x) = \dfrac{x}{\sqrt{x^2+1}} \to \pm 1$ (this is tanh-like; sigmoids in Ch 21 have exactly this two-asymptote shape).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vertical-asymptotes">
+ <h2>Vertical asymptotes</h2>
+ <p>A vertical asymptote marks a finite input where the output explodes — division by an approaching zero. Locate them at zeros of the denominator that survive cancellation, then determine the sign of the blow-up on each side: the two sides can agree or disagree.</p>
+ <div class="box def"><span class="label">Definition</span> $x = a$ is a vertical asymptote of $f$ if $f(x) \to +\infty$ or $-\infty$ as $x \to a^-$ or $x \to a^+$. For rational $f = P/Q$ in lowest terms: exactly the roots of $Q$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x + 1}{(x - 3)^2}$ at $x = 3$: numerator near 4 (positive), denominator a small positive square from both sides — $f \to +\infty$ on both sides. Compare $\dfrac{1}{x-3}$: $+\infty$ from the right, $-\infty$ from the left. Even vs odd pole order.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Vertical asymptotes of $f(x) = \dfrac{x}{x^2 - 9}$? <details class="sol"><summary>Solution</summary><div>$x = 3$ and $x = -3$ (numerator nonzero at both).</div></details></li>
+  <li><span class="lvl m">MED</span> Does $f(x) = \dfrac{x^2 - 9}{x - 3}$ have a vertical asymptote at $x = 3$? <details class="sol"><summary>Solution</summary><div>No — it cancels to $x + 3$ with a hole at $(3, 6)$. Zeros of the denominator must survive reduction to be poles.</div></details></li>
+  <li><span class="lvl h">HARD</span> Determine the one-sided behavior of $f(x) = \dfrac{x - 1}{x(x+2)}$ at each pole. <details class="sol"><summary>Solution</summary><div>At $x = 0$: numerator $\approx -1$; denominator sign: $x \to 0^+$ gives $(+)(+) = +$ so $f \to -\infty$; $x \to 0^-$ gives $(-)(+) = -$ so $f \to +\infty$. At $x = -2$: numerator $\approx -3$; $x\to-2^+$: $(-)( +\text{small}) &lt; 0$... carefully: $x \approx -2^+$: $x &lt; 0$, $x + 2 &gt; 0$ small: denominator negative-small, $f = \tfrac{-3}{0^-} \to +\infty$; $x \to -2^-$: $x+2 &lt; 0$, denominator positive-small ($(-)(-)$), $f \to -\infty$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="horizontal-asymptotes">
+ <h2>Horizontal asymptotes</h2>
+ <p>A horizontal asymptote is a ceiling or floor at infinity: the value the function settles toward as inputs grow without bound. For rational functions it is a two-line rule comparing degrees; more generally it captures saturation — sigmoids, capacities, terminal velocities.</p>
+ <div class="box def"><span class="label">Definition</span> For $f = \dfrac{a_mx^m + \cdots}{b_nx^n + \cdots}$: if $m &lt; n$, asymptote $y = 0$; if $m = n$, $y = \tfrac{a_m}{b_n}$; if $m &gt; n$, none (the function grows — possibly toward a slant asymptote).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\dfrac{5x^2 - x}{2x^2 + 7}$: degrees tie, asymptote $y = \tfrac52$. Intuition: divide top and bottom by $x^2$: $\dfrac{5 - 1/x}{2 + 7/x^2} \to \dfrac{5}{2}$. The small terms evaporate at infinity.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Horizontal asymptote of $\dfrac{3x + 2}{x^2 + 1}$? <details class="sol"><summary>Solution</summary><div>Degree 1 &lt; 2: $y = 0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Horizontal asymptote(s) of $f(x) = \dfrac{7 - 2x^3}{4x^3 + x}$? <details class="sol"><summary>Solution</summary><div>Tie at degree 3: $y = -\tfrac{2}{4} = -\tfrac12$ (both directions).</div></details></li>
+  <li><span class="lvl h">HARD</span> The sigmoid $\sigma(x) = \dfrac{1}{1 + e^{-x}}$: find both horizontal asymptotes. <details class="sol"><summary>Solution</summary><div>$x \to +\infty$: $e^{-x}\to0$, $\sigma \to 1$. $x\to-\infty$: $e^{-x}\to\infty$, $\sigma\to0$. Asymptotes $y=0$ and $y=1$ — why sigmoid outputs read as probabilities (Ch 19, 21).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="slant-asymptotes">
+ <h2>Slant asymptotes</h2>
+ <p>When the numerator's degree exceeds the denominator's by exactly one, the function grows like a line — its slant (oblique) asymptote, found by polynomial division: quotient = asymptote, remainder = the vanishing correction.</p>
+ <div class="box def"><span class="label">Definition</span> If $f(x) = \dfrac{P(x)}{Q(x)}$ with $\deg P = \deg Q + 1$, dividing gives $f(x) = (mx + b) + \dfrac{R(x)}{Q(x)}$ with $\deg R &lt; \deg Q$, so $f(x) - (mx+b) \to 0$: slant asymptote $y = mx + b$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x^2 + x - 3}{x - 1}$: divide: $x^2 + x - 3 = (x-1)(x + 2) - 1$, so $f(x) = x + 2 - \dfrac{1}{x - 1}$. Slant asymptote $y = x + 2$; vertical at $x = 1$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $\dfrac{x^3}{x^2 + 1}$ have a slant asymptote? <details class="sol"><summary>Solution</summary><div>Degrees 3 vs 2: yes. $\dfrac{x^3}{x^2+1} = x - \dfrac{x}{x^2+1}$: asymptote $y = x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the slant asymptote of $\dfrac{2x^2 - 3x + 1}{x + 2}$. <details class="sol"><summary>Solution</summary><div>Divide: $2x^2 - 3x + 1 = (x+2)(2x - 7) + 15$: asymptote $y = 2x - 7$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the hyperbola branch $y = \sqrt{x^2 + 1}$ has slant asymptote $y = x$ (as $x \to \infty$). <details class="sol"><summary>Solution</summary><div>$\sqrt{x^2+1} - x = \dfrac{(x^2 + 1) - x^2}{\sqrt{x^2+1} + x} = \dfrac{1}{\sqrt{x^2+1} + x} \to 0$. The conjugate trick from Ch 2, retired from denominators, now computes asymptotics.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exponential-functions">
+ <h2>Exponential functions</h2>
+ <p>An exponential function has the variable in the exponent: $f(x) = a\,b^x$. Its signature property is multiplicative growth — equal steps in $x$ <em>multiply</em> the output by equal factors. Populations, compound interest, chain reactions, and (for a while) compute budgets all grow this way; nothing polynomial can keep up.</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = a\,b^x$ with $b &gt; 0$, $b \ne 1$: growth if $b &gt; 1$, decay if $0 &lt; b &lt; 1$. Key property: $f(x + 1) = b\,f(x)$. Domain $\mathbb{R}$, range $(0, \infty)$ for $a &gt; 0$, horizontal asymptote $y = 0$. Natural form $f(x) = a\,e^{kx}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = 100 \cdot 2^{x/3}$ (doubles every 3 units): $f(0) = 100$, $f(3) = 200$, $f(9) = 800$, $f(30) = 100 \cdot 2^{10} = 102\,400$. Meanwhile $g(x) = 100 + 50x$ reaches only 1600 at $x = 30$. Exponentials always win eventually.</div>
+ <div class="box link"><span class="label">Where this goes</span> $e^{kx}$ solves the growth ODE (Ch 10); softmax exponentiates logits (Ch 21); exponential decay schedules learning rates (Ch 15).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = 5(0.8)^x$ growth or decay, and what is $f(2)$? <details class="sol"><summary>Solution</summary><div>Decay ($b &lt; 1$); $f(2) = 5(0.64) = 3.2$.</div></details></li>
+  <li><span class="lvl m">MED</span> A colony triples every 4 hours from 200 cells. Write $N(t)$ and find $N(10)$. <details class="sol"><summary>Solution</summary><div>$N(t) = 200 \cdot 3^{t/4}$; $N(10) = 200\cdot 3^{2.5} = 200 \cdot 9\sqrt3 \approx 3118$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the exponential $f(x) = a b^x$ through $(1, 6)$ and $(4, 48)$. <details class="sol"><summary>Solution</summary><div>Divide: $\tfrac{48}{6} = b^3 = 8 \Rightarrow b = 2$; $a\cdot2 = 6 \Rightarrow a = 3$: $f(x) = 3\cdot2^x$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logarithmic-functions">
+ <h2>Logarithmic functions</h2>
+ <p>The logarithmic function is the exponential's inverse: $f(x) = \log_b x$ asks "which exponent produces $x$?" It grows without bound but agonizingly slowly — the mirror image of exponential explosion — and compresses huge ranges into small ones, which is why loss curves and axes get log-scaled.</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = \log_b x$ ($b &gt; 0, b\ne1$): domain $(0, \infty)$, range $\mathbb{R}$, vertical asymptote $x = 0$, passes through $(1, 0)$ and $(b, 1)$. Increasing for $b &gt; 1$. Graph: the reflection of $b^x$ across $y = x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \log_2 x$: $f(1) = 0$, $f(1024) = 10$, $f(10^6) \approx 19.9$. A million-fold input range lands in a 20-unit output range — logarithmic compression at work (and the depth of a balanced binary search over $10^6$ items).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Domain of $f(x) = \log_3(x - 2)$? <details class="sol"><summary>Solution</summary><div>$x &gt; 2$: $(2, \infty)$; vertical asymptote $x = 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch data: $g(x) = -\ln x$. Increasing or decreasing? Asymptote? Range? <details class="sol"><summary>Solution</summary><div>Decreasing (negation flips $\ln$'s rise); vertical asymptote $x = 0$ with $g \to +\infty$ as $x\to0^+$; range $\mathbb{R}$. ($-\ln p$ is the "surprise" of probability $p$ — Ch 16.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $\log_2 x &gt; \log_4(x + 6)$. <details class="sol"><summary>Solution</summary><div>$\log_4(x+6) = \tfrac{\log_2(x+6)}{2}$. So need $2\log_2 x &gt; \log_2(x+6)$, i.e. $x^2 &gt; x + 6$ (valid since $\log_2$ increasing; domain $x &gt; 0$). $x^2 - x - 6 &gt; 0 \Rightarrow (x-3)(x+2) &gt; 0 \Rightarrow x &gt; 3$ (respecting $x &gt; 0$). Answer $(3, \infty)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="absolute-value-functions">
+ <h2>Absolute value functions</h2>
+ <p>$f(x) = |x|$ is a V: the identity for positive inputs, its mirror for negative ones, with a sharp corner at 0. It is the simplest function that is continuous everywhere but not smooth — the prototype for kinks, hinge losses, and the L1 penalties that make solutions sparse.</p>
+ <div class="box def"><span class="label">Definition</span> $|x| = \begin{cases}x &amp; x \ge 0\\ -x &amp; x &lt; 0\end{cases}$. General V: $f(x) = a|x - h| + k$ has corner (vertex) at $(h, k)$, arms of slope $\pm a$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = 2|x - 3| - 4$: vertex $(3, -4)$, arms of slope $\pm2$. Zeros: $2|x-3| = 4 \Rightarrow |x - 3| = 2 \Rightarrow x = 1, 5$. Range $[-4, \infty)$.</div>
+ <div class="box link"><span class="label">Where this goes</span> $|x|$'s corner is why L1 regularization zeroes out weights exactly (Ch 15, 19) while smooth L2 only shrinks them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Vertex and range of $f(x) = |x + 2| + 1$? <details class="sol"><summary>Solution</summary><div>Vertex $(-2, 1)$; range $[1, \infty)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $|2x - 1| = x + 3$ graphically-mindedly. <details class="sol"><summary>Solution</summary><div>Cases: $2x - 1 = x + 3 \Rightarrow x = 4$ (check RHS $\ge 0$ ✓, and $2x-1=7\ge0$ consistent); $-(2x-1) = x+3 \Rightarrow -3x = 2 \Rightarrow x = -\tfrac23$ (check: $|{-\tfrac73}| = \tfrac73$, RHS $= \tfrac73$ ✓). Both valid.</div></details></li>
+  <li><span class="lvl h">HARD</span> Express $f(x) = |x| + |x - 2|$ piecewise and find its minimum. <details class="sol"><summary>Solution</summary><div>$x &lt; 0$: $-x + 2 - x = 2 - 2x$; $0 \le x \le 2$: $x + 2 - x = 2$; $x &gt; 2$: $2x - 2$. Flat bottom: minimum value 2 on the whole interval $[0, 2]$ — total distance to two points is minimized anywhere between them (the geometric median idea).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="piecewise-functions">
+ <h2>Piecewise functions</h2>
+ <p>A piecewise function applies different formulas on different regions of the domain — a mathematical switch statement. Tax brackets, shipping tiers, ReLU: one function, several regimes, with all the interest concentrated at the seams where pieces meet.</p>
+ <div class="box def"><span class="label">Definition</span> $f(x) = \begin{cases} \text{rule}_1 &amp; x \in D_1 \\ \text{rule}_2 &amp; x \in D_2 \\ \cdots \end{cases}$ where the $D_i$ partition the domain (no overlaps, no gaps). Evaluate by first locating the input's region.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathrm{ReLU}(x) = \begin{cases}0 &amp; x &lt; 0\\ x &amp; x \ge 0\end{cases}$ — the flagship activation (Ch 21). $\mathrm{ReLU}(-3) = 0$, $\mathrm{ReLU}(2) = 2$. The pieces agree at the seam ($0 = 0$), so it is continuous; the slopes disagree ($0$ vs $1$), so there is a corner.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = \begin{cases}x^2 &amp; x \le 1\\ 2x - 1 &amp; x &gt; 1\end{cases}$: find $f(0), f(1), f(3)$. <details class="sol"><summary>Solution</summary><div>$0$; $1$ (use the first piece: $x \le 1$); $5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is the $f$ above continuous at $x = 1$? <details class="sol"><summary>Solution</summary><div>Left value $1^2 = 1$; right limit $2(1) - 1 = 1$. They agree — continuous (and even smooth? slopes: $2x = 2$ vs $2$ — yes, matching slopes too).</div></details></li>
+  <li><span class="lvl h">HARD</span> Income tax: 0% up to 10k, 20% on the part between 10k and 40k, 40% above. Write tax $T(y)$ and compute $T(50000)$. <details class="sol"><summary>Solution</summary><div>$T(y) = 0$ for $y \le 10^4$; $0.2(y - 10^4)$ for $10^4 &lt; y \le 4\times10^4$; $6000 + 0.4(y - 4\times10^4)$ above. $T(50000) = 6000 + 0.4(10000) = 10\,000$. Marginal rates are the pieces' slopes; the function is continuous, its slope is not.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="step-functions">
+ <h2>Step functions</h2>
+ <p>A step function is piecewise-constant: flat plateaus with sudden jumps. It is how discrete decisions look as functions — thresholds, classifications, postage rates. The jumps make it discontinuous, and (fatally for gradient descent) its slope is zero everywhere it exists.</p>
+ <div class="box def"><span class="label">Definition</span> A step function takes finitely (or countably) many values, constant on intervals. Prototype: the Heaviside step $H(x) = 0$ for $x &lt; 0$, $H(x) = 1$ for $x \ge 0$. CDFs of discrete random variables (Ch 11) are steps.</div>
+ <div class="box ex"><span class="label">Worked example</span> Parking: \$3 per started hour. Cost $c(t) = 3\lceil t \rceil$ for $t &gt; 0$: $c(0.5) = 3$, $c(1) = 3$, $c(1.01) = 6$. One minute across the seam costs \$3 — the discontinuity is real money.</div>
+ <div class="box link"><span class="label">Where this goes</span> The perceptron's original activation was a step (Ch 21); replacing steps by smooth sigmoids is what made networks trainable by gradients.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $H(-2)$, $H(0)$, $H(7)$ for the Heaviside step. <details class="sol"><summary>Solution</summary><div>$0, 1, 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Express the "sign" function via steps and give its values at $-5, 0, 5$. <details class="sol"><summary>Solution</summary><div>$\operatorname{sgn}(x) = H(x) - H(-x)$ gives $-1, 0, 1$... check $x=0$: $H(0) - H(0) = 0$ ✓ (with the convention $H(0)=1$). Values: $-1, 0, 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can't gradient descent learn a threshold classifier $f(x) = H(w x - b)$ directly? <details class="sol"><summary>Solution</summary><div>$\tfrac{\partial f}{\partial w} = 0$ wherever it exists (plateaus) and is undefined at the jump: the gradient carries no information about how to improve. The fix — replace $H$ with the smooth sigmoid $\sigma$ — is logistic regression (Ch 19).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="floor-and-ceiling-functions">
+ <h2>Floor and ceiling functions</h2>
+ <p>Floor rounds down to the nearest integer, ceiling rounds up. They are the canonical step functions and the bridge between continuous quantities and discrete counts: how many full pages, batches, buses. Off-by-one bugs are usually a floor/ceiling confusion in disguise.</p>
+ <div class="box def"><span class="label">Definition</span> $\lfloor x\rfloor = $ greatest integer $\le x$; $\lceil x \rceil = $ least integer $\ge x$. For non-integer $x$: $\lceil x\rceil = \lfloor x\rfloor + 1$. Beware negatives: $\lfloor -2.3\rfloor = -3$, $\lceil -2.3 \rceil = -2$. Identity: $\lceil \tfrac{n}{m}\rceil = \lfloor\tfrac{n - 1}{m}\rfloor + 1$ for integers $n \ge 1, m \ge 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1000 samples in batches of 64: full batches $\lfloor \tfrac{1000}{64}\rfloor = 15$; total batches including the ragged last one $\lceil\tfrac{1000}{64}\rceil = 16$ (the last has $1000 - 960 = 40$ samples).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\lfloor 3.99\rfloor$, $\lceil 3.01\rceil$, $\lfloor -0.5\rfloor$. <details class="sol"><summary>Solution</summary><div>$3$, $4$, $-1$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many multiples of 7 are in $[100, 500]$? (Floor form.) <details class="sol"><summary>Solution</summary><div>$\lfloor\tfrac{500}{7}\rfloor - \lfloor\tfrac{99}{7}\rfloor = 71 - 14 = 57$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\lfloor x \rfloor + \lfloor x + \tfrac12\rfloor = \lfloor 2x \rfloor$ for all real $x$. <details class="sol"><summary>Solution</summary><div>Write $x = n + f$, $n = \lfloor x\rfloor$, $0 \le f &lt; 1$. Case $f &lt; \tfrac12$: LHS $= n + n = 2n$; RHS $= \lfloor 2n + 2f\rfloor = 2n$ ✓. Case $f \ge \tfrac12$: LHS $= n + (n + 1) = 2n + 1$; RHS $= \lfloor 2n + 2f \rfloor = 2n + 1$ since $1 \le 2f &lt; 2$ ✓. (Hermite's identity, $m=2$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-transformations">
+ <h2>Function transformations</h2>
+ <p>Once you know one function's graph, you know a whole family: add constants to shift it, multiply to stretch it, negate to flip it. The grammar is small — outside the function acts on $y$ (intuitive), inside acts on $x$ (backwards) — and it composes, so any $a\,f(b(x - h)) + k$ is four elementary moves.</p>
+ <div class="box def"><span class="label">Definition</span> From $y = f(x)$: $f(x) + k$ shifts up $k$; $f(x - h)$ shifts right $h$; $a f(x)$ stretches vertically by $a$; $f(bx)$ compresses horizontally by $b$; negatives reflect. Inside transformations act inversely and in reverse order.</div>
+ <div class="box ex"><span class="label">Worked example</span> $g(x) = -2(x - 3)^2 + 5$ from $f(x) = x^2$: shift right 3, stretch vertically ×2, flip over the $x$-axis, shift up 5. Vertex journeys $(0,0)\to(3,0)\to(3,0)\to(3,0)\to(3,5)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Apply $a\,f(x - h) + k$ to a base curve and watch each slider perform its move.</p>
+  <canvas id="cv-xform"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="xf-a" min="-3" max="3" step="0.1" value="1"></label>
+   <label>h <input type="range" id="xf-h" min="-4" max="4" step="0.1" value="0"></label>
+   <label>k <input type="range" id="xf-k" min="-4" max="4" step="0.1" value="0"></label>
+  </div>
+  <div class="out" id="xf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Describe $g(x) = |x| - 3$ and $h(x) = |x - 3|$. <details class="sol"><summary>Solution</summary><div>$g$: the V shifted down 3. $h$: the V shifted right 3 — inside means horizontal.</div></details></li>
+  <li><span class="lvl m">MED</span> The point $(2, 8)$ lies on $y = f(x)$. Find its image on $y = 3f(x - 1) + 2$. <details class="sol"><summary>Solution</summary><div>Input shifts right: $x = 3$; output: $3\cdot8 + 2 = 26$. Image: $(3, 26)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Express $g(x) = \sqrt{4x + 8}$ as transformations of $f(x) = \sqrt x$. <details class="sol"><summary>Solution</summary><div>$g(x) = \sqrt{4(x + 2)} = 2\sqrt{x + 2}$: shift left 2, then vertical stretch ×2. (Or: horizontal compression by 4 then left-shift — factoring first gives the cleaner story.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="translations">
+ <h2>Translations</h2>
+ <p>Translations slide a graph rigidly — no distortion, just relocation. Vertical: add to the output. Horizontal: subtract inside the input (the famous backwards direction: $f(x - 3)$ moves <em>right</em>, because inputs must be 3 bigger to produce old outputs).</p>
+ <div class="box def"><span class="label">Definition</span> $y = f(x - h) + k$ translates the graph of $f$ by the vector $(h, k)$. Every point $(x_0, y_0)$ moves to $(x_0 + h,\ y_0 + k)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = \sqrt{x - 4} + 1$: the half-parabola $\sqrt x$ with its tip moved from $(0,0)$ to $(4, 1)$. Domain shifts too: $[4, \infty)$; range $[1, \infty)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $f(x + 2)$ shifts <em>left</em>. Test with one point: for $f(x) = x^2$, the vertex of $(x+2)^2$ is where $x + 2 = 0$, i.e. $x = -2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which way does $y = f(x) - 5$ move the graph? <details class="sol"><summary>Solution</summary><div>Down 5.</div></details></li>
+  <li><span class="lvl m">MED</span> Write the equation of $y = x^2$ translated by $(-3, 7)$. <details class="sol"><summary>Solution</summary><div>$y = (x + 3)^2 + 7$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that translating $y = 2^x$ up by 0 and right by 1 equals scaling it vertically by $\tfrac12$. <details class="sol"><summary>Solution</summary><div>$2^{x - 1} = 2^x \cdot 2^{-1} = \tfrac12\cdot2^x$. For exponentials, horizontal shifts <em>are</em> vertical scalings — the algebraic reason log-plots turn growth-rate changes into slope changes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reflections">
+ <h2>Reflections</h2>
+ <p>Reflections flip a graph across an axis: negate the output to flip vertically (across the $x$-axis), negate the input to flip horizontally (across the $y$-axis). Combined with the identity $y = x$ mirror (which swaps input and output entirely), reflections generate the symmetry vocabulary of functions.</p>
+ <div class="box def"><span class="label">Definition</span> $y = -f(x)$: reflection across the $x$-axis. $y = f(-x)$: across the $y$-axis. Reflection across $y = x$ maps the graph of $f$ to the graph of its inverse relation.</div>
+ <div class="box ex"><span class="label">Worked example</span> From $f(x) = \sqrt x$: $-\sqrt x$ hangs below the axis; $\sqrt{-x}$ opens leftward (domain $x \le 0$); $-\sqrt{-x}$ does both — the four quadrant-cousins of one curve.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the reflection of $y = e^x$ across the $y$-axis? <details class="sol"><summary>Solution</summary><div>$y = e^{-x}$ — growth becomes decay.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x) = x^2 - 4x$. Find $g$, the reflection of $f$ across the $x$-axis, in standard form. <details class="sol"><summary>Solution</summary><div>$g(x) = -f(x) = -x^2 + 4x$. Vertex flips from $(2,-4)$ to $(2, 4)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Which functions are unchanged by reflection across the $y$-axis? Across the origin (both axes)? <details class="sol"><summary>Solution</summary><div>$f(-x) = f(x)$: even functions ($x^2$, $\cos$, $|x|$). $f(-x) = -f(x)$: odd functions ($x^3$, $\sin$, $x$) — reflecting across both axes lands on itself. These get their own sections below.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="scaling">
+ <h2>Scaling</h2>
+ <p>Scaling stretches or compresses a graph: multiply the output by $a$ to scale vertically, the input by $b$ to scale horizontally — and, inside as always, the effect is inverted: $f(2x)$ <em>squeezes</em> by half. Scaling is renormalization: changing units without changing shape.</p>
+ <div class="box def"><span class="label">Definition</span> $y = a f(x)$: vertical scale by $|a|$ (flip if $a &lt; 0$). $y = f(bx)$: horizontal scale by $\tfrac{1}{|b|}$. Point map: $(x_0, y_0) \mapsto \left(\tfrac{x_0}{b},\ a y_0\right)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = \sin$-like wave $f$ with peak at $(1, 1)$: $3f(2x)$ has peak at $\left(\tfrac12, 3\right)$ — twice as fast, three times as tall. (Amplitude and frequency, formally in Ch 6.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How does $y = \tfrac13 f(x)$ change the graph? <details class="sol"><summary>Solution</summary><div>Compresses vertically to one-third height.</div></details></li>
+  <li><span class="lvl m">MED</span> The graph of $f$ passes through $(6, 10)$. Where does $y = \tfrac12 f(3x)$ pass? <details class="sol"><summary>Solution</summary><div>Need $3x = 6$: $x = 2$; output $\tfrac12\cdot10 = 5$: point $(2, 5)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $f(x) = x^2$, show horizontal scaling by $b$ equals a vertical scaling. For which functions does this hold in general? <details class="sol"><summary>Solution</summary><div>$f(bx) = (bx)^2 = b^2 x^2 = b^2 f(x)$: horizontal ×$b$ = vertical ×$b^2$. This works exactly for homogeneous functions $f(bx) = b^k f(x)$ — the power laws. It is why power laws "look the same at every scale" (scale-free), the visual signature of scaling laws in ML.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="function-composition">
+ <h2>Function composition</h2>
+ <p>Composition chains functions: $(g \circ f)(x) = g(f(x))$ — the output of $f$ piped into $g$. Order matters, and depth compounds: a deep network is nothing but a long composition $f_L \circ \cdots \circ f_2 \circ f_1$, which is why the chain rule (Ch 7, 9) — the calculus of composition — is the engine of deep learning.</p>
+ <div class="box def"><span class="label">Definition</span> $(g\circ f)(x) = g(f(x))$, defined where $x \in \operatorname{dom} f$ and $f(x) \in \operatorname{dom} g$. Composition is associative, generally <em>not</em> commutative. Identity: $\operatorname{id}(x) = x$ composes neutrally.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x + 1$, $g(x) = x^2$: $(g\circ f)(x) = (x+1)^2$ but $(f\circ g)(x) = x^2 + 1$. At $x = 2$: $9$ vs $5$ — order is not a formality.</div>
+ <div class="box think"><span class="label">Think first</span> Decompose $h(x) = \sqrt{3x^2 + 1}$ as a composition of two simpler functions. <details class="sol"><summary>Reveal</summary><div>Inner $u(x) = 3x^2 + 1$, outer $v(u) = \sqrt u$: $h = v \circ u$. (Other splits exist; this is the one the chain rule will want.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = 2x$, $g(x) = x - 3$: compute $(f\circ g)(5)$ and $(g \circ f)(5)$. <details class="sol"><summary>Solution</summary><div>$f(g(5)) = f(2) = 4$; $g(f(5)) = g(10) = 7$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x) = \sqrt x$, $g(x) = x - 4$: find the domain of $f \circ g$ and of $g \circ f$. <details class="sol"><summary>Solution</summary><div>$f(g(x)) = \sqrt{x - 4}$: domain $[4,\infty)$. $g(f(x)) = \sqrt x - 4$: domain $[0, \infty)$. Composition order changes even the domain.</div></details></li>
+  <li><span class="lvl h">HARD</span> Let $f(x) = ax + b$ and $g(x) = cx + d$. When does $f \circ g = g \circ f$? <details class="sol"><summary>Solution</summary><div>$f(g(x)) = acx + ad + b$; $g(f(x)) = acx + cb + d$. Equal iff $ad + b = cb + d$, i.e. $b(1 - c) = d(1 - a)$. E.g. shifts commute with shifts ($a = c = 1$) and scalings with scalings ($b = d = 0$), but shifts and scalings generally don't.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inverse-functions">
+ <h2>Inverse functions</h2>
+ <p>The inverse $f^{-1}$ runs $f$ backwards: it takes each output to the input that produced it. It exists exactly when $f$ is one-to-one (no collisions to un-collide), and it satisfies the round-trip laws $f^{-1}(f(x)) = x$ and $f(f^{-1}(y)) = y$. To find it: solve $y = f(x)$ for $x$, then swap the letters.</p>
+ <div class="box def"><span class="label">Definition</span> If $f: A \to B$ is a bijection, $f^{-1}: B \to A$ is defined by $f^{-1}(b) = $ the unique $a$ with $f(a) = b$. Domain and range trade places. Notation warning: $f^{-1} \ne \tfrac1f$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{2x + 1}{x - 3}$ (injective on its domain): set $y = \tfrac{2x+1}{x-3}$, solve: $yx - 3y = 2x + 1 \Rightarrow x(y - 2) = 3y + 1 \Rightarrow x = \dfrac{3y + 1}{y - 2}$. So $f^{-1}(x) = \dfrac{3x + 1}{x - 2}$. Check: $f(4) = 9$ and $f^{-1}(9) = \tfrac{28}{7} = 4$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $f^{-1}(x)$ is the inverse <em>function</em>, not the reciprocal $\big(f(x)\big)^{-1}$. For $f(x) = x + 1$: inverse is $x - 1$; reciprocal is $\tfrac{1}{x+1}$. Entirely different objects sharing a cursed notation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the inverse of $f(x) = 3x - 6$. <details class="sol"><summary>Solution</summary><div>$y = 3x - 6 \Rightarrow x = \tfrac{y + 6}{3}$: $f^{-1}(x) = \tfrac{x + 6}{3}$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x) = x^2$ on $\mathbb{R}$ has no inverse. Fix it by restriction and write the inverse. <details class="sol"><summary>Solution</summary><div>Restrict to $[0, \infty)$: now injective, inverse $f^{-1}(x) = \sqrt x$. (Restricting to $(-\infty, 0]$ gives $-\sqrt x$ — a choice must be made.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $f$ and $g$ are invertible, $(g\circ f)^{-1} = f^{-1}\circ g^{-1}$. <details class="sol"><summary>Solution</summary><div>Check the round trip: $(f^{-1}\circ g^{-1})\circ(g\circ f) = f^{-1}\circ(g^{-1}\circ g)\circ f = f^{-1}\circ f = \operatorname{id}$, and similarly on the other side. Socks-and-shoes: undo in reverse order.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inverse-function-graphs">
+ <h2>Inverse function graphs</h2>
+ <p>The graph of $f^{-1}$ is the graph of $f$ reflected across the line $y = x$ — because inverting swaps every $(a, b)$ into $(b, a)$. You saw the exponential/log mirror in Ch 2; that picture is fully general. Fixed points of $f$ on the line $y = x$ stay put under the flip.</p>
+ <div class="box def"><span class="label">Definition</span> $(a, b) \in \operatorname{graph}(f) \iff (b, a) \in \operatorname{graph}(f^{-1})$: the two graphs are mirror images across $y = x$. Consequently, if $f$ is increasing so is $f^{-1}$, and intersections of $f$ with $y = x$ are shared with $f^{-1}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3$ passes through $(2, 8)$; $f^{-1}(x) = \sqrt[3]{x}$ passes through $(8, 2)$. Both pass through $(1,1)$, $(0,0)$, $(-1,-1)$ — the fixed points on the mirror line.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f$ passes through $(5, -2)$. What point must $f^{-1}$ pass through? <details class="sol"><summary>Solution</summary><div>$(-2, 5)$.</div></details></li>
+  <li><span class="lvl m">MED</span> The graphs of $f$ and $f^{-1}$ intersect at a point <em>not</em> on $y = x$. Possible? <details class="sol"><summary>Solution</summary><div>Yes, for decreasing $f$: $f(x) = -x^3$? Take $f(x) = \tfrac1x$: it is its own inverse, and its whole graph (e.g. $(2, \tfrac12)$) is "intersection" off the line $y=x$. Intersections must be symmetric across $y = x$ as a <em>set</em>, not pointwise.</div></details></li>
+  <li><span class="lvl h">HARD</span> If $f(x) = x^3 + x + 1$, compute $f^{-1}(3)$ without finding a formula for $f^{-1}$. <details class="sol"><summary>Solution</summary><div>Solve $f(x) = 3$: $x^3 + x - 2 = 0$; $x = 1$ works and $f$ is strictly increasing (so the root is unique). $f^{-1}(3) = 1$. Inverting a specific value needs only equation-solving — no closed-form inverse required.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="even-functions">
+ <h2>Even functions</h2>
+ <p>An even function is mirror-symmetric across the $y$-axis: $f(-x) = f(x)$. The name comes from even powers, whose graphs all have this symmetry. Evenness halves your work — knowing the right half of the graph gives you the left for free.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is even iff $f(-x) = f(x)$ for all $x$ in its (symmetric) domain. Examples: $x^2, x^4, |x|, \cos x$, any polynomial with only even-degree terms.</div>
+ <div class="box ex"><span class="label">Worked example</span> Is $f(x) = 3x^4 - 5x^2 + 7$ even? $f(-x) = 3x^4 - 5x^2 + 7 = f(x)$ ✓ — every exponent even (the constant is $x^0$). Is $x^2 + x$ even? $f(-1) = 0 \ne 2 = f(1)$: no.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = x^6 - 4$ even? <details class="sol"><summary>Solution</summary><div>Yes: $(-x)^6 - 4 = x^6 - 4$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f$ is even with $f(3) = 8$. What is $f(-3)$? Can an even function be injective? <details class="sol"><summary>Solution</summary><div>$f(-3) = 8$. Injective: no (except on trivial domains) — $\pm x$ always collide.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the product of two even functions is even, and even × odd is odd. <details class="sol"><summary>Solution</summary><div>$(fg)(-x) = f(-x)g(-x)$. Even·even: $f(x)g(x) = (fg)(x)$ ✓. Even·odd: $f(x)\cdot(-g(x)) = -(fg)(x)$: odd ✓. (Parity multiplies like signs.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="odd-functions">
+ <h2>Odd functions</h2>
+ <p>An odd function has rotational symmetry about the origin: $f(-x) = -f(x)$ — flip both axes and the graph lands on itself. Odd powers, $\sin$, and $\tanh$ are odd. Any function splits uniquely into an even plus an odd part, a decomposition that returns in Fourier analysis.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is odd iff $f(-x) = -f(x)$ for all $x$. If defined at 0, then $f(0) = 0$. Decomposition: $f(x) = \underbrace{\tfrac{f(x) + f(-x)}{2}}_{\text{even}} + \underbrace{\tfrac{f(x) - f(-x)}{2}}_{\text{odd}}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Split $e^x$: even part $\tfrac{e^x + e^{-x}}{2} = \cosh x$, odd part $\tfrac{e^x - e^{-x}}{2} = \sinh x$. Check: $\cosh + \sinh = e^x$ ✓. The hyperbolic functions are the exponential's parity components.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = x^3 - x$ odd? <details class="sol"><summary>Solution</summary><div>$f(-x) = -x^3 + x = -f(x)$ ✓ yes.</div></details></li>
+  <li><span class="lvl m">MED</span> Classify $f(x) = x^2 + x$: even, odd, or neither? <details class="sol"><summary>Solution</summary><div>Neither: $f(1) = 2$, $f(-1) = 0$ — not equal, not opposite. Most functions are neither; parity is special.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the even/odd decomposition is unique. <details class="sol"><summary>Solution</summary><div>Suppose $f = e_1 + o_1 = e_2 + o_2$. Then $e_1 - e_2 = o_2 - o_1$ is both even (LHS) and odd (RHS), so it satisfies $g(x) = g(-x) = -g(x)$: $g \equiv 0$. Hence $e_1 = e_2$, $o_1 = o_2$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="monotonic-functions">
+ <h2>Monotonic functions</h2>
+ <p>A monotonic function never changes direction: always rising (increasing) or always falling (decreasing). Monotonicity is precious: it guarantees injectivity (hence invertibility), it preserves order — applying an increasing function to both sides of an inequality is safe — and it is why maximizing $f$ or $\log f$ gives the same answer.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is increasing if $a &lt; b \Rightarrow f(a) \le f(b)$ (strictly, with $&lt;$); decreasing with $\ge$. Strictly monotonic $\Rightarrow$ injective. Compositions: increasing∘increasing = increasing; increasing∘decreasing = decreasing (signs multiply).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\ln$ is strictly increasing, so $\operatorname*{argmax}_\theta L(\theta) = \operatorname*{argmax}_\theta \ln L(\theta)$: maximum likelihood may (and always does) work with the log — the same maximizer, far friendlier algebra (Ch 13).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> On which intervals is $f(x) = x^2$ increasing / decreasing? <details class="sol"><summary>Solution</summary><div>Decreasing on $(-\infty, 0]$, increasing on $[0, \infty)$ — monotonic on each half, not globally.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $f(x) = \dfrac{1}{x}$ decreasing on its whole domain? <details class="sol"><summary>Solution</summary><div>No! It decreases on $(-\infty, 0)$ and on $(0, \infty)$ separately, but $f(-1) = -1 &lt; 1 = f(1)$ jumps up across the gap. Monotonic on each piece $\ne$ monotonic overall.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f$ is strictly increasing. Show $f(x) &lt; f(y) \iff x &lt; y$, and deduce solving $e^{3x - 1} &lt; e^{x + 5}$. <details class="sol"><summary>Solution</summary><div>($\Leftarrow$) definition. ($\Rightarrow$) contrapositive: $x \ge y \Rightarrow f(x) \ge f(y)$ (equality when $x=y$, else strict). Apply with $f = e^t$: inequality $\iff 3x - 1 &lt; x + 5 \iff x &lt; 3$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bounded-functions">
+ <h2>Bounded functions</h2>
+ <p>A bounded function never escapes a horizontal band: some $M$ caps $|f(x)|$ for all $x$. Boundedness is a tameness certificate — sigmoids are bounded (outputs stay sane), $x^2$ is not. Bounded above/below can hold separately, and the tightest such bounds are the supremum and infimum.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is bounded on $D$ if $\exists M: |f(x)| \le M$ for all $x \in D$; bounded above if $f(x) \le M$; below if $f(x) \ge m$. $\sup f$ is the least upper bound of the range (Ch 1 completeness), attained or not.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x^2}{x^2 + 1}$: since $0 \le x^2 &lt; x^2 + 1$, we get $0 \le f(x) &lt; 1$: bounded, $\inf = 0$ (attained at 0), $\sup = 1$ (never attained — approached as $x\to\pm\infty$).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $f(x) = 5 - x^2$ bounded above? Below? <details class="sol"><summary>Solution</summary><div>Above by 5 (attained at 0); not below ($\to -\infty$).</div></details></li>
+  <li><span class="lvl m">MED</span> Show $f(x) = \dfrac{1}{1 + e^{-x}}$ is bounded and give sup and inf. <details class="sol"><summary>Solution</summary><div>$e^{-x} &gt; 0$ so denominator $&gt; 1$: $0 &lt; f &lt; 1$. $\sup = 1$, $\inf = 0$, neither attained. The sigmoid's band is the reason it encodes probabilities.</div></details></li>
+  <li><span class="lvl h">HARD</span> Is a bounded monotonic function on $\mathbb{R}$ forced to flatten out — i.e. have horizontal asymptotes? <details class="sol"><summary>Solution</summary><div>Yes. If $f$ is increasing and bounded above, $L = \sup f$ exists (completeness); for any $\epsilon &gt; 0$ some $f(x_0) &gt; L - \epsilon$, and monotonicity keeps $f(x) \in (L - \epsilon, L]$ for $x &gt; x_0$: $f(x) \to L$. Same at $-\infty$ with the inf. (The monotone convergence idea, previewing Ch 7.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="periodic-functions">
+ <h2>Periodic functions</h2>
+ <p>A periodic function repeats itself exactly after a fixed step: $f(x + T) = f(x)$. One tile of width $T$ contains everything; the rest is copy-paste. Days, seasons, waves, rotations — and positional encodings in transformers — are periodic structure exploited.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is periodic with period $T &gt; 0$ if $f(x + T) = f(x)$ for all $x$; the smallest such $T$ (if it exists) is the fundamental period. Sums of periods: if $f, g$ have periods $T_1, T_2$ with $T_1/T_2$ rational, $f + g$ is periodic with period $\operatorname{lcm}$-like $T$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x - \lfloor x\rfloor$ (fractional part): $f(x + 1) = x + 1 - \lfloor x + 1\rfloor = x + 1 - (\lfloor x\rfloor + 1) = f(x)$: period 1. A sawtooth wave built from floor.</div>
+ <div class="box link"><span class="label">Where this goes</span> Sine and cosine (Ch 6) are the canonical periodics; Fourier analysis (Ch 14) says every reasonable periodic function is a sum of them — and sinusoidal positional encodings feed exactly this into transformers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $f$ has period 6 and $f(2) = 9$, find $f(20)$. <details class="sol"><summary>Solution</summary><div>$20 = 2 + 3\cdot6$: $f(20) = 9$.</div></details></li>
+  <li><span class="lvl m">MED</span> What is the fundamental period of $f(x) = (-1)^{\lfloor x \rfloor}$? <details class="sol"><summary>Solution</summary><div>The value flips every unit step and returns after two: period 2 (a square wave).</div></details></li>
+  <li><span class="lvl h">HARD</span> Can a non-constant periodic function have arbitrarily small periods? <details class="sol"><summary>Solution</summary><div>Yes, if we drop continuity: the Dirichlet function ($1$ on $\mathbb{Q}$, $0$ off it) has <em>every</em> positive rational as a period, so no fundamental period. Continuous non-constant periodic functions do have a smallest period.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sequences">
+ <h2>Sequences</h2>
+ <p>A sequence is a function whose domain is $\mathbb{N}$: an infinite ordered list $a_1, a_2, a_3, \dots$. Everything you know about functions applies, but the discrete domain adds its own questions — most importantly, what happens to $a_n$ as $n \to \infty$. Training runs are sequences: loss per step.</p>
+ <div class="box def"><span class="label">Definition</span> A sequence is $a: \mathbb{N} \to \mathbb{R}$, written $(a_n)$. It may be given by an explicit formula $a_n = f(n)$ or by recursion. Monotonic, bounded, periodic transfer verbatim from functions.</div>
+ <div class="box ex"><span class="label">Worked example</span> $a_n = \dfrac{n}{n + 1}$: $\tfrac12, \tfrac23, \tfrac34, \tfrac45, \dots$ — increasing (each term closer to 1), bounded above by 1, never reaching it. It converges to 1 (formally in Ch 7).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Compare an arithmetic and a geometric sequence with your parameters — watch linear vs exponential growth diverge.</p>
+  <canvas id="cv-seq"></canvas>
+  <div class="ctl">
+   <label>common difference d <input type="range" id="sq-d" min="-2" max="6" step="0.1" value="2"></label>
+   <label>common ratio r <input type="range" id="sq-r" min="0.5" max="1.6" step="0.01" value="1.25"></label>
+  </div>
+  <div class="out" id="sq-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the first four terms of $a_n = n^2 - n$. <details class="sol"><summary>Solution</summary><div>$0, 2, 6, 12$ (from $n=1$).</div></details></li>
+  <li><span class="lvl m">MED</span> Find a formula for $2, 5, 10, 17, 26, \dots$ <details class="sol"><summary>Solution</summary><div>Differences $3, 5, 7, 9$ — odd numbers: $a_n = n^2 + 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Is $a_n = \dfrac{(-1)^n n}{n+1}$ monotonic? Bounded? Does it settle anywhere? <details class="sol"><summary>Solution</summary><div>Not monotonic (alternates sign). Bounded: $|a_n| = \tfrac{n}{n+1} &lt; 1$. It does not converge: even terms approach $+1$, odd terms $-1$ — two "cluster points", no single limit (Ch 7 vocabulary: divergent but bounded).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="arithmetic-sequences">
+ <h2>Arithmetic sequences</h2>
+ <p>An arithmetic sequence steps by a constant difference $d$ — the discrete version of a linear function. Its running total has a famous closed form: pair the first and last terms (Gauss's trick) and multiply by half the count.</p>
+ <div class="box def"><span class="label">Definition</span> $a_n = a_1 + (n-1)d$. Sum of the first $n$ terms: $S_n = \dfrac{n(a_1 + a_n)}{2} = \dfrac{n\big(2a_1 + (n-1)d\big)}{2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $5, 9, 13, \dots$: $d = 4$, so $a_{20} = 5 + 19\cdot4 = 81$ and $S_{20} = \tfrac{20(5 + 81)}{2} = 860$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find $a_{10}$ for the sequence $3, 7, 11, \dots$ <details class="sol"><summary>Solution</summary><div>$a_{10} = 3 + 9\cdot4 = 39$.</div></details></li>
+  <li><span class="lvl m">MED</span> An arithmetic sequence has $a_3 = 10$ and $a_8 = 25$. Find $a_1$ and $d$. <details class="sol"><summary>Solution</summary><div>$5d = 15 \Rightarrow d = 3$; $a_1 = 10 - 2\cdot3 = 4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A theater has 20 rows: 14 seats in row 1, each row 2 more than the last. Total seats? <details class="sol"><summary>Solution</summary><div>$a_{20} = 14 + 19\cdot2 = 52$; $S_{20} = \tfrac{20(14 + 52)}{2} = 660$ seats.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="geometric-sequences">
+ <h2>Geometric sequences</h2>
+ <p>A geometric sequence multiplies by a constant ratio $r$ — the discrete exponential. Its partial sums telescope into a closed form, and when $|r| &lt; 1$ the infinite sum <em>converges</em>: infinitely many terms, finite total. That single fact powers annuities, discounted rewards in RL, and Zeno's arrow.</p>
+ <div class="box def"><span class="label">Definition</span> $a_n = a_1 r^{\,n-1}$. Partial sum ($r \ne 1$): $S_n = a_1\dfrac{1 - r^n}{1 - r}$. If $|r| &lt; 1$: $\displaystyle\sum_{n=1}^{\infty} a_1 r^{\,n-1} = \dfrac{a_1}{1 - r}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\tfrac12 + \tfrac14 + \tfrac18 + \cdots = \dfrac{1/2}{1 - 1/2} = 1$: the halvings of Zeno sum to exactly one whole. And discounted reward $\sum_{t=0}^{\infty} \gamma^t = \tfrac{1}{1-\gamma}$: with $\gamma = 0.99$, the future is "worth" 100 steps (Ch 25).</div>
+ <div class="box pit"><span class="label">Pitfall</span> The infinite-sum formula requires $|r| &lt; 1$. Feeding it $r = 2$ produces the nonsense "$1 + 2 + 4 + \cdots = -1$" — a formula applied outside its warranty.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find $a_6$ for $2, 6, 18, \dots$ <details class="sol"><summary>Solution</summary><div>$r = 3$: $a_6 = 2\cdot3^5 = 486$.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate $\sum_{k=0}^{\infty} 5\left(\tfrac{2}{3}\right)^k$. <details class="sol"><summary>Solution</summary><div>$\dfrac{5}{1 - 2/3} = 15$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A ball drops from 8 m and rebounds to $\tfrac34$ of each fall. Total vertical distance traveled? <details class="sol"><summary>Solution</summary><div>Falls: $8 + 6 + 4.5 + \cdots = \tfrac{8}{1 - 3/4} = 32$. Rises: $6 + 4.5 + \cdots = \tfrac{6}{1-3/4} = 24$. Total $56$ m.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">$0.999\dots$ as a geometric series $\tfrac{9}{10} + \tfrac{9}{100} + \cdots$ sums to:</div><button class="opt">just under 1</button><button class="opt">exactly 1</button><button class="opt">it diverges</button><div class="why" hidden>$\dfrac{9/10}{1 - 1/10} = 1$ exactly — the same fact as Ch 1's $0.\overline9 = 1$, now with machinery.</div></div>
+</section>
+
+<section class="topic" id="recurrence-relations">
+ <h2>Recurrence relations</h2>
+ <p>A recurrence defines each term from earlier ones: $a_{n+1} = g(a_n, \dots)$ plus initial conditions. It is the native language of iteration — compound interest, population models, gradient descent steps, RNN states. Solving a recurrence means finding the explicit formula hiding inside the loop.</p>
+ <div class="box def"><span class="label">Definition</span> A recurrence gives $a_n$ in terms of previous terms, e.g. linear first-order $a_{n+1} = r a_n + c$ with $a_0$ given. Fixed point $a^* = \tfrac{c}{1 - r}$ (for $r \ne 1$); solution $a_n = a^* + (a_0 - a^*) r^n$: converges to $a^*$ iff $|r| &lt; 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Loan: balance $B_{n+1} = 1.01 B_n - 500$ (1% monthly interest, \$500 payment), $B_0 = 20\,000$. Fixed point $B^* = \tfrac{-500}{1 - 1.01} = 50\,000$... careful: $B^* = \tfrac{c}{1-r} = \tfrac{-500}{-0.01} = 50\,000$. Since $B_0 &lt; B^*$ and $r &gt; 1$, the gap $B_n - 50\,000 = -30\,000(1.01)^n$ grows negative: the balance <em>decreases</em> — the loan is being paid off. It hits 0 when $(1.01)^n = \tfrac{50000}{30000}$: $n = \tfrac{\ln(5/3)}{\ln 1.01} \approx 51.3$ months.</div>
+ <div class="box link"><span class="label">Where this goes</span> Recurrences are discrete dynamical systems (Ch 28); solving them systematically (characteristic equations, master theorem) is Ch 17; SGD is a stochastic recurrence (Ch 15).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $a_0 = 1$, $a_{n+1} = 2a_n + 1$: compute $a_1, a_2, a_3$ and guess the pattern. <details class="sol"><summary>Solution</summary><div>$3, 7, 15$: pattern $a_n = 2^{n+1} - 1$. (Verify: $2(2^{n+1} - 1) + 1 = 2^{n+2} - 1$ ✓.)</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $a_{n+1} = \tfrac12 a_n + 3$, $a_0 = 10$: formula and limit. <details class="sol"><summary>Solution</summary><div>Fixed point $a^* = \tfrac{3}{1/2} = 6$. $a_n = 6 + 4\left(\tfrac12\right)^n \to 6$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove by induction that $a_n = 2^{n+1} - 1$ solves $a_{n+1} = 2a_n + 1$, $a_0 = 1$, and connect to the "towers of Hanoi" recurrence. <details class="sol"><summary>Solution</summary><div>Base: $a_0 = 2^1 - 1 = 1$ ✓. Step: assume $a_n = 2^{n+1} - 1$; then $a_{n+1} = 2(2^{n+1} - 1) + 1 = 2^{n+2} - 1$ ✓. Hanoi's minimum moves satisfy $H_n = 2H_{n-1} + 1$, $H_1 = 1$, so $H_n = 2^n - 1$ — same recurrence, shifted index. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mathematical-modeling">
+ <h2>Mathematical modeling</h2>
+ <p>Modeling with functions means choosing the right <em>shape</em> for a relationship: linear for constant rates, quadratic near optima, exponential for compounding, logarithmic for saturation, periodic for cycles, piecewise for regime changes. The chapter you just finished is a catalog of shapes; modeling is knowing which one the world is wearing.</p>
+ <div class="box def"><span class="label">Definition</span> The function-fitting loop: inspect the data's signature (constant differences → linear; constant ratios → exponential; constant second differences → quadratic; straight on log-log → power law), fit parameters, validate on held-out points, and state the domain where the model claims validity.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data: $(0, 3), (1, 6), (2, 12), (3, 24)$. Ratios: $2, 2, 2$ — exponential: $f(x) = 3\cdot2^x$. Contrast $(0,3),(1,6),(2,9),(3,12)$: differences $3,3,3$ — linear: $f(x) = 3x + 3$. Two tables, two signatures, two shapes.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Extrapolation: a model fit on $[0, 10]$ owes you nothing at $x = 100$. Exponential fits are the most dangerous to extrapolate — and the most tempting.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which shape: "each layer of the network halves the error"? <details class="sol"><summary>Solution</summary><div>Exponential decay: $E(n) = E_0 (1/2)^n$.</div></details></li>
+  <li><span class="lvl m">MED</span> Model: a service costs \$10/month plus \$0.02 per API call up to 10k calls, then \$0.01 per call beyond. Write $C(n)$ and compute $C(25\,000)$. <details class="sol"><summary>Solution</summary><div>Piecewise: $C(n) = 10 + 0.02n$ for $n \le 10^4$; $C(n) = 10 + 200 + 0.01(n - 10^4) = 210 + 0.01(n - 10^4)$ beyond. $C(25000) = 210 + 150 = \$360$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Benchmark accuracy vs training tokens: $(10^9, 42\%), (10^{10}, 54\%), (10^{11}, 66\%)$. Propose a shape, fit it, and predict at $10^{12}$ — then critique. <details class="sol"><summary>Solution</summary><div>Equal steps in $\log_{10}$ tokens give equal $+12\%$ steps: logarithmic, $A = 12\log_{10}(T) - 66$. Check: $T = 10^9$: $108 - 66 = 42$ ✓. Predict $10^{12}$: $144 - 66 = 78\%$. Critique: the log model crosses 100% at $T \approx 10^{13.8}$ — impossible; accuracy must saturate (a sigmoid in log-tokens is more honest). Every shape has a domain of validity.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <p>Three problems that braid the chapter together.</p>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> Let $f(x) = \dfrac{x - 1}{x + 2}$. Find its domain, range, intercepts, asymptotes, and inverse; verify $f^{-1}(f(3)) = 3$. <details class="sol"><summary>Solution</summary><div>Domain: $x \ne -2$. Vertical asymptote $x = -2$; horizontal $y = 1$ (degree tie). Intercepts: $x$: $(1, 0)$; $y$: $(0, -\tfrac12)$. Inverse: $y(x+2) = x - 1 \Rightarrow x(y - 1) = -2y - 1 \Rightarrow f^{-1}(x) = \dfrac{-2x - 1}{x - 1}$; range of $f$ = domain of $f^{-1}$ = $\mathbb{R}\setminus\{1\}$. Check: $f(3) = \tfrac25$; $f^{-1}(\tfrac25) = \dfrac{-4/5 - 1}{2/5 - 1} = \dfrac{-9/5}{-3/5} = 3$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Let $f(x) = 2x + 3$ and define $a_{n+1} = f(a_n)$ with $a_0 = 1$. (a) Find a closed form for $a_n$. (b) Show $g(x) = \tfrac{x-3}{2}$ inverts $f$, and that iterating $g$ from any start converges to $f$'s fixed point. <details class="sol"><summary>Solution</summary><div>(a) Fixed point: $x^* = 2x^* + 3 \Rightarrow x^* = -3$. Then $a_n + 3 = 2^n(a_0 + 3) = 4\cdot2^n$: $a_n = 2^{n+2} - 3$. Check: $a_0 = 1$ ✓, $a_1 = 5 = f(1)$ ✓. (b) $g(f(x)) = \tfrac{2x + 3 - 3}{2} = x$ ✓. Iterating $g$: $b_{n+1} = \tfrac{b_n - 3}{2}$, so $b_n + 3 = (b_0 + 3)\left(\tfrac12\right)^n \to 0$, i.e. $b_n \to -3$, the shared fixed point — contraction (|slope| $\tfrac12 &lt; 1$) pulls in; expansion (slope 2) pushed away. (Ch 18's fixed-point iteration and Ch 28's stability, in miniature.)</div></details></li>
+  <li><span class="lvl h">HARD</span> GPU cost: provider A charges $c_A(h) = 40 + 2.5h$; provider B charges $c_B(h) = 25\cdot 1.02^{h}$ (compounding congestion). (a) Which is cheaper at $h = 10$ and $h = 100$? (b) Show B eventually exceeds A forever. (c) Solve $c_A(h) = 300$ and $c_B(h) = 300$ exactly. <details class="sol"><summary>Solution</summary><div>(a) $h=10$: A $= 65$, B $= 25(1.02)^{10} \approx 25(1.2190) \approx 30.47$ — B cheaper. $h = 100$: A $= 290$, B $= 25(1.02)^{100} \approx 25(7.245) \approx 181$ — B still cheaper. (b) Exponentials beat linear: $\tfrac{c_B(h)}{c_A(h)} \to \infty$ since $1.02^h$ outgrows any linear function ($1.02^h = e^{h\ln1.02}$, and $e^{ch}/h \to \infty$); so past some $h^*$, B $&gt;$ A permanently (numerically $h^* \approx 138$: A $= 385$, B $\approx 25\cdot15.4 \approx 386$). (c) A: $h = \tfrac{300 - 40}{2.5} = 104$. B: $1.02^h = 12 \Rightarrow h = \tfrac{\ln 12}{\ln 1.02} \approx \tfrac{2.4849}{0.019803} \approx 125.5$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Implement the chapter's machinery in Python/NumPy.</p>
+ <p><b>Task 1 — Function properties tester.</b> Write numerical checkers <code>is_injective(f, xs)</code> (collision search with rounding tolerance), <code>is_even(f)</code>, <code>is_odd(f)</code>, and <code>is_monotonic(f, xs)</code>, and run them on $x^2$, $x^3$, $\tanh$, $|x|$, and $\sigma(x) = 1/(1+e^{-x})$.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+xs = np.linspace(-5, 5, 2001)
+
+def is_injective(f, xs, tol=1e-9):
+    ys = np.round(f(xs) / tol) * tol
+    return len(np.unique(ys)) == len(xs)
+
+def is_even(f, xs=xs):  return np.allclose(f(xs), f(-xs))
+def is_odd(f, xs=xs):   return np.allclose(f(xs), -f(-xs))
+def is_monotonic(f, xs=xs):
+    d = np.diff(f(xs))
+    return bool(np.all(d &gt;= 0) or np.all(d &lt;= 0))
+
+sig = lambda x: 1/(1 + np.exp(-x))
+sq  = lambda x: x**2
+cube = lambda x: x**3
+
+assert not is_injective(sq, xs) and is_injective(cube, xs)
+assert is_even(sq) and is_even(np.abs)
+assert is_odd(cube) and is_odd(np.tanh)
+assert is_monotonic(np.tanh) and is_monotonic(sig)
+assert not is_monotonic(sq)</code></pre></div></details>
+ <p><b>Task 2 — Numerical inverse by bisection.</b> For a strictly increasing $f$, write <code>inverse(f, y, lo, hi)</code> that solves $f(x) = y$ by bisection to $10^{-10}$. Test on $f(x) = x^3 + x + 1$ (verify $f^{-1}(3) = 1$) and on the sigmoid (recover the logit function).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import math
+
+def inverse(f, y, lo, hi, tol=1e-10):
+    assert f(lo) &lt;= y &lt;= f(hi)
+    while hi - lo &gt; tol:
+        mid = (lo + hi) / 2
+        if f(mid) &lt; y: lo = mid
+        else:          hi = mid
+    return (lo + hi) / 2
+
+f = lambda x: x**3 + x + 1
+assert abs(inverse(f, 3, -10, 10) - 1.0) &lt; 1e-8
+
+sig = lambda x: 1/(1 + math.exp(-x))
+for p in (0.1, 0.5, 0.9):
+    x = inverse(sig, p, -50, 50)
+    assert abs(x - math.log(p/(1-p))) &lt; 1e-6   # logit = sigmoid^{-1}</code></pre></div></details>
+ <p><b>Task 3 — Shape detective.</b> Write <code>classify(xs, ys)</code> that decides whether tabulated data is linear, quadratic, exponential, or a power law by testing constant differences, constant second differences, constant ratios, and log-log linearity; return the fitted parameters. Test on synthetic data from each family.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def classify(xs, ys, rtol=1e-6):
+    xs, ys = np.asarray(xs, float), np.asarray(ys, float)
+    d1 = np.diff(ys)
+    if np.allclose(d1, d1[0], rtol=rtol):
+        return 'linear', np.polyfit(xs, ys, 1)
+    d2 = np.diff(d1)
+    if np.allclose(d2, d2[0], rtol=rtol):
+        return 'quadratic', np.polyfit(xs, ys, 2)
+    if np.all(ys &gt; 0):
+        r = ys[1:] / ys[:-1]
+        if np.allclose(r, r[0], rtol=rtol):
+            b = r[0] ** (1/(xs[1]-xs[0]))
+            return 'exponential', (ys[0] / b**xs[0], b)   # y = a b^x
+        if np.all(xs &gt; 0):
+            m, c = np.polyfit(np.log(xs), np.log(ys), 1)
+            if np.allclose(np.log(ys), m*np.log(xs) + c, rtol=1e-6):
+                return 'power', (np.exp(c), m)            # y = a x^m
+    return 'unknown', None
+
+x = np.arange(1, 8, dtype=float)
+assert classify(x, 3*x + 3)[0] == 'linear'
+assert classify(x, x**2 - x)[0] == 'quadratic'
+assert classify(x, 3 * 2**x)[0] == 'exponential'
+assert classify(x, 5 * x**1.5)[0] == 'power'</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.khanacademy.org/math/algebra2/x2ec2f6f830c9fb89:functions">Khan Academy — Functions</a>: evaluation, composition, inverses, transformations with endless practice.</li>
+  <li><a href="https://openstax.org/details/books/precalculus-2e">OpenStax — Precalculus 2e</a>: free textbook; chapters 1–6 cover this whole chapter carefully.</li>
+  <li><a href="https://tutorial.math.lamar.edu/Classes/Alg/FunctionCompilation.aspx">Paul's Online Math Notes — Common graphs and functions</a>: the graph catalog to memorize.</li>
+  <li><a href="https://www.3blue1brown.com/">3Blue1Brown</a>: "Essence of calculus" episode 1 grounds functions-as-machines before derivatives arrive.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/">MIT OCW 18.01SC</a>: session notes on functions, graphs, shifts and inverses (Unit 0/1 review).</li>
+  <li><a href="https://www.desmos.com/calculator">Desmos graphing calculator</a>: type any function in this chapter and manipulate it live — the ultimate transformation explorer.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch03.html">← Prev: 03 · Sets, Logic and Proof</a>
+ <a href="ch05.html">Next: 05 · Geometry →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function mono(g){ g.font = '13px "JetBrains Mono", monospace'; }
+ function col(n, fb){ var v = cssVar(n); return v || fb; }
+ function axes(g, s, X, Y, R){
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(s.w, Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(0), 0); g.lineTo(X(0), s.h); g.stroke();
+  mono(g); g.fillStyle = col('--ink-2', '#888');
+  for(var t = -R + 2; t <= R - 2; t += 2){
+   if(t === 0) continue;
+   g.fillText(t, X(t) - 6, Y(0) + 16);
+  }
+ }
+ function plot(g, s, X, Y, fn, color, R){
+  g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
+  var first = true;
+  for(var px = 0; px <= s.w; px += 2){
+   var x = (px / s.w) * 2 * R - R, y = fn(x);
+   if(!isFinite(y) || Math.abs(y) > R * 3){ first = true; continue; }
+   var py = Y(y);
+   if(py < -60 || py > s.h + 60){ first = true; continue; }
+   if(first){ g.moveTo(px, py); first = false; } else g.lineTo(px, py);
+  }
+  g.stroke();
+ }
+ function mk(c, h, R){
+  var s = setupCanvas(c, h);
+  var X = function(x){ return (x + R) / (2 * R) * s.w; };
+  var Y = function(y){ return s.h - (y + R) / (2 * R) * s.h; };
+  s.g.clearRect(0, 0, s.w, s.h);
+  return { s: s, X: X, Y: Y };
+ }
+
+ // --- Line: slope & intercept ---
+ var lnc = document.getElementById('cv-line');
+ function drawLN(){
+  if(!lnc) return;
+  var m = +document.getElementById('ln-m').value, b = +document.getElementById('ln-b').value;
+  var R = 8, k = mk(lnc, 280, R), s = k.s, g = s.g, X = k.X, Y = k.Y;
+  axes(g, s, X, Y, R);
+  plot(g, s, X, Y, function(x){ return m*x + b; }, col('--cobalt', '#2255cc'), R);
+  // rise/run triangle from (1, m+b) to (3, 3m+b)
+  g.strokeStyle = col('--rose', '#cc3355'); g.lineWidth = 2;
+  g.beginPath(); g.moveTo(X(1), Y(m + b)); g.lineTo(X(3), Y(m + b)); g.lineTo(X(3), Y(3*m + b)); g.stroke();
+  g.fillStyle = col('--emerald', '#11aa66');
+  g.beginPath(); g.arc(X(0), Y(b), 5, 0, 2*Math.PI); g.fill();
+  mono(g); g.fillStyle = col('--rose', '#cc3355');
+  g.fillText('run 2', X(1.6), Y(m + b) + 16);
+  g.fillText('rise ' + (2*m).toFixed(1), X(3) + 6, Y(2*m + b));
+  var out = document.getElementById('ln-out');
+  if(out) out.textContent = 'y = ' + m.toFixed(1) + 'x + ' + b.toFixed(1) + '   x-intercept: ' + (m !== 0 ? (-b/m).toFixed(2) : 'none (horizontal)');
+ }
+
+ // --- Rational function with asymptotes ---
+ var rtc = document.getElementById('cv-rat');
+ function drawRT(){
+  if(!rtc) return;
+  var a = +document.getElementById('rt-a').value, d = +document.getElementById('rt-d').value;
+  var R = 8, k = mk(rtc, 300, R), s = k.s, g = s.g, X = k.X, Y = k.Y;
+  axes(g, s, X, Y, R);
+  // f(x) = x^d / (x - a)
+  var f = function(x){ return Math.pow(x, d) / (x - a); };
+  // vertical asymptote
+  g.strokeStyle = col('--rose', '#cc3355'); g.setLineDash([5, 4]);
+  g.beginPath(); g.moveTo(X(a), 0); g.lineTo(X(a), s.h); g.stroke();
+  var label;
+  if(d === 0){ // horizontal y = 0
+   g.beginPath(); g.moveTo(0, Y(0)); g.lineTo(s.w, Y(0)); g.stroke();
+   label = 'f(x) = 1/(x−a): horizontal asymptote y = 0';
+  } else if(d === 1){ // horizontal y = 1
+   g.beginPath(); g.moveTo(0, Y(1)); g.lineTo(s.w, Y(1)); g.stroke();
+   label = 'f(x) = x/(x−a): degrees tie → horizontal asymptote y = 1';
+  } else { // slant y = x + a
+   g.beginPath(); g.moveTo(X(-R), Y(-R + a)); g.lineTo(X(R), Y(R + a)); g.stroke();
+   label = 'f(x) = x²/(x−a): numerator one degree up → slant asymptote y = x + ' + a.toFixed(1);
+  }
+  g.setLineDash([]);
+  plot(g, s, X, Y, f, col('--cobalt', '#2255cc'), R);
+  var out = document.getElementById('rt-out');
+  if(out) out.textContent = label + '   (pole at x = ' + a.toFixed(1) + ')';
+ }
+
+ // --- Transformations a f(x-h) + k on f = x^2 with |x| for contrast ---
+ var xfc = document.getElementById('cv-xform');
+ function drawXF(){
+  if(!xfc) return;
+  var a = +document.getElementById('xf-a').value;
+  var h = +document.getElementById('xf-h').value;
+  var kk = +document.getElementById('xf-k').value;
+  var R = 8, k = mk(xfc, 300, R), s = k.s, g = s.g, X = k.X, Y = k.Y;
+  axes(g, s, X, Y, R);
+  var base = function(x){ return x * x * 0.5; };
+  // base curve, faint
+  g.globalAlpha = 0.35;
+  plot(g, s, X, Y, base, col('--ink-2', '#888'), R);
+  g.globalAlpha = 1;
+  plot(g, s, X, Y, function(x){ return a * base(x - h) + kk; }, col('--cobalt', '#2255cc'), R);
+  g.fillStyle = col('--emerald', '#11aa66');
+  g.beginPath(); g.arc(X(h), Y(kk), 5, 0, 2*Math.PI); g.fill();
+  mono(g); g.fillText('vertex (' + h.toFixed(1) + ', ' + kk.toFixed(1) + ')', X(h) + 8, Y(kk) - 8);
+  var out = document.getElementById('xf-out');
+  if(out) out.textContent = 'y = ' + a.toFixed(1) + '·f(x − ' + h.toFixed(1) + ') + ' + kk.toFixed(1) + '   — a stretches' + (a < 0 ? ' & flips' : '') + ', h slides right, k slides up (grey = original)';
+ }
+
+ // --- Sequences: arithmetic vs geometric ---
+ var sqc = document.getElementById('cv-seq');
+ function drawSQ(){
+  if(!sqc) return;
+  var d = +document.getElementById('sq-d').value, r = +document.getElementById('sq-r').value;
+  var s = setupCanvas(sqc, 280), g = s.g;
+  g.clearRect(0, 0, s.w, s.h);
+  var N = 25, a1 = 2;
+  var ar = [], ge = [];
+  for(var n = 0; n < N; n++){ ar.push(a1 + n * d); ge.push(a1 * Math.pow(r, n)); }
+  var lo = Math.min(0, Math.min.apply(null, ar), Math.min.apply(null, ge));
+  var hi = Math.max(10, Math.max.apply(null, ar), Math.max.apply(null, ge));
+  var pad = 0.08 * (hi - lo); lo -= pad; hi += pad;
+  var x0 = 40, W = s.w - x0 - 14, H = s.h - 46, base = s.h - 30;
+  function Xn(n){ return x0 + n / (N - 1) * W; }
+  function Yv(v){ return base - (v - lo) / (hi - lo) * H; }
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0, Yv(0)); g.lineTo(x0 + W, Yv(0)); g.stroke();
+  mono(g); g.fillStyle = col('--ink-2', '#888');
+  g.fillText('n →', s.w - 44, base + 16);
+  function dots(arr, color){
+   g.fillStyle = color;
+   for(var n = 0; n < N; n++){
+    g.beginPath(); g.arc(Xn(n), Yv(arr[n]), 3.5, 0, 2 * Math.PI); g.fill();
+   }
+  }
+  dots(ar, col('--cobalt', '#2255cc'));
+  dots(ge, col('--rose', '#cc3355'));
+  g.fillStyle = col('--cobalt', '#2255cc'); g.fillText('arithmetic: 2, d=' + d.toFixed(1), x0 + 6, 18);
+  g.fillStyle = col('--rose', '#cc3355'); g.fillText('geometric: 2, r=' + r.toFixed(2), x0 + 6, 36);
+  var out = document.getElementById('sq-out');
+  var msg = 'a₂₅: arithmetic = ' + ar[N-1].toFixed(1) + ', geometric = ' + ge[N-1].toFixed(1);
+  if(r < 1) msg += '   (|r| < 1: geometric decays to 0; its infinite sum = ' + (a1 / (1 - r)).toFixed(2) + ')';
+  else if(r > 1) msg += '   (r > 1: exponential growth overtakes any arithmetic climb)';
+  if(out) out.textContent = msg;
+ }
+
+ function all(){ drawLN(); drawRT(); drawXF(); drawSQ(); }
+ document.addEventListener('input', all);
+ window.addEventListener('resize', all);
+ document.addEventListener('DOMContentLoaded', all);
+ all();
+})();
+</script>
+
+</body></html>

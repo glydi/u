@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 27 Causality</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','27')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">27</div><h1>Causality</h1><p class="lede">Telling what causes what, and what would have happened.</p>
+   <div class="meta"><span class="chip">20 topics</span><span class="chip">needs: chapters 11, 13, 17</span><span class="chip">feeds: chapters 29, 30, 35</span></div>
+  </div>
+
+<section class="topic" id="correlation-and-causation">
+ <h2>Correlation and causation</h2>
+ <p>Statistics sees that two things move together; it cannot, by itself, see <em>why</em>. Ice-cream sales and drownings rise together — because of summer, not each other. A correlation between $X$ and $Y$ has exactly three non-chance explanations: $X$ causes $Y$, $Y$ causes $X$, or something causes both. Untangling which requires assumptions or actions beyond the joint distribution — that gap is what this chapter fills.</p>
+ <div class="box def"><span class="label">Definition</span> $X$ and $Y$ are <em>associated</em> (correlated, dependent) if $P(Y \mid X = x)$ varies with $x$. $X$ <em>causes</em> $Y$ if <em>intervening</em> on $X$ changes the distribution of $Y$: $P(Y \mid do(X = x))$ varies with $x$. Reichenbach's common-cause principle: any dependence between $X$ and $Y$ arises from $X \to Y$, $Y \to X$, a common cause $Z$, or conditioning on a common effect (selection).</div>
+ <div class="box ex"><span class="label">Worked example</span> Among hospital patients, coffee drinking correlates with heart disease, $r = 0.3$. Smokers both drink more coffee and get more heart disease. Stratify: among smokers, coffee–disease correlation is 0.02; among non-smokers, 0.01. The entire association was carried by smoking (a common cause). Nothing in the numbers $\{r\}$ announced this — you needed the extra variable and a hypothesis about its role.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Correlation isn't causation" is often wielded as a conversation-ender, but the converse trap is real too: <em>absence</em> of correlation is not absence of causation. A drug that helps the sick and is prescribed only to the sick can show zero (or negative) marginal correlation with recovery. Causation can hide inside cancellation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Shoe size correlates with reading ability in children. Give the confounder and the DAG.<details class="sol"><summary>Solution</summary><div>Age: Age → ShoeSize, Age → Reading. Within a single age group the correlation vanishes.</div></details></li>
+  <li><span class="lvl m">MED</span> Countries' chocolate consumption correlates with Nobel prizes per capita ($r \approx 0.79$, famously). List the three candidate causal structures and the most plausible.<details class="sol"><summary>Solution</summary><div>(1) Chocolate → Nobel (eating chocolate boosts science); (2) Nobel → chocolate (laureates trigger national celebration eating); (3) common cause: national wealth/R&amp;D funding drives both chocolate affordability and research output. (3) is overwhelmingly plausible: conditioning on GDP per capita collapses the association. The lesson is that $r = 0.79$ carries zero information about which of the three holds.</div></details></li>
+  <li><span class="lvl h">HARD</span> Construct a concrete joint distribution where $X$ causally affects $Y$ yet $\mathrm{Cov}(X, Y) = 0$.<details class="sol"><summary>Solution</summary><div>Let $X \sim$ Uniform$\{-1, 0, 1\}$ and $Y = X^2$ (a genuine causal mechanism: set $X$, and $Y$ changes). $\mathbb E[X] = 0$; $\mathbb E[XY] = \mathbb E[X^3] = \frac{-1 + 0 + 1}{3} = 0$; so $\mathrm{Cov} = 0$. Intervening: $P(Y{=}1 \mid do(X{=}1)) = 1$ vs $P(Y{=}1\mid do(X{=}0)) = 0$ — strong causation, zero correlation. (Linear measures miss nonlinear mechanisms; mutual information would catch this one, but cancellation examples exist for it too via mixtures.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="simpsons-paradox">
+ <h2>Simpson's paradox</h2>
+ <p>A trend can hold in every subgroup and reverse in the whole. A drug can look worse than placebo overall, yet better for men <em>and</em> better for women. Nothing is wrong with the arithmetic — the aggregation reweights the groups. The paradox dissolves only causally: whether you should read the pooled or the stratified numbers depends on the causal role of the grouping variable, not on the data.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Simpson's reversal</em>: $P(y \mid x) &lt; P(y \mid x')$ overall, while $P(y \mid x, z) > P(y \mid x', z)$ for every stratum $z$. Arithmetically possible because pooled rates are weighted averages with different weights per treatment group: $\frac{a_1 + a_2}{n_1 + n_2}$ is not a fixed-weight average of $\frac{a_1}{n_1}, \frac{a_2}{n_2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Kidney-stone treatments (real study). Treatment A (surgery): small stones 81/87 = 93%, large 192/263 = 73%; overall 273/350 = 78%. Treatment B (percutaneous): small 234/270 = 87%, large 55/80 = 69%; overall 289/350 = 83%. A wins both strata (93>87, 73>69); B wins overall (83>78). Why: doctors gave A mostly to <em>hard (large-stone) cases</em>. Stone size is a confounder (size → treatment choice, size → outcome), so the stratified comparison is the causally correct one: choose A.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag how each treatment is allocated across easy and hard cases; the bars show per-stratum and pooled success. Find allocations where the pooled ranking flips against both strata.</p>
+  <canvas id="cv-simpson"></canvas>
+  <div class="ctl">
+   <label>share of A given to hard cases <input type="range" id="sp-a" min="0.05" max="0.95" step="0.05" value="0.75"></label>
+   <label>share of B given to hard cases <input type="range" id="sp-b" min="0.05" max="0.95" step="0.05" value="0.25"></label>
+  </div>
+  <div class="out" id="sp-out"></div>
+ </div>
+ <div class="box think"><span class="label">Think first</span> Same numbers, different story: suppose the stratifying variable were <em>blood pressure measured after treatment</em>, which the treatment itself changes. Which comparison — pooled or stratified — is right now?<details class="sol"><summary>Reveal</summary><div>Pooled. A post-treatment variable is a <em>mediator</em> (or collider-adjacent), not a confounder: stratifying on it blocks part of the very effect you want to measure (and can open selection bias). The rule is causal, not statistical: adjust for pre-treatment common causes; do not adjust for consequences of treatment. The identical table demands opposite analyses depending on the DAG — the cleanest proof that data alone cannot settle causal questions.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify the kidney-stone pooled numbers from the strata.<details class="sol"><summary>Solution</summary><div>A: $81 + 192 = 273$ successes of $87 + 263 = 350$ → 78.0%. B: $234 + 55 = 289$ of $270 + 80 = 350$ → 82.6%. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Build a minimal integer example of the reversal with two strata.<details class="sol"><summary>Solution</summary><div>Stratum 1: A 1/1 (100%) vs B 3/4 (75%). Stratum 2: A 2/5 (40%) vs B 1/3 (33%)... check pooled: A 3/6 = 50%, B 4/7 ≈ 57%. A wins both strata (100>75, 40>33), B wins pooled (57>50). ✓ The trick: A's trials concentrate in the hard stratum.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that Simpson's reversal is impossible in a randomized experiment (treatment independent of the stratum), for the difference-of-proportions metric.<details class="sol"><summary>Solution</summary><div>With randomization, the stratum distribution is identical in both arms: $P(z \mid A) = P(z \mid B) = P(z)$. Pooled success under A: $\sum_z P(z)\,P(y\mid A, z)$; under B: $\sum_z P(z)\,P(y\mid B, z)$. If $P(y\mid A,z) > P(y\mid B,z)$ for every $z$, then the pooled values — <em>same-weight</em> averages — inherit the inequality strictly. Reversal requires different weights across arms, i.e. treatment–stratum dependence, i.e. confounding (or selection). Randomization forbids exactly that. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="causal-graphs">
+ <h2>Causal graphs</h2>
+ <p>Draw the causal story: one node per variable, one arrow per direct influence. The picture is a bookkeeping device with teeth — from the diagram alone you can read off which correlations must appear, which adjustments are valid, and which questions the data can never answer. It is the interface between subject-matter knowledge and statistical machinery.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>causal graph</em> is a directed graph over variables where an edge $X \to Y$ asserts that $X$ is a <em>direct cause</em> of $Y$ (relative to the variable set): changing $X$ while holding all other nodes fixed can change $Y$. Absence of an edge is the strong claim — no direct effect. Paths of arrows carry indirect influence; the three primitive junctions are the chain $A \to B \to C$, the fork $A \leftarrow B \to C$, and the collider $A \to B \leftarrow C$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Slippery pavement story: Season → Sprinkler, Season → Rain, Sprinkler → Wet, Rain → Wet, Wet → Slippery. Five nodes, five arrows. Read claims off the picture: Sprinkler and Rain are dependent (common cause Season) but become independent given Season; Sprinkler and Slippery are dependent, but independent given Wet (the chain is blocked); and — the strange one — Sprinkler and Rain become <em>dependent</em> given Wet: if the ground is wet and it didn't rain, the sprinkler probably ran. Each claim is testable; together they fingerprint the structure.</div>
+ <div class="box link"><span class="label">Where this goes</span> The three junctions power d-separation (two topics on); the graph plus structural equations is an SCM; and "does the model have the right graph?" returns as causal representation learning at chapter's end and as world-model fidelity in Ch 29.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify the middle node: (a) Fire → Smoke → Alarm; (b) Genes → Height, Genes → Weight... i.e. Height ← Genes → Weight; (c) Talent → Admission ← Wealth.<details class="sol"><summary>Solution</summary><div>(a) chain — Smoke is a mediator; (b) fork — Genes is a common cause (confounder for Height–Weight); (c) collider — Admission is a common effect.</div></details></li>
+  <li><span class="lvl m">MED</span> In the sprinkler graph, list all directed paths from Season to Slippery.<details class="sol"><summary>Solution</summary><div>Season → Sprinkler → Wet → Slippery, and Season → Rain → Wet → Slippery. Two routes; the total effect of season on slipperiness flows through both, so blocking one (turn the sprinkler system off) reduces but does not remove the seasonal effect.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why must a causal graph (in the standard formalism) be acyclic, and how do we model real feedback loops (thermostats, predator–prey)?<details class="sol"><summary>Solution</summary><div>An arrow means "this equation's output feeds that one's input"; a directed cycle would make the system of structural equations self-referential with no guaranteed unique solution, and it would break the recursive factorization $P(\mathbf v) = \prod_i P(v_i \mid \text{pa}(v_i))$. Feedback is modeled by unrolling in time: Thermostat$_t$ → Heater$_t$ → Temp$_{t+1}$ → Thermostat$_{t+1}$ → … — a DAG over time-indexed copies (exactly a dynamic Bayesian network / the structure of Ch 28's state-space models). The cycle was never simultaneous; it was time, compressed.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dags-for-causality">
+ <h2>DAGs for causality</h2>
+ <p>The graphs of the previous topic, made mathematically precise: a directed acyclic graph whose factorization mirrors the causal recursion. The DAG does double duty — as a <em>probabilistic</em> object it encodes conditional independencies (a Bayesian network); as a <em>causal</em> object it additionally supports interventions. The same picture, two licenses; causal conclusions require the stronger one.</p>
+ <div class="box def"><span class="label">Definition</span> A DAG $G$ over $V = \{X_1,\dots,X_n\}$ is <em>Markov-compatible</em> with $P$ if $P(\mathbf x) = \prod_i P(x_i \mid \text{pa}_i)$. The <em>causal Markov condition</em> asserts this holds with pa = the direct causes; each variable is independent of its non-descendants given its parents. <em>Faithfulness</em> (the converse assumption): every independence in $P$ is implied by the graph structure — no accidental cancellations.</div>
+ <div class="box ex"><span class="label">Worked example</span> Chain $X \to Y \to Z$ with binary variables: $P(x, y, z) = P(x)P(y\mid x)P(z\mid y)$. Take $P(x{=}1) = 0.5$, $P(y{=}1\mid x) = (0.9 \text{ if } x{=}1, 0.1 \text{ else})$, $P(z{=}1\mid y) = (0.8 \text{ if } y{=}1, 0.2 \text{ else})$. Then $P(z{=}1 \mid x{=}1) = 0.9(0.8) + 0.1(0.2) = 0.74 \ne P(z{=}1\mid x{=}0) = 0.26$: dependent. But given $y = 1$: $P(z{=}1 \mid x, y{=}1) = 0.8$ for either $x$ — independent. The factorization predicted both facts before any numbers were plugged in.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Markov-equivalence: $X \to Y \to Z$, $X \leftarrow Y \leftarrow Z$ and $X \leftarrow Y \to Z$ all imply exactly the same independencies ($X \perp Z \mid Y$ and nothing else). Observational data alone cannot distinguish them; only the collider $X \to Y \leftarrow Z$ (which implies $X \perp Z$ but <em>not</em> given $Y$) stands out. Fitting a Bayesian network that predicts well says little about which arrows are causal.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the factorization for the sprinkler DAG (Season S, Sprinkler K, Rain R, Wet W, Slippery L).<details class="sol"><summary>Solution</summary><div>$P(s, k, r, w, l) = P(s)\,P(k \mid s)\,P(r \mid s)\,P(w \mid k, r)\,P(l \mid w)$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many parameters does the sprinkler factorization need (all binary), versus the unrestricted joint?<details class="sol"><summary>Solution</summary><div>Unrestricted: $2^5 - 1 = 31$. Factored: $P(s)$: 1; $P(k\mid s)$: 2; $P(r\mid s)$: 2; $P(w\mid k,r)$: 4; $P(l\mid w)$: 2 → 11 parameters. The savings are the independence assumptions; they grow exponential-to-linear as graphs get sparser.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that for the collider $X \to Y \leftarrow Z$ (with $X \perp Z$ marginally), conditioning on $Y$ generically creates dependence ("explaining away"), using the Bernoulli OR-model $Y = X \lor Z$, $X, Z \sim$ Bern(0.5) independent.<details class="sol"><summary>Solution</summary><div>Given $Y = 1$: $P(X{=}1\mid Y{=}1) = \frac{P(X{=}1)P(Y{=}1\mid X{=}1)}{P(Y{=}1)} = \frac{0.5\cdot1}{0.75} = \frac23$. Now also condition on $Z = 1$: $P(X{=}1 \mid Y{=}1, Z{=}1) = P(X{=}1) = \frac12$ (since $Z{=}1$ alone explains $Y{=}1$, $X$ reverts to its prior). $\frac23 \ne \frac12$: learning $Z$ changed belief in $X$ under conditioning on their common effect — dependence created. This is why conditioning on colliders (e.g. selecting on hospital admission, dataset inclusion) manufactures spurious correlations. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="d-separation">
+ <h2>d-separation</h2>
+ <p>The reading rule for DAGs: a purely graphical test that decides, for any two variable sets and any conditioning set, whether the graph forces them independent. Information flows along paths; chains and forks are pipes that conditioning <em>blocks</em>, colliders are valves that conditioning <em>opens</em>. Master this one rule and every independence claim in the chapter becomes mechanical.</p>
+ <div class="box def"><span class="label">Definition</span> A path between $X$ and $Y$ is <em>blocked</em> by conditioning set $Z$ iff it contains (i) a chain $\cdot \to m \to \cdot$ or fork $\cdot \leftarrow m \to \cdot$ with $m \in Z$, or (ii) a collider $\cdot \to m \leftarrow \cdot$ with $m \notin Z$ and no descendant of $m$ in $Z$. $X$ and $Y$ are <em>d-separated</em> by $Z$ iff every path between them is blocked; then $X \perp Y \mid Z$ in every distribution Markov-compatible with the graph.</div>
+ <div class="box ex"><span class="label">Worked example</span> Graph: $A \to B \to C$, $B \leftarrow D \to E$, and $C \to F \leftarrow E$. Is $A \perp E$? Paths from A to E: $A\to B \leftarrow D \to E$ (collider at B, unconditioned: blocked) and $A \to B \to C \to F \leftarrow E$ (collider at F: blocked). All blocked → $A \perp E$. ✓ Now condition on $F$: the second path's collider opens; the rest of that path ($A\to B\to C\to F \leftarrow E$) has no other blocker → unblocked → $A \not\perp E \mid F$. Conditioning <em>created</em> dependence between two marginally independent variables.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A fixed 6-node DAG. Toggle which nodes you condition on (buttons) and pick a pair to test: paths light green when open, red-dashed when blocked; the verdict updates. Try to open the collider path and then re-block it.</p>
+  <canvas id="cv-dsep"></canvas>
+  <div class="ctl">
+   <span style="font-family:'JetBrains Mono',monospace;font-size:13px">condition on:</span>
+   <button class="btn" id="ds-B">B</button>
+   <button class="btn" id="ds-D">D</button>
+   <button class="btn" id="ds-C">C</button>
+   <button class="btn" id="ds-F">F</button>
+  </div>
+  <div class="out" id="ds-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In $X \to M \to Y$: is $X \perp Y$? Is $X \perp Y \mid M$?<details class="sol"><summary>Solution</summary><div>Not marginally (the chain is open); yes given $M$ (chain node conditioned → blocked).</div></details></li>
+  <li><span class="lvl m">MED</span> In $X \to C \leftarrow Y$, with $C \to D$: is $X \perp Y \mid D$?<details class="sol"><summary>Solution</summary><div>No. $D$ is a <em>descendant of the collider</em> $C$; conditioning on it partially opens the collider (rule (ii): blocked only if neither $m$ nor its descendants are in $Z$). Intuition: $D$ carries information about $C$, and knowing the common effect couples the causes. </div></details></li>
+  <li><span class="lvl h">HARD</span> M-bias: graph $X \leftarrow U_1 \to M \leftarrow U_2 \to Y$ with $U_1, U_2$ unobserved, plus the causal edge $X \to Y$. Show that adjusting for the observed pre-treatment variable $M$ <em>introduces</em> bias into estimating $X \to Y$.<details class="sol"><summary>Solution</summary><div>Without conditioning: the path $X \leftarrow U_1 \to M \leftarrow U_2 \to Y$ is blocked at the collider $M$; the only open $X$–$Y$ connection is the causal edge, so the crude association is unbiased (here). Conditioning on $M$ opens the collider, unblocking the path $X \leftarrow U_1 \to M \leftarrow U_2 \to Y$ — a spurious channel that contaminates the estimate. Moral: "adjust for every pre-treatment covariate you have" is wrong; adjustment validity is a property of the graph (backdoor criterion, soon), not of measurement timing. ∎</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">Conditioning on a collider node does what to the path through it?</div><button class="opt">Blocks it</button><button class="opt">Opens it</button><button class="opt">Nothing — colliders don't transmit</button><div class="why" hidden>Colliders block by default and open when conditioned on (or when a descendant is) — the reverse of chains and forks. This asymmetry is the entire subtlety of d-separation.</div></div>
+</section>
+
+<section class="topic" id="structural-causal-models">
+ <h2>Structural causal models</h2>
+ <p>Under every causal DAG lives a machine: each variable is computed from its parents and some private noise by a fixed mechanism. An SCM is that machine written down. It generates the observational distribution, but it contains strictly more — because you can reach in, replace a mechanism, and ask what the machine does then. One object, three regimes: seeing, doing, imagining.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>SCM</em> $\mathcal M = (U, V, F, P(U))$: exogenous noises $U$ with distribution $P(U)$, endogenous variables $V$, and assignments $F = \{f_i\}$ with $$X_i := f_i(\text{pa}_i, U_i).$$ The induced graph draws pa$_i \to X_i$. $\mathcal M$ entails: (1) the observational distribution (run the machine); (2) interventional distributions (replace assignments — next topics); (3) counterfactuals (infer $U$ from evidence, then rerun modified). These form Pearl's three-rung ladder: association, intervention, counterfactual.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathcal M$: $Z := U_Z$ with $U_Z \sim$ Bern(0.5) (rain); $X := Z \lor U_X$, $U_X \sim$ Bern(0.3) (sprinkler timer) — wet sidewalk... let $X$ = sprinkler on, $W := \max(Z, X)$ (wet). Run it: $P(W{=}1) = 1 - P(Z{=}0)P(X{=}0\mid Z{=}0) = 1 - 0.5\cdot0.7 = 0.65$. The same machine will shortly answer $P(W \mid do(X{=}0))$ and "would the sidewalk be dry had the sprinkler been off, given that it was on and it didn't rain?" — questions the joint distribution alone cannot pose.</div>
+ <div class="box link"><span class="label">Where this goes</span> The three-rung ladder is the organizing skeleton for counterfactual reasoning in Ch 30, for world models that support "what if I act differently" rollouts in Ch 29, and for the debate about what next-token predictors can and cannot infer (rung 1 data, rung 2 questions).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the four components of an SCM, and which one makes it more than a Bayesian network?<details class="sol"><summary>Solution</summary><div>Exogenous $U$ and $P(U)$, endogenous $V$, and assignments $F$. The assignments — deterministic <em>mechanisms</em>, not conditional probabilities — are the extra content: they specify what changes under intervention, which a BN's factorization leaves open.</div></details></li>
+  <li><span class="lvl m">MED</span> Two SCMs: (a) $X := U$, $Y := X \oplus U_Y$ (noisy copy); (b) $Y := U$, $X := Y \oplus U_X$ — with noise rates tuned so both give the same joint over $(X, Y)$. How would you tell them apart?<details class="sol"><summary>Solution</summary><div>Intervene. Under (a), $do(Y{=}1)$ leaves $X$'s distribution unchanged (X doesn't listen to Y); under (b), $do(X{=}1)$ leaves $Y$ unchanged. Observationally identical, interventionally opposite — the definition of why causal direction is extra structure. (With assumptions like additive non-Gaussian noise, asymmetries in the joint can also reveal direction — see causal discovery.)</div></details></li>
+  <li><span class="lvl h">HARD</span> "Independence of mechanisms": state the principle and explain what it buys for transfer/robustness of learned models.<details class="sol"><summary>Solution</summary><div>Principle: the mechanisms $f_i$ (and noise distributions) are autonomous — modular, mutually unrelated pieces that nature can change one at a time; $P(\text{cause})$ carries no information about $P(\text{effect}\mid\text{cause})$. Payoff: under distribution shift, typically only a few mechanisms change (a new spam-writing strategy changes $P(\text{text}\mid\text{spam})$, not $P(\text{spam})$... or vice versa). A model factored along causal lines can be repaired by relearning one module from little data, while a model of the anticausal factorization ($P(\text{cause}\mid\text{effect})$) shifts everywhere at once. This is the causal argument for why prediction direction matters in semi-supervised and transfer learning (Schölkopf et al.), and a design principle for world models.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="structural-equations">
+ <h2>Structural equations</h2>
+ <p>The individual assignment $X_i := f_i(\text{pa}_i, U_i)$ deserves its own spotlight: the ":=" is not algebra's "=". It is an asymmetric recipe — the right side <em>produces</em> the left — and you may not move terms across it. Linear structural equations are the classic special case where effects are sums of weighted causes, and path-tracing rules compute total effects by multiplying edge weights.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>linear SCM</em> (linear SEM): $X_i := \sum_{j \in \text{pa}_i} \beta_{ij} X_j + U_i$, noises independent. <em>Wright's path rule</em>: the total causal effect of $X$ on $Y$ = sum over all directed paths $X \to \cdots \to Y$ of the product of edge coefficients along each path. The covariance additionally includes contributions from paths through common causes.</div>
+ <div class="box ex"><span class="label">Worked example</span> $Z := U_Z$; $X := 2Z + U_X$; $M := 3X + U_M$; $Y := 4M + 1\cdot Z + U_Y$ (all noises independent, unit variance... variances irrelevant to effects). Total effect of $X$ on $Y$: only directed path is $X \to M \to Y$: $3 \times 4 = 12$. So $do(X{:=}x)$ shifts $\mathbb E[Y]$ by $12$ per unit. The regression coefficient of $Y$ on $X$ alone would <em>not</em> be 12: the backdoor path $X \leftarrow Z \to Y$ adds a bias term through their covariance — regression sees paths of all kinds; causation counts only the directed ones.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Because ":=" is directional, "solving" a structural equation for a cause — rewriting $Y := \beta X + U$ as $X = (Y - U)/\beta$ — produces an algebraically valid but causally meaningless equation: it does not describe what setting $Y$ would do to $X$ (which is: nothing). Structural equations are programs, not constraints.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In $X := 2Z + U_X$, $Y := 3X + Z + U_Y$: total effect of $Z$ on $Y$?<details class="sol"><summary>Solution</summary><div>Paths: $Z \to Y$ (weight 1) and $Z \to X \to Y$ ($2 \times 3 = 6$): total $= 7$.</div></details></li>
+  <li><span class="lvl m">MED</span> Same model: compute $\mathrm{Cov}(X, Y)$ with all noises unit-variance, $Z$ unit-variance exogenous, and compare with the causal effect 3.<details class="sol"><summary>Solution</summary><div>$\mathrm{Var}(Z) = 1$; $X = 2Z + U_X$; $Y = 3X + Z + U_Y = 6Z + 3U_X + Z + U_Y = 7Z + 3U_X + U_Y$. $\mathrm{Cov}(X, Y) = \mathrm{Cov}(2Z + U_X,\ 7Z + 3U_X + U_Y) = 14 + 3 = 17$. $\mathrm{Var}(X) = 4 + 1 = 5$. Regression slope $= 17/5 = 3.4 \ne 3$: the extra 0.4 is confounding through $Z$ ($X\leftarrow Z \to Y$). Adjusting for $Z$ (multiple regression of $Y$ on $X, Z$) recovers exactly 3.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive: in a linear SCM, the multiple-regression coefficient of $Y$ on $X$ controlling for a valid backdoor set $Z$ equals the total causal effect.<details class="sol"><summary>Solution</summary><div>Write $Y = \tau X + \boldsymbol\gamma^\top \mathbf Z + \varepsilon$ where $\tau$ = sum of directed-path products (collapse mediators into the reduced form) and $\varepsilon$ collects noises along those paths, independent of $X$ <em>given</em> $\mathbf Z$ when $\mathbf Z$ blocks all backdoor paths (any residual correlation between $X$ and $\varepsilon$ would constitute an unblocked non-directed path). OLS on $(X, \mathbf Z)$ identifies the coefficient of $X$ as $\tau$ precisely when $\mathrm{Cov}(X, \varepsilon \mid \mathbf Z) = 0$ — the exogeneity condition that backdoor blocking guarantees. Hence adjusted regression = causal effect in linear systems; every classical "control for" is a special case of the backdoor criterion. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="interventions">
+ <h2>Interventions</h2>
+ <p>To intervene is to reach into the machine and <em>set</em> a variable, severing it from its usual causes: the gardener turns the sprinkler on regardless of season. Graphically, delete the arrows into the intervened node; algebraically, replace its equation with a constant. The distribution that results, written with Pearl's $do(\cdot)$, is a different object from conditioning — and the difference is the entire subject.</p>
+ <div class="box def"><span class="label">Definition</span> The intervention $do(X = x)$ transforms SCM $\mathcal M$ into $\mathcal M_x$: replace the assignment for $X$ by $X := x$ (graph surgery: remove all edges into $X$). Then $P(Y \mid do(X = x)) \equiv P_{\mathcal M_x}(Y)$. <em>Truncated factorization</em>: for Markovian models, $$P(\mathbf v \mid do(X = x)) = \prod_{i : V_i \ne X} P(v_i \mid \text{pa}_i)\ \Big|_{X = x}.$$ Conditioning filters the population; intervening changes the mechanism.</div>
+ <div class="box ex"><span class="label">Worked example</span> Sprinkler SCM: Season (dry season w.p. 0.6 makes sprinkler more likely), $P(K{=}1\mid \text{dry}) = 0.8$, $P(K{=}1\mid\text{wet season}) = 0.1$. <em>Observing</em> the sprinkler on: $P(\text{dry} \mid K{=}1) = \frac{0.6\cdot0.8}{0.6\cdot0.8 + 0.4\cdot0.1} = \frac{0.48}{0.52} \approx 0.92$ — the sprinkler is evidence about the season. <em>Intervening</em>, $do(K{=}1)$: the surgery removes Season → Sprinkler, so $P(\text{dry} \mid do(K{=}1)) = 0.6$ — flipping the switch teaches you nothing about the weather and does not change it. Downstream (Wet), both regimes see effects; upstream, only observation does.</div>
+ <div class="box think"><span class="label">Think first</span> The barometer falls before storms. Compare $P(\text{storm} \mid \text{barometer low})$ and $P(\text{storm} \mid do(\text{barometer low}))$ — and say which one an agent optimizing "avoid storms" must use when deciding whether to smash the barometer.<details class="sol"><summary>Reveal</summary><div>$P(\text{storm}\mid\text{low})$ is high (the reading is caused by pressure, which causes storms); $P(\text{storm}\mid do(\text{low}))$ = the base rate — forcing the needle down severs it from pressure and does nothing to the sky. An agent choosing <em>actions</em> must evaluate them with $do$: smashing or rigging the barometer changes observations, not weather. Agents that optimize predicted observations rather than intervened outcomes are wireheading-prone — the RL reward-hacking discussion of Ch 25, in causal dress.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Apply graph surgery for $do(W{=}1)$ (wet) in the sprinkler DAG: which edges are removed, and is Slippery affected?<details class="sol"><summary>Solution</summary><div>Remove Sprinkler → Wet and Rain → Wet. Slippery is downstream (Wet → Slippery survives): $P(L \mid do(W{=}1)) = P(L \mid W{=}1)$ here... it is affected, computed from $P(l\mid w{=}1)$. Sprinkler, Rain, Season keep their marginal distributions.</div></details></li>
+  <li><span class="lvl m">MED</span> Using the truncated factorization on the chain $X \to Y \to Z$: compute $P(z \mid do(y))$ and show it equals $P(z \mid y)$, but $P(x \mid do(y)) = P(x) \ne P(x\mid y)$ in general.<details class="sol"><summary>Solution</summary><div>$P(x, z \mid do(y)) = P(x)\,P(z\mid y)$ (drop the factor $P(y\mid x)$, fix $y$). Marginalize: $P(z\mid do(y)) = P(z\mid y)$ ✓ (no confounding of $Y \to Z$ here), and $P(x \mid do(y)) = P(x)$, while conditioning gives $P(x\mid y) \propto P(x)P(y\mid x)$, which varies with $y$. Effects flow downstream of a $do$; inference flows both ways for an observation.</div></details></li>
+  <li><span class="lvl h">HARD</span> Soft interventions: instead of fixing $X$, we change its mechanism to a new $\tilde f_X$ (e.g. a subsidy shifts prices without fixing them). Formalize, and explain why RCT "assignment with noncompliance" is a soft intervention on treatment.<details class="sol"><summary>Solution</summary><div>A soft (mechanism/parametric) intervention replaces $f_X(\text{pa}_X, U_X)$ by $\tilde f_X(\widetilde{\text{pa}}_X, \tilde U_X)$, keeping or altering parents; graph surgery replaces $X$'s incoming edges by the new parent set rather than deleting them. All identification machinery generalizes with $do$ replaced by the regime index. In an RCT with noncompliance, the experimenter sets the <em>assignment</em> $R$ (hard intervention on $R$), but treatment taken $X := f_X(R, \text{preferences } U)$ still listens to the patient: the trial soft-intervenes on $X$ via a new exogenous parent $R$. That's precisely the instrumental-variable structure (later topic): randomization gives you a clean handle, not the variable itself.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="confounding">
+ <h2>Confounding</h2>
+ <p>A confounder is a common cause of treatment and outcome: it makes the treated and untreated groups different <em>before</em> the treatment does anything, so the raw comparison mixes the effect you want with the difference you started with. Confounding is the reason $P(y\mid x) \ne P(y\mid do(x))$, the reason we randomize, and the reason "we controlled for everything" needs a graph to mean anything.</p>
+ <div class="box def"><span class="label">Definition</span> $X$ and $Y$ are <em>confounded</em> if $P(y \mid do(x)) \ne P(y \mid x)$ — equivalently (given a causal DAG), there is an unblocked <em>backdoor path</em> from $X$ to $Y$: a path beginning with an arrow <em>into</em> $X$. A variable set $Z$ <em>deconfounds</em> the pair if adjusting for it makes the interventional and adjusted-observational quantities coincide (backdoor criterion, two topics on).</div>
+ <div class="box ex"><span class="label">Worked example</span> Exercise ($X$) and heart disease ($Y$), confounded by age ($A$): older people exercise less and have more disease. Numbers: $P(A{=}\text{old}) = 0.5$; exercise rates 0.2 (old), 0.8 (young); disease rates: old — 0.3 (exercisers) vs 0.4 (not); young — 0.1 vs 0.2. True effect (within every age group): exercise cuts risk by 0.1. Crude comparison: $P(Y\mid X{=}1) = \frac{0.5\cdot0.2\cdot0.3 + 0.5\cdot0.8\cdot0.1}{0.5\cdot0.2 + 0.5\cdot0.8} = \frac{0.03 + 0.04}{0.5} = 0.14$; $P(Y\mid X{=}0) = \frac{0.5\cdot0.8\cdot0.4 + 0.5\cdot0.2\cdot0.2}{0.5} = \frac{0.16+0.02}{0.5} = 0.36$. Crude difference $-0.22$: exercise looks more than twice as protective as it is, because exercisers skew young. Adjusted: $\sum_a P(a)[P(y\mid x{=}1,a) - P(y\mid x{=}0,a)] = 0.5(-0.1) + 0.5(-0.1) = -0.1$ ✓.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Simulated study with a confounder $Z \to X$, $Z \to Y$ and true effect $X \to Y$ fixed at +1. Slide the confounder's strengths and watch the naive regression slope drift away from 1 while the $Z$-adjusted estimate stays put.</p>
+  <canvas id="cv-conf"></canvas>
+  <div class="ctl">
+   <label>Z → X strength <input type="range" id="cf-zx" min="-2" max="2" step="0.1" value="1"></label>
+   <label>Z → Y strength <input type="range" id="cf-zy" min="-2" max="2" step="0.1" value="1"></label>
+   <button class="btn" id="cf-run">Resample</button>
+  </div>
+  <div class="out" id="cf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Draw the confounding triangle for "coffee → cancer, confounded by smoking," and name the backdoor path.<details class="sol"><summary>Solution</summary><div>Smoking → Coffee, Smoking → Cancer, (possible) Coffee → Cancer. Backdoor path: Coffee ← Smoking → Cancer.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is a <em>mediator</em> ($X \to M \to Y$) not a confounder, and what happens if you adjust for it anyway?<details class="sol"><summary>Solution</summary><div>A mediator lies <em>on</em> the causal path, not on a backdoor path (no arrow into $X$). Adjusting for it blocks the very effect under study: you estimate only the direct effect not through $M$ (often ≈ 0), concluding "no effect" for a treatment that works entirely through $M$. Adjustment sets must exclude descendants of $X$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Unmeasured confounding can't be adjusted away — but it can be <em>bounded</em>. A study finds risk ratio RR = 2.5 for $X$ on $Y$. State the E-value idea and compute it: how strong would an unmeasured confounder have to be to explain the association away?<details class="sol"><summary>Solution</summary><div>The E-value is the minimum strength of association (on the risk-ratio scale) that an unmeasured confounder would need with <em>both</em> treatment and outcome, given the measured covariates, to fully explain the observed RR: $E = \text{RR} + \sqrt{\text{RR}(\text{RR}-1)}$. Here $E = 2.5 + \sqrt{2.5 \times 1.5} = 2.5 + \sqrt{3.75} \approx 2.5 + 1.94 = 4.44$. A confounder raising both treatment odds and outcome risk by factor 4.4 is a big fish to have missed; smaller confounders can only shrink, not erase, the effect. Sensitivity analysis converts "no unmeasured confounding" from an article of faith into a quantified vulnerability. </div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="causal-identification">
+ <h2>Causal identification</h2>
+ <p>Identification asks: can this causal quantity be computed, even in principle, from the distributions we can observe — given the assumed graph? It separates "we need better estimators" from "no amount of data can answer this." The workflow of causal inference is: draw the graph, check identifiability, derive the estimand, then — and only then — worry about statistics.</p>
+ <div class="box def"><span class="label">Definition</span> A query $Q$ (e.g. $P(y \mid do(x))$) is <em>identifiable</em> from observational data under graph $G$ if every SCM compatible with $G$ that induces the observed $P(\mathbf v)$ yields the same value of $Q$. Then $Q$ equals some functional of $P(\mathbf v)$ — the <em>estimand</em>. Complete algorithms exist (the ID algorithm; do-calculus is complete): identifiability is decidable from the graph alone.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three graphs, one query $P(y\mid do(x))$. (a) $X \to Y$ with no other structure: identifiable, estimand $P(y\mid x)$. (b) $X \to Y$ plus observed $Z$ with $X \leftarrow Z \to Y$: identifiable via adjustment, $\sum_z P(z)P(y\mid x, z)$. (c) $X \to Y$ plus a <em>hidden</em> common cause $U$: not identifiable — two different SCMs (strong effect + weak confounding vs zero effect + strong confounding) produce identical observational data but different $P(y\mid do(x))$. Same query, three verdicts, decided by the picture.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Identifiability is <em>relative to the graph</em>: it certifies "if the DAG is right, the data suffice," never that the DAG is right. The graph encodes untestable assumptions (especially absent edges and absent hidden confounders). Robust practice: report the graph, test its testable implications (the implied independencies), and run sensitivity analysis for the rest.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is $P(y \mid do(x))$ trivially identifiable from a randomized experiment on $X$?<details class="sol"><summary>Solution</summary><div>Randomization physically implements $do$: assignment has no incoming edges, so there are no backdoor paths, and the experimental $P(y\mid x)$ <em>is</em> $P(y\mid do(x))$. Identification concerns recovering that same quantity when you only got to watch.</div></details></li>
+  <li><span class="lvl m">MED</span> In graph (c) above (hidden confounder), exhibit the two SCMs that clash.<details class="sol"><summary>Solution</summary><div>Binary everything. SCM₁: $U \sim$ Bern(½), $X := U$, $Y := U$ (pure confounding, zero effect): observationally $X = Y$ always; $P(y{=}1\mid do(x{=}1)) = P(U{=}1) = 0.5$. SCM₂: $X \sim$ Bern(½), $Y := X$ (pure causation): same joint ($X = Y$ always); $P(y{=}1\mid do(x{=}1)) = 1$. Identical data, causal answers 0.5 vs 1 → unidentifiable. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Give a graph with a hidden confounder where the effect is nonetheless identifiable, and name the device.<details class="sol"><summary>Solution</summary><div>$X \to M \to Y$, hidden $U$ with $X \leftarrow U \to Y$, and crucially no edge $U \to M$ and no direct $X \to Y$. The effect of $X$ on $Y$ is identifiable by the <em>front-door</em> formula (topic below): the mediator $M$ is a clean relay — $X \to M$ is unconfounded, and $M \to Y$ is deconfounded by adjusting for $X$. Identification is subtler than "no hidden confounders anywhere"; it is about whether the confounding can be routed around.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="backdoor-criterion">
+ <h2>Backdoor criterion</h2>
+ <p>The workhorse of identification: find a set of observed variables that blocks every backdoor path from treatment to outcome without touching the causal paths, adjust for it, done. The criterion turns the folklore of "controlling for covariates" into a checkable graphical condition — and, just as importantly, tells you what <em>not</em> to control for.</p>
+ <div class="box def"><span class="label">Definition</span> $Z$ satisfies the <em>backdoor criterion</em> relative to $(X, Y)$ iff (i) no node in $Z$ is a descendant of $X$, and (ii) $Z$ blocks (d-separates) every path from $X$ to $Y$ that starts with an arrow into $X$. Then the effect is identified by the <em>adjustment formula</em> $$P(y \mid do(x)) = \sum_z P(z)\; P(y \mid x, z).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Kidney stones, at last with full rigor: Size → Treatment, Size → Recovery, Treatment → Recovery. Backdoor path: Treatment ← Size → Recovery; $Z = \{\text{Size}\}$ blocks it and contains no descendant of Treatment ✓. Adjustment: $P(\text{rec} \mid do(A)) = P(\text{small})P(\text{rec}\mid A, \text{small}) + P(\text{large})P(\text{rec}\mid A, \text{large})$. With $P(\text{small}) = 357/700 = 0.51$: $do(A)$: $0.51(0.93) + 0.49(0.73) = 0.832$; $do(B)$: $0.51(0.87) + 0.49(0.69) = 0.782$. A wins causally, 83.2% vs 78.2% — the stratified verdict, now derived rather than intuited.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Condition (i) is not decoration: adjusting for a descendant of $X$ — a mediator or a collider downstream — blocks causal flow or opens selection paths. And the criterion is <em>sufficient</em>, not necessary: some effects are identifiable with no valid backdoor set at all (front door, IV). "No valid adjustment set" ≠ "unidentifiable."</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Graph: $X \leftarrow Z \to Y$, $X \to Y$. Does $Z = \{Z\}$ satisfy the backdoor criterion? Write the estimand.<details class="sol"><summary>Solution</summary><div>Yes: $Z$ is not a descendant of $X$ and blocks the only backdoor path. $P(y\mid do(x)) = \sum_z P(z)P(y\mid x,z)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Graph: $X \to Y$; $X \leftarrow A \to B \leftarrow C \to Y$ ($A, B, C$ observed). Is $\emptyset$ a valid backdoor set? Is $\{B\}$? Is $\{B, C\}$?<details class="sol"><summary>Solution</summary><div>The backdoor path $X \leftarrow A \to B \leftarrow C \to Y$ has a collider at $B$: blocked by default → $\emptyset$ is valid (adjust for nothing!). $\{B\}$ opens the collider → path unblocked → invalid. $\{B, C\}$: opening at $B$ but re-blocking at the fork $C$ → valid again. Moral: more covariates is not safer; the empty set can beat a big one.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the adjustment formula from the truncated factorization, for the triangle $Z \to X$, $Z \to Y$, $X \to Y$.<details class="sol"><summary>Solution</summary><div>Observational: $P(z, x, y) = P(z)P(x\mid z)P(y\mid x, z)$. Under $do(X{=}x)$, drop $P(x\mid z)$: $P(z, y \mid do(x)) = P(z)\,P(y\mid x, z)$. Marginalize over $z$: $P(y\mid do(x)) = \sum_z P(z)P(y\mid x, z)$. ∎ Note what changed versus conditioning: $P(y\mid x) = \sum_z P(z\mid x)P(y\mid x,z)$ weights strata by $P(z\mid x)$ — the treated population's mix — while the do-expression weights by $P(z)$ — the whole population's. Confounding <em>is</em> that difference in weights, which is also why Simpson's reversal evaporates after adjustment.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="frontdoor-criterion">
+ <h2>Frontdoor criterion</h2>
+ <p>Sometimes every backdoor is unblockable — the confounder is unmeasured — yet identification survives through the front: if the treatment works entirely through an observed mediator that the confounder doesn't touch, you can estimate the two clean hops ($X\to M$, $M \to Y$) and chain them. It is the most surprising formula in elementary causal inference: measuring the <em>mechanism</em> substitutes for measuring the confounder.</p>
+ <div class="box def"><span class="label">Definition</span> $M$ satisfies the <em>front-door criterion</em> for $(X, Y)$ iff (i) $M$ intercepts all directed paths from $X$ to $Y$; (ii) there is no unblocked backdoor path from $X$ to $M$; (iii) all backdoor paths from $M$ to $Y$ are blocked by $X$. Then $$P(y \mid do(x)) = \sum_m P(m \mid x) \sum_{x'} P(x')\, P(y \mid m, x').$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Smoking ($X$) → Tar ($M$) → Cancer ($Y$), hidden Genotype $U$ with $X \leftarrow U \to Y$ (Fisher's old objection: maybe a gene causes both craving and cancer). Toy numbers: $P(m{=}1\mid x{=}1) = 0.95$, $P(m{=}1\mid x{=}0) = 0.05$; $P(x{=}1) = 0.5$; $P(y{=}1\mid m, x')$: $(m{=}1, x'{=}1)$: 0.30, $(1,0)$: 0.20, $(0,1)$: 0.15, $(0,0)$: 0.05. Inner sums: for $m{=}1$: $0.5(0.30) + 0.5(0.20) = 0.25$; for $m{=}0$: $0.5(0.15)+0.5(0.05) = 0.10$. Then $P(y\mid do(x{=}1)) = 0.95(0.25) + 0.05(0.10) = 0.2425$; $P(y\mid do(x{=}0)) = 0.05(0.25) + 0.95(0.10) = 0.1075$. Causal risk difference ≈ 0.135 — computed <em>through</em> an unmeasured genetic confounder, using only observed quantities.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Condition (i) — the mediator captures <em>all</em> of the effect — is a strong scientific claim (any direct $X \to Y$ path bypassing $M$ breaks the formula), and condition (ii) requires the hidden confounder to spare the mediator. Front-door is a scalpel, not a default: its power comes from mechanism knowledge you must actually have.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which of the three front-door conditions would fail if the genotype also caused tar deposits directly?<details class="sol"><summary>Solution</summary><div>(ii): the backdoor path $X \leftarrow U \to M$ would be unblocked, contaminating the $X \to M$ hop.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the second hop average over $x'$ (the formula's $\sum_{x'} P(x')P(y\mid m, x')$) instead of just using $P(y \mid m)$?<details class="sol"><summary>Solution</summary><div>$M \to Y$ is confounded: the path $M \leftarrow X \leftarrow U \to Y$ is open if you ignore $X$. Conditioning on $X$ blocks it (condition (iii)), so the effect of $M$ on $Y$ needs its own backdoor adjustment with adjustment set $\{X\}$ — which is exactly what the inner sum is. Front-door = two nested backdoor adjustments chained through the mediator.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the front-door formula for the smoking graph by combining the two identified hops.<details class="sol"><summary>Solution</summary><div>Hop 1: no backdoor from $X$ to $M$ (the path via $U$ requires an edge $U \to M$, absent; the path $X \leftarrow U \to Y \leftarrow M$ has a collider at $Y$): so $P(m\mid do(x)) = P(m\mid x)$. Hop 2: backdoor from $M$ to $Y$ is $M \leftarrow X \leftarrow U \to Y$; $\{X\}$ blocks it and is no descendant of $M$: $P(y\mid do(m)) = \sum_{x'}P(x')P(y\mid m, x')$. Composition: intervening on $X$ influences $Y$ only through $M$ (condition (i)), and once $M$'s value is set, $Y$'s response doesn't depend on how $M$ was produced (no $X\to Y$ direct, $U\not\to M$): $P(y \mid do(x)) = \sum_m P(m \mid do(x))\,P(y\mid do(m))$. Substitute the two identified hops to get the formula. (Fully rigorous versions run the three rules of do-calculus; this is the intuition they formalize.) ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="adjustment-sets">
+ <h2>Adjustment sets</h2>
+ <p>Usually many different covariate sets satisfy the backdoor criterion — and they are not equal. Some are invalid despite looking responsible (colliders, mediators), some are valid but wasteful, and among the valid ones, the choice changes the <em>variance</em> of your estimate even though all converge to the same truth. Choosing adjustment sets is a graph problem with statistical consequences.</p>
+ <div class="box def"><span class="label">Definition</span> $Z$ is a <em>valid adjustment set</em> for $(X, Y)$ if $P(y\mid do(x)) = \sum_z P(z)P(y\mid x,z)$. Graphical characterization (generalized adjustment criterion): $Z$ contains no descendant of any node on a proper causal path from $X$ to $Y$, and $Z$ blocks all non-causal paths from $X$ to $Y$. The <em>O-set</em> heuristic for precision: prefer covariates that predict $Y$ (outcome parents), avoid pure predictors of $X$ (instruments), which inflate variance.</div>
+ <div class="box ex"><span class="label">Worked example</span> Graph: $X \to Y$; confounder $C$ with $X \leftarrow C \to Y$; instrument $I \to X$; outcome-cause $W \to Y$ (independent of the rest). Valid sets include $\{C\}$, $\{C, W\}$, $\{C, I\}$, $\{C, W, I\}$. All unbiased. Precision ranking (linear-Gaussian intuition): adding $W$ shrinks residual outcome variance → tighter estimate; adding $I$ removes treatment variation without touching confounding → wider estimate. Best practical choice: $\{C, W\}$; worst valid: $\{C, I\}$. Same truth, different error bars.</div>
+ <div class="box think"><span class="label">Think first</span> A dataset has 300 covariates. Why is "throw them all into the regression" not a conservative default, even for prediction-savvy practitioners?<details class="sol"><summary>Reveal</summary><div>Three failure modes: (1) some covariates are mediators or downstream of treatment — adjusting blocks the effect; (2) some are colliders (or M-bias nodes) — adjusting opens spurious paths; (3) instruments amplify bias: if any unmeasured confounding remains, conditioning on strong treatment-predictors is known to <em>magnify</em> the residual bias (Z-bias), and always inflates variance. Adjustment is causal surgery; doing it 300 times blindly is 300 chances to cut the wrong vessel.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the worked example's graph, why is $\{I\}$ alone invalid?<details class="sol"><summary>Solution</summary><div>The backdoor path $X \leftarrow C \to Y$ remains unblocked ($I$ doesn't lie on it). Validity requires blocking <em>every</em> backdoor path.</div></details></li>
+  <li><span class="lvl m">MED</span> Two valid sets give estimates $-0.10 \pm 0.02$ and $-0.10 \pm 0.06$. What does the agreement tell you, and the widths?<details class="sol"><summary>Solution</summary><div>Agreement of estimates across different valid adjustment sets is a (weak) consistency check of the assumed graph — divergence would flag a misspecified DAG or unmeasured confounding, since all valid sets must identify the same quantity. The widths reflect the precision ordering: the tighter set likely contains outcome predictors, the looser one treatment predictors. Report the tight one, but the comparison itself was the valuable diagnostic.</div></details></li>
+  <li><span class="lvl h">HARD</span> Propensity scores: define $e(z) = P(X{=}1\mid Z{=}z)$ for a valid backdoor set $Z$ and prove that adjusting for the scalar $e(Z)$ suffices.<details class="sol"><summary>Solution</summary><div>Claim: $X \perp Z \mid e(Z)$. Proof: $P(X{=}1 \mid Z, e(Z)) = e(Z)$, a function of $e(Z)$ alone, so conditioning further on $Z$ adds nothing about $X$: within a stratum of the score, treatment is as-if random w.r.t. $Z$. Then potential outcomes (or the do-distribution): given $Z$ suffices for ignorability, and $X \perp Z \mid e(Z)$ implies ignorability given $e(Z)$ (Rosenbaum &amp; Rubin): $\sum_z$-adjustment collapses to a one-dimensional adjustment $\int P(e)P(y\mid x, e)\,de$. The 300-covariate curse becomes a scalar matching/weighting problem — at the price that $e$ must itself be estimated, and misestimating it re-imports bias (hence doubly-robust estimators, which stay consistent if <em>either</em> the score or the outcome model is right). ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="do-calculus">
+ <h2>Do-calculus</h2>
+ <p>Three rewrite rules that transform expressions containing $do(\cdot)$ — inserting or deleting observations and interventions — each licensed by a d-separation check in a surgically modified graph. Backdoor and front-door are two short derivations in this system; the deep theorem is completeness: if a causal effect is identifiable at all, some sequence of these three rules derives it.</p>
+ <div class="box def"><span class="label">Definition</span> Notation: $G_{\overline X}$ = graph with edges <em>into</em> $X$ deleted; $G_{\underline X}$ = edges <em>out of</em> $X$ deleted. For disjoint $X, Y, Z, W$:
+ <br>Rule 1 (insert/delete observation): $P(y\mid do(x), z, w) = P(y \mid do(x), w)$ if $Y \perp Z \mid X, W$ in $G_{\overline X}$.
+ <br>Rule 2 (exchange action/observation): $P(y \mid do(x), do(z), w) = P(y \mid do(x), z, w)$ if $Y \perp Z \mid X, W$ in $G_{\overline X \underline Z}$.
+ <br>Rule 3 (insert/delete action): $P(y\mid do(x), do(z), w) = P(y\mid do(x), w)$ if $Y \perp Z \mid X, W$ in $G_{\overline X, \overline{Z(W)}}$, where $Z(W)$ = nodes of $Z$ not ancestors of $W$ in $G_{\overline X}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Deriving backdoor for the triangle $Z \to X$, $Z \to Y$, $X \to Y$: $$P(y\mid do(x)) = \sum_z P(z \mid do(x))\,P(y \mid do(x), z).$$ First factor: Rule 3 — is $Z \perp X$ in $G_{\overline{X}}$? Deleting edges into $X$ leaves $Z \to Y \leftarrow X$: collider blocks, yes → $P(z\mid do(x)) = P(z)$. Second factor: Rule 2 — is $Y \perp X \mid Z$ in $G_{\underline X}$? Deleting $X$'s outgoing edge leaves paths $X \leftarrow Z \to Y$ only, blocked by $Z$: yes → $P(y\mid do(x), z) = P(y \mid x, z)$. Result: $\sum_z P(z)P(y\mid x,z)$ — the adjustment formula, now a two-line proof.</div>
+ <div class="box link"><span class="label">Where this goes</span> Do-calculus + graphs is the identification engine behind transportability (external validity), missing-data corrections, and surrogate-experiment combining; algorithmically it is the ID algorithm, which either outputs an estimand or a certificate of non-identifiability.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which rule directly justifies "in an RCT, $P(y\mid do(x)) = P(y\mid x)$" when $X$ has no incoming edges?<details class="sol"><summary>Solution</summary><div>Rule 2 (with empty $X$-set, exchanging $do(x)$ for observing $x$): need $Y \perp X$ in $G_{\underline X}$; cutting $X$'s outgoing edges leaves no $X$–$Y$ path at all when $X$ has no parents. Doing = seeing.</div></details></li>
+  <li><span class="lvl m">MED</span> Use Rule 3 to show $P(x \mid do(y)) = P(x)$ in the chain $X \to Y$.<details class="sol"><summary>Solution</summary><div>Check $X \perp Y$ in $G_{\overline Y}$: deleting edges into $Y$ removes $X \to Y$, disconnecting them → independent → the action on $Y$ can be deleted: $P(x\mid do(y)) = P(x)$. Interventions don't propagate upstream, now as a derived theorem rather than an intuition.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch the front-door derivation as a do-calculus program (name the rule used at each step) for $X \to M \to Y$ with hidden $X \leftarrow U \to Y$.<details class="sol"><summary>Solution</summary><div>1. $P(y\mid do(x)) = \sum_m P(m\mid do(x))\,P(y\mid do(x), m)$ (probability axioms). 2. $P(m\mid do(x)) = P(m\mid x)$: Rule 2, since $M \perp X$ in $G_{\underline X}$ (paths from $X$: only via $U \to Y \leftarrow M$, collider). 3. $P(y \mid do(x), m) = P(y\mid do(x), do(m))$: Rule 2 in $G_{\overline X\underline M}$ ($Y \perp M$ there: cutting $M$'s out-edge removes $M\to Y$; remaining path $M \leftarrow X \leftarrow U \to Y$ is cut at $X$'s deleted in-edges... in $G_{\overline X}$, $X$ has no in-edges, path blocked). 4. $P(y\mid do(x), do(m)) = P(y \mid do(m))$: Rule 3 ($Y \perp X$ in $G_{\overline{X}\overline M}$: with both intervened, no path remains from $X$ to $Y$... the path $X \leftarrow U \to Y$ is cut by $\overline X$). 5. Identify $P(y\mid do(m))$ by backdoor with set $\{X\}$ (as derived above). Chain the pieces to get the front-door formula. Each step is a d-separation check a program can perform — identification as symbolic computation. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="randomized-experiments">
+ <h2>Randomized experiments</h2>
+ <p>Randomization is identification by force: assign treatment with a coin, and every backdoor path is severed at birth, measured and unmeasured confounders alike. That is why the RCT is the gold standard — not that it is unbiased in any one trial, but that its bias is zero <em>by design</em> and its uncertainty is quantifiable from the randomization itself. Everything else in this chapter is what to do when you can't have one.</p>
+ <div class="box def"><span class="label">Definition</span> An <em>RCT</em> assigns $X \sim$ (known randomization distribution), independent of all pre-treatment variables: graphically, $X$'s only parent is the coin. Then $P(y\mid do(x)) = P(y\mid x)$ in the experiment, and the average treatment effect $\text{ATE} = \mathbb E[Y\mid X{=}1] - \mathbb E[Y\mid X{=}0]$ is estimated unbiasedly by the difference of group means, with exact inference available via the randomization distribution (Fisher's exact/permutation tests).</div>
+ <div class="box ex"><span class="label">Worked example</span> 200 patients, 100 per arm by coin flip. Recovery: 62/100 treated, 48/100 control. $\widehat{\text{ATE}} = 0.14$. Standard error $\approx \sqrt{\frac{0.62\cdot0.38}{100} + \frac{0.48\cdot0.52}{100}} = \sqrt{0.002356 + 0.002496} = \sqrt{0.004852} \approx 0.0697$. 95% CI: $0.14 \pm 1.96(0.0697) = (0.003, 0.277)$ — significant, barely. Note what we never asked: what the confounders were. Randomization answered for all of them at once, including the ones nobody has discovered yet.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Randomization guarantees exchangeability at assignment; everything after can still break it: noncompliance (analyze by intention-to-treat, or use assignment as an instrument), attrition correlated with outcomes (dropouts reopen selection paths), spillover between units (SUTVA violations), and generalization — the RCT identifies the effect <em>in the trial population</em>, and transporting it elsewhere is a fresh causal problem with its own graph.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can't Simpson's paradox reverse an RCT's verdict (connect to the earlier capstone-style proof)?<details class="sol"><summary>Solution</summary><div>Randomization equalizes the stratum distribution across arms, so the pooled comparison is a same-weights average of stratum comparisons — if treatment wins in every stratum, it wins pooled. Reversal needs unequal weights, i.e. assignment–covariate dependence, which the coin forbids (up to sampling noise).</div></details></li>
+  <li><span class="lvl m">MED</span> A/B test with 5% of users randomly given a new ranking algorithm. Engagement rises 2%. A colleague objects: "power users are overrepresented in the morning, when you launched." Valid objection?<details class="sol"><summary>Solution</summary><div>Only if the randomization was broken. If assignment is per-user random and concurrent (both arms live simultaneously over the same period), time-of-day and power-user composition are balanced across arms in expectation — the objection dissolves. If instead "A this week, B last week" (a before/after switch), it is not an RCT at all: time confounds everything, and the objection is fatal. The design detail, not the sample size, decides.</div></details></li>
+  <li><span class="lvl h">HARD</span> Fisher's exact reasoning: with 6 subjects, 3 randomized to treatment, outcomes (treated: 1, 1, 1; control: 0, 0, 1), test the sharp null "treatment affects nobody" by enumerating the randomization distribution of the treated-minus-control mean.<details class="sol"><summary>Solution</summary><div>Under the sharp null, each subject's outcome is fixed regardless of assignment: outcomes are (1,1,1,0,0,1) — four 1s... count: treated (1,1,1), control (0,0,1): values are three 1s and one 1 among controls → the fixed outcome vector has four 1s and two 0s. Observed statistic: $\bar Y_T - \bar Y_C = 1 - 1/3 = 2/3$. Enumerate all $\binom63 = 20$ assignments: the treated group's sum can be 1, 2, or 3 (it must include at least one of the four 1s: min sum = 4 ones... choose 3 of {1,1,1,1,0,0}: sums 1 (choose one 1, two 0s: $\binom41\binom22 = 4$ ways), 2 ($\binom42\binom21 = 12$), 3 ($\binom43 = 4$)). Statistic for sum $s$: $\frac{s}{3} - \frac{4-s}{3} = \frac{2s-4}{3}$: values $-2/3, 0, 2/3$ with probabilities $4/20, 12/20, 4/20$. P(statistic ≥ observed $2/3$) $= 4/20 = 0.2$. Not significant: with 6 subjects, even a perfect-looking split arises by chance 20% of the time. The test used no model, no Gaussian, nothing but the physical act of randomization — inference from design alone. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="instrumental-variables">
+ <h2>Instrumental variables</h2>
+ <p>When treatment is confounded and you can't block the backdoor, look for a lever that moves the treatment but touches the outcome through nothing else: an instrument. Randomized encouragement, distance to the nearest hospital, a lottery number. The instrument's clean wiggle in $X$ carries a clean wiggle into $Y$, and their ratio recovers the causal effect — even with unmeasured confounding.</p>
+ <div class="box def"><span class="label">Definition</span> $Z$ is an <em>instrument</em> for $X \to Y$ iff (i) relevance: $Z$ affects $X$; (ii) exclusion: $Z$ affects $Y$ only through $X$ (no direct edge, no other path); (iii) exogeneity: $Z$ shares no common cause with $Y$. Linear case (Wald estimator): $$\hat\tau_{IV} = \frac{\mathrm{Cov}(Z, Y)}{\mathrm{Cov}(Z, X)}.$$ Binary heterogeneous case: IV identifies the <em>LATE</em> — the average effect among <em>compliers</em> (those whose $X$ is moved by $Z$), under monotonicity (no defiers).</div>
+ <div class="box ex"><span class="label">Worked example</span> Does military service ($X$) affect earnings ($Y$)? Confounded hopelessly (who enlists differs in everything). Instrument: Vietnam draft lottery number ($Z$, randomly assigned; low numbers → more likely drafted; plausibly affects earnings only via service). Suppose being draft-eligible raises service probability by $\mathbb E[X\mid Z{=}1] - \mathbb E[X\mid Z{=}0] = 0.16$ and changes earnings by $-\$400$. Wald: $\hat\tau = -400 / 0.16 = -\$2500$ — the earnings effect of service <em>for men whose service was determined by the lottery</em> (compliers). Angrist's actual study: this design, roughly this arithmetic.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Simulated data with an unmeasured confounder. Compare three estimators of the true effect (dashed line): naive OLS (biased), OLS adjusting for the <em>unobservable</em> confounder (infeasible oracle), and IV. Slide the instrument's strength — watch IV stay centered but grow wild as the instrument weakens.</p>
+  <canvas id="cv-iv"></canvas>
+  <div class="ctl">
+   <label>instrument strength <input type="range" id="iv-str" min="0.05" max="1.5" step="0.05" value="0.8"></label>
+   <label>confounding strength <input type="range" id="iv-conf" min="0" max="2" step="0.1" value="1"></label>
+   <button class="btn" id="iv-run">Resample ×200</button>
+  </div>
+  <div class="out" id="iv-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Weak instruments: when $\mathrm{Cov}(Z,X)$ is small, the ratio divides by nearly zero — the estimator's variance explodes and small exclusion violations get amplified by $1/\text{strength}$. Rule-of-thumb: first-stage F-statistic &gt; 10; below that, IV can be worse than the bias it was hired to fix. Exclusion itself is untestable from data — it is an argument, not a statistic.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Check the three IV conditions for "distance to college" instrumenting education's effect on wages, and name the shakiest.<details class="sol"><summary>Solution</summary><div>Relevance: plausibly yes (nearby college → more schooling). Exclusion: shaky — distance correlates with urbanicity, which affects wages directly. Exogeneity: shaky for the same reason (family choices of where to live). IV credibility lives and dies on such arguments.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the Wald estimator from the linear SCM $X := \alpha Z + \delta U + e_X$, $Y := \tau X + \beta U + e_Y$, $Z \perp (U, e_X, e_Y)$.<details class="sol"><summary>Solution</summary><div>$\mathrm{Cov}(Z, X) = \alpha \mathrm{Var}(Z)$; $\mathrm{Cov}(Z, Y) = \tau\,\mathrm{Cov}(Z, X) + \beta\,\mathrm{Cov}(Z, U) + \mathrm{Cov}(Z, e_Y) = \tau\alpha\mathrm{Var}(Z)$. Ratio $= \tau$. The confounder $U$ dropped out because $Z$ is independent of it — the instrument's variation is confounding-free by assumption (iii), and reaches $Y$ only via $X$ by (ii). ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Define compliers/always-takers/never-takers/defiers for binary $Z, X$, and prove the LATE theorem: $\frac{\mathbb E[Y\mid Z{=}1] - \mathbb E[Y\mid Z{=}0]}{\mathbb E[X\mid Z{=}1] - \mathbb E[X\mid Z{=}0]} = \mathbb E[Y(1) - Y(0) \mid \text{complier}]$ under monotonicity.<details class="sol"><summary>Solution</summary><div>Types by potential treatment $(X(z{=}0), X(z{=}1))$: never-takers (0,0), compliers (0,1), defiers (1,0), always-takers (1,1); monotonicity bans defiers. Numerator: $\mathbb E[Y\mid Z{=}1] - \mathbb E[Y\mid Z{=}0]$; by exogeneity, type composition is identical across $Z$ arms, and within never/always-takers, treatment (hence outcome, by exclusion) doesn't depend on $Z$ — their contributions cancel. Only compliers change treatment with $Z$, contributing $P(\text{complier})\cdot\mathbb E[Y(1)-Y(0)\mid\text{complier}]$. Denominator: $\mathbb E[X\mid Z{=}1]-\mathbb E[X\mid Z{=}0] = P(\text{complier})$ (again, others cancel). Ratio = complier average effect. ∎ Moral: IV answers a local question — those never moved by any encouragement are simply invisible to it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="counterfactuals">
+ <h2>Counterfactuals</h2>
+ <p>The third rung: not "what happens if we do $X$" in general, but "what <em>would have</em> happened in <em>this very case</em> had $X$ been different, given everything that actually occurred." Counterfactuals require the full SCM — you infer the case's hidden particulars from what happened, then rerun history with one mechanism changed. They underwrite attribution, blame, regret, and personalized decisions.</p>
+ <div class="box def"><span class="label">Definition</span> The counterfactual $Y_{X = x}(u)$ is $Y$'s value in the modified model $\mathcal M_x$ at noise setting $u$. To evaluate $P(Y_{X=x} \mid E)$ given evidence $E$: (1) <em>abduction</em> — update $P(U \mid E)$; (2) <em>action</em> — surgery $do(X = x)$; (3) <em>prediction</em> — compute $Y$'s distribution in the modified model under $P(U\mid E)$. Counterfactuals can differ across SCMs that agree on <em>all</em> observational and interventional distributions.</div>
+ <div class="box ex"><span class="label">Worked example</span> $Y := X \oplus U$ (treatment flips a coin-determined default), $U \sim$ Bern(0.5), $X \sim$ Bern(0.5) independent. Patient took the drug and recovered: $X = 1, Y = 1$. Abduction: $1 = 1 \oplus U \Rightarrow U = 0$. Action: set $X = 0$. Prediction: $Y = 0 \oplus 0 = 0$. Counterfactual verdict: without the drug, this patient would <em>not</em> have recovered — probability 1, for this evidence, in this model. Note an interventional query could never say this: $P(Y{=}1\mid do(X{=}0)) = 0.5$ is about the population; the counterfactual used the patient's own outcome to pin down their $U$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Rung-3 humility: two SCMs with identical rung-1 and rung-2 behavior can disagree on counterfactuals (e.g. $Y := X \oplus U$ vs $Y := $ independent fresh randomness per regime). Since no experiment distinguishes them, counterfactual claims lean on mechanism assumptions that data cannot fully test. State them; don't launder them.</div>
+ <div class="box link"><span class="label">Where this goes</span> Counterfactual reasoning is Ch 30's rung of deliberation ("had I moved the queen instead…"), the core of algorithmic-fairness definitions (counterfactual fairness), and the logic of regret in online learning and of hindsight relabeling in RL.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name the three steps for computing a counterfactual and what each consumes.<details class="sol"><summary>Solution</summary><div>Abduction (evidence → posterior over noises $U$), action (surgery on the queried variable), prediction (run the modified model on the posterior noises). Consumes: full SCM + case evidence.</div></details></li>
+  <li><span class="lvl m">MED</span> In the worked example, compute the counterfactual for a patient who took the drug and did <em>not</em> recover.<details class="sol"><summary>Solution</summary><div>$X = 1, Y = 0$: abduction gives $0 = 1 \oplus U \Rightarrow U = 1$. Action $X = 0$; prediction $Y = 0 \oplus 1 = 1$. This patient would have recovered without the drug — the drug <em>harmed</em> them, deterministically, in this model. Same drug, same population, opposite individual verdicts: counterfactuals personalize where interventions average.</div></details></li>
+  <li><span class="lvl h">HARD</span> Probability of necessity: define $PN = P(Y_{X=0} = 0 \mid X = 1, Y = 1)$ and compute it for: $P(Y{=}1\mid do(X{=}1)) = 0.7$, $P(Y{=}1 \mid do(X{=}0)) = 0.2$, under monotonicity ($X$ never prevents recovery: $Y_{X=1} \ge Y_{X=0}$ for every unit).<details class="sol"><summary>Solution</summary><div>PN asks: among actual treated recoverers, what fraction owed recovery to treatment? Under monotonicity and exogeneity, Pearl's identity: $PN = \frac{P(y\mid do(x{=}1)) - P(y\mid do(x{=}0))}{P(y \mid do(x{=}1))}$... with treatment exogenous, $= \frac{0.7 - 0.2}{0.7} = \frac57 \approx 0.714$. About 71% of treated recoveries were <em>caused</em> by treatment; 29% would have happened anyway (their $Y_{X=0}$ was already 1). This is the quantity courts need ("but-for causation") and epidemiology's attributable fraction — computable only by climbing to rung 3, bounded (not point-identified) when monotonicity fails. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="potential-outcomes">
+ <h2>Potential outcomes</h2>
+ <p>The statisticians' formulation of the same subject: every unit carries a value $Y(1)$ — its outcome if treated — and $Y(0)$ — if not. Treatment reveals one and forever hides the other; causal inference is a missing-data problem where exactly half the table is missing by definition. The frameworks are two notations for one mathematics: $Y(x) \equiv Y_{X=x}$, potential outcome = SCM counterfactual.</p>
+ <div class="box def"><span class="label">Definition</span> Unit-level effect: $Y_i(1) - Y_i(0)$ — never observed for any unit (the <em>fundamental problem of causal inference</em>). $\text{ATE} = \mathbb E[Y(1) - Y(0)]$. Identification assumptions: <em>ignorability</em> $(Y(0), Y(1)) \perp X \mid Z$ (equivalent to $Z$ being a valid backdoor set), <em>positivity</em> $0 &lt; P(X{=}1\mid Z) &lt; 1$, and <em>SUTVA</em> (no interference between units; one version of treatment). Then $\text{ATE} = \mathbb E_Z\big[\mathbb E[Y\mid X{=}1, Z] - \mathbb E[Y \mid X{=}0, Z]\big]$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Four units with (in truth — a god's-eye table): $Y(0) = (5, 3, 7, 1)$, $Y(1) = (7, 4, 7, 3)$. Unit effects: $(2, 1, 0, 2)$; true ATE $= 1.25$. Reality assigns $X = (1, 0, 1, 0)$: we observe $Y = (7, 3, 7, 1)$. Naive difference of means: $\frac{7+7}{2} - \frac{3+1}{2} = 7 - 2 = 5 \ne 1.25$ — units 1 and 3 (high baselines) happened to be treated: selection. Had assignment been random, the estimator would be unbiased over the randomization distribution — this small example shows bias is about the <em>assignment mechanism</em>, visible only when you write both columns.</div>
+ <div class="box think"><span class="label">Think first</span> SUTVA bans interference between units. Give two modern settings where it fails badly, and what breaks.<details class="sol"><summary>Reveal</summary><div>(1) Vaccines/epidemics: treating me protects you (herd immunity) — control units are partially treated through the network, shrinking measured contrasts below true effects. (2) Marketplace/platform A/B tests: giving some sellers a promotion steals demand from control sellers — effects are overstated (cannibalization). When units share an environment, "the effect of treating everyone" ≠ "per-unit effect × everyone," and the estimand itself must be redefined (cluster randomization, exposure mappings, equilibrium effects).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is the unit-level effect fundamentally unobservable?<details class="sol"><summary>Solution</summary><div>Observing $Y_i(1)$ requires treating unit $i$; observing $Y_i(0)$ requires not treating the same unit at the same time — mutually exclusive. Only one potential outcome is ever realized; the other is a counterfactual.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that under random assignment, difference-in-means is unbiased for the ATE.<details class="sol"><summary>Solution</summary><div>Randomization makes $X \perp (Y(0), Y(1))$, so $\mathbb E[Y \mid X{=}1] = \mathbb E[Y(1)\mid X{=}1] = \mathbb E[Y(1)]$, similarly for 0. Difference of the observed group means estimates $\mathbb E[Y(1)] - \mathbb E[Y(0)] = $ ATE. The missing half of the table is missing <em>at random</em>, so each observed column mean stands in for its full-population column mean.</div></details></li>
+  <li><span class="lvl h">HARD</span> Translate: express ignorability graphically, and positivity's failure graphically/practically, and say what happens to the adjustment estimator when positivity fails in a stratum.<details class="sol"><summary>Solution</summary><div>Ignorability given $Z$ ⇔ $Z$ blocks all backdoor paths (and includes no descendants of $X$) — potential outcomes are determined by the unit's noises and mechanisms upstream of $Y$ except the $X$-assignment channel; conditioning on a backdoor-blocking $Z$ renders assignment independent of them. Positivity fails when some stratum $z^*$ deterministically receives (or is denied) treatment — graphically, an arrow $Z \to X$ so strong it is a function on that stratum. Then $P(y\mid x, z^*)$ for the never-assigned arm is undefined (no data at any sample size): the adjustment formula's term is $0/0$. Estimators respond by extrapolating from a model (invisible, dangerous), by trimming such strata (changes the estimand to the overlap population), or by exploding weights (IPW dividing by $\hat e \approx 0$). Identification needs both a blocked graph <em>and</em> genuine overlap — one is topology, the other is support. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="causal-discovery">
+ <h2>Causal discovery</h2>
+ <p>Run the chapter in reverse: instead of assuming the graph and computing effects, infer the graph from data. Independence patterns carve away inconsistent structures (constraint-based methods); score functions rank DAGs (score-based); and asymmetries in functional form — noise shapes, mechanism independence — can even orient edges that independencies leave ambiguous. What's recoverable is a hard-won partial answer: usually an equivalence class, not one graph.</p>
+ <div class="box def"><span class="label">Definition</span> Under causal Markov + faithfulness (+ causal sufficiency: no hidden confounders), constraint-based algorithms (<em>PC</em>) recover the graph up to its <em>Markov equivalence class</em> (CPDAG): the skeleton plus all v-structures (colliders), other edges left undirected. With hidden confounders allowed: FCI, outputting a PAG. Functional-form methods: <em>LiNGAM</em> (linear non-Gaussian: fully identifies direction), additive-noise models ($Y = f(X) + N$, $N \perp X$ holds in the causal direction only, generically).</div>
+ <div class="box ex"><span class="label">Worked example</span> Three variables; data reveal exactly one independence: $A \perp B$ (unconditionally), and $A \not\perp B \mid C$. PC reasoning: skeleton — $A$–$C$ and $B$–$C$ edges (each pair dependent except $A,B$); orientation — $A \perp B$ but dependent given $C$ is the collider signature: $A \to C \leftarrow B$. Fully oriented, no experiment needed. Contrast: had we found $A \perp B \mid C$ instead, the class would be $\{A\to C\to B,\ A\leftarrow C\leftarrow B,\ A \leftarrow C \to B\}$ — skeleton oriented only by convention; observation alone cannot choose.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Everything rests on faithfulness (no exactly-cancelling paths — reasonable generically, violated by design in equilibrium/control systems: a thermostat cancels the very correlations that would reveal it), on the correctness of finite-sample independence tests (errors cascade through PC's stages), and on causal sufficiency (a hidden confounder mimics an edge). Discovery outputs are hypotheses to be probed with interventions, not conclusions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why can't observational data distinguish $X \to Y$ from $X \leftarrow Y$ for two Gaussian variables with linear relation?<details class="sol"><summary>Solution</summary><div>Both models can produce any bivariate Gaussian (choose coefficient and noise variances accordingly); the two-variable joint has no independence constraints to differ on, and the Gaussian's symmetry kills functional-form asymmetries. Markov-equivalent, functionally symmetric: a coin flip.</div></details></li>
+  <li><span class="lvl m">MED</span> Explain the LiNGAM asymmetry: why does non-Gaussian noise break the tie?<details class="sol"><summary>Solution</summary><div>If truly $Y = \beta X + N$ with $N \perp X$ and non-Gaussian ingredients, then regressing the <em>wrong way</em>, $X = \gamma Y + \tilde N$, leaves a residual $\tilde N$ that is a linear mixture of $X$'s and $N$'s variation — and by the Darmois–Skitovich theorem, such a mixture can be independent of the regressor only in the Gaussian case. So test both directions: the direction with independent residuals is causal. Gaussianity is the singular symmetric point; any skew or kurtosis is directional signal — ICA's insight repurposed.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many interventions are needed, worst case, to fully orient a Markov equivalence class over $n$ variables — and why do randomized single-node interventions help so much?<details class="sol"><summary>Solution</summary><div>An intervention on node $S$ orients every edge incident to... a single-node intervention on $X_i$ cuts its in-edges: comparing the interventional to observational distributions orients all edges at $X_i$ (edges into vs out of it distinguish by whether the neighbor's dependence survives), and Meek's rules propagate orientations further. In the worst case (e.g. a complete graph, whose equivalence class contains all orderings), $\lceil \log_2 n \rceil$ well-chosen <em>multi-node</em> interventions suffice (split-and-orient by halves), while single-node strategies need up to $n - 1$; general graphs need $O(\log n)$-ish targeted experiments guided by the current CPDAG. The practical headline: a handful of experiments, placed where the equivalence class is ambiguous, converts observational near-knowledge into full structure — experiment design as information maximization over graphs. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="causal-representation-learning">
+ <h2>Causal representation learning</h2>
+ <p>Deep learning's variables are pixels and tokens; causality's variables are objects, forces, intentions. Causal representation learning aims to close that gap: learn, from raw high-dimensional data, latent variables that <em>are</em> the causal ones — modular mechanisms that recombine under intervention and shift. It is where this chapter and Chs 21/29 shake hands, and it is largely open.</p>
+ <div class="box def"><span class="label">Definition</span> Goal: from observations $x = g(z)$ generated by unknown latents $z$ with SCM structure among them, recover (up to tolerable ambiguity) the latents and their causal graph. Known obstruction: unsupervised disentanglement is <em>non-identifiable</em> from i.i.d. data alone (Locatello et al. 2019 — infinitely many entangled solutions fit equally well); identifiability returns with extra structure: multiple environments/interventions, temporal dynamics, sparse mechanism shifts, or weak supervision (paired data, labels).</div>
+ <div class="box ex"><span class="label">Worked example</span> Invariant risk: predict $Y$ from features across environments $e \in \{$hospitals$\}$. Spurious feature $S$ (scanner brand) correlates with $Y$ differently per hospital; causal feature $C$ (tumor morphology) has a stable mechanism $P(Y\mid C)$ everywhere. A predictor using $C$ has the <em>same</em> risk-optimal behavior in every environment; one using $S$ needs different coefficients per environment. Training across just a few environments and demanding one simultaneously-optimal predictor (IRM's principle) rejects $S$ — the causal feature is the invariant one. Multi-environment data operationalizes "mechanism stability" as a learnable objective.</div>
+ <div class="box link"><span class="label">Where this goes</span> World models with intervention-respecting latents (Ch 29), the compositional-generalization agenda of Ch 36, and the interpretability question of whether a network's internal features are causally manipulable units (Ch 35: activation patching is intervention on representations).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why do i.i.d. pixels underdetermine causal latents?<details class="sol"><summary>Solution</summary><div>Any invertible remixing $\tilde z = h(z)$ composed with $\tilde g = g \circ h^{-1}$ produces identical observations; the i.i.d. likelihood cannot prefer disentangled coordinates. Only non-i.i.d. structure — interventions, time, environments — makes causal coordinates distinguishable from their mixtures.</div></details></li>
+  <li><span class="lvl m">MED</span> The "sparse mechanism shift" hypothesis: state it and how it turns distribution shift from an enemy into a supervisor.<details class="sol"><summary>Solution</summary><div>Hypothesis: natural distribution changes (new lighting, a new user cohort, an intervention) alter <em>few</em> causal mechanisms at once, while entangled representations see every such change as global. Supervision signal: prefer representations in which observed shifts are explainable by changing a small number of latent modules. Each environment pair becomes a labeled example of "what varies together" — shift as free annotation of the causal factorization.</div></details></li>
+  <li><span class="lvl h">HARD</span> Does a next-token predictor trained on rung-1 data acquire rung-2 knowledge? Give one argument each way, and the experimental handle that would decide for a specific model.<details class="sol"><summary>Solution</summary><div>Against: the ladder theorem — observational distributions underdetermine interventional ones; a pure density estimator over text has, in principle, no basis for do-questions its corpus doesn't pin down. For: the corpus is not raw observation of the world — it contains <em>descriptions of interventions and their outcomes</em> (experiments, how-tos, code that runs), so the text distribution embeds rung-2 structure of the described world; a model can also be tuned on interactive/agentic data, which is genuinely interventional. The decisive handle is behavioral-causal testing: construct held-out intervention families (novel combinations of mechanisms it has seen separately), compare its predictions with real intervention outcomes, and — internally — use activation patching to test whether the model carries manipulable variables mediating those predictions. The answer is empirical and per-capability, not philosophical: some do-knowledge is in the text, and how much a given model has extracted must be measured, not asserted. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>The admissions office.</strong> At a university, being athletic ($A$) and being studious ($S$) are independent in the population, each Bern(0.3), and admission requires either: $D = A \lor S$. (a) Show $A \perp S$ overall but not among admitted students, computing $P(S{=}1\mid A{=}1, D{=}1)$ and $P(S{=}1\mid A{=}0, D{=}1)$. (b) Name the structure and two real datasets where this bias arises. (c) A journalist concludes "athletics crowds out studying." Diagnose.<details class="sol"><summary>Solution</summary><div>(a) Among admitted: $P(S{=}1 \mid A{=}1, D{=}1) = P(S{=}1) = 0.3$ (if $A{=}1$, admission is guaranteed, so conditioning on $D$ adds nothing). $P(S{=}1\mid A{=}0, D{=}1) = 1$ (non-athletes get in only by studying). So among admits, athleticism and studiousness are strongly <em>negatively</em> associated: corr appears where none exists. (b) Collider/selection bias ($A \to D \leftarrow S$, conditioning on $D$): hospital-patient datasets (Berkson's paradox — diseases anticorrelate among inpatients), hiring/publication datasets (among published papers, rigor and novelty anticorrelate if either suffices to publish), dating pools, GitHub stars. (c) The journalist conditioned on admission (sampled only students). The population association is zero by construction; the negative correlation is manufactured by the selection valve. Correct analysis: sample from the applicant population, or model the selection mechanism explicitly.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>One dataset, three verdicts.</strong> Observed: $P(x, y, z)$ over binary treatment $X$, outcome $Y$, covariate $Z$, with: $P(z{=}1) = 0.5$; $P(x{=}1\mid z) = 0.8/0.2$ for $z = 1/0$; $P(y{=}1 \mid x, z)$: $(x{=}1,z{=}1)$: 0.8, $(1,0)$: 0.6, $(0,1)$: 0.6, $(0,0)$: 0.4. Compute the causal effect $P(y\mid do(x{=}1)) - P(y \mid do(x{=}0))$ under three assumed graphs: (a) $Z$ a confounder ($X \leftarrow Z \to Y$, $X \to Y$); (b) $Z$ a mediator ($X \to Z \to Y$, $X \to Y$); (c) $Z$ a collider child... $Z$ a common effect ($X \to Z \leftarrow Y$, $X \to Y$). Same numbers each time.<details class="sol"><summary>Solution</summary><div>(a) Backdoor-adjust on $Z$: $P(y\mid do(x{=}1)) = 0.5(0.8) + 0.5(0.6) = 0.7$; $do(x{=}0)$: $0.5(0.6)+0.5(0.4) = 0.5$. Effect $= +0.2$. (b) Mediator: do NOT adjust — but we can't just use $P(y\mid x)$ unless there's no confounding, which graph (b) asserts. $P(y{=}1\mid x{=}1) = \sum_z P(z\mid x{=}1)P(y\mid x{=}1, z)$; $P(z{=}1\mid x{=}1) = \frac{0.5\cdot0.8}{0.5\cdot0.8 + 0.5\cdot0.2} = 0.8$; so $= 0.8(0.8) + 0.2(0.6) = 0.76$. $P(z{=}1\mid x{=}0) = \frac{0.5\cdot0.2}{0.5} = 0.2$; $P(y{=}1\mid x{=}0) = 0.2(0.6)+0.8(0.4) = 0.44$. Effect $= 0.76 - 0.44 = +0.32$ — larger, because the $Z$-channel is part of the effect. (c) Common effect: $Z$ is downstream of both; adjust for nothing, and moreover $P(y\mid x)$ marginalized over $Z$ is the right quantity, same computation as (b): $+0.32$? No — careful: under (c) the observed $P(x,y,z)$ factorizes differently, but the <em>numbers</em> are what they are: the estimand is $P(y\mid x)$ ignoring $Z$: $P(y{=}1\mid x{=}1) = 0.76$, $P(y{=}1\mid x{=}0) = 0.44$: $+0.32$. But under (c) the given conditional $P(y\mid x, z)$ mixes causation and collider distortion; the valid estimand uses only $P(y\mid x)$: $+0.32$. Verdicts: $+0.2$ (confounder) vs $+0.32$ (mediator or collider — adjust for nothing). One distribution, different graphs, different answers: the causal effect is not a statistical property of the data. Which graph is right must be settled by background knowledge or experiment — e.g. temporal order (was $Z$ measured pre-treatment?) rules mediator/collider in or out.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Noncompliance, three estimators.</strong> An encouragement trial: randomized $Z$ (invitation to exercise program), treatment taken $X$, outcome $Y$ (health score). Data: $P(x{=}1\mid z{=}1) = 0.6$, $P(x{=}1\mid z{=}0) = 0.2$; $\mathbb E[Y\mid z{=}1] = 72$, $\mathbb E[Y \mid z{=}0] = 68$; also $\mathbb E[Y\mid x{=}1] = 76$, $\mathbb E[Y\mid x{=}0] = 65$. (a) Compute the intention-to-treat effect, the as-treated (naive) contrast, and the IV/LATE estimate. (b) Explain what each estimates and which assumptions each needs. (c) The program director says "the program raises health by 11 points" — which estimator did they use and what's wrong?<details class="sol"><summary>Solution</summary><div>(a) ITT $= 72 - 68 = 4$ (effect of <em>invitation</em>). As-treated: $76 - 65 = 11$ (contrast of self-selected groups). LATE $= \frac{72-68}{0.6-0.2} = \frac{4}{0.4} = 10$ (effect of the program on compliers). (b) ITT: unbiased for the invitation's effect by randomization alone; conservative for the program's effect (diluted by never-takers). As-treated: requires "who exercises is unconfounded with health" — false on its face (healthier, richer, more motivated people exercise): biased by selection. LATE: requires the IV conditions — randomization (✓ by design), exclusion (invitation affects health only via participation — plausible if the invitation itself carries no health content), monotonicity (nobody exercises <em>because</em> they weren't invited — plausible): estimates the effect among the 40% whose participation the invitation moved. (c) The director used as-treated (11 points), the only estimator requiring assumptions the trial was explicitly designed to avoid needing. Defensible statements: "inviting raises average health 4 points; the program raises compliers' health about 10." The 1-point gap between 11 and 10 is the selection bias the randomization existed to purge.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: interventions on an SCM, backdoor adjustment vs naive estimation, and the PC skeleton with collider orientation. NumPy only.</p>
+ <div class="box ex"><span class="label">Task 1 — an SCM you can intervene on</span> Implement the sprinkler SCM (Season → Sprinkler, Season → Rain, both → Wet, Wet → Slippery) as sampling code with an <code>intervene</code> option that fixes a variable. Verify numerically that $P(\text{Rain}\mid \text{Sprinkler}{=}1) \ne P(\text{Rain})$ but $P(\text{Rain}\mid do(\text{Sprinkler}{=}1)) = P(\text{Rain})$.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+def sample(n, do_sprinkler=None):
+    season = (rng.random(n) &lt; 0.6).astype(int)          # 1 = dry season
+    p_spr  = np.where(season == 1, 0.8, 0.1)
+    if do_sprinkler is None:
+        sprinkler = (rng.random(n) &lt; p_spr).astype(int)
+    else:                                               # graph surgery
+        sprinkler = np.full(n, do_sprinkler)
+    p_rain = np.where(season == 1, 0.1, 0.7)
+    rain = (rng.random(n) &lt; p_rain).astype(int)
+    p_wet = 0.05 + 0.9*np.maximum(sprinkler, rain)      # wet if either
+    wet = (rng.random(n) &lt; p_wet).astype(int)
+    slippery = (rng.random(n) &lt; 0.8*wet).astype(int)
+    return season, sprinkler, rain, wet, slippery
+
+N = 500_000
+season, spr, rain, wet, sl = sample(N)
+print('P(rain)                      =', rain.mean().round(3))
+print('P(rain | sprinkler=1)  (obs) =', rain[spr == 1].mean().round(3))
+_, _, rain_do, _, _ = sample(N, do_sprinkler=1)
+print('P(rain | do(sprinkler=1))    =', rain_do.mean().round(3))
+# observing the sprinkler is evidence about season, hence rain (~0.2 vs 0.34);
+# forcing it leaves rain at its base rate (~0.34).</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — confounding, then the cure</span> Simulate $Z \sim \mathcal N(0,1)$, $X = 1.0\,Z + \varepsilon_X$, $Y = 1.0\,X + 1.5\,Z + \varepsilon_Y$ (true effect 1.0). Estimate the effect three ways — naive OLS of $Y$ on $X$; OLS of $Y$ on $X, Z$; and backdoor stratification on binned $Z$ — and confirm only the naive one is biased. Then adjust for a <em>collider</em> $C = X + Y + \varepsilon_C$ and watch a good estimate go bad.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+n = 200_000
+Z = rng.normal(size=n)
+X = 1.0*Z + rng.normal(size=n)
+Y = 1.0*X + 1.5*Z + rng.normal(size=n)
+C = X + Y + rng.normal(size=n)          # collider
+
+def ols(y, cols):
+    A = np.column_stack(cols + [np.ones(n)])
+    return np.linalg.lstsq(A, y, rcond=None)[0][0]  # coef on first col
+
+print('naive  Y~X      :', round(ols(Y, [X]), 3))          # ~1.75 (biased)
+print('adjust Y~X+Z    :', round(ols(Y, [X, Z]), 3))       # ~1.00
+# backdoor by stratification on Z-bins
+bins = np.digitize(Z, np.quantile(Z, np.linspace(0, 1, 21)[1:-1]))
+effs, ws = [], []
+for b in np.unique(bins):
+    m = bins == b
+    if m.sum() &gt; 100:
+        effs.append(ols(Y[m], [X[m]]) if False else
+                    np.polyfit(X[m], Y[m], 1)[0])
+        ws.append(m.mean())
+print('stratified      :', round(np.average(effs, weights=ws), 3))  # ~1.00
+print('collider Y~X+C  :', round(ols(Y, [X, C]), 3))       # far from 1: bias created</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — mini causal discovery</span> Generate data from the collider graph $A \to C \leftarrow B$ (plus $C \to D$), run pairwise/partial-correlation independence tests to recover the skeleton, and orient the v-structure. Check the algorithm outputs $A \to C \leftarrow B$ and leaves $C$–$D$ correctly attached.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+from itertools import combinations
+rng = np.random.default_rng(2)
+n = 100_000
+A = rng.normal(size=n); B = rng.normal(size=n)
+Cv = A + B + 0.7*rng.normal(size=n)
+D = 1.2*Cv + rng.normal(size=n)
+data = {'A': A, 'B': B, 'C': Cv, 'D': D}
+names = list(data)
+
+def pcorr(x, y, zs):
+    """partial correlation of x,y given list of conditioning arrays"""
+    if zs:
+        Zm = np.column_stack(zs + [np.ones(n)])
+        x = x - Zm @ np.linalg.lstsq(Zm, x, rcond=None)[0]
+        y = y - Zm @ np.linalg.lstsq(Zm, y, rcond=None)[0]
+    return np.corrcoef(x, y)[0, 1]
+
+def indep(i, j, cond):
+    r = pcorr(data[i], data[j], [data[k] for k in cond])
+    return abs(r) &lt; 0.01                     # generous threshold at this n
+
+# 1. skeleton: start complete, remove edge if indep given any subset
+edges = set(frozenset(p) for p in combinations(names, 2))
+seps = {}
+for i, j in combinations(names, 2):
+    others = [k for k in names if k not in (i, j)]
+    for size in range(0, 3):
+        found = False
+        for cond in combinations(others, size):
+            if indep(i, j, list(cond)):
+                edges.discard(frozenset((i, j)))
+                seps[frozenset((i, j))] = set(cond)
+                found = True; break
+        if found: break
+print('skeleton:', sorted(tuple(sorted(e)) for e in edges))
+# expect: A-C, B-C, C-D
+
+# 2. orient v-structures: i - k - j with i,j nonadjacent and k not in sep set
+directed = set()
+for i, j in combinations(names, 2):
+    if frozenset((i, j)) in edges: continue
+    for k in names:
+        if k in (i, j): continue
+        if frozenset((i, k)) in edges and frozenset((j, k)) in edges:
+            if k not in seps.get(frozenset((i, j)), set()):
+                directed.add((i, k)); directed.add((j, k))
+print('v-structure arrows:', sorted(directed))
+# expect: ('A','C') and ('B','C')  — i.e. A -&gt; C &lt;- B; C-D stays undirected
+# (C -&gt; D vs D -&gt; C is not determined by independencies alone)</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="http://bayes.cs.ucla.edu/PRIMER/">Pearl, Glymour &amp; Jewell, <em>Causal Inference in Statistics: A Primer</em> (site with free chapters)</a> — the gentlest rigorous path through graphs, do-calculus and counterfactuals.</li>
+  <li><a href="http://bayes.cs.ucla.edu/BOOK-2K/">Pearl, <em>Causality</em> (2nd ed. companion site)</a> — the definitive reference; Chs 1, 3 and 7 map to this chapter.</li>
+  <li><a href="https://www.hsph.harvard.edu/miguel-hernan/causal-inference-book/">Hernán &amp; Robins, <em>Causal Inference: What If</em> (free PDF)</a> — the potential-outcomes epidemiology canon: exchangeability, IPW, per-protocol vs ITT.</li>
+  <li><a href="https://mixtape.scunning.com/">Cunningham, <em>Causal Inference: The Mixtape</em> (free online)</a> — econometrics-flavored IV, RDD, DiD with code.</li>
+  <li><a href="https://www.bradyneal.com/causal-inference-course">Brady Neal's Introduction to Causal Inference course (free book + lectures)</a> — a modern ML-audience treatment aligned with this chapter's arc.</li>
+  <li><a href="https://arxiv.org/abs/2102.11107">Schölkopf et al., "Toward Causal Representation Learning" (2021)</a> — the research agenda connecting SCMs to deep learning.</li>
+  <li><a href="https://arxiv.org/abs/1911.10500">Schölkopf, "Causality for Machine Learning" (2019)</a> — mechanisms, invariance and why prediction direction matters.</li>
+  <li><a href="https://mitpress.mit.edu/9780262037310/elements-of-causal-inference/">Peters, Janzing &amp; Schölkopf, <em>Elements of Causal Inference</em> (open access PDF at MIT Press)</a> — SCMs, identifiability and discovery with proofs.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch26.html">← 26 · Planning and Search</a>
+ <a class="btn" href="ch28.html">28 · Dynamical Systems and Control →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function txt(id, s){ var el = document.getElementById(id); if(el) el.textContent = s; }
+
+/* ---------- 1. Simpson's paradox ---------- */
+(function(){
+ var c = document.getElementById('cv-simpson'); if(!c) return;
+ // success rates: A better in both strata
+ var rate = {A: {easy: 0.93, hard: 0.73}, B: {easy: 0.87, hard: 0.69}};
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var fa = val('sp-a'), fb = val('sp-b'); // share to hard cases
+  var pooled = {
+   A: (1-fa)*rate.A.easy + fa*rate.A.hard,
+   B: (1-fb)*rate.B.easy + fb*rate.B.hard
+  };
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0', orange = cssVar('--orange') || '#d07020';
+  var groups = [
+   {label: 'easy cases', a: rate.A.easy, b: rate.B.easy},
+   {label: 'hard cases', a: rate.A.hard, b: rate.B.hard},
+   {label: 'POOLED', a: pooled.A, b: pooled.B}
+  ];
+  var gw = (W - 60)/3;
+  g.font = '13px JetBrains Mono';
+  for(var i = 0; i < 3; i++){
+   var x0 = 40 + i*gw, bw = gw*0.28;
+   var ha = groups[i].a*(H-90), hb = groups[i].b*(H-90);
+   g.fillStyle = cobalt; g.fillRect(x0, H-50-ha, bw, ha);
+   g.fillStyle = orange; g.fillRect(x0 + bw + 8, H-50-hb, bw, hb);
+   g.fillStyle = ink2;
+   g.fillText(groups[i].label, x0, H-32);
+   g.fillText((groups[i].a*100).toFixed(0) + '%', x0, H-56-ha);
+   g.fillText((groups[i].b*100).toFixed(0) + '%', x0 + bw + 8, H-56-hb);
+   var winner = groups[i].a > groups[i].b ? 'A' : 'B';
+   g.fillText('→ ' + winner, x0 + gw*0.62, H-70);
+  }
+  g.fillStyle = cobalt; g.fillText('■ treatment A', 40, 16);
+  g.fillStyle = orange; g.fillText('■ treatment B', 180, 16);
+  var reversed = (rate.A.easy > rate.B.easy && rate.A.hard > rate.B.hard && pooled.A < pooled.B);
+  txt('sp-out', reversed
+   ? 'REVERSAL: A wins both strata, B wins pooled — A is treating the hard cases (' + (fa*100).toFixed(0) + '% vs ' + (fb*100).toFixed(0) + '%).'
+   : 'no reversal at these allocations — push A toward hard cases and B toward easy ones.');
+ }
+ on('sp-a','input',draw); on('sp-b','input',draw);
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 2. d-separation ---------- */
+(function(){
+ var c = document.getElementById('cv-dsep'); if(!c) return;
+ // DAG: A->B, D->B, B->C, D->E, C->F, E->F   test pair: A vs E
+ var nodes = {A:[0.08,0.30], B:[0.33,0.30], C:[0.58,0.30], D:[0.33,0.72], E:[0.62,0.72], F:[0.85,0.50]};
+ var edges = [['A','B'],['D','B'],['B','C'],['D','E'],['C','F'],['E','F']];
+ var cond = {B:false, D:false, C:false, F:false};
+ // paths from A to E (undirected walks, no repeats), each as node list:
+ var paths = [
+  ['A','B','D','E'],          // A->B<-D->E : collider at B
+  ['A','B','C','F','E']       // A->B->C->F<-E : collider at F
+ ];
+ function edgeDir(u, v){ // returns '>' if u->v, '<' if v->u
+  for(var i = 0; i < edges.length; i++){
+   if(edges[i][0] === u && edges[i][1] === v) return '>';
+   if(edges[i][0] === v && edges[i][1] === u) return '<';
+  }
+  return null;
+ }
+ function pathBlocked(p){
+  for(var i = 1; i < p.length - 1; i++){
+   var into = edgeDir(p[i-1], p[i]) === '>';
+   var outof = edgeDir(p[i], p[i+1]) === '>';
+   var isCollider = into && !outof; // -> m <-
+   var inZ = cond[p[i]];
+   if(isCollider){
+    // blocked unless m or descendant in Z. Descendants: B's desc = C,F ; F none; C's desc = F
+    var desc = {B:['C','F'], C:['F'], D:['B','C','E','F'], F:[], A:[], E:[]}[p[i]] || [];
+    var opened = inZ || desc.some(function(d){ return cond[d]; });
+    if(!opened) return true;
+   } else {
+    if(inZ) return true;
+   }
+  }
+  return false;
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var ink2 = cssVar('--ink-2'), cobalt = cssVar('--cobalt') || '#2050c0';
+  var green = cssVar('--green') || '#20a050', red = cssVar('--red') || '#c03030';
+  function P(n){ return [nodes[n][0]*W, nodes[n][1]*H]; }
+  // path highlights
+  var anyOpen = false;
+  for(var pi = 0; pi < paths.length; pi++){
+   var blocked = pathBlocked(paths[pi]);
+   if(!blocked) anyOpen = true;
+   g.strokeStyle = blocked ? red : green;
+   g.lineWidth = 5; g.globalAlpha = 0.25;
+   if(blocked) g.setLineDash([6,6]);
+   g.beginPath();
+   for(var i = 0; i < paths[pi].length; i++){
+    var p = P(paths[pi][i]);
+    i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1]);
+   }
+   g.stroke(); g.setLineDash([]); g.globalAlpha = 1;
+  }
+  // edges with arrowheads
+  g.strokeStyle = ink2; g.fillStyle = ink2; g.lineWidth = 1.5;
+  for(var i = 0; i < edges.length; i++){
+   var a = P(edges[i][0]), b = P(edges[i][1]);
+   var dx = b[0]-a[0], dy = b[1]-a[1], L = Math.hypot(dx,dy);
+   var ux = dx/L, uy = dy/L;
+   var ex = b[0] - ux*20, ey = b[1] - uy*20, sx = a[0] + ux*20, sy = a[1] + uy*20;
+   g.beginPath(); g.moveTo(sx, sy); g.lineTo(ex, ey); g.stroke();
+   g.beginPath();
+   g.moveTo(ex, ey);
+   g.lineTo(ex - 8*ux + 4*uy, ey - 8*uy - 4*ux);
+   g.lineTo(ex - 8*ux - 4*uy, ey - 8*uy + 4*ux);
+   g.closePath(); g.fill();
+  }
+  // nodes
+  for(var n in nodes){
+   var p = P(n);
+   g.beginPath(); g.arc(p[0], p[1], 16, 0, 7);
+   g.fillStyle = cond[n] ? cobalt : (cssVar('--paper') || '#fff');
+   g.fill(); g.strokeStyle = ink2; g.stroke();
+   g.fillStyle = cond[n] ? '#fff' : ink2;
+   g.font = '600 14px JetBrains Mono';
+   g.fillText(n, p[0]-5, p[1]+5);
+  }
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('testing: A vs E · filled node = conditioned on', 12, 16);
+  var Zs = Object.keys(cond).filter(function(k){ return cond[k]; });
+  txt('ds-out', 'A ' + (anyOpen ? '⊥̸' : '⊥') + ' E given {' + Zs.join(', ') + '} — ' +
+   (anyOpen ? 'an open path exists (green)' : 'all paths blocked (red dashed)'));
+ }
+ ['B','D','C','F'].forEach(function(n){
+  on('ds-' + n, 'click', function(){ cond[n] = !cond[n]; draw(); });
+ });
+ window.addEventListener('resize',draw); draw();
+})();
+
+/* ---------- 3. confounding simulator ---------- */
+(function(){
+ var c = document.getElementById('cv-conf'); if(!c) return;
+ var pts = null, naive = 0, adj = 0;
+ function gauss(){ var u = 0, v = 0; while(!u) u = Math.random(); while(!v) v = Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+ function run(){
+  var zx = val('cf-zx'), zy = val('cf-zy'), n = 200;
+  var Z = [], X = [], Y = [];
+  for(var i = 0; i < n; i++){
+   var z = gauss(), x = zx*z + gauss(), y = 1.0*x + zy*z + gauss();
+   Z.push(z); X.push(x); Y.push(y);
+  }
+  function mean(a){ return a.reduce(function(s,v){return s+v;},0)/a.length; }
+  function cov(a, b){ var ma = mean(a), mb = mean(b), s = 0;
+   for(var i = 0; i < a.length; i++) s += (a[i]-ma)*(b[i]-mb); return s/a.length; }
+  naive = cov(X, Y)/cov(X, X);
+  // adjusted: residualize X and Y on Z
+  var bxz = cov(X, Z)/cov(Z, Z), byz = cov(Y, Z)/cov(Z, Z);
+  var Xr = X.map(function(x, i){ return x - bxz*Z[i]; });
+  var Yr = Y.map(function(y, i){ return y - byz*Z[i]; });
+  adj = cov(Xr, Yr)/cov(Xr, Xr);
+  pts = {X: X, Y: Y, Z: Z};
+  draw();
+  txt('cf-out', 'true effect = 1.00 · naive slope = ' + naive.toFixed(2) + ' · Z-adjusted = ' + adj.toFixed(2));
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  if(!pts){ run(); return; }
+  var ink2 = cssVar('--ink-2');
+  var xs = pts.X, ys = pts.Y;
+  var xm = 5, ym = 8;
+  function SX(x){ return W/2 + x*(W-60)/(2*xm); }
+  function SY(y){ return H/2 - y*(H-40)/(2*ym); }
+  g.strokeStyle = ink2; g.globalAlpha = 0.4;
+  g.beginPath(); g.moveTo(20, SY(0)); g.lineTo(W-20, SY(0)); g.stroke();
+  g.beginPath(); g.moveTo(SX(0), 10); g.lineTo(SX(0), H-10); g.stroke();
+  g.globalAlpha = 1;
+  for(var i = 0; i < xs.length; i++){
+   var t = Math.max(0, Math.min(1, (pts.Z[i]+2)/4));
+   g.fillStyle = 'rgba(' + Math.round(40+180*t) + ',' + Math.round(90) + ',' + Math.round(220-160*t) + ',0.55)';
+   g.beginPath(); g.arc(SX(xs[i]), SY(ys[i]), 2.5, 0, 7); g.fill();
+  }
+  function line(slope, col, dash){
+   g.strokeStyle = col; g.lineWidth = 2;
+   if(dash) g.setLineDash([6,5]);
+   g.beginPath(); g.moveTo(SX(-xm), SY(-xm*slope)); g.lineTo(SX(xm), SY(xm*slope)); g.stroke();
+   g.setLineDash([]);
+  }
+  line(1.0, ink2, true);                                   // truth
+  line(naive, cssVar('--red') || '#c03030', false);
+  line(adj, cssVar('--green') || '#20a050', false);
+  g.font = '13px JetBrains Mono';
+  g.fillStyle = ink2; g.fillText('dashed = truth (slope 1)', 12, 16);
+  g.fillStyle = cssVar('--red') || '#c03030'; g.fillText('naive', 12, 34);
+  g.fillStyle = cssVar('--green') || '#20a050'; g.fillText('adjusted', 12, 52);
+  g.fillStyle = ink2; g.fillText('point color = Z', W-140, 16);
+ }
+ on('cf-run','click',run);
+ on('cf-zx','input',run); on('cf-zy','input',run);
+ window.addEventListener('resize',draw); run();
+})();
+
+/* ---------- 4. IV estimator ---------- */
+(function(){
+ var c = document.getElementById('cv-iv'); if(!c) return;
+ var res = null;
+ function gauss(){ var u = 0, v = 0; while(!u) u = Math.random(); while(!v) v = Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+ function run(){
+  var a = val('iv-str'), q = val('iv-conf'), TRUE = 1.0, n = 300, reps = 200;
+  var naive = [], iv = [];
+  for(var r = 0; r < reps; r++){
+   var sZY = 0, sZX = 0, sXY = 0, sXX = 0;
+   var Zb = [], Xb = [], Yb = [];
+   for(var i = 0; i < n; i++){
+    var z = gauss(), u = gauss();
+    var x = a*z + q*u + gauss();
+    var y = TRUE*x + q*u + gauss();
+    Zb.push(z); Xb.push(x); Yb.push(y);
+   }
+   function mean(v){ return v.reduce(function(s,w){return s+w;},0)/v.length; }
+   var mz = mean(Zb), mx = mean(Xb), my = mean(Yb);
+   var czy = 0, czx = 0, cxy = 0, cxx = 0;
+   for(var i = 0; i < n; i++){
+    czy += (Zb[i]-mz)*(Yb[i]-my); czx += (Zb[i]-mz)*(Xb[i]-mx);
+    cxy += (Xb[i]-mx)*(Yb[i]-my); cxx += (Xb[i]-mx)*(Xb[i]-mx);
+   }
+   naive.push(cxy/cxx);
+   iv.push(czy/czx);
+  }
+  res = {naive: naive, iv: iv};
+  draw();
+  function stats(v){ var m = v.reduce(function(s,w){return s+w;},0)/v.length;
+   var sd = Math.sqrt(v.reduce(function(s,w){return s+(w-m)*(w-m);},0)/v.length); return [m, sd]; }
+  var sn = stats(naive), si = stats(iv);
+  txt('iv-out', 'true = 1.00 · OLS: ' + sn[0].toFixed(2) + ' ± ' + sn[1].toFixed(2) +
+   ' · IV: ' + si[0].toFixed(2) + ' ± ' + si[1].toFixed(2) +
+   (val('iv-str') < 0.2 ? '  (weak instrument: unbiased but wild)' : ''));
+ }
+ function draw(){
+  var s = setupCanvas(c, 280), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  if(!res) return;
+  var ink2 = cssVar('--ink-2');
+  var lo = -1, hi = 3, bins = 60;
+  function hist(v, col){
+   var h = new Array(bins).fill(0);
+   for(var i = 0; i < v.length; i++){
+    var b = Math.floor((v[i]-lo)/(hi-lo)*bins);
+    if(b >= 0 && b < bins) h[b]++;
+   }
+   var mx = Math.max.apply(null, h) || 1;
+   g.fillStyle = col; g.globalAlpha = 0.55;
+   for(var b = 0; b < bins; b++){
+    var x = 30 + b*(W-60)/bins, hh = h[b]/mx*(H-70);
+    g.fillRect(x, H-40-hh, (W-60)/bins - 1, hh);
+   }
+   g.globalAlpha = 1;
+  }
+  hist(res.naive, cssVar('--red') || '#c03030');
+  hist(res.iv, cssVar('--cobalt') || '#2050c0');
+  var xt = 30 + (1.0-lo)/(hi-lo)*(W-60);
+  g.strokeStyle = ink2; g.setLineDash([5,5]);
+  g.beginPath(); g.moveTo(xt, 20); g.lineTo(xt, H-40); g.stroke(); g.setLineDash([]);
+  g.fillStyle = ink2; g.font = '13px JetBrains Mono';
+  g.fillText('sampling distributions of the estimate (dashed = truth)', 30, 14);
+  g.fillStyle = cssVar('--red') || '#c03030'; g.fillText('OLS', 30, 32);
+  g.fillStyle = cssVar('--cobalt') || '#2050c0'; g.fillText('IV', 80, 32);
+  g.fillStyle = ink2;
+  g.fillText(lo.toFixed(0), 26, H-22); g.fillText(hi.toFixed(0), W-40, H-22);
+ }
+ on('iv-run','click',run);
+ on('iv-str','input',run); on('iv-conf','input',run);
+ window.addEventListener('resize',draw); run();
+})();
+})();
+</script>
+
+</body></html>

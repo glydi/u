@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 22 Generative Models</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','22')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">22</div><h1>Generative Models</h1><p class="lede">Learning to produce new data from a distribution.</p>
+   <div class="meta"><span class="chip">22 topics</span><span class="chip">needs: chapters 11, 12, 15, 16, 21</span><span class="chip">feeds: chapters 23, 29</span></div>
+  </div>
+
+<section class="topic" id="maximum-likelihood-generative-modeling">
+ <h2>Maximum likelihood generative modeling</h2>
+ <p>A generative model is a machine that assigns probability to data and can be run backward to produce new samples. The maximum-likelihood recipe: pick a parameterized family $p_\theta$, then choose $\theta$ to make the training data as probable as possible. Every model in this chapter is a different answer to "how do we parameterize $p_\theta$ so both evaluating and sampling are tractable?"</p>
+ <div class="box def"><span class="label">Definition</span> Given data $x_1,\dots,x_n\sim p_{\text{data}}$ i.i.d., maximum likelihood solves $$\hat\theta=\arg\max_\theta\ \frac1n\sum_{i=1}^{n}\log p_\theta(x_i),$$ which as $n\to\infty$ minimizes $\mathrm{KL}(p_{\text{data}}\,\|\,p_\theta)$ (Ch 16), since $\mathbb E[-\log p_\theta]=H(p_{\text{data}})+\mathrm{KL}(p_{\text{data}}\|p_\theta)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit a Gaussian $p_\theta=\mathcal N(\mu,\sigma^2)$ to data $\{1,2,3,6\}$. MLE: $\hat\mu=\bar x=3$, $\hat\sigma^2=\frac14\sum(x_i-3)^2=\frac{4+1+0+9}{4}=3.5$. Log-likelihood at the optimum: $\sum_i\log\mathcal N(x_i;3,3.5)=-\frac42\log(2\pi\cdot3.5)-\frac{1}{2\cdot3.5}\cdot14=-2\log(21.99)-2\approx-6.182-2=-8.18$ nats. "Sampling" is then trivial: $x=3+\sqrt{3.5}\,z$, $z\sim\mathcal N(0,1)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> KL is asymmetric. Minimizing $\mathrm{KL}(p_{\text{data}}\|p_\theta)$ (what MLE does) is <em>mass-covering</em>: $p_\theta$ must put probability everywhere the data does, or pay infinitely — so MLE models tend to over-spread and produce blurry/implausible samples rather than miss modes. The reverse KL is mode-seeking; GANs behave more like that direction.</div>
+ <div class="box link"><span class="label">Where this goes</span> Autoregressive models, VAEs, flows and diffusion are all (exact or bounded) maximum-likelihood; Ch 23's pretraining objective is this recipe applied to text.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For a Bernoulli model $p_\theta(x)=\theta^x(1-\theta)^{1-x}$ with data $(1,1,0,1)$, find the MLE.<details class="sol"><summary>Solution</summary><div>$\hat\theta=$ sample mean $=3/4$. (Set derivative of $3\log\theta+\log(1-\theta)$ to zero: $3/\theta=1/(1-\theta)\Rightarrow\theta=3/4$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Show that maximizing average log-likelihood is equivalent to minimizing $\mathrm{KL}(p_{\text{data}}\|p_\theta)$ in the population limit.<details class="sol"><summary>Solution</summary><div>$\mathbb E_{p_{\text{data}}}[\log p_\theta(x)]=-H(p_{\text{data}})-\mathrm{KL}(p_{\text{data}}\|p_\theta)$ by definition of KL: $\mathrm{KL}=\mathbb E[\log p_{\text{data}}-\log p_\theta]$. The entropy term is $\theta$-free, so maximizing the left side minimizes the KL.</div></details></li>
+  <li><span class="lvl h">HARD</span> Data comes from an equal mixture of $\mathcal N(-3,1)$ and $\mathcal N(3,1)$, but the model family is a single Gaussian. What does MLE converge to, and what do its samples look like?<details class="sol"><summary>Solution</summary><div>MLE matches mean and variance: $\mu=0$, $\sigma^2=\mathbb E[x^2]=9+1=10$. Samples come from $\mathcal N(0,10)$: most mass lies between the true modes, where the data almost never is (density at 0 is a local <em>minimum</em> of the truth). Mass-covering KL forces the single Gaussian to bridge both modes — the canonical picture of why underparameterized MLE produces "blurry averages" of modes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="autoregressive-models">
+ <h2>Autoregressive models</h2>
+ <p>Autoregressive generative models factor the joint into a chain of next-element conditionals (Ch 21) and make each conditional a neural network's softmax. Likelihoods are exact — just multiply the conditionals — and training is stable maximum likelihood; the price is sequential sampling, one element at a time.</p>
+ <div class="box def"><span class="label">Definition</span> $$p_\theta(x)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{<t}),$$ each conditional a tractable parameterized distribution (softmax over a vocabulary; discretized logistic for pixels/audio). Training: exact MLE by teacher forcing. Sampling: draw $x_1$, then $x_2\mid x_1$, etc. Examples: GPT-family (text), PixelCNN (images), WaveNet (audio).</div>
+ <div class="box ex"><span class="label">Worked example</span> A 2-pixel binary "image" model: $p(x_1{=}1)=0.3$; $p(x_2{=}1\mid x_1{=}1)=0.9$, $p(x_2{=}1\mid x_1{=}0)=0.2$. Exact likelihood of $(1,1)$: $0.3\cdot0.9=0.27$. Full joint table: $(0,0)\!:0.7\cdot0.8=0.56$, $(0,1)\!:0.14$, $(1,0)\!:0.03$, $(1,1)\!:0.27$ — sums to 1 by construction; no normalizing constant ever needed.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 23's LLMs are exactly this at scale; diffusion models below trade the sequential-sampling bottleneck for iterative denoising.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does an autoregressive model need no normalizing constant?<details class="sol"><summary>Solution</summary><div>Each conditional is individually normalized (softmax sums to 1), and a product of normalized conditionals is a normalized joint by the chain rule.</div></details></li>
+  <li><span class="lvl m">MED</span> A $256\times256$ RGB image has $196{,}608$ subpixels. If a PixelCNN-style model generates at 100 subpixels/second, how long does one sample take, and why can't it parallelize?<details class="sol"><summary>Solution</summary><div>$196608/100\approx1966$ s $\approx33$ minutes. Each subpixel's distribution conditions on all previously generated ones, so the dependency chain is inherently sequential — the core sampling weakness that motivated flows and diffusion for images.</div></details></li>
+  <li><span class="lvl h">HARD</span> Autoregressive models over continuous values often use a mixture of discretized logistics per dimension rather than a single Gaussian. Give two reasons.<details class="sol"><summary>Solution</summary><div>(1) Real conditionals are multimodal (an edge pixel is dark <em>or</em> bright); a unimodal Gaussian averages the modes and blurs. (2) Pixel data is quantized to 256 levels; a discretized distribution assigns proper probability mass to each level (giving honest log-likelihoods in bits/dim) and can put finite mass on the boundary values 0 and 255, which a density cannot without truncation artifacts.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="latent-variable-models">
+ <h2>Latent variable models</h2>
+ <p>A latent variable model says: data looks complicated because we only see half the story. First draw an unobserved cause $z$ (pose, identity, style) from a simple prior, then generate $x$ from it. The marginal $p(x)=\int p(x\mid z)p(z)\,dz$ can be rich even when both pieces are simple — but that integral is also the whole difficulty of training.</p>
+ <div class="box def"><span class="label">Definition</span> A latent variable model specifies a prior $p(z)$ and a decoder/likelihood $p_\theta(x\mid z)$; the model of the data is the marginal $$p_\theta(x)=\int p_\theta(x\mid z)\,p(z)\,dz.$$ Inference is the posterior $p_\theta(z\mid x)=p_\theta(x\mid z)p(z)/p_\theta(x)$, typically intractable — hence EM (Ch 19), variational inference (Ch 13), and VAEs (next).</div>
+ <div class="box ex"><span class="label">Worked example</span> Discrete latent: $z\in\{1,2\}$ with $p(z{=}1)=0.5$; $x\mid z{=}1\sim\mathcal N(-2,1)$, $x\mid z{=}2\sim\mathcal N(2,1)$. Marginal: a bimodal mixture. At $x=1$: $p(x\mid z{=}1)=\phi(3)\approx0.0044$, $p(x\mid z{=}2)=\phi(-1)\approx0.2420$. Posterior: $p(z{=}2\mid x{=}1)=\frac{0.2420}{0.2420+0.0044}\approx0.982$ — observing $x=1$ almost certainly reveals the right-hand cause. This posterior computation is exactly what becomes intractable when $z$ is a deep continuous code.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the worked example, compute the marginal density $p(x{=}1)$.<details class="sol"><summary>Solution</summary><div>$0.5\cdot0.0044+0.5\cdot0.2420=0.1232$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why can a model with Gaussian $p(z)$ and Gaussian $p_\theta(x\mid z)$ with a <em>nonlinear</em> mean function represent non-Gaussian marginals?<details class="sol"><summary>Solution</summary><div>$p_\theta(x)=\int\mathcal N(x;\mu_\theta(z),\sigma^2I)\,\mathcal N(z;0,I)dz$ is a continuous mixture of Gaussians whose centers sweep the surface $\mu_\theta(z)$ — a nonlinear image of the prior. Mixtures of Gaussians are dense in distributions (any smooth density is approximable), so a flexible $\mu_\theta$ buys arbitrarily non-Gaussian, multimodal marginals.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for fixed $\theta$, $\log p_\theta(x)\ge\mathbb E_{q(z)}[\log p_\theta(x\mid z)]-\mathrm{KL}(q(z)\|p(z))$ for any distribution $q$, with equality iff $q=p_\theta(z\mid x)$.<details class="sol"><summary>Solution</summary><div>$\log p_\theta(x)=\mathbb E_q\big[\log\frac{p_\theta(x,z)}{q(z)}\big]+\mathrm{KL}(q\|p_\theta(z\mid x))$: expand the KL and use $p_\theta(x,z)=p_\theta(z\mid x)p_\theta(x)$; the $\log p_\theta(x)$ factors out of the expectation. Since KL $\ge0$ with equality iff its arguments agree, dropping it gives the bound; the remaining term rearranges to $\mathbb E_q[\log p_\theta(x\mid z)]-\mathrm{KL}(q\|p)$. This is the ELBO, two sections ahead.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="autoencoders">
+ <h2>Autoencoders</h2>
+ <p>An autoencoder squeezes data through a bottleneck: an encoder compresses $x$ to a code $z$, a decoder reconstructs it. Trained on reconstruction error alone it is a compression/representation device, not yet a generative model — nothing constrains the code space, so decoding random codes produces junk. Its variants (denoising, VAE, VQ) fix that in different ways.</p>
+ <div class="box def"><span class="label">Definition</span> Encoder $f_\phi:\mathcal X\to\mathbb R^k$, decoder $g_\theta:\mathbb R^k\to\mathcal X$, trained to minimize reconstruction loss $$\mathcal L=\frac1n\sum_i\|x_i-g_\theta(f_\phi(x_i))\|^2,$$ with $k\ll\dim(x)$ (undercomplete) or with regularization (denoising: reconstruct $x$ from a corrupted $\tilde x$).</div>
+ <div class="box thm"><span class="label">Theorem (linear case = PCA)</span> If $f,g$ are linear and the loss is squared error, the optimal rank-$k$ autoencoder spans the same subspace as the top-$k$ principal components of the data (Ch 8, Ch 19).</div>
+ <div class="box ex"><span class="label">Worked example</span> Data on a line: $x=(t,2t)$ for $t\in\{-1,0,1,2\}$. A 1D linear autoencoder: encode $z=f(x)=\frac{x_1+2x_2}{5}$ (projection onto direction $(1,2)/\sqrt5$, scaled), decode $g(z)=(z,2z)$. Check $x=(2,4)$: $z=\frac{2+8}{5}=2$, reconstruction $(2,4)$ — exact, because the data truly is one-dimensional. Any point off the line reconstructs to its projection: $(1,0)\mapsto z=0.2\mapsto(0.2,0.4)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A bottleneck with too much capacity (or none, $k\ge\dim x$) can learn the identity map: perfect reconstruction, useless representation. The information constraint — narrow $k$, noise, sparsity or a prior — is what forces structure.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why is a plain autoencoder not a generative model?<details class="sol"><summary>Solution</summary><div>It defines no distribution over codes: the encoder's image is an unknown, possibly thin set in $\mathbb R^k$. Sampling requires knowing which $z$'s are "valid"; decoding an arbitrary $z$ lands off the data manifold.</div></details></li>
+  <li><span class="lvl m">MED</span> In denoising autoencoding, we corrupt $\tilde x=x+\varepsilon$, $\varepsilon\sim\mathcal N(0,\sigma^2I)$, and train $g(f(\tilde x))\approx x$. What function does the optimal denoiser compute?<details class="sol"><summary>Solution</summary><div>The conditional expectation $\mathbb E[x\mid\tilde x]$ — the posterior mean of the clean signal given the corrupted one (minimizer of expected squared error, Ch 11/13). This is why denoisers learn the local geometry of the data distribution — a fact that becomes the engine of diffusion models below (via Tweedie's formula).</div></details></li>
+  <li><span class="lvl h">HARD</span> For centered data with covariance $\Sigma=Q\Lambda Q^\top$, show the best linear rank-1 autoencoder achieves squared error $\sum_{i\ge2}\lambda_i$.<details class="sol"><summary>Solution</summary><div>Reconstruction is a rank-1 projection $P=vv^\top$ ($\|v\|=1$ WLOG after absorbing scales). Expected error $\mathbb E\|x-Px\|^2=\mathrm{tr}((I-P)\Sigma)=\mathrm{tr}\Sigma-v^\top\Sigma v$. Maximizing $v^\top\Sigma v$ over unit $v$ gives the top eigenvector, value $\lambda_1$ (Rayleigh quotient, Ch 8). Error $=\sum_i\lambda_i-\lambda_1=\sum_{i\ge2}\lambda_i$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="variational-autoencoders">
+ <h2>Variational autoencoders</h2>
+ <p>A VAE upgrades the autoencoder into a proper latent variable model: the encoder outputs a <em>distribution</em> over codes (a Gaussian with predicted mean and variance), the decoder defines $p_\theta(x\mid z)$, and a KL penalty pins the code distribution to a standard normal prior. Now the code space is fully covered by the prior, so sampling $z\sim\mathcal N(0,I)$ and decoding produces genuine new data.</p>
+ <div class="box def"><span class="label">Definition</span> A VAE has prior $p(z)=\mathcal N(0,I)$, decoder $p_\theta(x\mid z)$, and approximate posterior (encoder) $q_\phi(z\mid x)=\mathcal N(\mu_\phi(x),\mathrm{diag}(\sigma_\phi^2(x)))$, trained by maximizing the ELBO $$\mathcal L(\theta,\phi;x)=\mathbb E_{q_\phi(z\mid x)}[\log p_\theta(x\mid z)]-\mathrm{KL}\big(q_\phi(z\mid x)\,\|\,p(z)\big)\ \le\ \log p_\theta(x).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> 1D latent. For one datapoint the encoder outputs $\mu=1$, $\sigma=0.5$. KL term (Gaussian formula, next section's drill): $\mathrm{KL}=\tfrac12(\sigma^2+\mu^2-1-\ln\sigma^2)=\tfrac12(0.25+1-1-\ln0.25)=\tfrac12(0.25+1.3863)=0.818$ nats. If the expected reconstruction log-likelihood is $-1.2$ nats, the ELBO is $-1.2-0.818=-2.018$: the true $\log p_\theta(x)$ is at least $-2.018$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Posterior collapse: with a powerful decoder (e.g. autoregressive), the model can ignore $z$ entirely — the KL term goes to 0, $q_\phi(z\mid x)=p(z)$ for all $x$, and the "latent" carries no information. Fixes: KL warm-up/annealing, free bits (a floor per-dimension KL), or weaker decoders.</div>
+ <div class="box link"><span class="label">Where this goes</span> The encoder-decoder-with-prior pattern returns as the latent space of latent diffusion models, and as the world-model backbone of Ch 29.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> To generate a new sample from a trained VAE, what do you do — and which network is not needed?<details class="sol"><summary>Solution</summary><div>Draw $z\sim\mathcal N(0,I)$ and compute $x\sim p_\theta(x\mid z)$ (often just the decoder mean). The encoder is not used for generation — only for training and for encoding existing data.</div></details></li>
+  <li><span class="lvl m">MED</span> The ELBO can be rewritten as $\log p_\theta(x)-\mathrm{KL}(q_\phi(z\mid x)\|p_\theta(z\mid x))$. What does maximizing it over $\phi$ alone do?<details class="sol"><summary>Solution</summary><div>With $\theta$ fixed, $\log p_\theta(x)$ is constant, so maximizing the ELBO over $\phi$ minimizes $\mathrm{KL}(q_\phi\|p_\theta(z\mid x))$: variational inference — fitting the encoder to the true posterior. Training jointly does approximate EM: E-step in $\phi$, M-step in $\theta$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why do VAE image samples look blurry when $p_\theta(x\mid z)=\mathcal N(\mu_\theta(z),\sigma^2I)$ with fixed $\sigma$? Combine (i) what the decoder mean must be and (ii) posterior overlap.<details class="sol"><summary>Solution</summary><div>(i) Under squared-error (Gaussian) likelihood, the optimal decoder mean is $\mathbb E[x\mid z]$. (ii) With a finite-capacity encoder, distinct sharp images $x_1,x_2$ have overlapping posteriors: the same $z$ is plausible for both. The decoder at that $z$ must output the <em>average</em> of the images it might explain — a pixelwise mean of sharp images is blurry. Sharper likelihood models (discretized logistics), richer posteriors, or moving generation into a latent space with a diffusion prior all attack this.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="elbo">
+ <h2>ELBO</h2>
+ <p>The evidence lower bound is the workhorse of variational methods: since $\log p_\theta(x)$ has an intractable integral inside, we bound it from below by an expression with the integral moved <em>outside</em> the log, at the cost of an auxiliary distribution $q$. The bound is tight exactly when $q$ equals the true posterior, so raising the ELBO both fits the model and improves the inference network.</p>
+ <div class="box def"><span class="label">Definition</span> For any $q(z\mid x)$: $$\log p_\theta(x)=\underbrace{\mathbb E_{q}\Big[\log\frac{p_\theta(x,z)}{q(z\mid x)}\Big]}_{\mathrm{ELBO}}+\ \mathrm{KL}\big(q(z\mid x)\,\|\,p_\theta(z\mid x)\big),$$ so $\mathrm{ELBO}\le\log p_\theta(x)$, with gap equal to the posterior KL. Equivalent form: $\mathrm{ELBO}=\mathbb E_q[\log p_\theta(x\mid z)]-\mathrm{KL}(q\|p)$ — reconstruction minus rate.</div>
+ <div class="box ex"><span class="label">Worked example</span> Discrete check. Let $z\in\{1,2\}$, $p(z)=(\tfrac12,\tfrac12)$, $p(x\mid z{=}1)=0.1$, $p(x\mid z{=}2)=0.4$ for our observed $x$. True evidence: $p(x)=0.25$, $\log p(x)=-1.386$. Take $q=(\tfrac12,\tfrac12)$: $\mathrm{ELBO}=\sum_zq(z)\log\frac{p(x\mid z)p(z)}{q(z)}=\tfrac12\log0.1+\tfrac12\log0.4=\tfrac12(-2.303)+\tfrac12(-0.916)=-1.610$. Gap: $-1.386-(-1.610)=0.224$ — exactly $\mathrm{KL}(q\|p(z\mid x))$ where the true posterior is $(0.2,0.8)$: $\tfrac12\log\frac{0.5}{0.2}+\tfrac12\log\frac{0.5}{0.8}=0.458-0.235=0.224$ ✓.</div>
+ <div class="box think"><span class="label">Think first</span> The ELBO splits as reconstruction minus KL-to-prior. What behavior does each term reward, and what tension results? <details class="sol"><summary>Reveal</summary><div>Reconstruction wants codes that identify $x$ precisely — informative, spread-out, per-example distinct posteriors. The KL term wants every posterior to look like the same standard normal — uninformative codes. The optimum trades information in the code (the "rate", in bits) against reconstruction fidelity ("distortion"): the ELBO is a rate–distortion trade-off (Ch 16), with $\beta$-VAE making the trade-off weight explicit.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> When is the ELBO exactly equal to $\log p_\theta(x)$?<details class="sol"><summary>Solution</summary><div>Iff $q(z\mid x)=p_\theta(z\mid x)$ — the KL gap vanishes only for the exact posterior.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the Gaussian KL used in VAEs: $\mathrm{KL}(\mathcal N(\mu,\sigma^2)\|\mathcal N(0,1))=\tfrac12(\sigma^2+\mu^2-1-\ln\sigma^2)$.<details class="sol"><summary>Solution</summary><div>$\mathrm{KL}=\mathbb E_q[\log q-\log p]$. $\log q=-\tfrac12\ln(2\pi\sigma^2)-\frac{(z-\mu)^2}{2\sigma^2}$, $\log p=-\tfrac12\ln2\pi-\frac{z^2}2$. Expectations under $q$: $\mathbb E[(z-\mu)^2]=\sigma^2$, $\mathbb E[z^2]=\sigma^2+\mu^2$. So $\mathrm{KL}=-\tfrac12\ln\sigma^2-\tfrac12+\tfrac12(\sigma^2+\mu^2)=\tfrac12(\sigma^2+\mu^2-1-\ln\sigma^2)$. ∎ (Sums over dimensions for diagonal Gaussians.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the aggregate ELBO over the dataset can be written as $-\big(\text{distortion}\big)-\big(\text{rate}\big)$ where rate $=\mathbb E_{p_{\text{data}}}\mathrm{KL}(q_\phi(z\mid x)\|p(z))\ \ge\ I_q(x;z)$, the mutual information between data and codes under $q$.<details class="sol"><summary>Solution</summary><div>Write the aggregated posterior $\bar q(z)=\mathbb E_{p_{\text{data}}}[q_\phi(z\mid x)]$. Then $\mathbb E_x\mathrm{KL}(q(z\mid x)\|p(z))=\mathbb E_x\mathrm{KL}(q(z\mid x)\|\bar q(z))+\mathrm{KL}(\bar q\|p)=I_q(x;z)+\mathrm{KL}(\bar q\|p)\ \ge I_q(x;z)$. So the KL term charges at least the information the code carries about the input, plus a penalty for the aggregate mismatching the prior — the precise sense in which the ELBO prices bits.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reparameterization-trick">
+ <h2>Reparameterization trick</h2>
+ <p>Training a VAE requires gradients of an expectation over $z\sim q_\phi$ — but the sampling step blocks backprop. The trick: move the randomness into a fixed noise source and make the sample a deterministic, differentiable function of $\phi$: sample $\epsilon\sim\mathcal N(0,I)$ once, then compute $z=\mu_\phi+\sigma_\phi\odot\epsilon$. Now gradients flow through $\mu$ and $\sigma$ with low variance.</p>
+ <div class="box def"><span class="label">Definition</span> If $z\sim q_\phi$ can be written $z=g_\phi(\epsilon)$ with $\epsilon\sim p(\epsilon)$ independent of $\phi$, then $$\nabla_\phi\,\mathbb E_{z\sim q_\phi}[f(z)]=\mathbb E_{\epsilon}\big[\nabla_\phi f(g_\phi(\epsilon))\big],$$ estimated by sampling $\epsilon$. For Gaussians: $g_\phi(\epsilon)=\mu_\phi+\sigma_\phi\odot\epsilon$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(z)=z^2$, $q=\mathcal N(\mu,1)$. True gradient: $\frac{d}{d\mu}\mathbb E[z^2]=\frac{d}{d\mu}(\mu^2+1)=2\mu$. Reparameterized estimator with one draw $\epsilon$: $\frac{d}{d\mu}(\mu+\epsilon)^2=2(\mu+\epsilon)$ — unbiased (mean $2\mu$), variance $4$. The score-function (REINFORCE) estimator $z^2\,\frac{d}{d\mu}\log q(z)=z^2(z-\mu)$ is also unbiased but has variance $\approx4\mu^2+\dots$ growing with $\mu^2$ (at $\mu=3$: 15× worse) — the practical reason reparameterization wins when $f$ is differentiable.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The trick needs $f$ differentiable in $z$ and a reparameterizable $q$. Discrete latents break both; workarounds are REINFORCE (high variance), Gumbel-softmax relaxation (biased), or straight-through estimators (biased) — the tension at the heart of VQ-VAEs, next.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Reparameterize $z\sim\mathcal N(3,4)$.<details class="sol"><summary>Solution</summary><div>$z=3+2\epsilon$, $\epsilon\sim\mathcal N(0,1)$ (note $\sigma=2$, not 4).</div></details></li>
+  <li><span class="lvl m">MED</span> In practice the encoder outputs $\log\sigma^2$ rather than $\sigma$. Give two reasons.<details class="sol"><summary>Solution</summary><div>(1) Positivity for free: $\sigma=e^{\frac12\log\sigma^2}>0$ with an unconstrained network output. (2) Numerical range: variances spanning orders of magnitude become a well-scaled linear quantity, and the KL's $\ln\sigma^2$ term is directly available without a log of a possibly tiny number.</div></details></li>
+  <li><span class="lvl h">HARD</span> Verify the identity $\nabla_\mu\mathbb E_{z\sim\mathcal N(\mu,\sigma^2)}[f(z)]=\mathbb E[f'(z)]$ (for smooth, integrable $f$), connecting reparameterization to integration by parts.<details class="sol"><summary>Solution</summary><div>Reparameterize: $\mathbb E[f(\mu+\sigma\epsilon)]$; differentiate under the integral: $\mathbb E[f'(\mu+\sigma\epsilon)]=\mathbb E[f'(z)]$. Alternatively, $\nabla_\mu\int f(z)\mathcal N(z;\mu,\sigma^2)dz=\int f(z)\frac{z-\mu}{\sigma^2}\mathcal N\,dz$, and integrating by parts moves the derivative onto $f$: $\int f'(z)\mathcal N\,dz$ (boundary terms vanish). Both routes agree — the trick is a change of variables that implements integration by parts automatically.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vector-quantized-autoencoders">
+ <h2>Vector-quantized autoencoders</h2>
+ <p>A VQ-VAE makes the latent code <em>discrete</em>: the encoder's output is snapped to the nearest entry of a learned codebook, so an image becomes a grid of code indices — tokens. That marries images to the autoregressive machinery of language models (train a transformer over code indices) and avoids posterior collapse, at the cost of a non-differentiable quantization step.</p>
+ <div class="box def"><span class="label">Definition</span> Codebook $\{e_1,\dots,e_K\}\subset\mathbb R^d$. Encode $z_e=f_\phi(x)$; quantize $z_q=e_{k^*}$, $k^*=\arg\min_k\|z_e-e_k\|$; decode $g_\theta(z_q)$. Loss: $$\|x-g_\theta(z_q)\|^2+\|\mathrm{sg}[z_e]-e_{k^*}\|^2+\beta\|z_e-\mathrm{sg}[e_{k^*}]\|^2,$$ with $\mathrm{sg}$ the stop-gradient; the decoder gradient passes to the encoder via the straight-through estimator ($\partial z_q/\partial z_e:=I$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $d=2$, codebook $e_1=(0,0)$, $e_2=(1,1)$, $e_3=(2,0)$; encoder output $z_e=(1.2,0.4)$. Distances²: to $e_1$: $1.44+0.16=1.60$; to $e_2$: $0.04+0.36=0.40$; to $e_3$: $0.64+0.16=0.80$. Quantize to $e_2=(1,1)$. Codebook loss term: $0.40$; commitment term: $\beta\cdot0.40$. The codebook entry $e_2$ moves toward $z_e$; the encoder is pulled toward $e_2$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Tokenized images/audio feed autoregressive transformers (Ch 23's machinery applied beyond text); VQ codes also underpin latent diffusion variants and multimodal world models (Ch 29).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A $32\times32$ grid of code indices with $K=1024$: how many bits does one image's latent occupy?<details class="sol"><summary>Solution</summary><div>$1024=2^{10}$: 10 bits/code × 1024 positions $=10240$ bits $=1280$ bytes.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does VQ-VAE need the commitment term $\beta\|z_e-\mathrm{sg}[e_{k^*}]\|^2$?<details class="sol"><summary>Solution</summary><div>The straight-through gradient lets the encoder drift freely: nothing else penalizes $z_e$ for wandering far from its assigned code (the codebook loss stops gradients to $z_e$). Unbounded drift makes assignments thrash and the codebook chase moving targets. The commitment term anchors encoder outputs to their codes, stabilizing the joint dance.</div></details></li>
+  <li><span class="lvl h">HARD</span> After training a VQ-VAE, generation requires a second model. What is it, what does it model, and why is uniform sampling of codes wrong?<details class="sol"><summary>Solution</summary><div>A prior over code grids — typically an autoregressive transformer over the discrete indices, trained on encoded data: $p(k_1,\dots,k_{HW})=\prod_ip(k_i\mid k_{<i})$. Uniform code sampling is wrong because valid images occupy a highly structured, low-entropy subset of code space (neighboring codes are strongly dependent); uniform draws decode to incoherent textures. Sampling the learned prior, then decoding, produces images — this two-stage recipe is exactly DALL·E-1 / VQGAN-style generation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="generative-adversarial-networks">
+ <h2>Generative adversarial networks</h2>
+ <p>A GAN skips likelihood entirely and plays a game: a generator turns noise into fakes, a discriminator learns to tell fakes from data, and the generator learns to fool it. The discriminator is a learned, ever-improving loss function — which produces famously sharp samples and famously unstable training.</p>
+ <div class="box def"><span class="label">Definition</span> Generator $G_\theta:z\mapsto x$, $z\sim p(z)$; discriminator $D_\psi:x\mapsto[0,1]$. Minimax objective: $$\min_\theta\max_\psi\ \mathbb E_{x\sim p_{\text{data}}}[\log D_\psi(x)]+\mathbb E_{z\sim p(z)}[\log(1-D_\psi(G_\theta(z)))].$$</div>
+ <div class="box thm"><span class="label">Theorem (Goodfellow 2014)</span> For fixed $G$ the optimal discriminator is $D^*(x)=\frac{p_{\text{data}}(x)}{p_{\text{data}}(x)+p_G(x)}$, and at $D=D^*$ the generator objective equals $2\,\mathrm{JSD}(p_{\text{data}}\|p_G)-\log4$: the game minimizes Jensen–Shannon divergence (Ch 16), minimized iff $p_G=p_{\text{data}}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> At some $x$, $p_{\text{data}}(x)=0.3$ and $p_G(x)=0.1$: $D^*(x)=\frac{0.3}{0.4}=0.75$ — the discriminator says "75% real", exactly the posterior probability of "real" under a 50/50 prior. If the generator matches the data, $D^*\equiv\tfrac12$ everywhere: the discriminator is reduced to coin-flipping, the equilibrium signature.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Mode collapse: the generator can win locally by producing only a few highly convincing outputs — nothing in the objective forces coverage of all modes (contrast MLE's mass-covering KL). Symptoms: low sample diversity despite good individual quality. Mitigations: minibatch discrimination, unrolled/regularized discriminators, or switching family (diffusion).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In GAN training, which network's parameters are updated to <em>maximize</em> the objective, and which to minimize?<details class="sol"><summary>Solution</summary><div>The discriminator $\psi$ maximizes (better classification); the generator $\theta$ minimizes (better fooling). In practice they alternate gradient steps.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive $D^*(x)=\frac{p_{\text{data}}}{p_{\text{data}}+p_G}$ by pointwise maximization.<details class="sol"><summary>Solution</summary><div>The objective is $\int[p_{\text{data}}(x)\log D(x)+p_G(x)\log(1-D(x))]dx$; maximize the integrand at each $x$: $\frac{d}{dD}[a\log D+b\log(1-D)]=\frac aD-\frac{b}{1-D}=0\Rightarrow D=\frac{a}{a+b}$ with $a=p_{\text{data}}(x)$, $b=p_G(x)$. Second derivative negative, so a maximum. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does the original generator loss $\log(1-D(G(z)))$ saturate early in training, and what is the standard "non-saturating" fix?<details class="sol"><summary>Solution</summary><div>Early on, fakes are obvious: $D(G(z))\approx0$, and $\frac{d}{du}\log(1-u)=-\frac{1}{1-u}\approx-1$ — bounded, but the discriminator's confidence makes $D$'s output sit in a flat region of its own sigmoid, so gradients through $D$ to $G$ are tiny: $\nabla\log(1-D)= -\frac{\nabla D}{1-D}\approx-\nabla D$, and $\nabla D\approx0$ in the saturated region. The fix: maximize $\log D(G(z))$ instead — same fixed points, but gradient $\frac{\nabla D}{D}$ is <em>amplified</em> (divided by small $D$) exactly when fakes are bad, giving strong early learning signal.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="energy-based-models">
+ <h2>Energy-based models</h2>
+ <p>An energy-based model scores every configuration with an unnormalized "energy": low energy = plausible. The density is the Boltzmann form $e^{-E}/Z$ — maximally flexible, since any function can be an energy — but the normalizer $Z$ is an integral over all of data space, and it poisons both likelihood evaluation and sampling.</p>
+ <div class="box def"><span class="label">Definition</span> $$p_\theta(x)=\frac{e^{-E_\theta(x)}}{Z(\theta)},\qquad Z(\theta)=\int e^{-E_\theta(x)}dx.$$ The log-likelihood gradient is $$\nabla_\theta\log p_\theta(x)=-\nabla_\theta E_\theta(x)+\mathbb E_{x'\sim p_\theta}[\nabla_\theta E_\theta(x')],$$ — push energy down on data, up on model samples ("contrastive divergence" when samples come from short MCMC chains).</div>
+ <div class="box ex"><span class="label">Worked example</span> Two states $\{a,b\}$ with $E(a)=0$, $E(b)=1$. $Z=e^0+e^{-1}=1.3679$; $p(a)=1/1.3679\approx0.731$, $p(b)=0.269$. Note $p(a)/p(b)=e^{E(b)-E(a)}=e\approx2.718$: only energy <em>differences</em> matter — adding a constant to all energies cancels in $Z$.</div>
+ <div class="box link"><span class="label">Where this goes</span> The gradient of the log-density $\nabla_x\log p(x)=-\nabla_xE(x)$ needs no $Z$ — that observation is the gateway to score matching and diffusion, next. Boltzmann distributions also return in Ch 12 (Langevin) and Ch 25 (softmax policies).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does $\nabla_x\log p_\theta(x)$ not involve $Z(\theta)$?<details class="sol"><summary>Solution</summary><div>$\log p=-E_\theta(x)-\log Z(\theta)$, and $Z$ does not depend on $x$: $\nabla_x\log p=-\nabla_xE_\theta(x)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the two-term likelihood gradient in the definition.<details class="sol"><summary>Solution</summary><div>$\nabla_\theta\log p=-\nabla_\theta E(x)-\nabla_\theta\log Z$. And $\nabla_\theta\log Z=\frac1Z\int e^{-E(x')}(-\nabla_\theta E(x'))dx'=-\mathbb E_{p_\theta}[\nabla_\theta E(x')]$. Substituting gives the data term minus (negative) model term. The intractable part is the model expectation — hence MCMC approximations.</div></details></li>
+  <li><span class="lvl h">HARD</span> A Gibbs/Boltzmann distribution at temperature $T$ is $p_T(x)\propto e^{-E(x)/T}$. Show that as $T\to0$, $p_T$ concentrates on global minima of $E$, and compute $p_T(a),p_T(b)$ for the worked example at $T=0.2$.<details class="sol"><summary>Solution</summary><div>$p_T(x)/p_T(x^*)=e^{-(E(x)-E(x^*))/T}\to0$ for any $x$ with $E(x)>E(x^*)=\min E$; mass concentrates uniformly on the argmin set. At $T=0.2$: ratio $=e^{-1/0.2}=e^{-5}\approx0.0067$; $p(a)=1/(1+0.0067)\approx0.9933$, $p(b)\approx0.0067$. This is the annealing picture (Ch 15/Ch 12): temperature interpolates between uniform exploration and hard minimization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="normalizing-flows">
+ <h2>Normalizing flows</h2>
+ <p>A normalizing flow generates by pushing simple noise through an <em>invertible</em> network, and — because it's invertible — can compute the exact density of any point by running backward and tracking how volumes stretched. Exact likelihoods and exact sampling in one model; the price is architectural: every layer must be invertible with a tractable Jacobian determinant.</p>
+ <div class="box def"><span class="label">Definition</span> Let $x=f_\theta(z)$, $z\sim p_Z$ with $f_\theta$ a diffeomorphism. Change of variables (Ch 11): $$\log p_X(x)=\log p_Z(f_\theta^{-1}(x))+\log\Big|\det\frac{\partial f_\theta^{-1}}{\partial x}\Big|.$$ Flows compose layers whose Jacobians are triangular (coupling layers, autoregressive flows) so the log-determinant is a sum of diagonal terms.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1D affine flow $x=f(z)=2z+1$, $z\sim\mathcal N(0,1)$. Inverse $z=(x-1)/2$, $|dz/dx|=\tfrac12$. Density at $x=3$: $z=1$, $p_X(3)=\phi(1)\cdot\tfrac12=0.2420\cdot0.5=0.1210$. Check: $X\sim\mathcal N(1,4)$, so $p_X(3)=\frac{1}{2}\phi\big(\frac{3-1}{2}\big)=\tfrac12\phi(1)$ ✓ — the flow computed the exact Gaussian density by bookkeeping the stretch factor.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the scale and shift of an affine flow $x=az+b$ and watch the base density (grey) transform into the model density (blue) — the height rescales by exactly $1/|a|$ to conserve area.</p>
+  <canvas id="cv-flowx"></canvas>
+  <div class="ctl"><label>scale $a$ <input type="range" id="fl-a" min="0.4" max="3" step="0.05" value="1.6"></label>
+  <label>shift $b$ <input type="range" id="fl-b" min="-3" max="3" step="0.1" value="1"></label>
+  <label>tanh warp <input type="checkbox" id="fl-w"></label></div>
+  <div class="out" id="fl-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example (coupling layer)</span> Split $z=(z_1,z_2)$; keep $x_1=z_1$, transform $x_2=z_2\,e^{s(z_1)}+t(z_1)$ with arbitrary networks $s,t$. Jacobian is lower triangular with diagonal $(1,e^{s(z_1)})$: $\log|\det J|=s(z_1)$, computed for free; the inverse is $z_2=(x_2-t(x_1))e^{-s(x_1)}$ — also free. Stack many such layers with alternating splits: expressive, exactly invertible, exact likelihood.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must a flow's latent dimension equal the data dimension?<details class="sol"><summary>Solution</summary><div>Invertibility: a bijection between spaces of different dimensions is impossible (no volume bookkeeping otherwise). This also means flows can't directly give compressed latents — unlike VAEs.</div></details></li>
+  <li><span class="lvl m">MED</span> For $x=f(z)$ with $f(z)=z^3+z$ (strictly increasing), write $\log p_X(x)$ at the point corresponding to $z=1$, with $z\sim\mathcal N(0,1)$.<details class="sol"><summary>Solution</summary><div>$f'(z)=3z^2+1$; at $z=1$, $f'=4$. $\log p_X(f(1))=\log\phi(1)-\log4=\log(0.2420)-1.386=-1.419-1.386=-2.805$. (Using $|\det\partial f^{-1}/\partial x|=1/f'(z)$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that a composition of flows multiplies Jacobian determinants, so log-densities accumulate as sums, and explain why triangular-Jacobian layers make an $n$-dimensional determinant $O(n)$ instead of $O(n^3)$.<details class="sol"><summary>Solution</summary><div>For $x=f_2(f_1(z))$: $\frac{\partial x}{\partial z}=J_2J_1$ and $\det(J_2J_1)=\det J_2\det J_1$, so $\log|\det|$ sums layerwise (chain rule for volumes). A triangular matrix's determinant is the product of its diagonal — $O(n)$ to compute — while a general determinant costs $O(n^3)$ (LU, Ch 18). Coupling/autoregressive designs constrain each output to depend only on "earlier" inputs, forcing triangularity by construction.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="score-functions">
+ <h2>Score functions</h2>
+ <p>The score is the gradient of the log-density with respect to the data point: a vector field over data space in which every arrow points "uphill toward higher probability". Knowing the score everywhere is as good as knowing the distribution — you can sample by following the arrows with noise (Langevin dynamics, Ch 12) — and, crucially, the score never involves the normalizing constant.</p>
+ <div class="box def"><span class="label">Definition</span> The (Stein) score of a density $p$ is $$s(x)=\nabla_x\log p(x).$$ For an EBM, $s(x)=-\nabla_xE(x)$. Langevin sampling: $x_{k+1}=x_k+\frac{\eta}{2}s(x_k)+\sqrt{\eta}\,\epsilon_k$, $\epsilon_k\sim\mathcal N(0,I)$, converges to $p$ as $\eta\to0$, steps $\to\infty$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>The arrows show the score field of a two-Gaussian mixture; press Run to release Langevin particles and watch them settle into the modes. Slide the mode separation.</p>
+  <canvas id="cv-score"></canvas>
+  <div class="ctl"><label>mode separation <input type="range" id="sc-sep" min="0.5" max="3" step="0.1" value="2"></label>
+  <label>step size η <input type="range" id="sc-eta" min="0.01" max="0.2" step="0.01" value="0.06"></label>
+  <button class="btn" id="sc-run">Run / Reset</button></div>
+  <div class="out" id="sc-scoreout"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Gaussian $p=\mathcal N(\mu,\sigma^2)$: $\log p=-\frac{(x-\mu)^2}{2\sigma^2}+c$, so $s(x)=\frac{\mu-x}{\sigma^2}$ — an arrow pointing at the mean, stronger farther away. For the mixture $\tfrac12\mathcal N(-2,1)+\tfrac12\mathcal N(2,1)$ at $x=0$: by symmetry the two pulls cancel, $s(0)=0$ — a saddle of the log-density between modes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the score of $\mathcal N(1,4)$ at $x=3$.<details class="sol"><summary>Solution</summary><div>$s(3)=\frac{1-3}{4}=-0.5$ — pointing back toward the mean.</div></details></li>
+  <li><span class="lvl m">MED</span> Show the score of a mixture $p=\sum_k\pi_kp_k$ is the posterior-weighted average of component scores: $s(x)=\sum_kw_k(x)s_k(x)$ with $w_k(x)=\frac{\pi_kp_k(x)}{p(x)}$.<details class="sol"><summary>Solution</summary><div>$\nabla\log p=\frac{\nabla p}{p}=\frac{\sum_k\pi_k\nabla p_k}{p}=\sum_k\frac{\pi_kp_k}{p}\cdot\frac{\nabla p_k}{p_k}=\sum_kw_k(x)\nabla\log p_k(x)$. ∎ The field smoothly interpolates between component fields according to responsibility.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is a pure gradient ascent on $\log p$ (Langevin without noise) a bad sampler, and what exactly does the $\sqrt\eta\,\epsilon$ term fix?<details class="sol"><summary>Solution</summary><div>Noiseless ascent converges to the nearest <em>mode</em> and stays: the limiting "distribution" is point masses at local maxima weighted by basin of attraction — not $p$ (it ignores each mode's width/mass and has zero entropy). The injected noise makes the process a discretized SDE whose stationary distribution is $p$ itself (Fokker–Planck, Ch 12): the noise supplies the entropy that lets samples spread through each mode in proportion to its probability, and (over long times) hop between modes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="score-matching">
+ <h2>Score matching</h2>
+ <p>If we can't compute $Z$, let's not fit densities — let's fit scores. Score matching trains a network $s_\theta(x)$ to equal $\nabla_x\log p_{\text{data}}(x)$ by minimizing their squared difference. The magic: an integration-by-parts identity removes the unknown data score from the objective, leaving only computable terms.</p>
+ <div class="box def"><span class="label">Definition</span> Explicit objective: $J(\theta)=\tfrac12\mathbb E_{p_{\text{data}}}\|s_\theta(x)-\nabla_x\log p_{\text{data}}(x)\|^2$. Hyvärinen's identity: up to a $\theta$-free constant, $$J(\theta)=\mathbb E_{p_{\text{data}}}\Big[\tfrac12\|s_\theta(x)\|^2+\nabla_x\!\cdot\!s_\theta(x)\Big],$$ where $\nabla\!\cdot\!s_\theta=\sum_i\partial s_{\theta,i}/\partial x_i$ (trace of the Jacobian) — no $p_{\text{data}}$ gradients, no $Z$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit a linear score $s_\theta(x)=-\theta x$ (i.e. a centered Gaussian with precision $\theta$) to data with $\mathbb E[x^2]=4$ (1D). Objective: $\mathbb E[\tfrac12\theta^2x^2-\theta]=\tfrac12\theta^2\cdot4-\theta$ (since $\partial_x(-\theta x)=-\theta$). Minimize: $4\theta-1=0\Rightarrow\theta=\tfrac14$ — precision $=1/\text{variance}$, exactly the Gaussian MLE. Score matching recovered it without ever normalizing.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The divergence term needs $\sum_i\partial s_i/\partial x_i$ — a trace of a Jacobian, costing $d$ backprops in $d$ dimensions. For images ($d\sim10^5$) that's hopeless. Practical routes: sliced score matching (random-projection Hutchinson estimates of the trace) or denoising score matching, next — which is what everyone actually uses.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does score matching sidestep the normalizing constant?<details class="sol"><summary>Solution</summary><div>It matches $\nabla_x\log p$, and $\log Z$ has zero $x$-gradient: scores of $e^{-E}/Z$ and of unnormalized $e^{-E}$ are identical.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch the integration-by-parts step of Hyvärinen's identity in 1D.<details class="sol"><summary>Solution</summary><div>Expand $J=\tfrac12\mathbb E[s_\theta^2]-\mathbb E[s_\theta\,(\log p)']+c$. The cross term: $\int p\,s_\theta\,\frac{p'}{p}dx=\int s_\theta\,p'\,dx=[s_\theta p]_{-\infty}^{\infty}-\int s_\theta'\,p\,dx=-\mathbb E[s_\theta'(x)]$ (boundary terms vanish for decaying $p$). So $J=\mathbb E[\tfrac12s_\theta^2+s_\theta']+c$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Fit $s_\theta(x)=-\theta(x-m)$ with both $\theta,m$ free to data with mean $1$ and variance $4$, using the Hyvärinen objective.<details class="sol"><summary>Solution</summary><div>$J=\mathbb E[\tfrac12\theta^2(x-m)^2-\theta]$. $\partial J/\partial m=-\theta^2\mathbb E[x-m]=0\Rightarrow m=\mathbb E[x]=1$. Then $\mathbb E[(x-m)^2]=\mathrm{Var}=4$ and $\partial J/\partial\theta=4\theta-1=0\Rightarrow\theta=\tfrac14$. Recovered $\mathcal N(1,4)$: score matching consistently estimates exponential-family parameters.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="denoising-score-matching">
+ <h2>Denoising score matching</h2>
+ <p>Denoising score matching replaces the expensive divergence term with a beautifully simple target: corrupt the data with Gaussian noise, and train the network to point from the noisy point back toward the clean one. The optimal solution is exactly the score of the <em>noised</em> data distribution — and "predict the noise" becomes the training objective of every diffusion model.</p>
+ <div class="box def"><span class="label">Definition</span> Let $\tilde x=x+\sigma\epsilon$, $\epsilon\sim\mathcal N(0,I)$, and $p_\sigma$ be the density of $\tilde x$. Vincent's theorem: minimizing $$\mathbb E_{x\sim p_{\text{data}},\,\epsilon}\Big\|s_\theta(\tilde x)-\underbrace{\Big(-\frac{\epsilon}{\sigma}\Big)}_{\nabla_{\tilde x}\log q(\tilde x\mid x)}\Big\|^2$$ yields $s_\theta(\tilde x)=\nabla_{\tilde x}\log p_\sigma(\tilde x)$ — the true score of the smoothed distribution.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data concentrated at the single point $x_0=2$ (a delta), noise $\sigma=1$. Then $p_\sigma=\mathcal N(2,1)$, whose true score at $\tilde x=3$ is $\frac{2-3}{1}=-1$. The DSM target for a sample that landed at $\tilde x=3$ (so $\epsilon=1$): $-\epsilon/\sigma=-1$ ✓ — pointing from the noisy point straight back at the data. With many data points, the optimal network outputs the <em>posterior-averaged</em> direction $\mathbb E[x\mid\tilde x]$-ward: $s(\tilde x)=\frac{\mathbb E[x\mid\tilde x]-\tilde x}{\sigma^2}$ (Tweedie's formula).</div>
+ <div class="box link"><span class="label">Where this goes</span> Train this at many noise scales and you have a diffusion model's denoiser; Tweedie's formula is the bridge between "noise prediction" and "score" used constantly in Ch 22's remaining sections.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify $\nabla_{\tilde x}\log q(\tilde x\mid x)=-\frac{\tilde x-x}{\sigma^2}=-\frac{\epsilon}{\sigma}$ for $q=\mathcal N(\tilde x;x,\sigma^2I)$.<details class="sol"><summary>Solution</summary><div>$\log q=-\frac{\|\tilde x-x\|^2}{2\sigma^2}+c$; gradient in $\tilde x$: $-\frac{\tilde x-x}{\sigma^2}$, and $\tilde x-x=\sigma\epsilon$ gives $-\epsilon/\sigma$. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> State Tweedie's formula for Gaussian corruption and use it to express the optimal denoiser via the score.<details class="sol"><summary>Solution</summary><div>Tweedie: $\mathbb E[x\mid\tilde x]=\tilde x+\sigma^2\nabla_{\tilde x}\log p_\sigma(\tilde x)$. So the MMSE denoiser is one score-step from $\tilde x$; conversely a trained denoiser $D(\tilde x)$ yields the score $s(\tilde x)=(D(\tilde x)-\tilde x)/\sigma^2$. Denoising and score estimation are the same problem.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is the score of the <em>noised</em> distribution $p_\sigma$ (rather than $p_{\text{data}}$) actually preferable for generative modeling with data on a low-dimensional manifold?<details class="sol"><summary>Solution</summary><div>On a manifold of dimension $<d$, $p_{\text{data}}$ has no density w.r.t. Lebesgue measure: $\nabla\log p$ is undefined off (and singular on) the manifold, and estimates are ill-posed in the empty regions a sampler must traverse. Convolving with Gaussian noise makes $p_\sigma$ smooth and positive everywhere, giving well-defined scores globally; annealing $\sigma$ from large to small (as diffusion does) provides a curriculum of everywhere-valid vector fields guiding samples from noise onto the manifold.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="diffusion-models">
+ <h2>Diffusion models</h2>
+ <p>A diffusion model destroys data slowly and learns to rebuild it: the forward process adds a little Gaussian noise at each of many steps until only noise remains; a network learns to undo one step at a time; generation starts from pure noise and runs the learned denoising chain backward. Each step is a small, easy regression problem — which is why training is stable where GANs are fragile.</p>
+ <div class="box def"><span class="label">Definition</span> Forward (fixed): $q(x_t\mid x_{t-1})=\mathcal N(\sqrt{1-\beta_t}\,x_{t-1},\ \beta_tI)$ for $t=1..T$ with small variances $\beta_t$. Closed form: $$q(x_t\mid x_0)=\mathcal N(\sqrt{\bar\alpha_t}\,x_0,\ (1-\bar\alpha_t)I),\qquad \bar\alpha_t=\prod_{s\le t}(1-\beta_s),$$ so $x_t=\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\,\epsilon$. Reverse (learned): $p_\theta(x_{t-1}\mid x_t)=\mathcal N(\mu_\theta(x_t,t),\tilde\beta_tI)$, trained so the reverse chain inverts the forward one.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $t$ to watch a bimodal data distribution dissolve into a Gaussian under the forward process — then imagine running the movie backward: that is generation.</p>
+  <canvas id="cv-diff"></canvas>
+  <div class="ctl"><label>diffusion time $t/T$ <input type="range" id="df-t" min="0" max="1" step="0.01" value="0.25"></label></div>
+  <div class="out" id="df-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> Linear schedule reaching $\bar\alpha_t=0.64$ at some $t$. Then $x_t=0.8\,x_0+0.6\,\epsilon$ (since $\sqrt{0.64}=0.8$, $\sqrt{0.36}=0.6$). For a data point $x_0=2$ and noise draw $\epsilon=-1$: $x_t=1.6-0.6=1.0$. Signal-to-noise ratio at this $t$: $\frac{\bar\alpha_t}{1-\bar\alpha_t}=\frac{0.64}{0.36}\approx1.78$; by $\bar\alpha=0.01$ the SNR is $\approx0.01$ — the image is gone.</div>
+ <div class="quiz" data-answer="2"><div class="q">During diffusion <em>training</em>, how many denoising steps are executed per training example?</div><button class="opt">All $T$ steps sequentially</button><button class="opt">Ten, on a fixed grid</button><button class="opt">One: a single random $t$ is sampled and the network denoises that level</button><div class="why" hidden>The closed form $q(x_t\mid x_0)$ lets training jump straight to any noise level: sample $t\sim\mathrm{Unif}\{1..T\}$, make $x_t$ in one shot, predict $\epsilon$. Only <em>sampling</em> pays the sequential cost — the asymmetry that makes diffusion training cheap and generation slow.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\bar\alpha_t=0.25$, write $x_t$ in terms of $x_0$ and $\epsilon$.<details class="sol"><summary>Solution</summary><div>$x_t=0.5\,x_0+\sqrt{0.75}\,\epsilon\approx0.5x_0+0.866\,\epsilon$.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the closed form $q(x_t\mid x_0)$ for two steps: $x_2$ from $x_0$ with variances $\beta_1,\beta_2$.<details class="sol"><summary>Solution</summary><div>$x_1=\sqrt{1-\beta_1}x_0+\sqrt{\beta_1}\epsilon_1$; $x_2=\sqrt{1-\beta_2}x_1+\sqrt{\beta_2}\epsilon_2=\sqrt{(1-\beta_1)(1-\beta_2)}x_0+\sqrt{(1-\beta_2)\beta_1}\epsilon_1+\sqrt{\beta_2}\epsilon_2$. The two independent Gaussian terms sum to one with variance $(1-\beta_2)\beta_1+\beta_2=1-(1-\beta_1)(1-\beta_2)$: so $x_2=\sqrt{\bar\alpha_2}x_0+\sqrt{1-\bar\alpha_2}\epsilon$ with $\bar\alpha_2=(1-\beta_1)(1-\beta_2)$. Induction extends to any $t$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the forward posterior $q(x_{t-1}\mid x_t,x_0)$ is Gaussian with mean $\tilde\mu_t(x_t,x_0)=\frac{\sqrt{\bar\alpha_{t-1}}\beta_t}{1-\bar\alpha_t}x_0+\frac{\sqrt{\alpha_t}(1-\bar\alpha_{t-1})}{1-\bar\alpha_t}x_t$ (with $\alpha_t=1-\beta_t$), and explain its role.<details class="sol"><summary>Solution</summary><div>All three variables are jointly Gaussian; apply Bayes: $q(x_{t-1}\mid x_t,x_0)\propto q(x_t\mid x_{t-1})q(x_{t-1}\mid x_0)$, a product of two Gaussians in $x_{t-1}$ — complete the square: precision $=\frac{\alpha_t}{\beta_t}+\frac{1}{1-\bar\alpha_{t-1}}=\frac{1-\bar\alpha_t}{\beta_t(1-\bar\alpha_{t-1})}$, and the mean coefficient collection gives the stated $\tilde\mu_t$. Role: it is the <em>target</em> the learned reverse kernel must match — the DDPM training loss is (a weighted) KL between $p_\theta(x_{t-1}\mid x_t)$ and this posterior, with $x_0$ estimated by the network.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="ddpm">
+ <h2>DDPM</h2>
+ <p>DDPM is the concrete recipe that made diffusion work: parameterize the reverse mean by predicting the <em>noise</em> $\epsilon$ that was added, train with plain squared error on that prediction at random noise levels, and sample by iteratively subtracting predicted noise with a bit of fresh noise re-injected. The exotic-looking ELBO of the diffusion chain collapses to "guess the noise".</p>
+ <div class="box def"><span class="label">Definition</span> Training loss (simplified ELBO): $$\mathcal L_{\text{simple}}=\mathbb E_{x_0,\epsilon,t}\big\|\epsilon-\epsilon_\theta\big(\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\,\epsilon,\ t\big)\big\|^2.$$ Sampling step: $$x_{t-1}=\frac{1}{\sqrt{\alpha_t}}\Big(x_t-\frac{\beta_t}{\sqrt{1-\bar\alpha_t}}\,\epsilon_\theta(x_t,t)\Big)+\sqrt{\tilde\beta_t}\,z,\quad z\sim\mathcal N(0,I)\ (z=0\text{ at }t=1).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> 1D, one step with $\alpha_t=0.99$ ($\beta_t=0.01$), $\bar\alpha_t=0.81$, current $x_t=1.2$, network predicts $\epsilon_\theta=0.9$. Mean: $\frac{1}{\sqrt{0.99}}\big(1.2-\frac{0.01}{\sqrt{0.19}}\cdot0.9\big)=\frac{1}{0.99499}(1.2-\frac{0.009}{0.43589})=\frac{1.2-0.020648}{0.99499}\approx\frac{1.17935}{0.99499}\approx1.1853$. Add noise $\sqrt{\tilde\beta_t}z$ (small) and repeat ~1000 times from $x_T\sim\mathcal N(0,1)$ down to $x_0$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The noise-prediction and score views must not be double-counted: $\epsilon_\theta$ relates to the score by $s_\theta(x_t,t)=-\frac{\epsilon_\theta(x_t,t)}{\sqrt{1-\bar\alpha_t}}$. Mixing conventions (predicting $x_0$, $\epsilon$, or "v") with the wrong coefficients is the most common diffusion implementation bug; each is a linear reparameterization of the same target, with different loss weightings across $t$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From $x_t=\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\epsilon$ and a noise prediction $\hat\epsilon$, recover the implied clean image $\hat x_0$.<details class="sol"><summary>Solution</summary><div>$\hat x_0=\frac{x_t-\sqrt{1-\bar\alpha_t}\,\hat\epsilon}{\sqrt{\bar\alpha_t}}$.</div></details></li>
+  <li><span class="lvl m">MED</span> With $\bar\alpha_t=0.81$, $x_t=1.2$ and $\hat\epsilon=0.9$ (worked example), compute $\hat x_0$, and verify the sampling-step mean equals $\tilde\mu_t(x_t,\hat x_0)$ from the diffusion-models drill.<details class="sol"><summary>Solution</summary><div>$\hat x_0=\frac{1.2-\sqrt{0.19}\cdot0.9}{0.9}=\frac{1.2-0.39230}{0.9}=0.89744$. Posterior-mean formula with $\bar\alpha_{t-1}=\bar\alpha_t/\alpha_t=0.81/0.99=0.81818$: $\tilde\mu=\frac{\sqrt{0.81818}\cdot0.01}{0.19}\cdot0.89744+\frac{\sqrt{0.99}\cdot(1-0.81818)}{0.19}\cdot1.2=\frac{0.90454\cdot0.01}{0.19}\cdot0.89744+\frac{0.99499\cdot0.18182}{0.19}\cdot1.2$ $=0.047608\cdot0.89744+0.952098\cdot1.2\approx0.042725+1.142518=1.18524$ — matching $1.1853$ from the worked example up to rounding. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does re-injecting fresh noise $\sqrt{\tilde\beta_t}z$ during sampling improve results over deterministic mean-following (in the DDPM parameterization)?<details class="sol"><summary>Solution</summary><div>The reverse process is a <em>distribution</em> $\mathcal N(\tilde\mu,\tilde\beta_tI)$: its variance is part of matching the forward chain's posterior. Following only means composes conditional expectations, which contracts toward conditional averages — losing the diversity the chain owes at each step and accumulating bias (the composition of means is not the mean of the composition for nonlinear dynamics). The noise keeps the marginal at each $t$ correct. (Deterministic samplers — DDIM, probability-flow ODE — are legitimate but correspond to a <em>different</em>, noise-free process with the same marginals, not to dropping the variance from DDPM's kernel.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="score-based-sde-view-of-diffusion">
+ <h2>Score-based SDE view of diffusion</h2>
+ <p>Zoom out from discrete steps and diffusion becomes a stochastic differential equation (Ch 12): the forward SDE drifts data toward noise; a classical result of Anderson says the time-reversed process is again an SDE whose drift needs exactly one unknown — the score of the noised marginal at each time. Learn the score, plug it in, integrate backward: that is sampling. The same marginals can even be traversed by a deterministic ODE.</p>
+ <div class="box def"><span class="label">Definition</span> Forward SDE: $dx=f(x,t)\,dt+g(t)\,dW$ (e.g. VP-SDE $dx=-\tfrac12\beta(t)x\,dt+\sqrt{\beta(t)}dW$, the continuous limit of DDPM). Reverse-time SDE: $$dx=\big[f(x,t)-g(t)^2\,\nabla_x\log p_t(x)\big]dt+g(t)\,d\bar W,$$ run from $t=T$ to $0$. Probability-flow ODE with identical marginals: $dx=\big[f-\tfrac12g^2\nabla_x\log p_t\big]dt$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Ornstein–Uhlenbeck forward: $dx=-x\,dt+\sqrt2\,dW$ ($f=-x$, $g=\sqrt2$), stationary at $\mathcal N(0,1)$. Suppose the data at $t$ is $p_t=\mathcal N(m_t,1)$ (unit variance for simplicity); its score is $s(x)=m_t-x$. Reverse drift: $f-g^2s=-x-2(m_t-x)=x-2m_t$: for $x$ below $m_t$... evaluate at $x=m_t$: drift $=-m_t$ pushing along the reversed mean path; at $x=m_t+1$: drift $=1-m_t$ — relative to the mean the reverse drift is $+(x-m_t)\cdot1$ pointing <em>away</em> in forward time, i.e. contracting toward the data as reverse time advances. The learned score is the only data-dependent ingredient.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 12's reverse-time SDEs supply the theorem; the ODE view underlies fast samplers (DDIM, DPM-Solver) and exact likelihood computation via the change-of-variables along the flow.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the reverse SDE, which single object must be learned from data?<details class="sol"><summary>Solution</summary><div>The time-indexed score $\nabla_x\log p_t(x)$ — everything else ($f$, $g$) was chosen by us in the forward process.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the probability-flow ODE enable exact likelihoods for a diffusion model?<details class="sol"><summary>Solution</summary><div>The ODE is a deterministic, invertible flow between $p_0$ (data) and $p_T$ (Gaussian) with the same marginals as the SDE. Integrate the instantaneous change-of-variables (continuous normalizing flow): $\log p_0(x_0)=\log p_T(x_T)+\int_0^T\nabla\!\cdot\!\big[f-\tfrac12g^2s_\theta\big]dt$ along the trajectory — an exact density, computed with an ODE solver plus (Hutchinson-estimated) divergence.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the VP-SDE $dx=-\tfrac12\beta(t)x\,dt+\sqrt{\beta(t)}dW$ with constant $\beta$, derive the marginal of $x_t$ given $x_0$ and match it to the DDPM closed form.<details class="sol"><summary>Solution</summary><div>Linear SDE: mean obeys $\dot m=-\tfrac12\beta m$, so $m_t=x_0e^{-\beta t/2}$; variance obeys $\dot v=-\beta v+\beta$, so $v_t=1-e^{-\beta t}$ (starting at 0). Thus $x_t\sim\mathcal N(x_0e^{-\beta t/2},\,1-e^{-\beta t})$ — exactly $\sqrt{\bar\alpha_t}=e^{-\beta t/2}$, $1-\bar\alpha_t=1-e^{-\beta t}$: DDPM's $\bar\alpha_t$ is the continuous decay $e^{-\int_0^t\beta(s)ds}$, and the discrete chain is its Euler discretization.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="classifier-free-guidance">
+ <h2>Classifier-free guidance</h2>
+ <p>Conditional diffusion ("an image of a cat") often follows the prompt too weakly. Classifier-free guidance trains one network to denoise both with and without the condition (randomly dropping it during training), then at sampling time <em>extrapolates</em> past the conditional prediction, amplifying exactly the direction in which the condition changes the score. One knob, $w$, trades diversity for prompt-fidelity.</p>
+ <div class="box def"><span class="label">Definition</span> With conditional and unconditional noise predictions $\epsilon_\theta(x_t,c)$ and $\epsilon_\theta(x_t,\varnothing)$, guided prediction: $$\tilde\epsilon=\epsilon_\theta(x_t,\varnothing)+w\big(\epsilon_\theta(x_t,c)-\epsilon_\theta(x_t,\varnothing)\big),$$ $w=1$: plain conditional; $w>1$: over-emphasize the condition. Score view: $\tilde s=(1-w)s(x)+w\,s(x\mid c)$, sampling from a sharpened $p(x\mid c)\propto p(x)\,p(c\mid x)^{w}$ (up to normalization).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Two classes of a 1D mixture. Slide the guidance weight $w$ and watch the effective sampling density sharpen onto the conditioned class — at large $w$ it narrows past the true conditional (diversity loss).</p>
+  <canvas id="cv-cfg"></canvas>
+  <div class="ctl"><label>guidance $w$ <input type="range" id="cf-w" min="0" max="6" step="0.1" value="1"></label></div>
+  <div class="out" id="cf-out"></div>
+ </div>
+ <div class="box ex"><span class="label">Worked example</span> At some $x_t$, $\epsilon_\theta(x_t,\varnothing)=0.50$ and $\epsilon_\theta(x_t,c)=0.30$. With $w=3$: $\tilde\epsilon=0.50+3(0.30-0.50)=0.50-0.60=-0.10$ — beyond the conditional prediction, in the direction the condition pulls. The denoising step then moves $x_t$ more aggressively toward the class-consistent region.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Large $w$ (say $>7$ for images) causes saturation and artifacts: the extrapolated score is no valid distribution's score, samples drift off-manifold, and diversity collapses to class archetypes. Practical systems pair high $w$ with tricks (dynamic thresholding, rescaling).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does $w=0$ produce?<details class="sol"><summary>Solution</summary><div>$\tilde\epsilon=\epsilon_\theta(x_t,\varnothing)$: unconditional generation — the prompt is ignored.</div></details></li>
+  <li><span class="lvl m">MED</span> Show the score form: $\tilde s=s(x)+w[s(x\mid c)-s(x)]$ corresponds to the density $p(x)p(c\mid x)^w$ up to normalization.<details class="sol"><summary>Solution</summary><div>Bayes: $s(x\mid c)=\nabla\log p(x)+\nabla\log p(c\mid x)$. So $\tilde s=s(x)+w\nabla\log p(c\mid x)=\nabla\log\big[p(x)p(c\mid x)^w\big]$ — a classifier-tilted distribution, sharpened by exponent $w$. (Classifier guidance uses an actual classifier's gradient; classifier-free obtains the same difference from the two denoisers.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Both class conditionals are $\mathcal N(\pm\mu,1)$ with equal priors. Under guidance toward class $+$ with weight $w$, what is the effective sampling distribution in the Gaussian approximation near the $+$ mode, and what happens to its variance as $w$ grows?<details class="sol"><summary>Solution</summary><div>$p(x)p(+\mid x)^w$ with $p(+\mid x)=\sigma(2\mu x)$ (logistic in $x$). Near the $+$ mode, take the tilted log-density $\log p(x\mid +)+ (w-1)\log p(+\mid x)$: the extra term adds $\approx(w-1)\cdot$ (positive slope, negative curvature $-4\mu^2\sigma(1-\sigma)$ region) around the decision boundary — pushing the mode right and, since the guidance term's curvature is negative where the classifier is uncertain, narrowing the distribution. In the crude two-Gaussian score-mixture view $\tilde s=(1-w)s_{\text{mix}}+w\,s_+$, deep in the $+$ region $s_{\text{mix}}\approx s_+$ so little changes, but between the modes the pull toward $+$ scales with $w$: mass is evacuated from the boundary region, variance shrinks and samples concentrate on the class archetype — the observed diversity loss.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="flow-matching">
+ <h2>Flow matching</h2>
+ <p>Flow matching asks: instead of learning scores and integrating an SDE, why not directly learn the <em>velocity field</em> of a deterministic flow that transports noise to data? Pick, for every data point, a simple path from a noise sample to it (a straight line works); train a network to regress the path's velocity at random times. Sampling is then just ODE integration of the learned field.</p>
+ <div class="box def"><span class="label">Definition</span> Choose a conditional path $x_t=\psi_t(x_0,x_1)$ from noise $x_0\sim\mathcal N(0,I)$ to data $x_1$, with velocity $u_t(x_t\mid x_1)=\partial_t\psi_t$. Conditional flow matching loss: $$\mathcal L=\mathbb E_{t,\,x_0,\,x_1}\big\|v_\theta(x_t,t)-u_t(x_t\mid x_1)\big\|^2,$$ whose minimizer is the <em>marginal</em> velocity field generating $p_t$; sampling integrates $\dot x=v_\theta(x,t)$ from $t=0$ to 1.</div>
+ <div class="box ex"><span class="label">Worked example</span> Linear path: $x_t=(1-t)x_0+t\,x_1$, so $u_t=x_1-x_0$ — constant along each path. Take $x_0=-1$ (noise draw), $x_1=3$ (data): at $t=0.5$, $x_{0.5}=1$ and the regression target at $(x{=}1,t{=}0.5)$ is $u=4$. Another pair passing nearby contributes its own target; the network learns the <em>average</em> velocity of all paths through each $(x,t)$ — which is exactly the marginal field.</div>
+ <div class="box link"><span class="label">Where this goes</span> Flow matching generalizes the probability-flow ODE view of diffusion (a specific curved path choice) and is the training recipe behind recent image/video generators; rectified flow (next) is the straight-path special case with a self-straightening trick.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the linear path with $x_0=2$, $x_1=0$, what are $x_{0.25}$ and the velocity target?<details class="sol"><summary>Solution</summary><div>$x_{0.25}=0.75\cdot2+0.25\cdot0=1.5$; $u=x_1-x_0=-2$ (constant in $t$).</div></details></li>
+  <li><span class="lvl m">MED</span> Why is regressing the <em>conditional</em> velocity (per pair) sufficient to learn the <em>marginal</em> field?<details class="sol"><summary>Solution</summary><div>Squared-error regression's minimizer is the conditional expectation: $v^*(x,t)=\mathbb E[u_t(x_t\mid x_1)\mid x_t=x]$. The continuity equation is linear in velocity, so the expectation of conditional velocities over paths through $(x,t)$ is precisely the velocity field transporting the marginal $p_t$ — averaging valid per-sample transports yields a valid transport of the mixture.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compare one flow-matching sampling step to one DDPM step on three axes: stochasticity, number of function evaluations to good quality, and what the network output represents.<details class="sol"><summary>Solution</summary><div>Stochasticity: flow matching integrates a deterministic ODE (same noise draw → same image); DDPM's kernel injects noise each step. Function evaluations: straight-ish learned fields integrate accurately in few steps (tens, or even 1–4 after rectification/distillation) versus DDPM's hundreds–1000 (its SDE discretization needs small steps). Output semantics: $v_\theta$ is a velocity (displacement per unit time toward data); $\epsilon_\theta$ is a noise estimate, convertible to a score. The families are linked: the probability-flow ODE of a diffusion is one particular flow-matching field.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rectified-flow">
+ <h2>Rectified flow</h2>
+ <p>Rectified flow takes flow matching's straight-line paths seriously: train on straight interpolations, then <em>reflow</em> — regenerate pairs by running your own model (coupling each noise sample to the data point it produces) and retrain on those. Each round straightens the learned trajectories further; near-straight trajectories can be integrated in very few steps, even one.</p>
+ <div class="box def"><span class="label">Definition</span> Rectified flow trains $v_\theta$ on linear paths $x_t=(1-t)x_0+tx_1$ with loss $\mathbb E\|v_\theta(x_t,t)-(x_1-x_0)\|^2$, where initially $(x_0,x_1)$ are independent noise/data draws. The <em>reflow</em> operation replaces the coupling with $(x_0,\hat x_1)$ where $\hat x_1=\mathrm{ODE}_{v_\theta}(x_0)$, and retrains; each reflow provably does not increase (and typically decreases) transport cost and straightens paths.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1D data at $\{-1,+1\}$ (equal mass), noise $\mathcal N(0,1)$. With independent coupling, a noise point near $0$ is paired half the time with $-1$ and half with $+1$: the marginal velocity at $(x{\approx}0,t{\approx}0)$ averages to $\approx0$ and trajectories must curve later to commit. After one reflow, each noise point is paired with the mode its own trajectory reached — negative noise with $-1$, positive with $+1$ (approximately): targets through any point now agree, the field near 0 points decisively, and paths become nearly straight lines from $x_0<0$ to $-1$, $x_0>0$ to $+1$. A one-step Euler jump $x_1\approx x_0+v(x_0,0)$ then lands close to the modes.</div>
+ <div class="box think"><span class="label">Think first</span> Why can't the <em>first</em>-round model already have straight trajectories, if it was trained on straight paths? <details class="sol"><summary>Reveal</summary><div>Because paths from different pairs cross: at a crossing point the network must output one velocity — the average — so the realized ODE trajectories bend even though every training path was straight. Straightness of targets ≠ straightness of the marginal flow. Reflow eliminates crossings by re-pairing noise with its own destinations (a deterministic coupling can't cross itself... more precisely, ODE trajectories of a Lipschitz field never cross in $(x,t)$), so targets through each point agree and the field's trajectories straighten.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why do straight trajectories permit few-step sampling?<details class="sol"><summary>Solution</summary><div>Euler integration is exact on straight lines: $x_1=x_0+1\cdot v$ in a single step; curvature is what forces small steps.</div></details></li>
+  <li><span class="lvl m">MED</span> In the worked example before reflow, what is the marginal velocity at exactly $x=0$, $t=0$, and why?<details class="sol"><summary>Solution</summary><div>Targets are $x_1-x_0=\pm1-0$, each with probability $\tfrac12$ (both modes equally likely partners): conditional expectation $=0$. The model must "stall" at the symmetric point — the crossing problem in miniature.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that reflow cannot increase the expected transport cost $\mathbb E\|x_1-x_0\|^2$ of the coupling.<details class="sol"><summary>Solution</summary><div>For the ODE coupling, the path from $x_0$ to $\hat x_1$ has length $\int_0^1\|v(x_t,t)\|dt$, and by Cauchy–Schwarz/Jensen, $\|\hat x_1-x_0\|^2=\|\int v\,dt\|^2\le\int\|v\|^2dt$. Meanwhile the training objective ensures $\mathbb E\int\|v\|^2dt\le\mathbb E\int\|u_t\|^2dt=\mathbb E\|x_1-x_0\|^2$ of the previous coupling (the marginal field is an $L^2$ projection — averaging — of conditional velocities, and averaging cannot increase second moments). Chaining: new cost $\le$ old cost, with equality only if paths never crossed. ∎ (This is Liu et al.'s straightening lemma in sketch.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="likelihood-free-generation">
+ <h2>Likelihood-free generation</h2>
+ <p>Some models never define a density at all: they only know how to <em>sample</em> (an implicit model, like a GAN generator or a simulator). Training and evaluating such models needs likelihood-free principles — adversarial discriminators, moment matching between sample sets, or simulation-based inference — all ways of comparing two piles of samples without ever writing $p(x)$.</p>
+ <div class="box def"><span class="label">Definition</span> An implicit generative model is a sampler $x=G_\theta(z)$, $z\sim p(z)$, with no tractable $p_\theta(x)$. Likelihood-free training minimizes a discrepancy estimable from samples alone, e.g. maximum mean discrepancy $$\mathrm{MMD}^2(p,q)=\mathbb E_{x,x'\sim p}[k(x,x')]-2\,\mathbb E_{x\sim p,y\sim q}[k(x,y)]+\mathbb E_{y,y'\sim q}[k(y,y')]$$ for a kernel $k$ (Ch 19), or an adversarial divergence (GAN), or a scoring-rule/simulation-based posterior.</div>
+ <div class="box ex"><span class="label">Worked example</span> MMD with linear kernel $k(x,y)=xy$ on samples $P=\{1,3\}$, $Q=\{0,2\}$. $\mathbb E_{P}[xx']=\mathrm{mean}\{1,3,3,9\}=4$; $\mathbb E_{PQ}[xy]=\mathrm{mean}\{0,2,0,6\}=2$; $\mathbb E_Q[yy']=\mathrm{mean}\{0,0,0,4\}=1$. $\mathrm{MMD}^2=4-4+1=1=(\bar P-\bar Q)^2=(2-1)^2$ ✓ — the linear kernel compares means only; richer kernels (RBF) compare all moments.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "The model gave my test point high quality" is not a likelihood statement: implicit models cannot be compared by held-out log-likelihood at all, and sample-quality metrics can be gamed (a model that memorizes the training set has superb samples). Always pair fidelity metrics with diversity/coverage and memorization checks.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name two model families in this chapter with tractable likelihoods and two without.<details class="sol"><summary>Solution</summary><div>Tractable: autoregressive models, normalizing flows (VAEs give a bound; diffusion gives a bound or ODE-exact value). Not tractable: GANs, generic simulators (implicit models).</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\mathrm{MMD}^2\ge0$ and identify when it is 0 for a characteristic kernel.<details class="sol"><summary>Solution</summary><div>$\mathrm{MMD}^2=\|\mu_p-\mu_q\|_{\mathcal H}^2$ where $\mu_p=\mathbb E[k(x,\cdot)]$ is the kernel mean embedding — expanding the squared RKHS norm gives exactly the three-term formula, hence $\ge0$. For characteristic kernels (e.g. RBF), the embedding is injective: $\mathrm{MMD}=0\iff p=q$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does the GAN discriminator count as a "learned two-sample test", and what failure mode follows when the discriminator is too weak?<details class="sol"><summary>Solution</summary><div>$D$ is trained to distinguish samples of $p_{\text{data}}$ from $p_G$ — literally a classifier-based two-sample test; its achievable accuracy is a divergence estimate (optimal $D$'s loss encodes JSD). If $D$'s capacity is too low, distributions that differ in features $D$ cannot represent are "equal" to the test: the generator can win while wrong in every way $D$ is blind to (e.g. global counts, long-range structure). The training signal is only as good as the test — which is also why evaluation metrics based on weak features (next section) inherit blind spots.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="evaluating-generative-models">
+ <h2>Evaluating generative models</h2>
+ <p>How do you grade a machine for making things? Three axes: fidelity (are individual samples good?), diversity/coverage (is the whole distribution represented?), and generalization (is it new, or memorized?). No single number captures all three; the standard tools each formalize a slice — log-likelihood, FID-style embedding distances, precision/recall for distributions, and human evaluation.</p>
+ <div class="box def"><span class="label">Definition</span> Fréchet Inception Distance: embed real and generated samples with a fixed feature network; fit Gaussians $(\mu_r,\Sigma_r)$, $(\mu_g,\Sigma_g)$; then $$\mathrm{FID}=\|\mu_r-\mu_g\|^2+\mathrm{tr}\big(\Sigma_r+\Sigma_g-2(\Sigma_r\Sigma_g)^{1/2}\big)$$ — the Fréchet (Wasserstein-2) distance between the two Gaussians. Lower is better. Complementary: log-likelihood in bits/dim (where available), and distributional precision (fraction of generated samples near the real manifold) vs recall (fraction of real modes covered).</div>
+ <div class="box ex"><span class="label">Worked example</span> 1D embeddings: real $(\mu_r,\sigma_r^2)=(0,1)$, generated $(\mu_g,\sigma_g^2)=(0.5,0.64)$. $\mathrm{FID}=(0.5)^2+\big(1+0.64-2\sqrt{1\cdot0.64}\big)=0.25+(1.64-1.6)=0.25+0.04=0.29$. A mode-collapsed model with perfect mean but $\sigma_g^2=0.09$: $0+(1.09-0.6)=0.49$ — worse, because FID's trace term punishes missing variance (diversity), not just wrong means.</div>
+ <div class="quiz" data-answer="1"><div class="q">Model A memorizes the training set and emits its images verbatim. What do FID (against a held-out set drawn from the same distribution) and a memorization check report?</div><button class="opt">High FID, no memorization</button><button class="opt">Excellent (low) FID, but nearest-neighbor checks reveal training-set copies</button><button class="opt">FID is undefined for memorizing models</button><div class="why" hidden>Training data has the true distribution's statistics, so embedded moments match and FID is excellent — FID cannot detect memorization. Nearest-neighbor distance from each sample to the training set exposes the copying; generalization must be tested separately from fidelity.</div></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which failure does high precision + low recall indicate?<details class="sol"><summary>Solution</summary><div>Mode collapse: samples are individually realistic (near the data manifold) but cover only part of it — classic GAN pathology.</div></details></li>
+  <li><span class="lvl m">MED</span> Give one concrete reason likelihood and sample quality can disagree in both directions.<details class="sol"><summary>Solution</summary><div>Great likelihood, poor samples: likelihood is dominated by imperceptible-noise modeling (bits/dim rewards fine texture statistics), and a model can spread mass thinly over good regions it can't actually render sharply. Poor likelihood, great samples: a mode-collapsed sharp model assigns $\approx0$ density to most real data (infinite penalty) while producing lovely images from the modes it kept. The two metrics measure different projections of the mismatch.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute FID for 1D embeddings with real $(0,1)$ and generated $(0,4)$, and explain why FID's Gaussian assumption can mislead for multimodal embedding distributions.<details class="sol"><summary>Solution</summary><div>$\mathrm{FID}=0+(1+4-2\cdot\sqrt4)=5-4=1$. FID sees only the first two moments: a bimodal generated distribution with matching mean/covariance scores 0 against a unimodal real one despite being visibly different; conversely two identical-up-to-skew distributions can score badly. Remedies: kernel-based distances (KID/MMD with characteristic kernels) or precision/recall curves that examine the actual supports.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>One VAE step, end to end.</b> A 1D VAE has decoder $p_\theta(x\mid z)=\mathcal N(2z,1)$ and encoder output $\mu=0.6$, $\sigma=0.8$ for a data point $x=1$. (a) Reparameterize with $\epsilon=0.5$ and compute $z$. (b) Compute the reconstruction log-likelihood $\log p_\theta(x{=}1\mid z)$. (c) Compute the KL term and the single-sample ELBO estimate.<details class="sol"><summary>Solution</summary><div>(a) $z=0.6+0.8\cdot0.5=1.0$. (b) $\log\mathcal N(1;2\cdot1,1)=-\tfrac12\ln2\pi-\tfrac12(1-2)^2=-0.9189-0.5=-1.4189$. (c) $\mathrm{KL}=\tfrac12(\sigma^2+\mu^2-1-\ln\sigma^2)=\tfrac12(0.64+0.36-1-\ln0.64)=\tfrac12(0+0.4463)=0.2231$. ELBO estimate $=-1.4189-0.2231=-1.6420$ nats.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Score, Tweedie, and one denoising step agree.</b> Data: $x_0\sim\mathcal N(1,\,0.25)$ (a Gaussian "dataset"). Forward noise to $\bar\alpha=0.64$: $x_t=0.8x_0+0.6\epsilon$. (a) Find the exact marginal of $x_t$. (b) Compute the exact score at $x_t=0.2$. (c) Use Tweedie to get $\mathbb E[x_0\mid x_t{=}0.2]$ — careful: apply it in the scaled variable. (d) Verify with the optimal $\epsilon$-prediction and $\hat x_0=(x_t-0.6\hat\epsilon)/0.8$.<details class="sol"><summary>Solution</summary><div>(a) $x_t=0.8x_0+0.6\epsilon$: mean $0.8\cdot1=0.8$; variance $0.64\cdot0.25+0.36=0.16+0.36=0.52$. $x_t\sim\mathcal N(0.8,0.52)$. (b) $s(0.2)=\frac{0.8-0.2}{0.52}=1.1538$. (c) Tweedie for $x_t=0.8x_0+0.6\epsilon$: work with $y=x_t$, prior on $m=0.8x_0\sim\mathcal N(0.8,0.16)$, noise var $0.36$: $\mathbb E[m\mid y]=y+0.36\,s(y)=0.2+0.36\cdot1.1538=0.6154$. Then $\mathbb E[x_0\mid x_t]=0.6154/0.8=0.7692$. Direct check (Gaussian posterior, Ch 11): $\mathbb E[x_0\mid x_t]=1+\frac{\mathrm{Cov}(x_0,x_t)}{\mathrm{Var}(x_t)}(x_t-0.8)=1+\frac{0.8\cdot0.25}{0.52}(-0.6)=1-\frac{0.12}{0.52}=1-0.2308=0.7692$ ✓. (d) Optimal $\hat\epsilon=\mathbb E[\epsilon\mid x_t]$: from $x_t=0.8x_0+0.6\epsilon$, $\hat\epsilon=(x_t-0.8\hat x_0)/0.6=(0.2-0.6154)/0.6=-0.6923$; then $\hat x_0=(0.2-0.6\cdot(-0.6923))/0.8=(0.2+0.4154)/0.8=0.7692$ ✓ — all three views coincide.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Pick the right family.</b> For each requirement, choose the best-suited model class from this chapter and justify in two sentences: (a) exact log-likelihoods for anomaly detection on tabular data; (b) real-time (single-forward-pass) generation of faces; (c) highest-fidelity text-conditioned images with a tunable fidelity/diversity knob; (d) discrete tokens for a downstream autoregressive multimodal model.<details class="sol"><summary>Solution</summary><div>(a) Normalizing flow (or autoregressive): exact, cheap $\log p(x)$ per point; flows also give fast batched evaluation with no sequential loop. (b) GAN (or a 1-step distilled/rectified flow): one generator pass per sample; diffusion's iterative sampling misses the latency budget, though distillation closes the gap. (c) Diffusion / flow matching with classifier-free guidance: state-of-the-art fidelity, and $w$ is exactly the fidelity↔diversity knob. (d) VQ-VAE (or VQGAN): its codebook turns images/audio into token grids that a transformer can model jointly with text. </div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Two small builds and one full mini-diffusion. NumPy/PyTorch; each runs in under a minute on CPU.</p>
+ <div class="box ex"><span class="label">Task 1 — VAE on a 1D mixture</span> Train a tiny VAE (1D data, 1D latent) on samples from $\tfrac12\mathcal N(-2,0.5^2)+\tfrac12\mathcal N(2,0.5^2)$ and show that decoded prior samples are bimodal.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import torch, torch.nn as nn
+torch.manual_seed(0)
+def data(n):
+    m = torch.where(torch.rand(n,1) &lt; 0.5, -2.0, 2.0)
+    return m + 0.5*torch.randn(n,1)
+
+enc = nn.Sequential(nn.Linear(1,64), nn.Tanh(), nn.Linear(64,2))  # -&gt; mu, logvar
+dec = nn.Sequential(nn.Linear(1,64), nn.Tanh(), nn.Linear(64,1))  # -&gt; mean(x|z)
+opt = torch.optim.Adam(list(enc.parameters())+list(dec.parameters()), lr=1e-3)
+for step in range(4000):
+    x = data(256)
+    mu, logvar = enc(x).chunk(2, dim=1)
+    z = mu + (0.5*logvar).exp()*torch.randn_like(mu)   # reparameterize
+    xhat = dec(z)
+    rec = 0.5*((x-xhat)**2).sum(1).mean()              # Gaussian NLL, sigma=1 (+const)
+    kl  = 0.5*(logvar.exp() + mu**2 - 1 - logvar).sum(1).mean()
+    loss = rec + kl
+    opt.zero_grad(); loss.backward(); opt.step()
+print('loss', loss.item())
+with torch.no_grad():
+    samples = dec(torch.randn(4000,1)).squeeze()
+print('fraction near -2:', ((samples+2).abs()&lt;1).float().mean().item())
+print('fraction near +2:', ((samples-2).abs()&lt;1).float().mean().item())
+# both fractions ~0.5: the prior decodes to both modes</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Denoising score matching + Langevin</span> On the same 1D mixture, train $s_\theta(x,\sigma)$ with denoising score matching at two noise levels, then sample with annealed Langevin dynamics and check the two modes are recovered with roughly equal mass.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import torch, torch.nn as nn
+torch.manual_seed(0)
+def data(n):
+    m = torch.where(torch.rand(n,1) &lt; 0.5, -2.0, 2.0)
+    return m + 0.5*torch.randn(n,1)
+
+net = nn.Sequential(nn.Linear(2,128), nn.SiLU(), nn.Linear(128,128), nn.SiLU(), nn.Linear(128,1))
+sigmas = [1.0, 0.3]
+opt = torch.optim.Adam(net.parameters(), lr=1e-3)
+for step in range(6000):
+    x = data(512)
+    s = torch.tensor(sigmas)[torch.randint(0,2,(512,))].unsqueeze(1)
+    eps = torch.randn_like(x)
+    xt = x + s*eps
+    target = -eps/s                       # = grad log q(xt|x)
+    pred = net(torch.cat([xt, s], 1))
+    loss = ((s**2)*(pred-target)**2).mean()   # sigma^2 weighting balances levels
+    opt.zero_grad(); loss.backward(); opt.step()
+
+# annealed Langevin
+x = 3*torch.randn(4000,1)
+for sig in sigmas:
+    eta = 0.05*sig**2
+    for _ in range(200):
+        with torch.no_grad():
+            g = net(torch.cat([x, torch.full_like(x, sig)], 1))
+        x = x + 0.5*eta*g + torch.sqrt(torch.tensor(eta))*torch.randn_like(x)
+print('mass near -2:', ((x+2).abs()&lt;1).float().mean().item())
+print('mass near +2:', ((x-2).abs()&lt;1).float().mean().item())  # both ~0.5</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — A complete DDPM in 2D</span> Implement DDPM (T=200, linear betas) on the two-moons dataset shape (or two Gaussians), with an $\epsilon$-prediction MLP conditioned on $t$; sample and verify visually/statistically.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import torch, torch.nn as nn, math
+torch.manual_seed(0)
+def data(n):                      # two Gaussians in 2D
+    m = torch.where(torch.rand(n,1) &lt; 0.5, -2.0, 2.0)
+    return torch.cat([m, -m], 1)/1.5 + 0.3*torch.randn(n,2)
+
+T = 200
+beta = torch.linspace(1e-4, 0.02, T)
+alpha = 1 - beta
+abar = torch.cumprod(alpha, 0)
+
+net = nn.Sequential(nn.Linear(3,128), nn.SiLU(), nn.Linear(128,128), nn.SiLU(), nn.Linear(128,2))
+opt = torch.optim.Adam(net.parameters(), lr=2e-3)
+for step in range(8000):
+    x0 = data(512)
+    t  = torch.randint(0, T, (512,))
+    a  = abar[t].unsqueeze(1)
+    eps = torch.randn_like(x0)
+    xt  = a.sqrt()*x0 + (1-a).sqrt()*eps
+    pred = net(torch.cat([xt, (t.float()/T).unsqueeze(1)], 1))
+    loss = ((pred-eps)**2).mean()
+    opt.zero_grad(); loss.backward(); opt.step()
+print('train loss', loss.item())
+
+# sampling
+x = torch.randn(4000,2)
+for t in reversed(range(T)):
+    with torch.no_grad():
+        e = net(torch.cat([x, torch.full((len(x),1), t/T)], 1))
+    mean = (x - beta[t]/ (1-abar[t]).sqrt() * e) / alpha[t].sqrt()
+    if t &gt; 0:
+        var = beta[t]*(1-abar[t-1])/(1-abar[t])
+        x = mean + var.sqrt()*torch.randn_like(x)
+    else:
+        x = mean
+print('sample mean', x.mean(0))            # ~ (0,0) by symmetry
+print('mass in each mode:',
+      ((x[:,0]&lt;0).float().mean().item()), ((x[:,0]&gt;0).float().mean().item()))</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.deeplearningbook.org/">Goodfellow, Bengio, Courville — <i>Deep Learning</i>, ch. 20</a> — latent variable models, EBMs and the pre-diffusion generative landscape.</li>
+  <li><a href="https://arxiv.org/abs/1312.6114">Kingma &amp; Welling — Auto-Encoding Variational Bayes (2013)</a> — the VAE paper: ELBO + reparameterization in eight pages.</li>
+  <li><a href="https://arxiv.org/abs/1406.2661">Goodfellow et al. — Generative Adversarial Networks (2014)</a> — the GAN paper, with the optimal-discriminator/JSD theorem worked in section 4.</li>
+  <li><a href="https://arxiv.org/abs/2006.11239">Ho, Jain, Abbeel — Denoising Diffusion Probabilistic Models (2020)</a> — DDPM: the ELBO-to-noise-prediction derivation this chapter follows.</li>
+  <li><a href="https://arxiv.org/abs/2011.13456">Song et al. — Score-Based Generative Modeling through SDEs (2021)</a> — unifies score matching, diffusion, reverse SDEs and the probability-flow ODE.</li>
+  <li><a href="https://yang-song.net/blog/2021/score/">Yang Song — Generative Modeling by Estimating Gradients of the Data Distribution</a> — the best free tutorial on scores, Langevin and annealed noise levels.</li>
+  <li><a href="https://arxiv.org/abs/2210.02747">Lipman et al. — Flow Matching for Generative Modeling (2022)</a> — flow matching; pair with <a href="https://arxiv.org/abs/2209.03003">Liu et al., Rectified Flow (2022)</a>.</li>
+  <li><a href="https://lilianweng.github.io/posts/2021-07-11-diffusion-models/">Lilian Weng — What are Diffusion Models?</a> — a careful, free derivation compendium covering DDPM, guidance and samplers.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch21.html">&larr; 21 · Deep Learning</a>
+ <a class="btn" href="ch23.html">23 · Large Language Models &rarr;</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function ready(f){if(document.readyState!=='loading')f();else document.addEventListener('DOMContentLoaded',f);}
+ ready(function(){
+  var mono='13px "JetBrains Mono", monospace';
+  function gauss(x,m,s){return Math.exp(-(x-m)*(x-m)/(2*s*s))/(s*Math.sqrt(2*Math.PI));}
+
+  // Explorer 1: affine flow density transform
+  (function(){
+   var c=document.getElementById('cv-flowx'); if(!c) return;
+   var actl=document.getElementById('fl-a'),bctl=document.getElementById('fl-b'),wctl=document.getElementById('fl-w'),out=document.getElementById('fl-out');
+   function draw(){
+    var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h;
+    var a=parseFloat(actl.value),b=parseFloat(bctl.value),warp=wctl.checked;
+    g.clearRect(0,0,w,h);
+    var xmin=-6,xmax=6,base=h-30;
+    function px(x){return 10+(w-20)*(x-xmin)/(xmax-xmin);}
+    var ymax=0.65;
+    function py(d){return base-(h-60)*d/ymax;}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(10,base);g.lineTo(w-10,base);g.stroke();g.globalAlpha=1;
+    g.font=mono;g.fillStyle=cssVar('--ink-2');
+    g.fillText('-6',10,base+14);g.fillText('0',px(0)-3,base+14);g.fillText('6',w-22,base+14);
+    // base density N(0,1) grey
+    g.strokeStyle=cssVar('--ink-2');g.lineWidth=1.5;g.beginPath();
+    for(var i=0;i<=300;i++){var x=xmin+(xmax-xmin)*i/300;var d=gauss(x,0,1);var X=px(x),Y=py(d);if(i===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+    g.stroke();
+    // transformed density: x = f(z)=a z + b, optionally then u = 2*tanh(x/2)+x*0 ... use x=a z+b then y=x + tanh(x)
+    // density via change of variables computed numerically from monotone f
+    function f(z){var x=a*z+b;return warp? x+Math.tanh(x): x;}
+    function fp(z){var x=a*z+b;var d=a;return warp? d*(1+1-Math.pow(Math.tanh(x),2))*0 + a*(1+(1-Math.pow(Math.tanh(x),2))): d;}
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();var first=true;
+    for(var j=0;j<=600;j++){var z=-5+10*j/600;var xv=f(z);var dens=gauss(z,0,1)/Math.abs(fp(z));
+     if(xv<xmin||xv>xmax)continue;var X2=px(xv),Y2=py(Math.min(dens,ymax));if(first){g.moveTo(X2,Y2);first=false;}else g.lineTo(X2,Y2);}
+    g.stroke();
+    g.fillStyle=cssVar('--cobalt');g.fillText('p_X (flow output)',w-170,20);
+    g.fillStyle=cssVar('--ink-2');g.fillText('p_Z = N(0,1)',w-170,38);
+    if(out) out.textContent='x = '+(warp?'g(':'')+a.toFixed(2)+'·z + '+b.toFixed(1)+(warp?') with tanh warp':'')+' — peak height scales by 1/|f′|; area stays 1';
+   }
+   actl.addEventListener('input',draw);bctl.addEventListener('input',draw);wctl.addEventListener('change',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 2: score field + Langevin particles
+  (function(){
+   var c=document.getElementById('cv-score'); if(!c) return;
+   var sep=document.getElementById('sc-sep'),etac=document.getElementById('sc-eta'),run=document.getElementById('sc-run'),out=document.getElementById('sc-scoreout');
+   var parts=null,anim=null,steps=0;
+   function mix(x,m){ // returns [density, score] of 0.5N(-m,1)+0.5N(m,1)
+    var p1=gauss(x,-m,1),p2=gauss(x,m,1),p=0.5*p1+0.5*p2;
+    var sc=(0.5*p1*(-m-x)+0.5*p2*(m-x))/p;
+    return [p,sc];
+   }
+   function draw(){
+    var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+    var m=parseFloat(sep.value);
+    g.clearRect(0,0,w,h);
+    var xmin=-6,xmax=6,base=h-40;
+    function px(x){return 10+(w-20)*(x-xmin)/(xmax-xmin);}
+    var ymax=0.45;
+    function py(d){return base-(h-90)*d/ymax;}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(10,base);g.lineTo(w-10,base);g.stroke();g.globalAlpha=1;
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+    for(var i=0;i<=300;i++){var x=xmin+12*i/300;var d=mix(x,m)[0];var X=px(x),Y=py(d);if(i===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+    g.stroke();
+    // score arrows along the axis
+    g.strokeStyle=cssVar('--green');g.lineWidth=2;g.font=mono;
+    for(var k=0;k<=24;k++){var x2=xmin+12*k/24;var sc=mix(x2,m)[1];var L=Math.max(-30,Math.min(30,sc*12));
+     var X0=px(x2),Y0=base+18;g.beginPath();g.moveTo(X0,Y0);g.lineTo(X0+L,Y0);g.stroke();
+     g.beginPath();g.moveTo(X0+L,Y0);g.lineTo(X0+L-4*Math.sign(L),Y0-3);g.moveTo(X0+L,Y0);g.lineTo(X0+L-4*Math.sign(L),Y0+3);g.stroke();}
+    g.fillStyle=cssVar('--ink-2');g.fillText('score arrows',14,base+34);
+    // particles
+    if(parts){g.fillStyle=cssVar('--orange');
+     parts.forEach(function(p){g.globalAlpha=.6;g.beginPath();g.arc(px(p),36+8*Math.sin(p*7),3,0,2*Math.PI);g.fill();g.globalAlpha=1;});
+     g.fillStyle=cssVar('--ink-2');g.fillText('Langevin step '+steps,w-170,20);}
+   }
+   function tick(){
+    var m=parseFloat(sep.value),eta=parseFloat(etac.value);
+    for(var i=0;i<parts.length;i++){
+     var sc=mix(parts[i],m)[1];
+     parts[i]+=0.5*eta*sc+Math.sqrt(eta)*(Math.random()*2-1)*1.732; // uniform noise, var=1
+     parts[i]=Math.max(-6,Math.min(6,parts[i]));
+    }
+    steps++;draw();
+    if(steps<400)anim=requestAnimationFrame(tick);
+    else if(out){var m2=parseFloat(sep.value);var left=parts.filter(function(p){return p<0;}).length;
+     out.textContent='after 400 steps: '+left+'/'+parts.length+' particles in the left mode (expect ≈half)';}
+   }
+   run.addEventListener('click',function(){
+    if(anim)cancelAnimationFrame(anim);
+    parts=[];for(var i=0;i<60;i++)parts.push((Math.random()*2-1)*5);
+    steps=0;if(out)out.textContent='running…';tick();
+   });
+   sep.addEventListener('input',draw);etac.addEventListener('input',draw);
+   window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 3: forward diffusion of a bimodal density
+  (function(){
+   var c=document.getElementById('cv-diff'); if(!c) return;
+   var tctl=document.getElementById('df-t'),out=document.getElementById('df-out');
+   function draw(){
+    var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h;
+    var t=parseFloat(tctl.value);
+    // VP: abar = exp(-integral beta) ~ choose abar = (1-t)^2 smooth-ish: use abar=Math.pow(1-0.99*t,2)
+    var abar=Math.pow(1-0.99*t,2);
+    var sq=Math.sqrt(abar), sn=Math.sqrt(1-abar);
+    g.clearRect(0,0,w,h);
+    var xmin=-6,xmax=6,base=h-30;
+    function px(x){return 10+(w-20)*(x-xmin)/(xmax-xmin);}
+    var ymax=0.6;
+    function py(d){return base-(h-60)*d/ymax;}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(10,base);g.lineTo(w-10,base);g.stroke();g.globalAlpha=1;
+    // p_t: modes at ±2 scaled by sq, component std: sqrt(abar*0.36+ (1-abar))
+    var cs=Math.sqrt(abar*0.36+(1-abar));
+    g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();
+    for(var i=0;i<=300;i++){var x=xmin+12*i/300;
+     var d=0.5*gauss(x,-2*sq,cs)+0.5*gauss(x,2*sq,cs);
+     var X=px(x),Y=py(Math.min(d,ymax));if(i===0)g.moveTo(X,Y);else g.lineTo(X,Y);}
+    g.stroke();
+    // reference N(0,1) dashed
+    g.setLineDash([4,4]);g.strokeStyle=cssVar('--ink-2');g.lineWidth=1.2;g.beginPath();
+    for(var j=0;j<=300;j++){var x2=xmin+12*j/300;var d2=gauss(x2,0,1);var X2=px(x2),Y2=py(d2);if(j===0)g.moveTo(X2,Y2);else g.lineTo(X2,Y2);}
+    g.stroke();g.setLineDash([]);
+    g.font=mono;g.fillStyle=cssVar('--ink-2');g.fillText('dashed: N(0,1) target',w-200,20);
+    if(out) out.textContent='t/T='+t.toFixed(2)+'  ᾱ='+abar.toFixed(3)+'  signal '+ (sq).toFixed(2)+'×, noise std '+sn.toFixed(2)+'; SNR='+(abar/(1-abar+1e-9)).toFixed(2);
+   }
+   tctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+  // Explorer 4: classifier-free guidance on a 1D mixture
+  (function(){
+   var c=document.getElementById('cv-cfg'); if(!c) return;
+   var wctl=document.getElementById('cf-w'),out=document.getElementById('cf-out');
+   function draw(){
+    var s=setupCanvas(c,260),g=s.g,w=s.w,h=s.h;
+    var gw=parseFloat(wctl.value);
+    g.clearRect(0,0,w,h);
+    var xmin=-6,xmax=6,base=h-30;
+    function px(x){return 10+(w-20)*(x-xmin)/(xmax-xmin);}
+    // p(x) = .5 N(-2,1)+.5 N(2,1); condition c = right class.
+    // guided density ∝ p(x) * p(c|x)^w ; p(c|x)= p2/(p1+p2)
+    var pts=[],Z=0,dx=12/400;
+    for(var i=0;i<=400;i++){var x=xmin+12*i/400;
+     var p1=gauss(x,-2,1),p2=gauss(x,2,1),p=0.5*p1+0.5*p2;
+     var post=p2/(p1+p2);
+     var d=p*Math.pow(post,gw);
+     pts.push([x,d]);Z+=d*dx;}
+    var ymax=0;pts.forEach(function(pt){pt[1]/=Z;if(pt[1]>ymax)ymax=pt[1];});
+    ymax=Math.max(ymax,0.45);
+    function py(d){return base-(h-60)*d/ymax;}
+    g.strokeStyle=cssVar('--ink-2');g.globalAlpha=.5;g.beginPath();g.moveTo(10,base);g.lineTo(w-10,base);g.stroke();g.globalAlpha=1;
+    // unconditional dashed
+    g.setLineDash([4,4]);g.strokeStyle=cssVar('--ink-2');g.lineWidth=1.2;g.beginPath();
+    for(var j=0;j<=400;j++){var x2=xmin+12*j/400;var d2=0.5*gauss(x2,-2,1)+0.5*gauss(x2,2,1);var X2=px(x2),Y2=py(d2);if(j===0)g.moveTo(X2,Y2);else g.lineTo(X2,Y2);}
+    g.stroke();g.setLineDash([]);
+    // guided
+    g.strokeStyle=cssVar('--orange');g.lineWidth=2.5;g.beginPath();
+    pts.forEach(function(pt,i2){var X=px(pt[0]),Y=py(Math.min(pt[1],ymax));if(i2===0)g.moveTo(X,Y);else g.lineTo(X,Y);});
+    g.stroke();
+    // stats: mean and std of guided
+    var m=0;pts.forEach(function(pt){m+=pt[0]*pt[1]*dx;});
+    var v=0;pts.forEach(function(pt){v+=(pt[0]-m)*(pt[0]-m)*pt[1]*dx;});
+    g.font=mono;g.fillStyle=cssVar('--ink-2');g.fillText('dashed: unconditional p(x)',14,20);
+    g.fillStyle=cssVar('--orange');g.fillText('guided toward right class',14,38);
+    if(out) out.textContent='w='+gw.toFixed(1)+' → guided mean='+m.toFixed(2)+', std='+Math.sqrt(v).toFixed(2)+' (true conditional: mean 2.00, std 1.00'+(gw>1?' — over-sharpened beyond it':'')+')';
+   }
+   wctl.addEventListener('input',draw);window.addEventListener('resize',draw);draw();
+  })();
+
+ });
+})();
+</script>
+
+</body></html>

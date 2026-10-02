@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 03 Sets, Logic and Proof</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','03')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">03</div><h1>Sets, Logic and Proof</h1><p class="lede">The language every later chapter is written in.</p>
+   <div class="meta"><span class="chip">28 topics</span><span class="chip">needs: chapters 01–02</span><span class="chip">feeds: everything after</span></div>
+  </div>
+
+<section class="topic" id="sets">
+ <h2>Sets</h2>
+ <p>A set is a bag of distinct things, with no order and no duplicates — membership is the only question it answers. Picture a club that keeps a membership list and nothing else: no seating chart, no ranks, nobody counted twice. Ask it anything except "is $x$ a member?" and it shrugs. That poverty is the point: because a set carries so little structure, anything can be modeled as one, and every richer object you will meet — function, vector space, probability distribution — is a set wearing extra rules. Sets are mathematics' universal container: sample spaces, solution sets, vector spaces, datasets. Two sets are equal exactly when they contain the same members, however they are described: $\{n \in \mathbb{N} : n \text{ is an even prime}\}$ and $\{2\}$ are the same set in different clothes.</p>
+ <div class="box def"><span class="label">Definition</span> A set $A$ is determined by its elements: $x \in A$ or $x \notin A$. Extensionality: $A = B \iff (\forall x)(x \in A \iff x \in B)$. $A$ is a <em>subset</em> of $B$ ($A \subseteq B$) if every element of $A$ is in $B$. The empty set $\emptyset$ has no elements and is a subset of everything.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\{1, 2, 3\} = \{3, 1, 2\} = \{1, 1, 2, 3\}$ — order and repetition are invisible. And $\{1, 2\} \subseteq \{1, 2, 3\}$ but $\{1, 4\} \not\subseteq \{1,2,3\}$ since $4 \notin \{1,2,3\}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\emptyset \ne \{\emptyset\}$: the first is an empty bag; the second is a bag containing one item (an empty bag). Also $x \in A$ and $\{x\} \subseteq A$ say the same thing in different grammar — don't mix $\in$ with $\subseteq$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Everything after this page is built from sets: relations and functions (Ch 4) are sets of ordered pairs, sample spaces and events (Ch 11) are sets, vector spaces (Ch 5) are sets with operations bolted on. Get $\in$ versus $\subseteq$ straight now and a hundred later definitions parse on sight.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> List all subsets of $\{a, b\}$. <details class="sol"><summary>Solution</summary><div>$\emptyset, \{a\}, \{b\}, \{a,b\}$ — four of them ($2^2$).</div></details></li>
+  <li><span class="lvl m">MED</span> Let $A = \{1, \{2\}\}$. True or false: $2 \in A$; $\{2\} \in A$; $\{2\} \subseteq A$; $\{\{2\}\} \subseteq A$. <details class="sol"><summary>Solution</summary><div>$2 \in A$: false — $A$'s two elements are $1$ and $\{2\}$; the number $2$ is not one of them. $\{2\} \in A$: true, it is listed. $\{2\} \subseteq A$: this asks whether every element of $\{2\}$ — namely $2$ — is in $A$: false. $\{\{2\}\} \subseteq A$: asks whether $\{2\} \in A$: true. Nesting depth matters; read $\in$ one level at a time.</div></details></li>
+  <li><span class="lvl m">MED</span> True or false: $\emptyset \in \{1, 2\}$; $\emptyset \subseteq \{1,2\}$; $1 \subseteq \{1,2\}$. <details class="sol"><summary>Solution</summary><div>False ($\emptyset$ is not one of the listed elements); true (vacuously — no element of $\emptyset$ fails to be in $\{1,2\}$); false as written ($1$ is an element, not a set of elements; $\{1\} \subseteq \{1,2\}$ is the true version).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that $A \subseteq B$ and $B \subseteq A$ imply $A = B$, and use this to prove $\{x \in \mathbb{R} : x^2 \le 1\} = [-1, 1]$. <details class="sol"><summary>Solution</summary><div>Mutual inclusion gives, for every $x$, $x\in A \iff x \in B$, which is equality. For the sets: if $x^2 \le 1$ then $|x| \le 1$ so $x \in [-1,1]$; conversely if $-1 \le x \le 1$ then $|x|\le1$ so $x^2 \le 1$. Each side contains the other.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="set-notation">
+ <h2>Set notation</h2>
+ <p>Two ways to write a set: list the members (roster), or state the membership test (set-builder). Set-builder notation $\{x : P(x)\}$ — "the set of $x$ such that $P(x)$" — is a filter: exactly the things passing the predicate get in. It is a list comprehension in mathematical dress, and reading it fluently is half of reading mathematics. The roster form is finite and explicit; the builder form is a program that can describe infinite sets in one line — the trade every notation makes between showing the data and showing the rule.</p>
+ <div class="box def"><span class="label">Definition</span> Roster: $\{2, 4, 6, 8\}$. Builder: $\{x \in S : P(x)\}$, the elements of $S$ satisfying $P$. Standard names: $\mathbb{N}, \mathbb{Z}, \mathbb{Q}, \mathbb{R}, \mathbb{C}$; intervals $[a,b] = \{x \in \mathbb{R}: a \le x \le b\}$, $(a,b)$ excludes endpoints. $|A|$ (cardinality) is the number of elements.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\{n \in \mathbb{Z} : n^2 &lt; 10\} = \{-3, -2, -1, 0, 1, 2, 3\}$, cardinality 7. In Python: <code>{n for n in range(-5, 6) if n*n &lt; 10}</code> — the same filter.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Always filter from a named domain. Unrestricted comprehension $\{x : x \notin x\}$ is Russell's paradox: if that set contains itself it doesn't, and if it doesn't it does — the notation without a domain is inconsistent. Write $\{x \in S : P(x)\}$. Also watch brackets: $0 \in [0,1]$ but $0 \notin (0,1)$ — round brackets exclude endpoints.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write $\{3, 6, 9, 12, \dots\}$ in set-builder notation. <details class="sol"><summary>Solution</summary><div>$\{3k : k \in \mathbb{N}, k \ge 1\}$ — the positive multiples of 3.</div></details></li>
+  <li><span class="lvl m">MED</span> List $\{x \in \mathbb{R} : x^2 - 3x + 2 = 0\}$ and give its cardinality. <details class="sol"><summary>Solution</summary><div>$(x-1)(x-2) = 0$: the set is $\{1, 2\}$, cardinality 2.</div></details></li>
+  <li><span class="lvl m">MED</span> Give the roster form of $\{x \in \mathbb{R} : x^2 = -1\}$ and of $\{S : S \subseteq \{1,2\},\ |S| = 1\}$. <details class="sol"><summary>Solution</summary><div>No real squares to $-1$, so the first set is $\emptyset$. The second collects the one-element subsets of $\{1,2\}$: $\{\{1\}, \{2\}\}$ — a set whose two elements are themselves sets.</div></details></li>
+  <li><span class="lvl h">HARD</span> Describe $\{x \in \mathbb{R} : |x - 1| &lt; 2\} \cap \mathbb{Z}$ in roster form. <details class="sol"><summary>Solution</summary><div>$|x-1| &lt; 2$ is $(-1, 3)$. Intersect with the integers: $\{0, 1, 2\}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="set-operations">
+ <h2>Set operations</h2>
+ <p>Sets combine with three basic operations — union (either), intersection (both), difference (in one but not the other) — plus complement (everything else, within a fixed universe). Think of them as the OR, AND, and NOT of containers: every set identity is a logic identity about membership tests, translated symbol for symbol. They obey an algebra of their own, whose crown jewels are De Morgan's laws: complement swaps union with intersection. This mirror between set algebra and Boolean logic is not a coincidence — it is the same algebra computed on "is $x$ in?" bits, which is why the proofs below all reduce to chasing one arbitrary element $x$ through the definitions.</p>
+ <div class="box def"><span class="label">Definition</span> $A \cup B = \{x : x \in A \text{ or } x \in B\}$; $A \cap B = \{x : x \in A \text{ and } x \in B\}$; $A \setminus B = \{x \in A : x \notin B\}$; $A^c = U \setminus A$ in universe $U$. De Morgan: $(A \cup B)^c = A^c \cap B^c$ and $(A \cap B)^c = A^c \cup B^c$. Disjoint means $A\cap B = \emptyset$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \{1,2,3,4\}$, $B = \{3,4,5\}$ in $U = \{1,\dots,7\}$: $A\cup B = \{1,2,3,4,5\}$; $A \cap B = \{3,4\}$; $A\setminus B = \{1,2\}$; $B^c = \{1,2,6,7\}$; $(A\cup B)^c = \{6,7\} = A^c \cap B^c$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> Probability (Ch 11) is a measure on set operations: $P(A \cup B) = P(A) + P(B) - P(A\cap B)$ is inclusion-exclusion wearing probability clothes.</div>
+ <div class="box think"><span class="label">Think first</span> Union and intersection are associative. Is set difference? Compare $A \setminus (B \setminus C)$ with $(A \setminus B) \setminus C$. <details class="sol"><summary>Reveal</summary><div>Not associative. Take $A = B = C = \{1\}$: then $B \setminus C = \emptyset$, so $A \setminus (B\setminus C) = \{1\}$; but $(A\setminus B)\setminus C = \emptyset \setminus C = \emptyset$. Difference is like subtraction: parenthesize or perish.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $A = \{a, b, c\}$, $B = \{b, c, d\}$, find $A\cup B$, $A \cap B$, $A\setminus B$. <details class="sol"><summary>Solution</summary><div>$\{a,b,c,d\}$; $\{b,c\}$; $\{a\}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify De Morgan $(A\cap B)^c = A^c \cup B^c$ for $A = \{1,2\}$, $B = \{2,3\}$, $U = \{1,2,3,4\}$. <details class="sol"><summary>Solution</summary><div>$A\cap B = \{2\}$, complement $\{1,3,4\}$. $A^c = \{3,4\}$, $B^c = \{1,4\}$, union $\{1,3,4\}$ ✓.</div></details></li>
+  <li><span class="lvl m">MED</span> The <em>symmetric difference</em> is $A \triangle B = (A\setminus B)\cup(B\setminus A)$. Show $A \triangle B = (A \cup B) \setminus (A \cap B)$. <details class="sol"><summary>Solution</summary><div>$x \in A \triangle B$ iff $x$ is in exactly one of $A, B$. $x \in (A\cup B)\setminus(A\cap B)$ iff $x$ is in at least one but not both — the same condition (exactly one). Both describe the XOR of membership, so the sets are equal.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the distributive law $A \cap (B \cup C) = (A\cap B) \cup (A \cap C)$ by mutual inclusion. <details class="sol"><summary>Solution</summary><div>($\subseteq$) If $x \in A$ and $x \in B\cup C$, then $x\in B$ or $x \in C$; with $x \in A$ this puts $x$ in $A\cap B$ or $A \cap C$. ($\supseteq$) If $x \in A\cap B$ then $x \in A$ and $x \in B \subseteq B\cup C$; likewise for $A\cap C$. Both directions hold, so the sets are equal.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="venn-diagrams">
+ <h2>Venn diagrams</h2>
+ <p>A Venn diagram draws sets as overlapping circles so that every possible membership combination gets its own region — $2^n$ regions for $n$ sets. It is a picture proof-assistant: shade the two sides of a claimed identity and see whether they match; because every element lives in exactly one region, matching shadings really do certify the identity for two or three sets. The diagram also converts counting into bookkeeping — fill the innermost region first and work outward, and survey problems solve themselves. (For $n &gt; 3$ the circles run out; the algebra keeps going.)</p>
+ <div class="box def"><span class="label">Definition</span> For sets $A, B$ in universe $U$: 4 regions — $A\cap B$, $A\setminus B$, $B\setminus A$, $(A\cup B)^c$. Every element of $U$ lives in exactly one region; set identities are statements about which regions are shaded.</div>
+ <div class="box ex"><span class="label">Worked example</span> In a class of 40, 25 know Python, 18 know C, 10 know both. Only-Python $= 15$, only-C $= 8$, both $= 10$, neither $= 40 - (15 + 8 + 10) = 7$. The four regions partition the class.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A Venn diagram proves an identity only when the circles are in general position, showing all $2^n$ regions. Draw two circles disjoint and you have silently assumed $A \cap B = \emptyset$; conclusions read off such a picture are conclusions about a special case. And four circles <em>cannot</em> make all 16 regions (ellipses can) — past three sets, trust the algebra, not the picture.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Choose an operation and watch the corresponding region light up; sliders move the circles.</p>
+  <canvas id="cv-venn"></canvas>
+  <div class="ctl">
+   <label>operation <input type="range" id="vn-op" min="0" max="4" step="1" value="1"></label>
+   <label>overlap <input type="range" id="vn-d" min="30" max="140" step="1" value="80"></label>
+  </div>
+  <div class="out" id="vn-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which region represents "in $A$ or $B$ but not both"? <details class="sol"><summary>Solution</summary><div>The two crescent regions: $(A\setminus B)\cup(B\setminus A)$ — the <em>symmetric difference</em> $A \triangle B$.</div></details></li>
+  <li><span class="lvl m">MED</span> Of 100 users, 60 use the app, 45 the website, 20 use neither. How many use both? <details class="sol"><summary>Solution</summary><div>$|A\cup B| = 100 - 20 = 80$. $|A\cap B| = 60 + 45 - 80 = 25$.</div></details></li>
+  <li><span class="lvl m">MED</span> In a three-set Venn diagram, how many regions lie inside exactly two of the three circles? Inside at least two? <details class="sol"><summary>Solution</summary><div>Exactly two: one region per pair of circles, $\binom{3}{2} = 3$. At least two: those 3 plus the central triple-overlap region $= 4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Three circles make 8 regions. In a survey: 30 like X, 25 like Y, 20 like Z; 12 like X&amp;Y, 8 X&amp;Z, 6 Y&amp;Z; 3 like all; 10 like none. Total surveyed? <details class="sol"><summary>Solution</summary><div>$|X\cup Y\cup Z| = 30+25+20-12-8-6+3 = 52$. Total $= 52 + 10 = 62$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cartesian-products">
+ <h2>Cartesian products</h2>
+ <p>The Cartesian product $A \times B$ is the set of all ordered pairs — first coordinate from $A$, second from $B$. Picture two axes and mark every crossing: $A$ lays out the columns, $B$ the rows, and $A \times B$ is the full grid of intersections. It manufactures structured spaces from simple ones: the plane $\mathbb{R}^2 = \mathbb{R}\times\mathbb{R}$, database joins, feature spaces, the set of all (input, label) pairs a dataset is drawn from. Order matters, which is exactly what makes pairs different from two-element sets: $(1,2) \ne (2,1)$ although $\{1,2\} = \{2,1\}$.</p>
+ <div class="box def"><span class="label">Definition</span> $A \times B = \{(a, b) : a \in A,\ b \in B\}$, with $(a,b) = (c,d) \iff a = c$ and $b = d$. For finite sets, $|A \times B| = |A|\,|B|$. Iterating: $A^n$ is the set of $n$-tuples.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\{1,2\}\times\{x, y, z\} = \{(1,x),(1,y),(1,z),(2,x),(2,y),(2,z)\}$ — six pairs, $2\times3$. Note $(1,x) \ne (x,1)$: $B \times A$ is a different set.</div>
+ <div class="box link"><span class="label">Where this goes</span> Relations and functions (Ch 4) are <em>defined</em> as subsets of $A\times B$ — the very next chapter is built on this page. Joint distributions (Ch 11) live on products of sample spaces, and a neural network's input space $\mathbb{R}^n$ is an $n$-fold product.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Notation collision: $(a, b)$ means an ordered pair here but an open interval in analysis — context decides. And $|A \times A| = |A|^2$, not $2|A|$: products multiply sizes, unions add them.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $|A| = 4$ and $|B| = 5$, what is $|A\times B|$? <details class="sol"><summary>Solution</summary><div>$20$.</div></details></li>
+  <li><span class="lvl m">MED</span> Describe $[0,1]\times[0,1]$ geometrically, and $\mathbb{Z}\times\mathbb{Z}$. <details class="sol"><summary>Solution</summary><div>The filled unit square in the plane; the infinite grid of integer lattice points.</div></details></li>
+  <li><span class="lvl m">MED</span> What is $A \times \emptyset$? And how many elements has $\{0,1\}^n$? <details class="sol"><summary>Solution</summary><div>$A \times \emptyset = \emptyset$: a pair needs a second coordinate, and there are none to pick. $|\{0,1\}^n| = 2^n$ — the binary strings of length $n$, by the product rule coordinate by coordinate.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $A\times(B \cap C) = (A\times B)\cap(A\times C)$. <details class="sol"><summary>Solution</summary><div>$(a, x) \in A\times(B\cap C) \iff a\in A$ and $x \in B$ and $x \in C \iff (a,x)\in A\times B$ and $(a,x)\in A\times C$. Membership conditions coincide, so the sets are equal.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="power-sets">
+ <h2>Power sets</h2>
+ <p>The power set $\mathcal{P}(A)$ collects <em>all</em> subsets of $A$ — every possible yes/no choice over its elements. Each element independently joins or doesn't, so an $n$-element set has $2^n$ subsets; a subset is just an $n$-bit string read as a membership mask, and the power set is the set of all masks. Power sets are why "sets of sets" are everywhere: hypothesis classes, event spaces, feature subsets. They are also the first place set theory outruns intuition — Cantor's theorem says the jump from $A$ to $\mathcal{P}(A)$ is a strict jump in size, forever.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathcal{P}(A) = \{S : S \subseteq A\}$. If $|A| = n$ then $|\mathcal{P}(A)| = 2^n$. Cantor's theorem: no function from $A$ onto $\mathcal{P}(A)$ exists — the power set is always strictly bigger, even for infinite $A$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathcal{P}(\{1,2,3\})$: $\emptyset$; $\{1\},\{2\},\{3\}$; $\{1,2\},\{1,3\},\{2,3\}$; $\{1,2,3\}$ — 8 subsets $= 2^3$. Encode each as a 3-bit string (membership of 1, 2, 3): subsets are bitmasks, e.g. $\{1,3\} \leftrightarrow 101$.</div>
+ <div class="box think"><span class="label">Think first</span> Why does each of the $n$ elements contribute a factor of 2? <details class="sol"><summary>Reveal</summary><div>Building a subset means answering $n$ independent yes/no questions ("is this element in?"). By the multiplication principle: $2 \times 2 \times\cdots\times 2 = 2^n$ outcomes, each a distinct subset.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Event spaces in probability (Ch 11) are collections of subsets of the sample space — pieces of a power set closed under the set operations. And the $2^n$ growth is why brute-force search over subsets (feature selection, SAT assignments) explodes: exponential blowup (Ch 17) starts here.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many subsets has a 10-element set? How many are nonempty? <details class="sol"><summary>Solution</summary><div>$2^{10} = 1024$; nonempty: $1023$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many elements has $\mathcal{P}(\mathcal{P}(\emptyset))$? <details class="sol"><summary>Solution</summary><div>$\mathcal{P}(\emptyset) = \{\emptyset\}$, one element. $\mathcal{P}(\{\emptyset\}) = \{\emptyset, \{\emptyset\}\}$: two elements.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: $A \subseteq B$ if and only if $\mathcal{P}(A) \subseteq \mathcal{P}(B)$. <details class="sol"><summary>Solution</summary><div>($\Rightarrow$) If $A \subseteq B$ and $S \subseteq A$, then $S \subseteq B$ by transitivity of $\subseteq$, so every member of $\mathcal{P}(A)$ is in $\mathcal{P}(B)$. ($\Leftarrow$) $A \in \mathcal{P}(A) \subseteq \mathcal{P}(B)$ means $A \in \mathcal{P}(B)$, i.e. $A \subseteq B$. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> How many subsets of $\{1, \dots, 10\}$ contain the element 1 but not the element 2? <details class="sol"><summary>Solution</summary><div>Elements 1 and 2 are decided (in, out); the other 8 are free: $2^8 = 256$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="propositional-logic">
+ <h2>Propositional logic</h2>
+ <p>Propositional logic treats whole statements as atoms that are simply true or false, and studies how connectives — NOT, AND, OR, IMPLIES — combine them. Think of each proposition as a wire carrying a single bit and each connective as a gate: the meaning of a compound formula is just the output bit as a function of the input bits, nothing more. That ruthless simplification — ignore what statements are <em>about</em>, keep only their truth values — is what makes the logic mechanical, checkable, and buildable in silicon. It is the Boolean algebra inside every chip, every <code>if</code> statement, and every formal proof.</p>
+ <div class="box def"><span class="label">Definition</span> Propositions $p, q, \dots \in \{T, F\}$. Connectives: $\neg p$ (not), $p \land q$ (and), $p \lor q$ (or — inclusive), $p \to q$ (implies), $p \leftrightarrow q$ (iff). A <em>tautology</em> is true under every assignment; a <em>contradiction</em> under none; the rest are <em>contingent</em>.</div>
+ <div class="box ex"><span class="label">Worked example</span> Let $p$: "it rains", $q$: "the street is wet". "$p \to q$" is the claim rain wets streets. Its truth does not claim rain: with $p = F$, the implication holds whatever $q$ is (vacuously true). The only way to falsify $p \to q$ is $p = T, q = F$.</div>
+ <div class="box link"><span class="label">Where this goes</span> SAT — deciding satisfiability of propositional formulas — is the canonical NP-complete problem (Ch 17) and the engine of modern verification (Ch 34).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Mathematical "or" is <em>inclusive</em>: $p \lor q$ is true when both hold. Everyday "or" often means exclusive-or, a different connective. And $p \to q$ asserts no causation — it is a pure truth pattern, so "if $1 + 1 = 3$ then the moon is cheese" is (vacuously) true.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $p = T$, $q = F$: evaluate $\neg p \lor q$, $\;p \land \neg q$, $\;p \to q$. <details class="sol"><summary>Solution</summary><div>$F \lor F = F$; $T \land T = T$; $T \to F = F$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $(p \land \neg p)$ a contradiction? Is $(p \lor \neg p)$ a tautology? <details class="sol"><summary>Solution</summary><div>Yes and yes: nothing is both true and false (non-contradiction); everything is one or the other (excluded middle).</div></details></li>
+  <li><span class="lvl m">MED</span> How many distinct binary connectives (truth functions of two propositional variables) exist in total? <details class="sol"><summary>Solution</summary><div>A binary connective is a choice of output T/F for each of the $4$ input rows: $2^4 = 16$ connectives. AND, OR, IMPLIES, IFF, XOR, NAND are six of them; the rest include constants and projections.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\{\neg, \land\}$ can express $\lor$ and $\to$. <details class="sol"><summary>Solution</summary><div>De Morgan gives $p \lor q \equiv \neg(\neg p \land \neg q)$. Then $p \to q \equiv \neg p \lor q \equiv \neg(p \land \neg q)$. (Indeed NAND alone suffices — the universal gate.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="truth-tables">
+ <h2>Truth tables</h2>
+ <p>A truth table brute-forces a formula: list every assignment of T/F to the variables ($2^n$ rows) and evaluate. It is a complete, mechanical semantics — two formulas mean the same thing exactly when their tables match. This is the rare corner of mathematics where every question is decidable by sheer enumeration: tautology, contradiction, equivalence, satisfiability all reduce to scanning rows. The catch is the price tag, and that price tag is where complexity theory begins.</p>
+ <div class="box def"><span class="label">Definition</span> Core tables: $\neg T = F$; $p\land q = T$ only at $(T,T)$; $p \lor q = F$ only at $(F,F)$; $p \to q = F$ only at $(T, F)$; $p \leftrightarrow q = T$ on agreement.</div>
+ <div class="box ex"><span class="label">Worked example</span> Table for $(p \to q) \land (q \to p)$: rows $(T,T){:}\,T\land T = T$; $(T,F){:}\,F \land T = F$; $(F,T){:}\,T\land F = F$; $(F,F){:}\,T\land T = T$. It matches $p \leftrightarrow q$ exactly — "iff" is implication both ways.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $2^n$ rows grows brutally: 20 variables is a million rows; 300 variables is more rows than atoms in the observable universe. Truth tables are a <em>definition</em> of meaning and a checker for small formulas, not an algorithm for real ones — whether anything fundamentally faster than the table exists for satisfiability is precisely the P vs NP question (Ch 17).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Pick a formula and read its full truth table; rows where it is true glow.</p>
+  <canvas id="cv-truth"></canvas>
+  <div class="ctl"><label>formula <input type="range" id="tt-f" min="0" max="5" step="1" value="2"></label></div>
+  <div class="out" id="tt-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many rows in a truth table with 4 variables? <details class="sol"><summary>Solution</summary><div>$2^4 = 16$.</div></details></li>
+  <li><span class="lvl m">MED</span> Build the table for $\neg p \lor q$ and compare with $p \to q$. <details class="sol"><summary>Solution</summary><div>$(T,T): T$; $(T,F): F$; $(F,T): T$; $(F,F): T$ — identical to $p \to q$. This equivalence ("material implication") is the standard way to eliminate arrows.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify by table that $(p \lor q) \land \neg(p \land q)$ is XOR. <details class="sol"><summary>Solution</summary><div>$(T,T)$: $T \land \neg T = F$; $(T,F)$: $T \land \neg F = T$; $(F,T)$: $T \land T = T$; $(F,F)$: $F \land T = F$. True exactly when $p \ne q$ — "or, but not both."</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $(p \to q) \to r$ and $p \to (q \to r)$ are <em>not</em> equivalent. <details class="sol"><summary>Solution</summary><div>Try $p = F$, $r = F$ (any $q$): first: $(F\to q) = T$, then $T \to F = F$. Second: $F \to (\cdot) = T$. Different — implication is not associative; parenthesize.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logical-equivalence">
+ <h2>Logical equivalence</h2>
+ <p>Two formulas are logically equivalent when no assignment can tell them apart — same truth table, same meaning, freely interchangeable. Equivalences are the algebra of logic: De Morgan, distributivity, double negation are the "exponent laws" of reasoning, used to simplify conditions in proofs and in code. Two ways to establish one: brute-force the tables (always works, exponential), or chain known laws like algebraic identities (elegant, and scales to formulas no table could hold). Fluency means being able to do either on demand.</p>
+ <div class="box def"><span class="label">Definition</span> $\varphi \equiv \psi$ iff $\varphi \leftrightarrow \psi$ is a tautology. Key laws: $\neg\neg p \equiv p$; De Morgan $\neg(p\land q) \equiv \neg p \lor \neg q$, $\neg(p \lor q) \equiv \neg p \land \neg q$; distributivity $p \land (q \lor r) \equiv (p\land q)\lor(p\land r)$; implication $p \to q \equiv \neg p \lor q$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Simplify "not (logged-in and not admin)": $\neg(p \land \neg q) \equiv \neg p \lor q$ — "not logged in, or admin." A guard clause simplified by De Morgan; compilers and code reviewers do this daily.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\neg(p \land q)$ is <em>not</em> $\neg p \land \neg q$. "Not both" is weaker than "neither." De Morgan swaps the connective when the negation moves in.</div>
+ <div class="box link"><span class="label">Where this goes</span> Equivalence-preserving rewriting is what compilers do to your conditionals, what query optimizers do to WHERE clauses, and step one of the CNF conversion that feeds SAT solvers (Ch 17) and verification tools (Ch 34).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Negate "$x &gt; 0$ and $y &gt; 0$". <details class="sol"><summary>Solution</summary><div>"$x \le 0$ or $y \le 0$."</div></details></li>
+  <li><span class="lvl m">MED</span> Show $p \to q \equiv \neg q \to \neg p$ using known laws. <details class="sol"><summary>Solution</summary><div>$\neg q \to \neg p \equiv \neg\neg q \lor \neg p \equiv q \lor \neg p \equiv \neg p \lor q \equiv p \to q$. (The contrapositive — the engine of a whole proof technique below.)</div></details></li>
+  <li><span class="lvl m">MED</span> Is $p \to (q \to r) \equiv (p \land q) \to r$? Decide and justify. <details class="sol"><summary>Solution</summary><div>Yes — both are false exactly when $p = T$, $q = T$, $r = F$: the left needs $p$ true and $q \to r$ false; the right needs $p \land q$ true and $r$ false. Same single failing row, so equivalent. (This is "currying": a two-hypothesis implication equals a chain of one-hypothesis implications.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Simplify $(p \land q) \lor (p \land \neg q) \lor (\neg p \land q)$. <details class="sol"><summary>Solution</summary><div>First two: $p \land (q \lor \neg q) \equiv p$. Then $p \lor (\neg p \land q) \equiv (p \lor \neg p)\land(p \lor q) \equiv p \lor q$. Check: false only at $(F,F)$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="implication-and-converse">
+ <h2>Implication and converse</h2>
+ <p>From $p \to q$ you can build three relatives: the converse $q \to p$, the inverse $\neg p \to \neg q$, and the contrapositive $\neg q \to \neg p$. Only the contrapositive is equivalent to the original; the converse is an independent claim — and confusing the two is arguably the most common reasoning error in the wild. Picture the implication as one-way containment: "$p$-worlds sit inside $q$-worlds." Reversing the arrow claims the opposite containment, which the picture plainly does not give you; the contrapositive merely reads the same containment from outside ("not in $q$ means not in $p$").</p>
+ <div class="box def"><span class="label">Definition</span> Given $p \to q$: <em>converse</em> $q \to p$; <em>inverse</em> $\neg p \to \neg q$; <em>contrapositive</em> $\neg q \to \neg p \equiv p \to q$. "$p$ only if $q$" means $p \to q$; "$p$ if $q$" means $q \to p$; "iff" is both.</div>
+ <div class="box ex"><span class="label">Worked example</span> "If it's a square, it's a rectangle" — true. Converse: "if it's a rectangle, it's a square" — false. Contrapositive: "if it's not a rectangle, it's not a square" — true, automatically.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Affirming the consequent: from $p \to q$ and $q$, you may <em>not</em> conclude $p$. "Good models fit the training data; this model fits the training data; therefore it is good" — overfitting says hello.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> State the contrapositive of "if $n$ is even, $n^2$ is even". <details class="sol"><summary>Solution</summary><div>"If $n^2$ is odd, then $n$ is odd."</div></details></li>
+  <li><span class="lvl m">MED</span> "If a number is divisible by 6, it is divisible by 3." Which of converse/inverse/contrapositive are true? <details class="sol"><summary>Solution</summary><div>Contrapositive: true (equivalent). Converse ("divisible by 3 ⟹ by 6"): false, e.g. 9. Inverse ("not by 6 ⟹ not by 3"): false, same counterexample — converse and inverse are each other's contrapositives.</div></details></li>
+  <li><span class="lvl m">MED</span> Translate into an implication: "you pass the course only if you score at least 50." Does scoring 50 guarantee passing? <details class="sol"><summary>Solution</summary><div>"$p$ only if $q$" is $p \to q$: pass $\to$ score $\ge 50$. Scoring $\ge 50$ is <em>necessary</em>, not sufficient — the statement is silent about students who score 50 and fail for another reason. Concluding "score $\ge 50 \Rightarrow$ pass" would be the converse.</div></details></li>
+  <li><span class="lvl h">HARD</span> Valid or not: from "all aligned models pass the eval" and "this model passes the eval", conclude "this model is aligned". <details class="sol"><summary>Solution</summary><div>Invalid — affirming the consequent. The premise is aligned ⟹ passes; passing is necessary, not sufficient. A deceptive model could also pass. (This asymmetry is exactly why evals give safety <em>evidence</em>, not proof — Ch 35.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">"$p \to q$" is false in exactly which case?</div><button class="opt">$p$ false, $q$ true</button><button class="opt">$p$ true, $q$ false</button><button class="opt">both false</button><div class="why" hidden>An implication is a promise: it breaks only when the premise happens and the conclusion fails.</div></div>
+</section>
+
+<section class="topic" id="normal-forms">
+ <h2>Normal forms</h2>
+ <p>A normal form is a standardized grammar for formulas: every formula can be rewritten into it, so algorithms only need to handle one shape. It is the same move as putting fractions over a common denominator or code through a formatter — meaning untouched, shape canonical. The two classics are CNF (an AND of ORs) and DNF (an OR of ANDs), reachable from any formula by a fixed three-step pipeline: eliminate arrows, push negations inward (De Morgan), and distribute. Run the pipeline mechanically and you never need cleverness, only patience.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>literal</em> is a variable or its negation. A formula is in negation normal form (NNF) when $\neg$ applies only to variables. Conversion recipe: (1) rewrite $\to, \leftrightarrow$; (2) push $\neg$ inward; (3) distribute $\lor$ over $\land$ (for CNF) or $\land$ over $\lor$ (for DNF).</div>
+ <div class="box ex"><span class="label">Worked example</span> Normalize $\neg(p \to q)$: rewrite the arrow: $\neg(\neg p \lor q)$; De Morgan: $p \land \neg q$. Done — simultaneously CNF and DNF. (An implication's negation is "premise true, conclusion false" — the truth table row, derived.)</div>
+ <div class="box link"><span class="label">Where this goes</span> CNF is the input language of SAT solvers — the canonical NP-complete problem (Ch 17), the encoding target for combinatorial optimization (Ch 26), and the engine room of formal verification (Ch 34). Learning the conversion pipeline here is learning to speak to those tools.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Put $\neg(\neg p \land q)$ in NNF. <details class="sol"><summary>Solution</summary><div>$p \lor \neg q$.</div></details></li>
+  <li><span class="lvl m">MED</span> Rewrite $p \leftrightarrow q$ using only $\land, \lor, \neg$. <details class="sol"><summary>Solution</summary><div>$(p \land q)\lor(\neg p \land \neg q)$ (DNF), or equivalently $(\neg p \lor q)\land(p \lor \neg q)$ (CNF).</div></details></li>
+  <li><span class="lvl m">MED</span> Put $\neg(p \leftrightarrow q)$ in DNF. <details class="sol"><summary>Solution</summary><div>$p \leftrightarrow q$ is true on agreement, so its negation is true on disagreement: $(p \land \neg q) \lor (\neg p \land q)$ — XOR. (Pipeline check: $\neg[(p\land q)\lor(\neg p \land \neg q)]$, De Morgan twice, distribute, drop contradictory terms — same answer.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Convert $(p \land q) \lor r$ to CNF. <details class="sol"><summary>Solution</summary><div>Distribute $\lor$ over $\land$: $(p \lor r)\land(q \lor r)$ — an AND of two OR-clauses.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cnf">
+ <h2>CNF</h2>
+ <p>Conjunctive normal form is a checklist: a big AND of clauses, each clause an OR of literals. Satisfying a CNF formula means passing every check at once — which is why constraint problems compile naturally to CNF, and why SAT solvers speak it as their native tongue. Each clause rules out exactly one pattern of assignments (the one falsifying all its literals), so writing a CNF encoding is the art of listing forbidden patterns — a constraint language disguised as logic.</p>
+ <div class="box def"><span class="label">Definition</span> CNF: $\bigwedge_i \bigvee_j \ell_{ij}$ where each $\ell_{ij}$ is a literal, e.g. $(p \lor \neg q)\land(\neg p \lor r)\land q$. Every propositional formula has an equivalent CNF (possibly exponentially larger; the Tseitin transform gets an equisatisfiable CNF of linear size).</div>
+ <div class="box ex"><span class="label">Worked example</span> Constraint "at most one of $p, q, r$ is true" in CNF: forbid each pair: $(\neg p \lor \neg q)\land(\neg p \lor \neg r)\land(\neg q \lor \neg r)$. Three clauses, each banning one coexistence.</div>
+ <div class="box link"><span class="label">Where this goes</span> CNF is the input format of SAT solving (Ch 17, Ch 34): 3-SAT (clauses of ≤3 literals) is the canonical NP-complete problem, and SAT encodings power planning and discrete optimization (Ch 26).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Fully <em>equivalent</em> CNF can be exponentially large. The Tseitin transform stays linear by adding fresh variables, but the result is only <em>equisatisfiable</em> — satisfiable exactly when the original is, yet not equivalent to it. For SAT solving that is all you need; for equivalence checking it is not.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $(p \lor q) \land \neg r$ in CNF? <details class="sol"><summary>Solution</summary><div>Yes: two clauses, $(p\lor q)$ and $(\neg r)$ (a single literal is a clause).</div></details></li>
+  <li><span class="lvl m">MED</span> Find an assignment satisfying $(p \lor q)\land(\neg p \lor q)\land(\neg q \lor r)$. <details class="sol"><summary>Solution</summary><div>Clauses 1–2 force $q = T$ (if $q = F$ they demand $p$ and $\neg p$). Clause 3 then needs $r = T$. E.g. $p$ free: $(F, T, T)$ works.</div></details></li>
+  <li><span class="lvl m">MED</span> The pairwise encoding of "at most one of $x_1, \dots, x_n$ is true" forbids each pair. How many clauses is that, and what are they? <details class="sol"><summary>Solution</summary><div>One clause $(\neg x_i \lor \neg x_j)$ per unordered pair: $\binom{n}{2} = \tfrac{n(n-1)}{2}$ clauses. Quadratic growth — real encoders use commander or sequential encodings with $O(n)$ clauses and auxiliary variables.</div></details></li>
+  <li><span class="lvl h">HARD</span> Express "exactly one of $p, q$" in CNF. <details class="sol"><summary>Solution</summary><div>At least one: $(p \lor q)$. At most one: $(\neg p \lor \neg q)$. CNF: $(p\lor q)\land(\neg p \lor \neg q)$ — which is XOR.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dnf">
+ <h2>DNF</h2>
+ <p>Disjunctive normal form is a menu: an OR of complete scenarios, each scenario an AND of literals. A DNF formula is satisfied by picking any one scenario and making it true — so DNF is trivially easy to satisfy, and its dual role to CNF runs deep (negating one gives the other, by De Morgan). The asymmetry is worth savoring: satisfiability is easy for DNF and hard for CNF, while validity (is it a tautology?) flips — easy for CNF, hard for DNF. The forms are mirror images, and so are their hard questions.</p>
+ <div class="box def"><span class="label">Definition</span> DNF: $\bigvee_i \bigwedge_j \ell_{ij}$, e.g. $(p \land q) \lor (\neg p \land r)$. Canonical DNF: one conjunction ("minterm") per true row of the truth table — which is how you read a formula straight off its table.</div>
+ <div class="box ex"><span class="label">Worked example</span> A formula is true exactly on rows $(p,q) = (T,F)$ and $(F,T)$. DNF from the table: $(p \land \neg q)\lor(\neg p \land q)$ — XOR again, built mechanically.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Converting between CNF and DNF can blow up exponentially: $(p_1\lor q_1)\land\cdots\land(p_n \lor q_n)$ has $2^n$ minterms in DNF. Normal forms standardize shape, not size.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $p \lor (q \land r)$ in DNF? <details class="sol"><summary>Solution</summary><div>Yes: two disjuncts, $p$ and $q\land r$.</div></details></li>
+  <li><span class="lvl m">MED</span> Give the DNF of $p \to q$ from its truth table. <details class="sol"><summary>Solution</summary><div>True rows: $(T,T), (F,T), (F,F)$: $(p\land q)\lor(\neg p \land q)\lor(\neg p \land \neg q)$, which simplifies to $\neg p \lor q$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many minterms (over $n$ variables) does the canonical DNF of a tautology have? Of a contradiction? <details class="sol"><summary>Solution</summary><div>One minterm per true row: a tautology has all $2^n$; a contradiction has none — its canonical DNF is the empty disjunction, i.e. false.</div></details></li>
+  <li><span class="lvl h">HARD</span> How is the DNF of $\neg\varphi$ related to the CNF of $\varphi$? <details class="sol"><summary>Solution</summary><div>Negate a CNF $\bigwedge_i C_i$: De Morgan gives $\bigvee_i \neg C_i$, and each $\neg C_i$ (negated OR-clause) becomes an AND of negated literals — a DNF. The forms are De Morgan duals.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">Checking satisfiability is trivial for which normal form?</div><button class="opt">DNF — make any one non-contradictory term true</button><button class="opt">CNF — check any one clause</button><button class="opt">Neither; both are NP-hard</button><div class="why" hidden>A DNF is satisfiable iff some term avoids containing both a variable and its negation — a linear scan. For CNF, satisfiability is the NP-complete SAT problem: every clause must be handled at once.</div></div>
+</section>
+
+<section class="topic" id="predicate-logic">
+ <h2>Predicate logic</h2>
+ <p>Propositional logic can't see inside a statement; predicate logic can. It adds predicates — properties and relations like $P(x)$: "$x$ is prime" — and variables ranging over a domain, so one formula can speak about infinitely many objects at once. Think of a predicate as a boolean-valued function: feed it an object, get back true or false; the formula is a template with holes, and the domain is the supply of things to plug in. This is the actual language mathematics is written in — every definition and theorem in the rest of this book is a predicate-logic sentence, whether it says so or not.</p>
+ <div class="box def"><span class="label">Definition</span> A predicate $P(x)$ becomes a proposition once $x$ is specified (or quantified). Formulas combine predicates with connectives and quantifiers over a domain of discourse, e.g. $\forall x\, (P(x) \to Q(x))$. A relation is a predicate of several variables: $L(x, y)$: "$x &lt; y$".</div>
+ <div class="box ex"><span class="label">Worked example</span> Domain $\mathbb{Z}$; $E(x)$: "$x$ is even". Then $E(4)$ is true, $E(7)$ is false, and "$E(x) \to E(x+2)$" holds for every choice of $x$ — a template of infinitely many true propositions.</div>
+ <div class="box think"><span class="label">Think first</span> The domain is part of the meaning. Is $\forall x\,(x^2 \ge x)$ true over $\mathbb{Z}$? Over $\mathbb{R}$? <details class="sol"><summary>Reveal</summary><div>Over $\mathbb{Z}$: true — for $x \ge 1$, $x^2 = x\cdot x \ge x$; for $x \le 0$, $x^2 \ge 0 \ge x$; and there are no integers strictly between 0 and 1. Over $\mathbb{R}$: false — $x = \tfrac12$ gives $\tfrac14 &lt; \tfrac12$. Same formula, different domain, opposite verdict.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> First-order logic is the substrate of the $\epsilon$-$\delta$ definitions in analysis (Ch 7), of database query languages, and of the formal specifications that proof assistants and verifiers check (Ch 34).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With domain $\mathbb{N}$ and $P(x)$: "$x^2 = x$", for which $x$ is $P(x)$ true? <details class="sol"><summary>Solution</summary><div>$x = 0$ and $x = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Formalize "every prime greater than 2 is odd" with predicates $Pr(x)$, $Odd(x)$. <details class="sol"><summary>Solution</summary><div>$\forall x\,\big((Pr(x) \land x &gt; 2) \to Odd(x)\big)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Formalize "there is no largest prime" with $Pr(x)$ over domain $\mathbb{N}$. <details class="sol"><summary>Solution</summary><div>$\forall x\,\exists y\,(Pr(y) \land y &gt; x)$ — above every number sits a prime. (Equivalent phrasing: $\neg\exists x\,(Pr(x) \land \forall y\,(Pr(y) \to y \le x))$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can't propositional logic express "if all inputs are valid, the batch is valid" for arbitrarily many inputs? <details class="sol"><summary>Solution</summary><div>Propositional logic has finitely many fixed atoms; it can only AND together a fixed list $v_1 \land \dots \land v_n$. Quantification $\forall x\,(\text{Input}(x) \to \text{Valid}(x))$ covers any number of inputs, including unboundedly many — a genuinely stronger language.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quantifiers">
+ <h2>Quantifiers</h2>
+ <p>Two quantifiers run all of mathematics: $\forall$ ("for all") claims a property holds across the whole domain; $\exists$ ("there exists") claims at least one witness. Their <em>order</em> matters enormously: "everyone has a parent" and "someone is everyone's parent" differ only in quantifier order. A useful mental game: read $\forall x\,\exists y$ as an adversary picking $x$ first, then you answering with a $y$ tailored to it; $\exists y\,\forall x$ forces you to commit to one $y$ before seeing any $x$. Committing first is strictly harder — that is the whole difference.</p>
+ <div class="box def"><span class="label">Definition</span> $\forall x\, P(x)$: true iff $P(a)$ holds for every $a$ in the domain. $\exists x\, P(x)$: true iff $P(a)$ holds for at least one $a$. $\forall x\,\exists y\, R(x,y)$ lets $y$ depend on $x$; $\exists y\,\forall x\, R(x,y)$ demands one $y$ working for all $x$ — strictly stronger.</div>
+ <div class="box ex"><span class="label">Worked example</span> Domain $\mathbb{R}$: $\forall x\,\exists y\,(y &gt; x)$ is true (take $y = x + 1$, depending on $x$). $\exists y\,\forall x\,(y &gt; x)$ is false (no largest real). Same symbols, opposite verdicts. In the game reading: against "every $x$ has a bigger $y$" the defender answers $x$ with $x+1$ and always wins; in the swapped version the defender must name one universal ceiling $y$ up front, and the adversary replies $x = y$, since $y &gt; y$ fails.</div>
+ <div class="box link"><span class="label">Where this goes</span> The $\epsilon$-$\delta$ limit definition (Ch 7) is a $\forall\epsilon\,\exists\delta\,\forall x$ statement — three alternating quantifiers; reading it is exactly this skill. The adversary game returns as minimax in game theory and GANs (Ch 25).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Over an <em>empty</em> domain, $\forall x\,P(x)$ is vacuously true and $\exists x\,P(x)$ is false: "all my Ferraris are red" holds when you own none. Code analog: <code>all([])</code> is <code>True</code>, <code>any([])</code> is <code>False</code>. Many off-by-one proofs die on the empty case.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Domain $\{1,2,3\}$: is $\forall x\,(x^2 \le 9)$ true? Is $\exists x\,(x^2 = 5)$? <details class="sol"><summary>Solution</summary><div>True (check 1, 4, 9); false (no member squares to 5).</div></details></li>
+  <li><span class="lvl m">MED</span> True or false over $\mathbb{Z}$: $\forall x\,\exists y\,(x + y = 0)$; $\exists y\,\forall x\,(x + y = x)$. <details class="sol"><summary>Solution</summary><div>True: $y = -x$. True: $y = 0$ — here one witness does serve all $x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Do same-type quantifiers commute? Compare $\forall x\,\forall y\,R(x,y)$ with $\forall y\,\forall x\,R(x,y)$, and likewise for $\exists\exists$. <details class="sol"><summary>Solution</summary><div>Yes: both orders of $\forall\forall$ say "$R$ holds for every pair," and both orders of $\exists\exists$ say "some pair satisfies $R$." Only <em>alternation</em> ($\forall\exists$ vs $\exists\forall$) is order-sensitive.</div></details></li>
+  <li><span class="lvl h">HARD</span> Over $\mathbb{R}$, compare $\forall x\,\exists y\,(xy = 1)$ and $\exists y\,\forall x\,(xy = 1)$. <details class="sol"><summary>Solution</summary><div>First is false as stated — $x = 0$ has no reciprocal (true if the domain excludes 0, with $y = 1/x$). Second is false: no single $y$ satisfies $xy = 1$ for two different $x$. Quantifier order and domain edge cases both bite.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="negating-quantified-statements">
+ <h2>Negating quantified statements</h2>
+ <p>To negate a quantified statement, flip every quantifier and negate the inside: NOT-everyone-passes means someone-fails; NOT-someone-succeeds means everyone-fails. Done mechanically, this turns "the claim is false" into a concrete search problem: find the witness or counterexample. It is the single most useful mechanical skill in this chapter — every "prove this fails" task starts by cranking the negation through, and the crank never requires thought, only care: one quantifier at a time, outside in.</p>
+ <div class="box def"><span class="label">Definition</span> $\neg\forall x\,P(x) \equiv \exists x\,\neg P(x)$; $\;\neg\exists x\,P(x) \equiv \forall x\,\neg P(x)$. For nested quantifiers, push the negation through one layer at a time; inside, use De Morgan and $\neg(p \to q) \equiv p \land \neg q$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Negate "$\forall \epsilon &gt; 0\ \exists \delta &gt; 0\ \forall x\ (|x| &lt; \delta \to |f(x)| &lt; \epsilon)$": $\;\exists \epsilon &gt; 0\ \forall \delta &gt; 0\ \exists x\ (|x| &lt; \delta \land |f(x)| \ge \epsilon)$. Every $\forall\leftrightarrow\exists$ flipped; the inner implication became "premise and not conclusion."</div>
+ <div class="box pit"><span class="label">Pitfall</span> The negation of "all X are Y" is "some X is not Y" — <em>never</em> "no X is Y". Negation is one counterexample, not the opposite universal.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 7: to show a limit claim fails you negate the $\forall\epsilon\,\exists\delta$ definition and hunt for the bad $\epsilon$ — the epsilon-delta game is this section played on the real line.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Negate: "every test passes." <details class="sol"><summary>Solution</summary><div>"Some test fails."</div></details></li>
+  <li><span class="lvl m">MED</span> Negate formally: $\exists x\,\forall y\,(x \le y)$ (over $\mathbb{N}$: "there is a least element"). <details class="sol"><summary>Solution</summary><div>$\forall x\,\exists y\,(x &gt; y)$ — "below every element lies another." (False for $\mathbb{N}$, true for $\mathbb{Z}$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Negate $\forall x\,(P(x) \to Q(x))$ fully, pushing the negation onto the predicates. <details class="sol"><summary>Solution</summary><div>$\neg\forall x\,(P(x)\to Q(x)) \equiv \exists x\,\neg(P(x)\to Q(x)) \equiv \exists x\,(P(x) \land \neg Q(x))$ — a witness that has the property but breaks the conclusion. Note the connective changed from $\to$ to $\land$: negated implications always do.</div></details></li>
+  <li><span class="lvl h">HARD</span> Negate: "for every prompt, there exists a jailbreak that defeats every filter" — $\forall p\,\exists j\,\forall f\, D(p, j, f)$. <details class="sol"><summary>Solution</summary><div>$\exists p\,\forall j\,\exists f\,\neg D(p,j,f)$: "some prompt is such that every jailbreak is stopped by at least one filter." Note how the defended prompt needs only one working filter per attack — quantifier order encodes the security game.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">The negation of "every user has set a password" is:</div><button class="opt">No user has set a password</button><button class="opt">Some user has not set a password</button><button class="opt">Every user has not set a password</button><div class="why" hidden>$\neg\forall$ is $\exists\neg$: one delinquent user falsifies the universal. The other options are the (much stronger) opposite universal, which negation does not claim.</div></div>
+</section>
+
+<section class="topic" id="direct-proof">
+ <h2>Direct proof</h2>
+ <p>A direct proof walks straight from hypothesis to conclusion: assume $p$, chain known facts and definitions, arrive at $q$. It is the default gait of mathematics — most proofs are direct, and the craft lies in unfolding definitions until the path appears. In practice the recipe is almost boring: write down what the hypothesis <em>means</em> (odd means $2a+1$; divisible means "equals a multiple"), write down what the conclusion would mean, and do algebra to connect the two shapes. When you feel stuck, you usually have not unfolded enough definitions yet.</p>
+ <div class="box def"><span class="label">Definition</span> To prove $p \to q$ directly: assume $p$; derive intermediate facts by definitions, algebra and earlier theorems; conclude $q$. To prove $\forall x\,P(x)$: let $x$ be arbitrary and prove $P(x)$ with no assumptions on $x$ beyond its domain.</div>
+ <div class="box ex"><span class="label">Worked example</span> <em>Claim: the sum of two odd integers is even.</em> Proof: let $m, n$ be odd, so $m = 2a + 1$, $n = 2b + 1$ for integers $a, b$ (definition of odd). Then $m + n = 2a + 2b + 2 = 2(a + b + 1)$, an integer multiple of 2 — even by definition. $\blacksquare$ Note the crucial hygiene: two <em>different</em> letters $a, b$ — writing both as $2a+1$ would silently assume $m = n$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Two classic sins. (1) Assuming the conclusion: starting from what you want and manipulating until something true appears proves nothing unless every step is reversible — and then you must say so and read the chain backwards. (2) Proof by example: checking $n = 1, 2, 3$ establishes nothing about all $n$. Examples build intuition; only the arbitrary-element argument builds proof.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prove directly: the product of two even integers is even. <details class="sol"><summary>Solution</summary><div>$m = 2a$, $n = 2b$: $mn = 4ab = 2(2ab)$, even. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: if $a \mid b$ and $b \mid c$ then $a \mid c$. <details class="sol"><summary>Solution</summary><div>$b = ak$, $c = bl$ for integers $k, l$. Then $c = (ak)l = a(kl)$, and $kl \in \mathbb{Z}$, so $a \mid c$. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove directly: if $a$ is odd then $a^2 + 3a$ is even. <details class="sol"><summary>Solution</summary><div>$a^2 + 3a = a(a + 3)$. With $a$ odd, $a + 3$ is odd $+$ odd $=$ even, say $a + 3 = 2k$. Then $a(a+3) = 2(ak)$, even. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: for every integer $n$, $n^2 + n$ is even. <details class="sol"><summary>Solution</summary><div>$n^2 + n = n(n+1)$, a product of consecutive integers; one of them is even, so the product is. (Case check: $n = 2k$ gives $2k(2k+1)$; $n = 2k+1$ gives $(2k+1)(2k+2) = 2(2k+1)(k+1)$.) $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="proof-by-contrapositive">
+ <h2>Proof by contrapositive</h2>
+ <p>Sometimes $p \to q$ is hard to walk forward but easy backward: prove $\neg q \to \neg p$ instead — logically identical, often algebraically friendlier. The tell: when the conclusion $q$ is a "nice" property (even, rational, bounded) whose negation gives you concrete material to compute with, while the hypothesis $p$ is about a derived object like $n^2$ that is hard to invert. Flipping the arrow lets you start from the simple object and compute forward — the same theorem, walked downhill instead of up.</p>
+ <div class="box def"><span class="label">Definition</span> Since $p \to q \equiv \neg q \to \neg p$, assume $\neg q$ and derive $\neg p$. This proves the original implication.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Contrapositive is not contradiction. Contrapositive assumes only $\neg q$ and marches directly to $\neg p$; contradiction assumes $p \land \neg q$ and hunts for absurdity. If your "proof by contradiction" never actually used the hypothesis $p$ except to contradict it at the end, it was a contrapositive proof in a trench coat — restate it as one, and it gets shorter and clearer.</div>
+ <div class="box ex"><span class="label">Worked example</span> <em>Claim: if $n^2$ is even, then $n$ is even.</em> Direct is awkward ($n = \pm\sqrt{n^2}$?). Contrapositive: if $n$ is odd, $n^2$ is odd: $n = 2k+1 \Rightarrow n^2 = 4k^2 + 4k + 1 = 2(2k^2 + 2k) + 1$, odd. $\blacksquare$ — this lemma powered the $\sqrt2$ proof in Ch 1.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> To prove "if $3n + 1$ is even then $n$ is odd" by contrapositive, what do you assume and show? <details class="sol"><summary>Solution</summary><div>Assume $n$ even; show $3n + 1$ odd: $n = 2k \Rightarrow 3n+1 = 6k + 1 = 2(3k) + 1$, odd. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: if $x^2$ is irrational, then $x$ is irrational. <details class="sol"><summary>Solution</summary><div>Contrapositive: $x$ rational $\Rightarrow x^2$ rational. If $x = \tfrac{p}{q}$ then $x^2 = \tfrac{p^2}{q^2}$, a ratio of integers. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: if $n^2$ is not divisible by 3, then $n$ is not divisible by 3. <details class="sol"><summary>Solution</summary><div>Contrapositive: $3 \mid n \Rightarrow 3 \mid n^2$. Write $n = 3k$: $n^2 = 9k^2 = 3(3k^2)$, divisible by 3. $\blacksquare$ The forward direction would require reasoning about non-divisibility — awkward; the contrapositive hands you a factorization.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: if $ab &gt; 100$ then $a &gt; 10$ or $b &gt; 10$ (for positive reals). <details class="sol"><summary>Solution</summary><div>Contrapositive: if $a \le 10$ and $b \le 10$ (De Morgan negation of the OR), then $ab \le 100$ — immediate since both are positive: $ab \le 10 \cdot 10$. $\blacksquare$ Note how negating the OR gave two usable inequalities.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="proof-by-contradiction">
+ <h2>Proof by contradiction</h2>
+ <p>Assume the claim is false, then push the assumption until it breaks something known to be true. Since a true world cannot contain a contradiction, the assumption must be wrong. It is the boldest proof technique — you get the negation as a free hypothesis and may use it anywhere — and the risk is sloppiness: every step must be airtight, because you are aiming for an absurdity on purpose. The great contradiction proofs share a shape: the false assumption conjures a concrete object (a smallest something, a complete list, a largest element) and the proof then uses that object to build a better one, which cannot exist.</p>
+ <div class="box def"><span class="label">Definition</span> To prove $\varphi$: assume $\neg\varphi$; derive a contradiction (some $\psi \land \neg\psi$); conclude $\varphi$. (For implications $p \to q$, assume $p \land \neg q$ and derive absurdity.)</div>
+ <div class="box pit"><span class="label">Pitfall</span> A contradiction can also come from your own algebra slip — and a contradiction proof gives no warning when it is broken, because arriving at nonsense is the goal. Double-check every step, and prefer direct or contrapositive proofs when available; reach for contradiction when the negation genuinely hands you material to work with (a "smallest counterexample," a "complete list," a "largest element").</div>
+ <div class="box ex"><span class="label">Worked example</span> <em>Claim: there is no smallest positive rational.</em> Suppose $r$ were the smallest positive rational. Then $\tfrac{r}{2}$ is rational, positive, and smaller than $r$ — contradicting minimality. $\blacksquare$ (Compare: $\sqrt2 \notin \mathbb{Q}$ in Ch 1, Euclid's infinitude of primes.)</div>
+ <div class="box think"><span class="label">Think first</span> Prove: at a party of $n \ge 2$ people, two people shook the same number of hands. <details class="sol"><summary>Reveal</summary><div>Handshake counts lie in $\{0, \dots, n-1\}$ — $n$ possible values. But 0 and $n-1$ cannot both occur (someone shaking everyone's hand contradicts someone shaking nobody's). So at most $n - 1$ values are used by $n$ people: two people share (pigeonhole, arriving two sections early, inside a contradiction). $\blacksquare$</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prove by contradiction: no integer is both even and odd. <details class="sol"><summary>Solution</summary><div>Suppose $n = 2a = 2b + 1$. Then $2(a - b) = 1$, so $a - b = \tfrac12$ — not an integer, contradiction. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $\sqrt3$ is irrational. <details class="sol"><summary>Solution</summary><div>Suppose $\sqrt3 = \tfrac{p}{q}$ in lowest terms: $p^2 = 3q^2$, so $3 \mid p^2$, and since 3 is prime, $3 \mid p$: $p = 3k$. Then $9k^2 = 3q^2 \Rightarrow q^2 = 3k^2 \Rightarrow 3 \mid q$ — both divisible by 3 contradicts lowest terms. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove by contradiction: there is no largest integer. <details class="sol"><summary>Solution</summary><div>Suppose $N$ were the largest integer. Then $N + 1$ is an integer and $N + 1 &gt; N$, contradicting maximality. $\blacksquare$ (The same one-move template kills "largest prime" once you know every $n \ge 2$ has a prime factor: given primes $p_1,\dots,p_k$, any prime factor of $p_1\cdots p_k + 1$ is new.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: if $a_1, \dots, a_n$ are reals with average $\bar a$, some $a_i \ge \bar a$. <details class="sol"><summary>Solution</summary><div>Suppose all $a_i &lt; \bar a$. Summing: $\sum a_i &lt; n\bar a = \sum a_i$ — a number strictly less than itself, absurd. $\blacksquare$ (One line, yet it underlies the probabilistic method and averaging arguments everywhere.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="proof-by-induction">
+ <h2>Proof by induction</h2>
+ <p>Induction proves a statement for all naturals with two moves: knock over the first domino (base case), and show each domino knocks over the next (inductive step). If $P(0)$ holds and $P(n)$ always forces $P(n+1)$, the truth sweeps through all of $\mathbb{N}$. Notice what the step really is: not a proof of $P(n+1)$, but a proof of the <em>implication</em> $P(n) \Rightarrow P(n+1)$ — you get the hypothesis for free, and your whole job is turning it into the next case. It is the proof-shape of recursion: base case = recursion's terminating branch, inductive step = the recursive call.</p>
+ <div class="box def"><span class="label">Definition</span> To prove $\forall n \ge n_0\ P(n)$: (base) prove $P(n_0)$; (step) assume $P(n)$ for arbitrary $n \ge n_0$ (the <em>inductive hypothesis</em>) and prove $P(n{+}1)$. Conclude $P(n)$ for all $n \ge n_0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> <em>Claim: $1 + 2 + \cdots + n = \tfrac{n(n+1)}{2}$.</em> Base $n=1$: $1 = \tfrac{1\cdot2}{2}$ ✓. Step: assume the formula for $n$. Then $1 + \cdots + n + (n{+}1) = \tfrac{n(n+1)}{2} + (n+1) = (n+1)\left(\tfrac{n}{2} + 1\right) = \tfrac{(n+1)(n+2)}{2}$ — the formula for $n{+}1$. $\blacksquare$</div>
+ <div class="box pit"><span class="label">Pitfall</span> The step must work for <em>every</em> $n \ge n_0$, including the first. The classic fake proof that "all horses are the same color" breaks precisely at $n = 1 \to 2$, where the two overlapping groups fail to overlap.</div>
+ <div class="box link"><span class="label">Where this goes</span> Induction is how you prove recursive algorithms correct and solve recurrences (Ch 17); loop invariants are induction over iterations, and convergence arguments for iterative training (Ch 8, Ch 21) are induction over steps with an error bound as $P(n)$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prove $1 + 3 + 5 + \cdots + (2n - 1) = n^2$. <details class="sol"><summary>Solution</summary><div>Base $n = 1$: $1 = 1$ ✓. Step: $n^2 + (2(n{+}1) - 1) = n^2 + 2n + 1 = (n+1)^2$. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $2^n &gt; n^2$ for all $n \ge 5$. <details class="sol"><summary>Solution</summary><div>Base $n=5$: $32 &gt; 25$ ✓. Step ($n \ge 5$): $2^{n+1} = 2\cdot2^n &gt; 2n^2$; suffices that $2n^2 \ge (n+1)^2$, i.e. $n^2 - 2n - 1 \ge 0$, true for $n \ge 3$ (roots $1 \pm \sqrt2$). $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $\displaystyle\sum_{i=1}^{n} i^2 = \frac{n(n+1)(2n+1)}{6}$ for all $n \ge 1$. <details class="sol"><summary>Solution</summary><div>Base $n = 1$: $1 = \tfrac{1\cdot2\cdot3}{6}$ ✓. Step: $\tfrac{n(n+1)(2n+1)}{6} + (n+1)^2 = \tfrac{n+1}{6}\big[n(2n+1) + 6(n+1)\big] = \tfrac{n+1}{6}(2n^2 + 7n + 6) = \tfrac{(n+1)(n+2)(2n+3)}{6}$ — the formula at $n+1$. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $n^3 - n$ is divisible by 6 for all $n \ge 0$. <details class="sol"><summary>Solution</summary><div>Base: $0$ divisible ✓. Step: $(n+1)^3 - (n+1) - (n^3 - n) = 3n^2 + 3n = 3n(n+1)$. Of $n, n+1$ one is even, so $3n(n+1)$ is divisible by 6; adding a multiple of 6 to a multiple of 6 stays one. $\blacksquare$ (Or directly: $n^3 - n = (n-1)n(n+1)$, three consecutive integers contain a multiple of 2 and of 3.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="strong-induction">
+ <h2>Strong induction</h2>
+ <p>Strong induction upgrades the inductive hypothesis: to prove $P(n+1)$, you may assume $P$ for <em>all</em> smaller values, not just the previous one. Nothing is really stronger — the two are equivalent — but recursion that reaches back arbitrarily far (like factoring $n$ into $a \cdot b$) needs the roomier hypothesis.</p>
+ <div class="box def"><span class="label">Definition</span> (Base) prove $P(n_0)$. (Step) assume $P(k)$ for all $n_0 \le k \le n$ and prove $P(n{+}1)$. Conclude $\forall n \ge n_0\, P(n)$. Equivalent to ordinary induction and to well-ordering (Ch 1).</div>
+ <div class="box ex"><span class="label">Worked example</span> <em>Claim: every integer $n \ge 2$ is a product of primes.</em> Base: 2 is prime ✓. Step: given the claim for all $2 \le k \le n$, consider $n+1$: if prime, done; if not, $n + 1 = ab$ with $2 \le a, b \le n$ — both covered by the strong hypothesis, so each is a product of primes, hence so is $n+1$. $\blacksquare$ Ordinary induction fails here: $a, b$ are not $n$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Structural induction on trees and programs (Ch 17, Ch 34) is strong induction on size; every proof about recursive algorithms leans on it — divide-and-conquer recurrences reach back to $n/2$, not $n-1$.</div>
+ <div class="box think"><span class="label">Think first</span> Every $n \ge 1$ is a sum of <em>distinct</em> powers of 2 (that's binary). Why does proving this need strong induction rather than ordinary induction? <details class="sol"><summary>Reveal</summary><div>Take the largest power $2^k \le n$ and set $m = n - 2^k$. Then $m &lt; 2^k$ (else $2^{k+1} \le n$), so $m$'s representation uses powers below $2^k$ — distinctness survives. But $m$ is some arbitrary smaller number, not $n - 1$: only the strong hypothesis covers it. (Base: $1 = 2^0$; $m = 0$ means the empty sum.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does proving "every $n \ge 2$ factors into primes" need the hypothesis for all smaller $k$? <details class="sol"><summary>Solution</summary><div>When $n + 1 = ab$, the factors $a, b$ can be any sizes below $n+1$ (e.g. $36 = 4 \times 9$) — not necessarily $n$ itself.</div></details></li>
+  <li><span class="lvl m">MED</span> Fibonacci: $F_1 = F_2 = 1$, $F_n = F_{n-1} + F_{n-2}$. Prove $F_n &lt; 2^n$ for all $n \ge 1$. <details class="sol"><summary>Solution</summary><div>Bases: $F_1 = 1 &lt; 2$, $F_2 = 1 &lt; 4$ ✓ (two bases, since the step uses two predecessors). Step ($n \ge 2$): $F_{n+1} = F_n + F_{n-1} &lt; 2^n + 2^{n-1} &lt; 2^n + 2^n = 2^{n+1}$. $\blacksquare$</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: every integer $n \ge 1$ equals $2^a \cdot b$ with $a \ge 0$ and $b$ odd. <details class="sol"><summary>Solution</summary><div>Strong induction. Base: $1 = 2^0 \cdot 1$ ✓. Step: if $n + 1$ is odd, take $a = 0$, $b = n+1$. If even, $n + 1 = 2m$ with $1 \le m \le n$; by the strong hypothesis $m = 2^a b$ with $b$ odd, so $n + 1 = 2^{a+1} b$. $\blacksquare$ ($m$ is roughly half of $n+1$, far below $n$ — strong induction needed.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove every amount $n \ge 12$ (cents) is payable with 4- and 5-cent coins. <details class="sol"><summary>Solution</summary><div>Bases: $12 = 4{+}4{+}4$, $13 = 4{+}4{+}5$, $14 = 4{+}5{+}5$, $15 = 5{+}5{+}5$ ✓. Step for $n + 1 \ge 16$: by strong hypothesis $(n+1) - 4 \ge 12$ is payable; add one 4-cent coin. $\blacksquare$ (Four bases because the step reaches back 4.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="counterexamples">
+ <h2>Counterexamples</h2>
+ <p>To demolish a universal claim, one concrete failure suffices: a counterexample. Disproving is often easier than proving — and the hunt for counterexamples is how conjectures get sharpened. Before trying to prove any "for all" statement, spend a minute trying to break it; the attempt teaches you where the difficulty lives. Hunt systematically: try the boundary values ($0$, $1$, negatives, the empty set), try making two variables equal, try the smallest case the statement permits — most false conjectures die within arm's reach of the origin.</p>
+ <div class="box def"><span class="label">Definition</span> A counterexample to $\forall x\,P(x)$ is a specific $a$ in the domain with $\neg P(a)$. One is enough. (Conversely, examples never prove a universal — only a proof does.)</div>
+ <div class="box ex"><span class="label">Worked example</span> <em>Claim: $n^2 + n + 41$ is prime for every natural $n$.</em> It survives $n = 0, 1, \dots, 39$ (all prime!) — then $n = 40$: $1600 + 40 + 41 = 1681 = 41^2$. Composite. Forty confirmations, zero proof; one counterexample, total demolition.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Testing many cases and finding no failure proves nothing about "for all" over an infinite domain. Empirical success is evidence, not proof — the difference between benchmark performance and a guarantee.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Disprove: "all primes are odd." <details class="sol"><summary>Solution</summary><div>$2$ is prime and even.</div></details></li>
+  <li><span class="lvl m">MED</span> Disprove: "if $a \mid bc$ then $a \mid b$ or $a \mid c$." <details class="sol"><summary>Solution</summary><div>$a = 6$, $b = 4$, $c = 9$: $6 \mid 36$ but $6 \nmid 4$ and $6 \nmid 9$. (The claim <em>is</em> true when $a$ is prime — Euclid's lemma; the counterexample shows exactly where compositeness matters.)</div></details></li>
+  <li><span class="lvl m">MED</span> Disprove: "for all reals $x$, $x^2 \ge x$" and "for all sets $A, B$: $|A \cup B| = |A| + |B|$." <details class="sol"><summary>Solution</summary><div>$x = \tfrac12$: $\tfrac14 &lt; \tfrac12$. And $A = B = \{1\}$: $|A\cup B| = 1 \ne 2$ — the formula overcounts the overlap unless the sets are disjoint.</div></details></li>
+  <li><span class="lvl h">HARD</span> Disprove: "$2^n - 1$ is prime whenever $n$ is prime." <details class="sol"><summary>Solution</summary><div>$n = 11$: $2^{11} - 1 = 2047 = 23 \times 89$. (True for $n = 2,3,5,7$ — Mersenne primes — then fails. Small-case optimism strikes again.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="counting-principles">
+ <h2>Counting principles</h2>
+ <p>Two rules generate all of combinatorics. Multiplication: independent choices in sequence multiply. Addition: mutually exclusive alternatives add. Every counting problem is a decomposition into stages (multiply) and cases (add) — the art is choosing the decomposition that makes the count obvious. A good habit: narrate the count as a construction ("first pick the suit, then pick the cards...") and check that every object gets built exactly once by exactly one narration; if some object has two build stories, you have overcounted.</p>
+ <div class="box def"><span class="label">Definition</span> Product rule: a procedure of $k$ stages with $n_1, n_2, \dots, n_k$ options has $n_1 n_2\cdots n_k$ outcomes. Sum rule: if a task is done in one of several mutually exclusive ways with $m_1, \dots, m_j$ options, the total is $m_1 + \cdots + m_j$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Passwords of length 8 over 26 letters + 10 digits: $36^8 \approx 2.8\times10^{12}$. Requiring the first character to be a letter: $26 \times 36^7 \approx 2.0\times10^{12}$ — stages multiply, and the constraint only reshapes stage one.</div>
+ <div class="box link"><span class="label">Where this goes</span> Counting outcomes is the denominator of classical probability (Ch 11); counting parameters and configurations sizes hypothesis classes (Ch 20).</div>
+ <div class="box pit"><span class="label">Pitfall</span> The sum rule needs <em>disjoint</em> cases and the product rule needs stage-counts that don't depend on which earlier choice was made. Counting "committees with at least one senior" as (pick a senior) × (pick the rest) double-counts every committee with two seniors — use the complement ("all committees minus senior-free ones") instead. When a count feels too big, hunt for the double-count.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A menu: 4 starters, 5 mains, 3 desserts. How many three-course meals? <details class="sol"><summary>Solution</summary><div>$4 \times 5\times 3 = 60$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many 4-digit codes (0–9) have no repeated digit? <details class="sol"><summary>Solution</summary><div>$10 \times 9 \times 8 \times 7 = 5040$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many functions are there from a 3-element set to a 5-element set? <details class="sol"><summary>Solution</summary><div>Each of the 3 inputs independently picks one of 5 outputs: $5^3 = 125$. (In general $|B|^{|A|}$ functions $A \to B$ — the reason for the notation $B^A$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> How many binary strings of length 10 start with 1 <em>or</em> end with 00? <details class="sol"><summary>Solution</summary><div>Inclusion–exclusion (sum rule needs disjointness!): start-with-1: $2^9 = 512$; end-00: $2^8 = 256$; both: $2^7 = 128$. Total $512 + 256 - 128 = 640$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">License plates: 3 letters followed by 3 digits, repeats allowed. How many plates?</div><button class="opt">$26^3 \cdot 10^3 = 17{,}576{,}000$</button><button class="opt">$26 \cdot 25 \cdot 24 \cdot 10 \cdot 9 \cdot 8$</button><button class="opt">$36^6$</button><div class="why" hidden>Six independent stages: three with 26 options, three with 10 — multiply. The second option forbids repeats; the third lets letters and digits mix positions.</div></div>
+</section>
+
+<section class="topic" id="permutations">
+ <h2>Permutations</h2>
+ <p>A permutation is an arrangement: order matters. Lining up $n$ distinct things gives $n!$ orders — $n$ choices, then $n-1$, then $n-2$, the product rule cascading down. Choosing and arranging $k$ out of $n$ truncates the cascade after $k$ factors. Factorials grow faster than any exponential ($70! &gt; 10^{100}$), which is why "try every ordering" is never a plan and why shuffles of a 52-card deck have almost certainly never repeated in history.</p>
+ <div class="box def"><span class="label">Definition</span> $n! = n(n-1)\cdots 2 \cdot 1$, with $0! = 1$. Arrangements of $k$ items chosen from $n$ distinct: $P(n,k) = \dfrac{n!}{(n-k)!} = n(n-1)\cdots(n-k+1)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Podium (gold/silver/bronze) from 8 runners: $P(8,3) = 8 \times 7\times 6 = 336$. With identical items, divide by internal rearrangements: anagrams of MISSISSIPPI $= \dfrac{11!}{4!\,4!\,2!} = \dfrac{39916800}{24\cdot24\cdot2} = 34650$.</div>
+ <div class="box think"><span class="label">Think first</span> Why is $0! = 1$ and not $0$? <details class="sol"><summary>Reveal</summary><div>There is exactly one way to arrange nothing: the empty arrangement. An empty product defaults to 1 (just as an empty sum defaults to 0), and the convention keeps every formula consistent: $P(n,n) = \tfrac{n!}{0!} = n!$ and $\binom{n}{0} = 1$ come out right automatically.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many ways can 5 books be ordered on a shelf? <details class="sol"><summary>Solution</summary><div>$5! = 120$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many anagrams has LEVEL? <details class="sol"><summary>Solution</summary><div>$\dfrac{5!}{2!\,2!} = \dfrac{120}{4} = 30$ (two E's, two L's).</div></details></li>
+  <li><span class="lvl m">MED</span> In how many ways can 6 people sit around a round table, if rotations of the same seating count as identical? <details class="sol"><summary>Solution</summary><div>Fix one person's seat to kill the rotation symmetry; the other 5 arrange freely: $5! = 120$. (Equivalently $\tfrac{6!}{6}$ — each circular seating is counted 6 times among the $6!$ line-ups.)</div></details></li>
+  <li><span class="lvl h">HARD</span> In how many orders can 4 tasks A, B, C, D run if A must precede B? <details class="sol"><summary>Solution</summary><div>By symmetry, A precedes B in exactly half of the $4! = 24$ orders: 12. (Pairing each order with its A↔B swap is a bijection between the two halves.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="combinations">
+ <h2>Combinations</h2>
+ <p>A combination is a selection: order does not matter. Take the ordered count and divide out the $k!$ internal orderings — that quotient is the binomial coefficient $\binom{n}{k}$, the same number that appeared in the binomial theorem. Algebra's coefficients and counting's selections are one object: expanding $(x+y)^n$ means choosing, in each of the $n$ factors, whether to take $x$ or $y$ — and the $x^k y^{n-k}$ terms are exactly the $\binom{n}{k}$ ways to pick which $k$ factors contribute an $x$. The "divide by what you overcounted" move here is the workhorse of all counting.</p>
+ <div class="box def"><span class="label">Definition</span> $\dbinom{n}{k} = \dfrac{n!}{k!\,(n-k)!} = \dfrac{P(n,k)}{k!}$: the number of $k$-element subsets of an $n$-element set. Symmetry: $\binom{n}{k} = \binom{n}{n-k}$. Pascal: $\binom{n}{k} = \binom{n-1}{k-1} + \binom{n-1}{k}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Committees of 3 from 10 people: $\binom{10}{3} = \dfrac{10\cdot9\cdot8}{3!} = \dfrac{720}{6} = 120$. Sanity: choosing the 7 excluded people is the same act — $\binom{10}{7} = 120$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\binom{n}{k}$ is the count inside the binomial distribution (Ch 11): the probability of $k$ heads in $n$ flips is $\binom{n}{k}p^k(1-p)^{n-k}$, and the "number of ways" factor is exactly this page. It also counts lattice paths, feature subsets in model selection (Ch 20), and rows of Pascal's triangle.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Compare the explosive growth of $P(n,k)$ vs $\binom{n}{k}$ as $k$ slides (log scale).</p>
+  <canvas id="cv-count"></canvas>
+  <div class="ctl">
+   <label>n <input type="range" id="ct-n" min="4" max="30" step="1" value="20"></label>
+  </div>
+  <div class="out" id="ct-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\binom{6}{2}$. <details class="sol"><summary>Solution</summary><div>$\tfrac{6\cdot5}{2} = 15$.</div></details></li>
+  <li><span class="lvl m">MED</span> A test: answer 8 of 10 questions, but at least 3 of the first 5. How many ways if exactly 3 from the first 5? All ways? <details class="sol"><summary>Solution</summary><div>Exactly 3 of first 5 and 5 of last 5: $\binom53\binom55 = 10$. Exactly 4: $\binom54\binom54 = 25$. Exactly 5: $\binom55\binom53 = 10$. Total $= 45$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many 5-card hands from a 52-card deck are all one suit (a flush, counting straight flushes)? <details class="sol"><summary>Solution</summary><div>Pick the suit (4 ways), then 5 of its 13 cards: $4\binom{13}{5} = 4 \cdot 1287 = 5148$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the "committee-chair" identity $k\binom{n}{k} = n\binom{n-1}{k-1}$ by counting. <details class="sol"><summary>Solution</summary><div>Count (committee of $k$ with a chair) two ways. Pick committee then chair: $\binom{n}{k}\cdot k$. Pick chair first ($n$ ways) then the other $k-1$ members from $n - 1$: $n\binom{n-1}{k-1}$. Same set counted twice — equal. $\blacksquare$</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">Lottery: choose 6 numbers from 49, order irrelevant. How many tickets?</div><button class="opt">$\binom{49}{6} = 13{,}983{,}816$</button><button class="opt">$P(49,6) \approx 10^{10}$</button><button class="opt">$49^6$</button><div class="why" hidden>Unordered selection without repetition is a combination: $\binom{49}{6}$. The other options count ordered draws and draws with repetition.</div></div>
+</section>
+
+<section class="topic" id="pigeonhole-principle">
+ <h2>Pigeonhole principle</h2>
+ <p>Put more pigeons than holes, and some hole gets two pigeons. Trivial to state, weirdly powerful in use: the whole trick is spotting what the pigeons and holes are — the pigeons are usually the objects you were given, and the holes are a clever classification of them (remainders, ranges, pairs). It proves existence without ever finding the object — a hash collision must exist long before you exhibit one, and the proof gives no recipe for finding it.</p>
+ <div class="box def"><span class="label">Definition</span> If $n$ items go into $m$ boxes with $n &gt; m$, some box holds $\ge 2$. General form: some box holds at least $\left\lceil \tfrac{n}{m}\right\rceil$ items. (Proof by contradiction in one line: if every box held fewer, the total would be at most $m\left(\left\lceil \tfrac{n}{m}\right\rceil - 1\right) &lt; n$.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Any 5 points in a unit square contain two at distance $\le \tfrac{\sqrt2}{2}$. Split the square into 4 half-size squares (holes); 5 points (pigeons) force two into one small square, whose diagonal is $\tfrac{\sqrt2}{2}$. $\blacksquare$</div>
+ <div class="box link"><span class="label">Where this goes</span> Pigeonhole is why lossless compression cannot shrink every file (Ch 16) and why hash collisions are inevitable (Ch 31's retrieval structures).</div>
+ <div class="box think"><span class="label">Think first</span> Pick any 51 numbers from $\{1, 2, \dots, 100\}$. Must two of them be consecutive? <details class="sol"><summary>Reveal</summary><div>Yes. Holes: the 50 pairs $\{1,2\}, \{3,4\}, \dots, \{99,100\}$. Fifty-one numbers into fifty pairs puts two into the same pair — and the two members of a pair are consecutive. (50 numbers can avoid it: take all the odds.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many people guarantee two share a birth month? <details class="sol"><summary>Solution</summary><div>13 (12 months are the holes).</div></details></li>
+  <li><span class="lvl m">MED</span> A drawer has 10 black and 10 white socks. How many must you grab in the dark to guarantee a matching pair? <details class="sol"><summary>Solution</summary><div>3 — two colors (holes), three socks (pigeons) force a repeat. (The "10" is a distractor.)</div></details></li>
+  <li><span class="lvl m">MED</span> A hash function maps 1000 keys into 100 buckets. What does the general pigeonhole guarantee about the fullest bucket? <details class="sol"><summary>Solution</summary><div>Some bucket holds at least $\lceil 1000/100 \rceil = 10$ keys — no matter how good the hash is. Uniformity can achieve the bound but never beat it.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that among any 11 integers, two have a difference divisible by 10. <details class="sol"><summary>Solution</summary><div>Holes: the 10 possible remainders mod 10. Eleven integers force two with the same remainder; their difference is a multiple of 10. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inclusion-exclusion">
+ <h2>Inclusion-exclusion</h2>
+ <p>To count a union, add the parts, subtract the pairwise overlaps you double-counted, add back the triple overlaps you over-subtracted, and so on, alternating. The Venn diagram makes it visible: every region must end up counted exactly once. Track one element sitting in exactly $k$ of the sets: the additions count it $k$ times, the pair-subtractions remove $\binom{k}{2}$, the triples add $\binom{k}{3}$ back — and the alternating binomial sum lands on exactly 1. That is the whole proof, one element at a time.</p>
+ <div class="box def"><span class="label">Definition</span> $|A \cup B| = |A| + |B| - |A\cap B|$. Three sets: $|A\cup B\cup C| = |A|+|B|+|C| - |A\cap B| - |A\cap C| - |B\cap C| + |A\cap B\cap C|$. In general, sum over nonempty subsets with sign $(-1)^{k+1}$ for $k$-fold intersections.</div>
+ <div class="box ex"><span class="label">Worked example</span> Integers 1–1000 divisible by 2, 3 or 5: $\lfloor\tfrac{1000}{2}\rfloor + \lfloor\tfrac{1000}{3}\rfloor + \lfloor\tfrac{1000}{5}\rfloor - \lfloor\tfrac{1000}{6}\rfloor - \lfloor\tfrac{1000}{10}\rfloor - \lfloor\tfrac{1000}{15}\rfloor + \lfloor\tfrac{1000}{30}\rfloor = 500 + 333 + 200 - 166 - 100 - 66 + 33 = 734$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 11 replays this with measures: $P(A \cup B) = P(A) + P(B) - P(A \cap B)$. Dropping all the correction terms gives the union bound $P(\bigcup A_i) \le \sum P(A_i)$ — crude, always valid, and the single most-used inequality in learning-theory guarantees (Ch 20).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $|A| = 30$, $|B| = 20$, $|A\cap B| = 8$: find $|A\cup B|$. <details class="sol"><summary>Solution</summary><div>$30 + 20 - 8 = 42$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many integers in 1–100 are divisible by neither 2 nor 3? <details class="sol"><summary>Solution</summary><div>Divisible by 2 or 3: $50 + 33 - 16 = 67$. Neither: $100 - 67 = 33$.</div></details></li>
+  <li><span class="lvl m">MED</span> Three sets each have 10 elements; each pairwise intersection has 4; the triple intersection has 2. Find $|A \cup B \cup C|$. <details class="sol"><summary>Solution</summary><div>$30 - 3\cdot4 + 2 = 20$.</div></details></li>
+  <li><span class="lvl h">HARD</span> How many permutations of $\{1,2,3,4\}$ leave no element fixed (derangements)? <details class="sol"><summary>Solution</summary><div>Inclusion–exclusion over "fixes element $i$": $D_4 = 4!\left(1 - \tfrac{1}{1!} + \tfrac{1}{2!} - \tfrac{1}{3!} + \tfrac{1}{4!}\right) = 24\left(1 - 1 + \tfrac12 - \tfrac16 + \tfrac1{24}\right) = 24 \cdot \tfrac{9}{24} = 9$. (List check: 9 derangements of 4 items.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="countable-and-uncountable-sets">
+ <h2>Countable and uncountable sets</h2>
+ <p>Infinite sets come in genuinely different sizes. A set is countable if its elements can be listed $a_1, a_2, a_3, \dots$ — matched one-to-one with $\mathbb{N}$, so that every element shows up at some finite position. Think of it as a queue: countable means everyone eventually gets served. The rationals, astonishingly, can be queued despite being dense; the reals, more astonishingly, cannot: Cantor's diagonal argument takes any proposed queue and manufactures a real that disagrees with the $i$-th entry in the $i$-th digit. Some infinities outrun enumeration — and the gap between "listable" and "not" turns out to be the gap between what programs can touch and what they cannot.</p>
+ <div class="box def"><span class="label">Definition</span> $A$ is <em>countable</em> if $A$ is finite or there is a bijection $\mathbb{N} \to A$. $\mathbb{Z}$ and $\mathbb{Q}$ are countably infinite; $\mathbb{R}$ is <em>uncountable</em>. Countable unions of countable sets are countable.</div>
+ <div class="box thm"><span class="label">Theorem (Cantor)</span> $\mathbb{R}$ is uncountable: no list $x_1, x_2, \dots$ contains every real in $(0,1)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> For infinite sets, proper containment says nothing about size: the evens are a proper subset of $\mathbb{N}$ yet biject with it via $n \mapsto 2n$. Never argue "$A \subsetneq B$, so $A$ is strictly smaller" — infinite cardinality is about bijections, not containment. (Density misleads the same way: $\mathbb{Q}$ is dense in $\mathbb{R}$ and still countable.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Diagonal argument: given any list, write each $x_i$ in decimal. Build $y$ whose $i$-th digit is 5 if the $i$-th digit of $x_i$ is not 5, else 6. Then $y \in (0,1)$ differs from every $x_i$ at digit $i$ — $y$ is missing from the list. No list is complete. $\blacksquare$ (Choosing only digits 5 and 6 sidesteps the one subtlety: numbers with two decimal expansions, like $0.4999\ldots = 0.5$, all involve 0s or 9s, so $y$'s disagreement in digits is genuine disagreement in value.)</div>
+ <div class="box link"><span class="label">Where this goes</span> The same diagonal move proves the halting problem undecidable (Ch 17) and Gödel incompleteness — self-reference as a weapon. Also: there are uncountably many functions but only countably many programs, so most functions are uncomputable.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Show $\mathbb{Z}$ is countable by listing it. <details class="sol"><summary>Solution</summary><div>$0, 1, -1, 2, -2, 3, -3, \dots$ — alternate outward; every integer appears exactly once.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch why $\mathbb{Q}_{&gt;0}$ is countable. <details class="sol"><summary>Solution</summary><div>Grid $\tfrac{p}{q}$ by $(p, q)$; walk the diagonals $p + q = 2, 3, 4, \dots$, skipping duplicates (like $\tfrac24 = \tfrac12$). Every positive rational is reached at some finite step.</div></details></li>
+  <li><span class="lvl m">MED</span> Countable or uncountable: the set of all syntactically valid Python programs? What follows about real numbers? <details class="sol"><summary>Solution</summary><div>Countable: each program is a finite string over a finite alphabet; list all strings by length, alphabetically within each length. Since $\mathbb{R}$ is uncountable, only countably many reals can be computed by any program — <em>almost every</em> real number is uncomputable.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show the set of all infinite binary strings is uncountable. <details class="sol"><summary>Solution</summary><div>Given any list $s_1, s_2, \dots$, define $t$ by flipping the $i$-th bit of $s_i$: $t_i = 1 - (s_i)_i$. Then $t$ differs from each $s_i$ in position $i$, so $t$ is unlisted. $\blacksquare$ (Equivalently $|\mathcal{P}(\mathbb{N})| &gt; |\mathbb{N}|$ — Cantor's theorem.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <p>Three problems that braid the chapter together.</p>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> In a 60-person team, 35 know Python, 28 know Rust, 12 know both. (a) How many know neither? (b) Prove that any 7 members chosen from the "Python only" group must include two whose birthdays fall in the same month of Q1–Q2 (Jan–Jun) <em>if</em> all 7 were born in the first half of the year. <details class="sol"><summary>Solution</summary><div>(a) $|P\cup R| = 35 + 28 - 12 = 51$; neither $= 9$. (b) Six months are the holes, 7 people the pigeons: some month repeats — pigeonhole. </div></details></li>
+  <li><span class="lvl h">HARD</span> Prove by induction that a set with $n$ elements has exactly $\binom{n}{k}$ subsets of size $k$, using Pascal's rule. <details class="sol"><summary>Solution</summary><div>Induct on $n$. Base $n = 0$: one subset (empty) of size 0, $\binom00 = 1$; none of size $k &gt; 0$ ✓. Step: fix an element $x$ of an $(n{+}1)$-set. Size-$k$ subsets split into those containing $x$ (choose $k{-}1$ from the remaining $n$: $\binom{n}{k-1}$ by hypothesis) and those avoiding $x$ ($\binom{n}{k}$). Total $\binom{n}{k-1} + \binom{n}{k} = \binom{n+1}{k}$ by Pascal. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> (a) Write the negation of: "for every model $m$, if $m$ passes all tests then $m$ is deployed." (b) Prove or disprove: the set of all finite strings over $\{a, b\}$ is countable, but the set of all <em>languages</em> (sets of such strings) is not. <details class="sol"><summary>Solution</summary><div>(a) $\exists m\,(\text{passes all tests}(m) \land \neg\text{deployed}(m))$ — some model passes everything yet is not deployed. (b) Finite strings: list by length, alphabetically within length ($\varepsilon, a, b, aa, ab, \dots$) — countable. Languages are subsets of that countable set, i.e. $\mathcal{P}(\text{strings})$: by Cantor's theorem/diagonalization, uncountable. Consequence: countably many programs (finite strings) cannot decide uncountably many languages — most languages have no recognizer. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Implement the chapter's machinery in Python.</p>
+ <p><b>Task 1 — Truth-table engine.</b> Write <code>truth_table(f, n)</code> that prints the table of an $n$-ary boolean function, and <code>equivalent(f, g, n)</code> checking logical equivalence by exhaustive enumeration. Verify De Morgan and that $p \to q \equiv \neg q \to \neg p$.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>from itertools import product
+
+def truth_table(f, n):
+    rows = []
+    for bits in product([False, True], repeat=n):
+        rows.append((bits, f(*bits)))
+    return rows
+
+def equivalent(f, g, n):
+    return all(f(*b) == g(*b) for b in product([False, True], repeat=n))
+
+imp = lambda p, q: (not p) or q
+assert equivalent(lambda p, q: not (p and q),
+                  lambda p, q: (not p) or (not q), 2)   # De Morgan
+assert equivalent(imp, lambda p, q: imp(not q, not p), 2)  # contrapositive
+assert not equivalent(imp, lambda p, q: imp(q, p), 2)      # converse differs</code></pre></div></details>
+ <p><b>Task 2 — Set algebra from scratch.</b> Using Python <code>frozenset</code>, implement <code>power_set(A)</code> and verify $|\mathcal{P}(A)| = 2^{|A|}$, then check the distributive law $A\cap(B\cup C) = (A\cap B)\cup(A\cap C)$ on random sets.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>from itertools import combinations
+import random
+
+def power_set(A):
+    A = list(A)
+    return [frozenset(c) for r in range(len(A) + 1)
+            for c in combinations(A, r)]
+
+A = {1, 2, 3, 4, 5}
+assert len(power_set(A)) == 2 ** len(A)
+
+rng = random.Random(0)
+for _ in range(100):
+    U = range(12)
+    A = {x for x in U if rng.random() &lt; 0.5}
+    B = {x for x in U if rng.random() &lt; 0.5}
+    C = {x for x in U if rng.random() &lt; 0.5}
+    assert A &amp; (B | C) == (A &amp; B) | (A &amp; C)
+    assert set(U) - (A | B) == (set(U) - A) &amp; (set(U) - B)  # De Morgan</code></pre></div></details>
+ <p><b>Task 3 — Counting checks.</b> Implement <code>perm(n, k)</code>, <code>comb(n, k)</code> from factorials; verify Pascal's rule for all $n \le 20$, verify $\sum_k \binom{n}{k} = 2^n$, and count derangements of $n=4$ by brute force to confirm the inclusion–exclusion answer 9.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>from math import factorial
+from itertools import permutations
+
+def perm(n, k): return factorial(n) // factorial(n - k)
+def comb(n, k): return factorial(n) // (factorial(k) * factorial(n - k))
+
+for n in range(1, 21):
+    assert sum(comb(n, k) for k in range(n + 1)) == 2 ** n
+    for k in range(1, n):
+        assert comb(n, k) == comb(n-1, k-1) + comb(n-1, k)
+
+derangements = [p for p in permutations(range(4))
+                if all(p[i] != i for i in range(4))]
+assert len(derangements) == 9</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/">MIT OCW 6.042J — Mathematics for Computer Science</a>: the canonical free course on logic, proofs, induction and counting; superb lecture notes.</li>
+  <li><a href="https://www.people.vcu.edu/~rhammack/BookOfProof/">Hammack — Book of Proof</a>: a free, gentle, complete textbook on sets, logic and every proof technique in this chapter.</li>
+  <li><a href="https://www.khanacademy.org/computing/computer-science/cryptography/comp-number-theory/v/proof-by-induction">Khan Academy — proofs and induction</a>: worked video walkthroughs.</li>
+  <li><a href="https://plato.stanford.edu/entries/logic-propositional/">Stanford Encyclopedia of Philosophy — Propositional Logic</a>: careful treatment of connectives, truth tables and equivalence.</li>
+  <li><a href="https://www.cs.cmu.edu/~mheule/15816-f21/">CMU — SAT solving course (Heule)</a>: where CNF and propositional logic become industrial technology.</li>
+  <li><a href="https://en.wikipedia.org/wiki/Cantor%27s_diagonal_argument">Wikipedia — Cantor's diagonal argument</a>: the uncountability proof with pictures and variants.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch02.html">← Prev: 02 · Algebra</a>
+ <a href="ch04.html">Next: 04 · Functions →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function mono(g){ g.font = '13px "JetBrains Mono", monospace'; }
+ function col(n, fb){ var v = cssVar(n); return v || fb; }
+
+ // --- Venn diagram explorer ---
+ var vnc = document.getElementById('cv-venn');
+ var OPS = ['A ∪ B', 'A ∩ B', 'A \\ B', 'B \\ A', 'A △ B (symmetric difference)'];
+ function drawVN(){
+  if(!vnc) return;
+  var op = +document.getElementById('vn-op').value;
+  var d = +document.getElementById('vn-d').value;
+  var s = setupCanvas(vnc, 260), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var cy = 130, r = 78, ax = s.w/2 - d/2, bx = s.w/2 + d/2;
+  function circleA(){ g.beginPath(); g.arc(ax, cy, r, 0, 2*Math.PI); }
+  function circleB(){ g.beginPath(); g.arc(bx, cy, r, 0, 2*Math.PI); }
+  var fill = col('--cobalt', '#2255cc');
+  g.save(); g.globalAlpha = 0.45; g.fillStyle = fill;
+  if(op === 0){ circleA(); g.fill(); circleB(); g.fill(); }
+  if(op === 1){ g.save(); circleA(); g.clip(); circleB(); g.fill(); g.restore(); }
+  if(op === 2){ g.save(); circleA(); g.clip();
+    // A minus B: fill A then punch out B via composite
+    g.fill(); g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 1; circleB(); g.fill(); g.restore(); }
+  if(op === 3){ g.save(); circleB(); g.clip(); g.fill(); g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 1; circleA(); g.fill(); g.restore(); }
+  if(op === 4){
+    g.save(); circleA(); g.clip(); g.fill(); g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 1; circleB(); g.fill(); g.restore();
+    g.save(); g.globalAlpha = 0.45; circleB(); g.clip(); g.fill(); g.globalCompositeOperation = 'destination-out'; g.globalAlpha = 1; circleA(); g.fill(); g.restore();
+  }
+  g.restore();
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 2;
+  circleA(); g.stroke(); circleB(); g.stroke();
+  mono(g); g.fillStyle = col('--ink-2', '#888');
+  g.fillText('A', ax - r + 8, cy - r + 22); g.fillText('B', bx + r - 18, cy - r + 22);
+  var out = document.getElementById('vn-out');
+  if(out) out.textContent = 'shaded: ' + OPS[op] + (d < 2*r ? '' : '   (disjoint: A ∩ B = ∅)');
+ }
+
+ // --- Truth table explorer ---
+ var ttc = document.getElementById('cv-truth');
+ var FORMS = [
+  {name: 'p ∧ q', f: function(p,q){ return p && q; }},
+  {name: 'p ∨ q', f: function(p,q){ return p || q; }},
+  {name: 'p → q', f: function(p,q){ return !p || q; }},
+  {name: 'p ↔ q', f: function(p,q){ return p === q; }},
+  {name: 'p ⊕ q (xor)', f: function(p,q){ return p !== q; }},
+  {name: '¬(p ∧ q)  (nand)', f: function(p,q){ return !(p && q); }}
+ ];
+ function drawTT(){
+  if(!ttc) return;
+  var fi = +document.getElementById('tt-f').value;
+  var F = FORMS[fi];
+  var s = setupCanvas(ttc, 220), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  mono(g);
+  var rows = [[true,true],[true,false],[false,true],[false,false]];
+  var x0 = 30, y0 = 40, rh = 38, cw = 90;
+  g.fillStyle = col('--ink-2', '#888');
+  g.fillText('p', x0, y0 - 12); g.fillText('q', x0 + cw, y0 - 12); g.fillText(F.name, x0 + 2*cw, y0 - 12);
+  var trues = 0;
+  rows.forEach(function(rw, i){
+   var v = F.f(rw[0], rw[1]); if(v) trues++;
+   var y = y0 + i*rh;
+   if(v){ g.fillStyle = col('--emerald', '#11aa66'); g.globalAlpha = 0.18; g.fillRect(x0 - 10, y - 14, 3*cw + 40, rh - 8); g.globalAlpha = 1; }
+   g.fillStyle = col('--ink-2', '#888');
+   g.fillText(rw[0] ? 'T' : 'F', x0, y); g.fillText(rw[1] ? 'T' : 'F', x0 + cw, y);
+   g.fillStyle = v ? col('--emerald', '#11aa66') : col('--rose', '#cc3355');
+   g.fillText(v ? 'T' : 'F', x0 + 2*cw, y);
+  });
+  var out = document.getElementById('tt-out');
+  var kind = trues === 4 ? 'tautology' : trues === 0 ? 'contradiction' : 'contingent (' + trues + '/4 rows true)';
+  if(out) out.textContent = F.name + ' is ' + kind + '.';
+ }
+
+ // --- Permutations vs combinations growth ---
+ var ctc = document.getElementById('cv-count');
+ function logFact(n){ var v = 0; for(var i = 2; i <= n; i++) v += Math.log10(i); return v; }
+ function drawCT(){
+  if(!ctc) return;
+  var n = +document.getElementById('ct-n').value;
+  var s = setupCanvas(ctc, 260), g = s.g;
+  g.clearRect(0,0,s.w,s.h);
+  var maxLog = logFact(n) * 1.08 + 1;
+  var x0 = 44, base = s.h - 30, W = s.w - x0 - 16, H = s.h - 60;
+  // axes
+  g.strokeStyle = col('--ink-2', '#888'); g.lineWidth = 1;
+  g.beginPath(); g.moveTo(x0, base); g.lineTo(x0 + W, base); g.stroke();
+  g.beginPath(); g.moveTo(x0, base); g.lineTo(x0, base - H); g.stroke();
+  mono(g); g.fillStyle = col('--ink-2', '#888');
+  g.fillText('k', x0 + W - 10, base + 16);
+  g.fillText('log10', 2, 20);
+  function plot(fn, color){
+   g.strokeStyle = color; g.lineWidth = 2; g.beginPath();
+   for(var k = 0; k <= n; k++){
+    var v = fn(k), x = x0 + k/n * W, y = base - Math.max(0, v)/maxLog * H;
+    if(k === 0) g.moveTo(x, y); else g.lineTo(x, y);
+   }
+   g.stroke();
+  }
+  var lf = [];
+  for(var k = 0; k <= n; k++) lf.push(logFact(k));
+  plot(function(k){ return lf[n] - lf[n-k]; }, col('--rose', '#cc3355'));        // log P(n,k)
+  plot(function(k){ return lf[n] - lf[n-k] - lf[k]; }, col('--cobalt', '#2255cc')); // log C(n,k)
+  g.fillStyle = col('--rose', '#cc3355'); g.fillText('P(n,k)', x0 + 8, 34);
+  g.fillStyle = col('--cobalt', '#2255cc'); g.fillText('C(n,k)', x0 + 8, 52);
+  var mid = Math.floor(n/2);
+  var out = document.getElementById('ct-out');
+  if(out) out.textContent = 'n=' + n + ': P(n,n) = n! ≈ 10^' + logFact(n).toFixed(1) + ',  peak C(n,' + mid + ') ≈ 10^' + (logFact(n) - 2*logFact(mid)).toFixed(1) + ' — dividing by k! flattens the explosion and makes the curve symmetric.';
+ }
+
+ function all(){ drawVN(); drawTT(); drawCT(); }
+ document.addEventListener('input', all);
+ window.addEventListener('resize', all);
+ document.addEventListener('DOMContentLoaded', all);
+ all();
+})();
+</script>
+
+</body></html>

@@ -1,0 +1,530 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 16 Information Theory</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','16')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">16</div><h1>Information Theory</h1><p class="lede">Measuring surprise, and why cross-entropy is the loss.</p>
+   <div class="meta"><span class="chip">22 topics</span><span class="chip">needs: chapters 11, 13</span><span class="chip">feeds: chapters 19, 21, 22, 23</span></div>
+  </div>
+
+<section class="topic" id="information">
+ <h2>Information</h2>
+ <p>Shannon's founding move: the information in an event is its surprise. A certain event tells you nothing; a one-in-a-million event tells you a lot. Demanding that surprise be a decreasing function of probability and that independent surprises ADD forces a unique formula — the negative logarithm.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>self-information</em> (surprisal) of an event with probability $p$: $$I(p) = -\log_2 p \quad\text{bits}\qquad (-\ln p \text{ gives nats};\ 1\text{ nat} = \log_2e \approx 1.443\text{ bits}).$$ It is the unique (up to base) function that is continuous, decreasing in $p$, and additive over independent events: $I(pq) = I(p) + I(q)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A fair coin lands heads: $I = -\log_2\frac12 = 1$ bit — the atom of information. Rolling a 6: $-\log_2\frac16 \approx 2.585$ bits. Drawing the ace of spades: $\log_2 52 \approx 5.7$ bits. Two independent coin flips both heads: $-\log_2\frac14 = 2$ bits $= 1 + 1$ ✓ additive. A weather report saying "sun" in the Sahara ($p = 0.99$): $-\log_2 0.99 \approx 0.014$ bits — nearly worthless, exactly as it feels.</div>
+ <div class="box link"><span class="label">Where this goes</span> A language model's loss on one token is exactly its surprisal $-\log p_\theta(\text{token})$: training an LLM is minimizing average surprise (Ch 23), and "perplexity" is $2^{\text{bits per token}}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many bits in an event with $p = 1/1024$? With $p = 1$? <details class="sol"><summary>Solution</summary><div>$\log_2 1024 = 10$ bits; $-\log_2 1 = 0$ bits — certainty carries no information.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove additivity forces the logarithm: if $I$ is continuous, decreasing, and $I(pq) = I(p) + I(q)$, then $I(p) = -c\log p$. <details class="sol"><summary>Solution</summary><div>Let $J(u) = I(e^{-u})$ for $u\ge0$: additivity becomes Cauchy's equation $J(u + v) = J(u) + J(v)$, whose continuous solutions are linear, $J(u) = cu$ — i.e. $I(p) = -c\ln p$, with $c &gt; 0$ from monotonicity. Base choice absorbs $c$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> A word puzzle: which sentence carries more information — "my number is even" or "my number is 17," for a secret uniform on 1..20? Quantify. <details class="sol"><summary>Solution</summary><div>"Even": $p = \frac12$, $I = 1$ bit. "It's 17": $p = \frac1{20}$, $I = \log_2 20 \approx 4.32$ bits. Full identification carries all $\log_2 20$ bits; a partition tells you only its cell's worth. Note "even" then "17" gives $1 + \log_2 10 = 1 + 3.32 = 4.32$ ✓ — information composes along a chain of refinements.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="entropy">
+ <h2>Entropy</h2>
+ <p>Entropy is average surprise: the expected number of bits a source generates per symbol, the irreducible cost of describing it, the size of its "effective alphabet." It is maximized by uniformity, zeroed by certainty, and it is the pivot around which every other quantity in this chapter turns.</p>
+ <div class="box def"><span class="label">Definition</span> $$H(X) = -\sum_x p(x)\log_2 p(x) = \mathbb E[-\log_2 p(X)]\quad\text{bits}$$ (with $0\log 0 := 0$). Properties: $0 \le H(X) \le \log_2|\mathcal X|$; the maximum holds iff $X$ is uniform, the minimum iff deterministic. The binary case $H_2(p) = -p\log_2p - (1{-}p)\log_2(1{-}p)$ peaks at $H_2(\frac12) = 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Biased coin $p = 0.9$: $H = -0.9\log_20.9 - 0.1\log_20.1 = 0.9(0.152) + 0.1(3.322) = 0.137 + 0.332 = 0.469$ bits — less than half a fair coin's, though it still has two outcomes: predictability is compression. A 4-sided die with $p = (\frac12, \frac14, \frac18, \frac18)$: $H = \frac12(1) + \frac14(2) + \frac18(3) + \frac18(3) = 1.75$ bits — versus 2 for the uniform version; the deficit (0.25 bits) is exactly what a clever code will save (Huffman, below).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the bias and watch the binary entropy curve: maximal ignorance at ½, collapsing to 0 at the ends.</p>
+  <canvas id="cv-ent"></canvas>
+  <div class="ctl"><label>P(heads) <input type="range" id="en-p" min="0.001" max="0.999" step="0.001" value="0.5"></label></div>
+  <div class="out" id="en-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $H$ for a fair 8-sided die. <details class="sol"><summary>Solution</summary><div>$\log_28 = 3$ bits — uniform means every outcome costs its full $\log|\mathcal X|$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $H(X)$ for $p = (0.5, 0.25, 0.25)$. <details class="sol"><summary>Solution</summary><div>$0.5(1) + 0.25(2) + 0.25(2) = 1.5$ bits (vs $\log_23 \approx 1.585$ for uniform).</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $H(X) \le \log_2 n$ for an $n$-outcome variable, using Jensen's inequality. <details class="sol"><summary>Solution</summary><div>$H(X) = \mathbb E\big[\log_2\frac{1}{p(X)}\big] \le \log_2\mathbb E\big[\frac{1}{p(X)}\big]$ (Jensen, $\log$ concave) $= \log_2\sum_x p(x)\frac{1}{p(x)} = \log_2 n$. Equality iff $\frac{1}{p(X)}$ is constant, i.e. uniform. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="joint-entropy">
+ <h2>Joint entropy</h2>
+ <p>Two random variables together form one compound source; its entropy is the joint entropy. If they're independent, entropies add. If they're related, the whole is LESS than the sum of parts — redundancy between them is information you'd otherwise pay for twice.</p>
+ <div class="box def"><span class="label">Definition</span> $$H(X, Y) = -\sum_{x,y} p(x,y)\log_2 p(x,y).$$ Bounds: $\max(H(X), H(Y)) \le H(X,Y) \le H(X) + H(Y)$, with the right equality iff $X \perp Y$. Chain rule: $H(X, Y) = H(X) + H(Y\mid X)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Weather $X\in\{$sun, rain$\}$ and umbrella-carrying $Y\in\{$yes, no$\}$ with joint $p(\text{sun},\text{no}) = 0.4$, $p(\text{sun},\text{yes}) = 0.1$, $p(\text{rain},\text{yes}) = 0.4$, $p(\text{rain},\text{no}) = 0.1$. $H(X,Y) = -2[0.4\log_20.4 + 0.1\log_20.1] = 2[0.4(1.322) + 0.1(3.322)] = 2[0.529 + 0.332] = 1.722$ bits. Marginals are each ($0.5, 0.5$): $H(X) = H(Y) = 1$. Sum $= 2 &gt; 1.722$: the 0.278-bit gap is their mutual information — knowing the weather partially tells you about the umbrella.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $X, Y$ independent fair coins. $H(X, Y)$? <details class="sol"><summary>Solution</summary><div>$1 + 1 = 2$ bits (uniform on 4 outcomes ✓).</div></details></li>
+  <li><span class="lvl m">MED</span> $Y = X$ (a perfect copy of a fair coin). Compute $H(X, Y)$ and reconcile with the bounds. <details class="sol"><summary>Solution</summary><div>Only two outcomes, (H,H) and (T,T), each $\frac12$: $H(X,Y) = 1$ bit $= \max(H(X), H(Y))$, the lower bound — a copy adds zero entropy.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove subadditivity $H(X,Y) \le H(X) + H(Y)$ from Jensen/Gibbs. <details class="sol"><summary>Solution</summary><div>$H(X) + H(Y) - H(X,Y) = \sum_{x,y}p(x,y)\log_2\frac{p(x,y)}{p(x)p(y)} = \mathrm{KL}\big(p(x,y)\,\|\,p(x)p(y)\big) \ge 0$ by Gibbs' inequality (proved in the KL section). Equality iff $p(x,y) = p(x)p(y)$: independence. ∎ (The gap is, by definition, mutual information.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="conditional-entropy">
+ <h2>Conditional entropy</h2>
+ <p>Conditional entropy is the surprise that REMAINS after you learn something: how many bits $Y$ still costs once $X$ is known. It is the bookkeeping device of the chapter — chain rules, information gains, and channel capacities are all statements about what conditioning removes.</p>
+ <div class="box def"><span class="label">Definition</span> $$H(Y\mid X) = \sum_x p(x)\,H(Y\mid X{=}x) = -\sum_{x,y}p(x,y)\log_2 p(y\mid x).$$ Chain rule: $H(X,Y) = H(X) + H(Y\mid X)$. Conditioning reduces entropy: $H(Y\mid X) \le H(Y)$, with equality iff independent. But note: $H(Y\mid X{=}x)$ for a PARTICULAR $x$ can exceed $H(Y)$ — only the average cannot.</div>
+ <div class="box ex"><span class="label">Worked example</span> Umbrella example continued: $p(y\mid\text{sun}) = (0.2\ \text{yes},\ 0.8\ \text{no})$, so $H(Y\mid\text{sun}) = H_2(0.2) = 0.722$; by symmetry $H(Y\mid\text{rain}) = H_2(0.8) = 0.722$. $H(Y\mid X) = 0.5(0.722) + 0.5(0.722) = 0.722$ bits — down from $H(Y) = 1$. Chain-rule check: $H(X) + H(Y\mid X) = 1 + 0.722 = 1.722 = H(X,Y)$ ✓.</div>
+ <div class="box think"><span class="label">Think first</span> Can learning something ever INCREASE your expected uncertainty about $Y$? <details class="sol"><summary>Reveal</summary><div>On average, never: $H(Y\mid X)\le H(Y)$ always. But a specific observation can: if $Y$ is "which door hides the prize" and usually you're told the answer ($H$ small), the unlucky observation "the informant is drunk today" leaves $H(Y\mid X{=}\text{drunk}) = \log_23 &gt; H(Y)$. Information helps in expectation, not in every realization.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $Y = X$ exactly. What is $H(Y\mid X)$? <details class="sol"><summary>Solution</summary><div>0 — once $X$ is known, $Y$ holds no surprise. Conversely $H(Y\mid X) = 0$ iff $Y$ is a function of $X$.</div></details></li>
+  <li><span class="lvl m">MED</span> $X$ a fair coin; $Y = X$ XOR (independent fair noise $N$ with $P(N{=}1) = 0.1$). Compute $H(Y\mid X)$ and $H(Y)$. <details class="sol"><summary>Solution</summary><div>Given $X$, $Y$ flips with probability 0.1: $H(Y\mid X) = H_2(0.1) = 0.469$ bits. Marginally $Y$ is a fair coin (symmetry): $H(Y) = 1$. The channel destroys $0.469$ of the 1 bit sent — capacity preview: $1 - H_2(0.1) = 0.531$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the chain rule $H(X,Y) = H(X) + H(Y\mid X)$. <details class="sol"><summary>Solution</summary><div>$-\log p(x,y) = -\log p(x) - \log p(y\mid x)$ (product rule, Ch 11). Take expectations under $p(x,y)$: $H(X,Y) = \mathbb E[-\log p(X)] + \mathbb E[-\log p(Y\mid X)] = H(X) + H(Y\mid X)$. ∎ Iterating gives the general chain rule $H(X_1..X_n) = \sum_i H(X_i\mid X_{&lt;i})$ — the identity that makes autoregressive language modeling (Ch 22, 23) exact rather than approximate.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cross-entropy">
+ <h2>Cross-entropy</h2>
+ <p>Cross-entropy is the cost of using the WRONG codebook: data flows from $p$, but you built your codes (or your model) for $q$. You pay $H(p)$ — the unavoidable part — plus a penalty for the mismatch. Minimizing cross-entropy over $q$ is therefore fitting $q$ to $p$: the loss function of essentially all modern classification and language modeling.</p>
+ <div class="box def"><span class="label">Definition</span> $$H(p, q) = -\sum_x p(x)\log q(x) = \mathbb E_{x\sim p}[-\log q(x)] = H(p) + \mathrm{KL}(p\,\|\,q) \ \ge\ H(p).$$ In ML: $p$ is the empirical/true label distribution, $q = q_\theta$ the model; the training loss $-\frac1N\sum_i\log q_\theta(y_i\mid x_i)$ is the (empirical) cross-entropy, and equals the negative log-likelihood (Ch 13).</div>
+ <div class="box ex"><span class="label">Worked example</span> True die $p = (\frac12, \frac14, \frac18, \frac18)$, model $q = (\frac14, \frac14, \frac14, \frac14)$. $H(p, q) = \sum p_i\log_2 4 = 2$ bits. But $H(p) = 1.75$: mismatch penalty $= 0.25$ bits per symbol $= \mathrm{KL}(p\|q)$. Now a classifier example: true label class 2 (one-hot $p$), model $q = (0.1, 0.7, 0.2)$: $H(p,q) = -\log_2 0.7 = 0.515$ bits (or $0.357$ nats — PyTorch's <code>cross_entropy</code> value). Push $q_2 \to 1$ and the loss $\to 0$; push $q_2\to0$ and it $\to\infty$: confident wrongness is charged without limit.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Cross-entropy is asymmetric and NOT a distance: $H(p,q) \ne H(q,p)$, and its absolute value mixes the data's intrinsic entropy with the model's error. Comparing models on the same data: fine (the $H(p)$ term is shared). Comparing across datasets or tokenizations: not fine — hence bits-per-byte normalizations in LM evaluation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> True label class 1 of 3; model outputs $(0.25, 0.5, 0.25)$. Cross-entropy loss in nats? <details class="sol"><summary>Solution</summary><div>$-\ln 0.25 = 1.386$ nats. (The 0.5 on the wrong class is irrelevant; only the true class's probability is scored.)</div></details></li>
+  <li><span class="lvl m">MED</span> Show that minimizing $H(p, q_\theta)$ over $\theta$ is equivalent to minimizing $\mathrm{KL}(p\|q_\theta)$, and to maximum likelihood. <details class="sol"><summary>Solution</summary><div>$H(p, q_\theta) = H(p) + \mathrm{KL}(p\|q_\theta)$ and $H(p)$ doesn't involve $\theta$: same argmin. With $p$ the empirical distribution $\frac1N\sum\delta_{x_i}$: $H(p, q_\theta) = -\frac1N\sum\log q_\theta(x_i)$ — the negative average log-likelihood. Three names, one objective.</div></details></li>
+  <li><span class="lvl h">HARD</span> A model achieves cross-entropy 3.2 bits/token on text whose true entropy rate is 2.5 bits/token. What perplexity does it have, what's the best achievable, and what does the gap mean? <details class="sol"><summary>Solution</summary><div>Perplexity $= 2^{3.2} \approx 9.2$ (the model is "choosing among ~9 equally likely tokens" on average). Best achievable: $2^{2.5} \approx 5.7$. The 0.7-bit gap is $\mathrm{KL}(p\|q)$ per token — pure model error, the only part training can remove. (Estimates of English's entropy rate — Shannon's guessing game — are how we know models are approaching but not at the floor.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kl-divergence">
+ <h2>KL divergence</h2>
+ <p>The Kullback–Leibler divergence is the chapter's central measure of "how wrong is $q$ about $p$": the expected extra bits paid, the expected log-likelihood-ratio, the rate at which data betrays the difference. It's not symmetric and violates the triangle inequality — it's not a distance — but it is nonnegative, zero only at equality, and everywhere in ML.</p>
+ <div class="box def"><span class="label">Definition</span> $$\mathrm{KL}(p\,\|\,q) = \sum_x p(x)\log\frac{p(x)}{q(x)} = \mathbb E_p\Big[\log\frac{p(X)}{q(X)}\Big] \ \ge\ 0,$$ with equality iff $p = q$ (<em>Gibbs' inequality</em>); $+\infty$ if $q(x) = 0$ where $p(x) &gt; 0$. Gaussians: $\mathrm{KL}(\mathcal N(\mu_0,\sigma_0^2)\|\mathcal N(\mu_1,\sigma_1^2)) = \log\frac{\sigma_1}{\sigma_0} + \frac{\sigma_0^2 + (\mu_0-\mu_1)^2}{2\sigma_1^2} - \frac12$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p = (0.5, 0.5)$, $q = (0.9, 0.1)$. $\mathrm{KL}(p\|q) = 0.5\log_2\frac{0.5}{0.9} + 0.5\log_2\frac{0.5}{0.1} = 0.5(-0.848) + 0.5(2.322) = 0.737$ bits. Reversed: $\mathrm{KL}(q\|p) = 0.9\log_2\frac{0.9}{0.5} + 0.1\log_2\frac{0.1}{0.5} = 0.9(0.848) + 0.1(-2.322) = 0.531$ bits. Different! Direction matters: $\mathrm{KL}(p\|q)$ punishes $q$'s underestimates of what $p$ actually does (mass-covering pressure); $\mathrm{KL}(q\|p)$ punishes $q$ for putting mass where $p$ has little (mode-seeking pressure) — the asymmetry behind variational inference's overconfidence (Ch 13).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Move and reshape a Gaussian $q$ against a fixed two-mode $p$: watch forward and reverse KL disagree about what "close" means.</p>
+  <canvas id="cv-kl"></canvas>
+  <div class="ctl"><label>q mean <input type="range" id="kl-m" min="-5" max="5" step="0.1" value="0"></label><label>q std <input type="range" id="kl-s" min="0.3" max="4" step="0.05" value="2"></label></div>
+  <div class="out" id="kl-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> KL is the regularizer of RLHF ($\mathrm{KL}$ to the reference policy, Ch 23), the VAE's latent penalty (Ch 22), TRPO's trust region (Ch 25), and the local metric whose curvature is Fisher information (Ch 13).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\mathrm{KL}(p\|q)$ for $p = (1, 0)$, $q = (0.5, 0.5)$. <details class="sol"><summary>Solution</summary><div>$1\cdot\log_2\frac{1}{0.5} + 0 = 1$ bit. (The $0\log\frac0{0.5}$ term is 0.)</div></details></li>
+  <li><span class="lvl m">MED</span> Prove Gibbs' inequality $\mathrm{KL}(p\|q)\ge0$ using $\ln t \le t - 1$. <details class="sol"><summary>Solution</summary><div>$-\mathrm{KL}(p\|q) = \sum_x p(x)\ln\frac{q(x)}{p(x)} \le \sum_x p(x)\big(\frac{q(x)}{p(x)} - 1\big) = \sum_x q(x) - \sum_x p(x) \le 1 - 1 = 0$. Equality in $\ln t \le t-1$ only at $t = 1$: $q = p$ wherever $p &gt; 0$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\mathrm{KL}(\mathcal N(0,1)\,\|\,\mathcal N(1,1))$ and $\mathrm{KL}(\mathcal N(0,1)\,\|\,\mathcal N(0,4))$, and interpret. <details class="sol"><summary>Solution</summary><div>Mean shift: $\log1 + \frac{1 + 1}{2} - \frac12 = \frac12$ nat $\approx 0.72$ bits. Variance mismatch ($\sigma_1^2 = 4$): $\log 2 + \frac{1 + 0}{8} - \frac12 = 0.693 + 0.125 - 0.5 = 0.318$ nats $\approx 0.46$ bits. A unit mean-shift is more detectable than claiming double the spread. General principle: KL grows quadratically in small mean errors ($\frac{\Delta^2}{2\sigma^2}$) — its Hessian at $p = q$ is the Fisher information.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="jensen-shannon-divergence">
+ <h2>Jensen-Shannon divergence</h2>
+ <p>Want KL's meaning with a metric's manners? The Jensen–Shannon divergence symmetrizes: compare both $p$ and $q$ to their midpoint mixture. It is bounded, symmetric, never infinite, and its square root is a true metric — the reason it appears where distributions with disjoint supports must still be compared, as in the original GAN.</p>
+ <div class="box def"><span class="label">Definition</span> With $m = \frac12(p + q)$: $$\mathrm{JSD}(p\|q) = \tfrac12\mathrm{KL}(p\|m) + \tfrac12\mathrm{KL}(q\|m) \in [0, 1]\ \text{bits}.$$ $\sqrt{\mathrm{JSD}}$ is a metric. Operational meaning: $\mathrm{JSD}(p\|q) = H(m) - \frac12H(p) - \frac12H(q)$; also the mutual information between a fair coin choosing $p$-or-$q$ and the resulting sample.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p = (1, 0)$, $q = (0, 1)$ — disjoint supports, where $\mathrm{KL} = \infty$ both ways. Mixture $m = (\frac12, \frac12)$. $\mathrm{KL}(p\|m) = 1\cdot\log_2\frac{1}{0.5} = 1$; same for $q$. $\mathrm{JSD} = 1$ bit — the maximum: the sample identifies its source perfectly, one full bit about the coin. For $p = (0.5, 0.5)$, $q = (0.9, 0.1)$: $m = (0.7, 0.3)$; $\mathrm{KL}(p\|m) = 0.5\log_2\frac{.5}{.7} + 0.5\log_2\frac{.5}{.3} = -0.243 + 0.368 = 0.126$; $\mathrm{KL}(q\|m) = 0.9\log_2\frac{.9}{.7} + 0.1\log_2\frac{.1}{.3} = 0.326 - 0.158 = 0.168$; $\mathrm{JSD} = \frac{0.126 + 0.168}{2} = 0.147$ bits.</div>
+ <div class="box link"><span class="label">Where this goes</span> The original GAN's discriminator, at optimality, makes the generator minimize $\mathrm{JSD}(p_{\text{data}}\|p_G)$ (Ch 22) — and JSD's saturation on disjoint supports (constant 1 bit ⇒ zero gradient) is precisely why GAN training stalls and Wasserstein variants were invented.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is $\mathrm{JSD}(p\|p)$? And its maximum possible value? <details class="sol"><summary>Solution</summary><div>0; and 1 bit ($\log 2$ nats), attained by distributions with disjoint supports.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\mathrm{JSD}$ is the mutual information $I(Z; X)$ where $Z\sim\mathrm{Bernoulli}(\frac12)$ selects $X\sim p$ (if $Z{=}0$) or $X\sim q$ (if $Z{=}1$). <details class="sol"><summary>Solution</summary><div>$I(Z;X) = H(X) - H(X\mid Z)$. Marginal of $X$ is $m$: $H(X) = H(m)$; $H(X\mid Z) = \frac12H(p) + \frac12H(q)$. So $I = H(m) - \frac12H(p) - \frac12H(q)$, which expanding $H(m)$ term-by-term equals $\frac12\sum p\log\frac{p}{m} + \frac12\sum q\log\frac{q}{m} = \mathrm{JSD}$. Interpretation: JSD = how well one sample distinguishes the two sources.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two Gaussians drift apart: $p = \mathcal N(0, 1)$, $q = \mathcal N(\Delta, 1)$. Describe JSD's behavior as $\Delta: 0\to\infty$ and the gradient consequence. <details class="sol"><summary>Solution</summary><div>Near $\Delta = 0$: JSD grows quadratically ($\propto\Delta^2$, like KL/8... constant aside). As $\Delta\to\infty$: the supports effectively separate and JSD saturates at 1 bit, with $\partial\mathrm{JSD}/\partial\Delta \to 0$ exponentially. A generator whose samples are far from the data gets exponentially vanishing gradient signal from a JSD-like objective — it can't tell "far" from "very far." Wasserstein distance grows linearly in $\Delta$ forever, which is exactly the repair (Ch 22).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="f-divergences">
+ <h2>f-divergences</h2>
+ <p>KL, JSD, total variation, chi-squared — all are instances of one template: average a convex function of the likelihood ratio. The template explains their shared virtues (nonnegativity, invariance under processing) at one stroke, and each choice of the convex function $f$ buys a different sensitivity profile.</p>
+ <div class="box def"><span class="label">Definition</span> For convex $f$ with $f(1) = 0$: $$D_f(p\,\|\,q) = \sum_x q(x)\,f\!\Big(\frac{p(x)}{q(x)}\Big).$$ Members: $f(t) = t\log t$ → $\mathrm{KL}(p\|q)$; $f(t) = -\log t$ → $\mathrm{KL}(q\|p)$; $f(t) = \frac12|t - 1|$ → total variation; $f(t) = (t-1)^2$ → $\chi^2$; a suitable $f$ → JSD. All satisfy $D_f \ge 0$ (Jensen) and the data processing inequality.</div>
+ <div class="box ex"><span class="label">Worked example</span> Compute three divergences on $p = (0.8, 0.2)$, $q = (0.5, 0.5)$; ratios $t = (1.6, 0.4)$. KL$(p\|q)$: $\sum q\,t\log_2 t = 0.5(1.6)(0.678) + 0.5(0.4)(-1.322) = 0.542 - 0.264 = 0.278$ bits. TV: $\sum q\cdot\frac12|t - 1| = 0.5(0.3) + 0.5(0.3) = 0.3$ (indeed $= \frac12\|p - q\|_1$ ✓). $\chi^2$: $0.5(0.36) + 0.5(0.36) = 0.36$. Same pair of distributions, three rulers: TV counts worst-case event-probability differences, KL counts coding overhead, $\chi^2$ amplifies outlier ratios (it's the second-order Taylor of $2\times$KL).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify that $f(t) = t\log t$ recovers $\mathrm{KL}(p\|q)$. <details class="sol"><summary>Solution</summary><div>$\sum_x q\,\frac pq\log\frac pq = \sum_x p\log\frac pq = \mathrm{KL}(p\|q)$ ✓.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $D_f \ge 0$ for any convex $f$ with $f(1) = 0$. <details class="sol"><summary>Solution</summary><div>By Jensen with weights $q$: $D_f = \mathbb E_q[f(t)] \ge f(\mathbb E_q[t]) = f\big(\sum_x q\frac pq\big) = f(1) = 0$. ∎ Strict convexity at 1 gives equality iff $p = q$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that KL's second-order expansion around $p = q$ is $\frac12\chi^2$: for $p = q + \epsilon h$ with $\sum h = 0$, $\mathrm{KL}(p\|q) = \frac{\epsilon^2}{2}\sum_x\frac{h(x)^2}{q(x)} + O(\epsilon^3)$ (nats). <details class="sol"><summary>Solution</summary><div>$\mathrm{KL} = \sum (q + \epsilon h)\ln(1 + \epsilon h/q)$. Expand $\ln(1+u) = u - \frac{u^2}{2} + O(u^3)$ with $u = \epsilon h/q$: $\sum(q + \epsilon h)\big(\frac{\epsilon h}{q} - \frac{\epsilon^2h^2}{2q^2}\big) = \epsilon\sum h + \epsilon^2\sum\frac{h^2}{q} - \frac{\epsilon^2}{2}\sum\frac{h^2}{q} + O(\epsilon^3) = \frac{\epsilon^2}{2}\sum\frac{h^2}{q} + O(\epsilon^3)$ (using $\sum h = 0$). This quadratic form is the $\chi^2$ divergence — and, parameterizing $p = p_\theta$, it becomes the Fisher information metric: all f-divergences agree locally up to scale. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mutual-information">
+ <h2>Mutual information</h2>
+ <p>Mutual information is the shared content of two variables: how many bits knowing one saves you about the other. It is symmetric, zero exactly at independence, and invariant to relabeling — the purest measure of statistical dependence, immune to the linearity blinders of correlation.</p>
+ <div class="box def"><span class="label">Definition</span> $$I(X; Y) = H(X) - H(X\mid Y) = H(Y) - H(Y\mid X) = H(X) + H(Y) - H(X,Y) = \mathrm{KL}\big(p(x,y)\,\|\,p(x)p(y)\big) \ \ge 0.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> The weather–umbrella pair once more: $H(Y) = 1$, $H(Y\mid X) = 0.722$, so $I(X;Y) = 0.278$ bits — the same 0.278 that appeared as $H(X) + H(Y) - H(X,Y) = 2 - 1.722$ ✓. Contrast correlation's blind spot: let $X\sim$ Uniform$\{-1, 0, 1\}$ and $Y = X^2$. Correlation: $\mathbb E[XY] = \mathbb E[X^3] = 0$ — none. But $I(X;Y)$: knowing $Y$ tells whether $X = 0$ or $X = \pm1$: $I = H(Y) = H_2(\frac13)\approx0.918$ bits. Dependence without correlation, and MI sees it.</div>
+ <div class="box link"><span class="label">Where this goes</span> Feature selection ("pick features with high MI to the label"), the information bottleneck (below), InfoNCE contrastive learning (Ch 21 — a lower bound on MI), and channel capacity (below) are all MI at work.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $Y = X$ for a fair 8-sided die. $I(X;Y)$? <details class="sol"><summary>Solution</summary><div>$H(X) - 0 = 3$ bits. Self-information is entropy: $I(X;X) = H(X)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Binary symmetric channel: $X$ fair, $Y$ flips $X$ with probability 0.2. Compute $I(X;Y)$. <details class="sol"><summary>Solution</summary><div>$H(Y) = 1$ (symmetry), $H(Y\mid X) = H_2(0.2) = 0.722$: $I = 0.278$ bits per use. (This IS the umbrella example — same joint.)</div></details></li>
+  <li><span class="lvl h">HARD</span> For jointly Gaussian $(X, Y)$ with correlation $\rho$, derive $I(X;Y) = -\frac12\ln(1 - \rho^2)$ nats. <details class="sol"><summary>Solution</summary><div>Differential entropies: $h(Y) = \frac12\ln(2\pi e\sigma_Y^2)$; given $X$, $Y$ is Gaussian with variance $\sigma_Y^2(1-\rho^2)$: $h(Y\mid X) = \frac12\ln(2\pi e\sigma_Y^2(1-\rho^2))$. Subtract: $I = -\frac12\ln(1-\rho^2)$. Sanity: $\rho = 0 \Rightarrow 0$; $\rho\to\pm1 \Rightarrow \infty$ (a continuous variable determined exactly carries infinitely many bits); $\rho = 0.9$: $I = -\frac12\ln(0.19) = 0.830$ nats $= 1.20$ bits.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">Two variables have zero correlation. Their mutual information is:</div><button class="opt">exactly 0</button><button class="opt">undefined</button><button class="opt">anything from 0 to full dependence</button><div class="why" hidden>Correlation detects only LINEAR dependence; $Y = X^2$ has zero correlation but large MI. Only $I(X;Y) = 0$ certifies independence.</div></div>
+</section>
+
+<section class="topic" id="conditional-mutual-information">
+ <h2>Conditional mutual information</h2>
+ <p>Conditional MI asks: once $Z$ is known, how much do $X$ and $Y$ still share? It can be less than the unconditional MI (when $Z$ explains their connection) or MORE (when conditioning creates dependence, as in colliders) — a subtlety that matters everywhere from feature redundancy to causal reasoning.</p>
+ <div class="box def"><span class="label">Definition</span> $$I(X; Y\mid Z) = H(X\mid Z) - H(X\mid Y, Z) = \mathbb E_{z}\big[\mathrm{KL}\big(p(x,y\mid z)\,\|\,p(x\mid z)p(y\mid z)\big)\big] \ge 0.$$ Chain rule of information: $I(X; Y, Z) = I(X; Z) + I(X; Y\mid Z)$. $I(X;Y\mid Z) = 0$ iff $X\perp Y\mid Z$ — conditional independence, the currency of graphical models (Ch 27).</div>
+ <div class="box ex"><span class="label">Worked example</span> Both directions of the surprise. <em>Explaining away the link:</em> $Z$ = a coin, $X = Y = Z$ (two perfect copies). $I(X;Y) = 1$ bit, but given $Z$ both are constants: $I(X;Y\mid Z) = 0$. <em>Creating a link:</em> $X, Y$ independent fair coins, $Z = X\oplus Y$. Unconditionally $I(X;Y) = 0$; but given $Z$, knowing $X$ determines $Y = Z\oplus X$: $I(X;Y\mid Z) = 1$ bit. Conditioning on a common EFFECT manufactures dependence — the collider/Berkson effect that Ch 27's d-separation formalizes.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $X\to Z\to Y$ is a Markov chain (Y depends on X only through Z), what is $I(X;Y\mid Z)$? <details class="sol"><summary>Solution</summary><div>0 — that's the definition of the Markov property: given the middle, the ends are independent.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the chain rule $I(X; Y, Z) = I(X;Z) + I(X;Y\mid Z)$ on the XOR example ($X, Y$ fair independent, $Z = X\oplus Y$). <details class="sol"><summary>Solution</summary><div>Left side: $(Y, Z)$ jointly determine $X$ (since $X = Z\oplus Y$), so $I(X; Y, Z) = H(X) = 1$ bit. Right side: $I(X;Z) = 0$ ($Z = X\oplus Y$ is a fair coin independent of $X$), and $I(X;Y\mid Z) = 1$ (given $Z$, $Y$ determines $X$). Sum $= 0 + 1 = 1$ ✓. The other ordering also checks: $I(X;Y) + I(X;Z\mid Y) = 0 + 1 = 1$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> Feature selection: label $L$, feature $A$ with $I(A;L) = 0.9$ bits, feature $B$ with $I(B;L) = 0.85$. Why might $\{A, B\}$ together give barely 0.9 — or as much as 1.7? What quantity decides? <details class="sol"><summary>Solution</summary><div>$I(A, B; L) = I(A;L) + I(B;L\mid A)$. If $B$ is redundant given $A$ (e.g. $B$ ≈ a noisy copy), $I(B;L\mid A)\approx0$: total ≈ 0.9. If $B$ carries complementary information — or even SYNERGY (each alone weak, jointly strong, XOR-style) — $I(B;L\mid A)$ can be large: up to $I(B;L\mid A) = 0.85$+ (synergy can push conditional MI above marginal MI). Greedy MI-ranked selection ignores exactly this conditional term; that's why it picks redundant features and misses synergistic pairs.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="data-processing-inequality">
+ <h2>Data processing inequality</h2>
+ <p>No amount of clever computation can create information about a source that wasn't in your observation: processing can only preserve or destroy. This humble-sounding law disciplines all of statistics and ML — it defines what a sufficient statistic is, why features can't beat raw data in principle, and why lossy steps are forever.</p>
+ <div class="box def"><span class="label">Definition</span> If $X \to Y \to Z$ is a Markov chain ($Z$ depends on $X$ only through $Y$; e.g. $Z = g(Y)$ for any function $g$): $$I(X; Z) \ \le\ I(X; Y),$$ with equality iff $X\to Z\to Y$ also holds (nothing about $X$ was lost — $Z$ is then "sufficient"). Corollary: for any deterministic $g$, $I(X; g(Y)) \le I(X; Y)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A noisy photo pipeline: scene $X$ → sensor image $Y$ → thumbnail $Z$ (downscaled). Every question about the scene is answered at best as well by $Y$ as by $Z$: $I(X;Z)\le I(X;Y)$. Concretely with bits: binary $X$, $Y$ = $X$ through a 10%-flip channel gives $I(X;Y) = 1 - H_2(0.1) = 0.531$ bits; now $Z$ = $Y$ through ANOTHER 10%-flip: total flip probability $= 0.1(0.9) + 0.9(0.1) = 0.18$, so $I(X;Z) = 1 - H_2(0.18) = 1 - 0.680 = 0.320$ bits $&lt; 0.531$ ✓. Cascaded degradation compounds; no decoder between the stages could have prevented it.</div>
+ <div class="box think"><span class="label">Think first</span> Deep networks process data through many layers. Doesn't the DPI say each layer can only LOSE information about the input — so why do deep representations work? <details class="sol"><summary>Reveal</summary><div>Yes — $I(X; \text{layer}_k)$ is nonincreasing in $k$ (for deterministic or stochastic layers forming a chain). But the goal isn't to preserve information about $X$; it's to preserve information about the LABEL $Y$ while shedding the rest. Good representations destroy nuisance information on purpose — the information bottleneck view (below). The DPI says you can't add; it doesn't say keeping everything is desirable.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Feature engineering computes $\phi(Y)$ from raw data $Y$. Can $I(X; \phi(Y)) &gt; I(X; Y)$? <details class="sol"><summary>Solution</summary><div>Never: $X\to Y\to\phi(Y)$ is a Markov chain. Features can make information ACCESSIBLE to a limited model, not create it.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the DPI from the chain rule of mutual information. <details class="sol"><summary>Solution</summary><div>Expand $I(X; Y, Z)$ two ways: $I(X;Y) + I(X;Z\mid Y) = I(X;Z) + I(X;Y\mid Z)$. Markovity kills $I(X;Z\mid Y) = 0$. So $I(X;Y) = I(X;Z) + I(X;Y\mid Z) \ge I(X;Z)$ since MI is nonnegative. ∎ Equality iff $I(X;Y\mid Z) = 0$: $Z$ screens off $Y$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Connect to sufficiency (Ch 13): show $T(X)$ is a sufficient statistic for $\theta$ iff $I(\theta; T(X)) = I(\theta; X)$ (with $\theta$ random). <details class="sol"><summary>Solution</summary><div>Always $\theta \to X \to T(X)$: DPI gives $I(\theta;T)\le I(\theta;X)$. Sufficiency means $p(x\mid T, \theta) = p(x\mid T)$, i.e. $\theta\to T\to X$ is ALSO Markov, so the reverse DPI gives $I(\theta;X)\le I(\theta;T)$: equality. Conversely, equality forces $I(\theta;X\mid T) = 0$, i.e. $\theta\perp X\mid T$ — the definition of sufficiency. Sufficient statistics are exactly the lossless compressions of data with respect to the parameter. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="maximum-entropy">
+ <h2>Maximum entropy</h2>
+ <p>When you must pick a distribution but know only a few facts — a mean, a variance, a support — pick the one with maximum entropy consistent with those facts: the least-committed, most honest choice. The recipe's outputs are the exponential families, and its Lagrangian is where softmax comes from.</p>
+ <div class="box def"><span class="label">Definition</span> $\max_p H(p)$ subject to $\mathbb E_p[f_k(X)] = c_k$ and normalization. Solution (by Lagrange, Ch 15): $$p(x) \propto \exp\Big(\sum_k \lambda_k f_k(x)\Big)$$ — an exponential family with one natural parameter per constraint. Catalog: support $\{1..n\}$ only → uniform; fixed mean on $[0,\infty)$ → exponential; fixed mean and variance on $\mathbb R$ → Gaussian; fixed mean energy over states → Boltzmann/softmax $p(x)\propto e^{-E(x)/T}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A die averages 4.5 (not 3.5 — it's loaded). MaxEnt: $p(i) \propto e^{\lambda i}$, with $\lambda$ chosen so $\mathbb E[i] = 4.5$. Solve numerically: $\lambda \approx 0.371$ gives weights $e^{0.371i} = (1.45, 2.10, 3.05, 4.41, 6.40, 9.26)$, sum $26.67$: $p \approx (0.054, 0.079, 0.114, 0.165, 0.240, 0.347)$ — check mean: $\sum ip_i \approx 4.50$ ✓. Geometrically rising probabilities — the gentlest tilt of the uniform that honors the observed mean. Any other consistent distribution asserts structure the data never mentioned.</div>
+ <div class="box link"><span class="label">Where this goes</span> Softmax policies and Boltzmann exploration (Ch 24, 25), energy-based models (Ch 22), and maximum-entropy RL all instantiate this recipe; the exponential families it produces are exactly the conjugate-prior-friendly likelihoods of Ch 13.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Known: $X\in\{0,1\}$ with $\mathbb E[X] = 0.3$. What is the MaxEnt distribution? <details class="sol"><summary>Solution</summary><div>Bernoulli(0.3) — with support and mean fixed, there is only one distribution; MaxEnt agrees trivially.</div></details></li>
+  <li><span class="lvl m">MED</span> Derive: among densities on $[0,\infty)$ with mean $\mu$, the exponential density maximizes entropy. <details class="sol"><summary>Solution</summary><div>Lagrangian stationarity gives $p(x) \propto e^{\lambda x}$; integrability on $[0,\infty)$ forces $\lambda &lt; 0$, and the mean constraint sets $\lambda = -1/\mu$: $p(x) = \frac1\mu e^{-x/\mu}$. (Verification via KL: for any $q$ with mean $\mu$, $0\le\mathrm{KL}(q\|p) = -H(q) - \mathbb E_q[\ln p] = -H(q) + \ln\mu + 1$, so $H(q) \le 1 + \ln\mu = H(p)$.) ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive softmax: maximize $H(p)$ over policies on actions $\{1..n\}$ subject to achieving expected reward $\mathbb E_p[r(a)] = \bar r$. <details class="sol"><summary>Solution</summary><div>$\mathcal L = -\sum p_a\ln p_a + \beta(\sum p_ar_a - \bar r) + \nu(\sum p_a - 1)$. Stationarity: $-\ln p_a - 1 + \beta r_a + \nu = 0 \Rightarrow p_a \propto e^{\beta r_a}$ — softmax with inverse temperature $\beta$ set by the reward constraint ($\beta\to0$: uniform/ignorant; $\beta\to\infty$: greedy argmax). Softmax is not an arbitrary squashing function; it is THE maximum-entropy way to turn scores into probabilities. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="information-bottleneck">
+ <h2>Information bottleneck</h2>
+ <p>What makes a representation good? The information bottleneck's answer: squeeze the input through a compressed variable $Z$ that keeps as much information about the target $Y$ as possible while keeping as little about the input $X$ as possible. Prediction and compression become two dials of one objective — a proposed lens on what deep nets' hidden layers are doing.</p>
+ <div class="box def"><span class="label">Definition</span> Choose the (stochastic) encoding $p(z\mid x)$ to solve $$\min_{p(z\mid x)}\ I(X; Z) - \beta\, I(Z; Y),$$ where $\beta &gt; 0$ trades compression against prediction. Small $\beta$: crush everything ($Z$ uninformative); large $\beta$: keep all label-relevant structure. Sweeping $\beta$ traces the <em>information plane</em> frontier of achievable $(I(X;Z), I(Z;Y))$ pairs — with $I(Z;Y) \le I(X;Y)$ always, by the DPI.</div>
+ <div class="box ex"><span class="label">Worked example</span> $X$ = a 4-value variable: two "cat" contexts $\{c_1, c_2\}$ and two "dog" contexts $\{d_1, d_2\}$, uniform; $Y$ = the species. Full identity encoding: $I(X;Z) = 2$ bits, $I(Z;Y) = 1$ bit. Bottleneck encoding $Z = $ species-cluster ($c$'s → 0, $d$'s → 1): $I(X;Z) = 1$ bit, $I(Z;Y) = 1$ bit — half the input information retained, ALL of the label information. The extra bit (which context) was nuisance; the IB objective at any $\beta &gt; 1$ prefers the clustered code. That is what a good classifier's penultimate layer does: collapse within-class variation, preserve between-class distinctions (cf. neural collapse, Ch 21).</div>
+ <div class="box pit"><span class="label">Pitfall</span> For DETERMINISTIC networks with continuous inputs, $I(X; Z)$ is typically infinite or ill-defined (an invertible-ish map preserves everything), so claims like "training has a compression phase" depend delicately on noise assumptions and binning; this made the deep-learning IB story contentious. The objective is cleanest with explicitly stochastic encoders — as in the variational IB, a sibling of the VAE (Ch 22).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the two extreme solutions at $\beta\to0$ and $\beta\to\infty$? <details class="sol"><summary>Solution</summary><div>$\beta\to0$: minimize $I(X;Z)$ alone — a constant $Z$, total compression, zero prediction. $\beta\to\infty$: keep $I(Z;Y)$ maximal — any sufficient encoding, up to lossless in the label-relevant part ($I(Z;Y) = I(X;Y)$).</div></details></li>
+  <li><span class="lvl m">MED</span> Why is $I(Z;Y)\le I(X;Y)$ for any encoder, and what does it say about representation learning? <details class="sol"><summary>Solution</summary><div>$Y \to X\to Z$... more precisely $Z$ is generated from $X$, so $Y\to X\to Z$ is Markov and DPI applies: $I(Y;Z)\le I(Y;X)$. No representation extracts more label information than the raw data contains; learning re-formats accessible information, never conjures it.</div></details></li>
+  <li><span class="lvl h">HARD</span> In the worked example add label noise: $Y$ = species flipped with probability 0.1. Compute the ceiling $I(X;Y)$ and the IB-optimal $I(Z;Y)$ at the clustered code. <details class="sol"><summary>Solution</summary><div>The cluster $C$ (cat/dog context group) is fair-binary and $Y$ = $C$ through a 10% flip: $I(C;Y) = 1 - H_2(0.1) = 0.531$ bits; since $Y\perp X\mid C$, also $I(X;Y) = 0.531$. Clustered $Z = C$ achieves $I(Z;Y) = 0.531$ — the full ceiling at just $I(X;Z) = 1$ bit. Noise lowered the prediction ceiling but not the optimal code: compress to the label-sufficient statistic, whatever the noise level. </div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rate-distortion-theory">
+ <h2>Rate-distortion theory</h2>
+ <p>Lossless compression bottoms out at the entropy — but what if you'll tolerate imperfection? Rate–distortion theory prices the trade: for a given allowed distortion $D$, the minimum bits per symbol is $R(D)$, found by minimizing mutual information between source and reconstruction. It is the mathematics of JPEG, MP3 — and of lossy neural codecs and VAE-style latents.</p>
+ <div class="box def"><span class="label">Definition</span> With distortion measure $d(x, \hat x)$: $$R(D) = \min_{p(\hat x\mid x):\ \mathbb E[d(X,\hat X)]\le D}\ I(X; \hat X).$$ $R$ is convex, nonincreasing; $R(0) = H(X)$ for discrete sources (lossless limit), and $R(D) = 0$ once $D$ exceeds the distortion of the best constant guess. Gaussian benchmark: source $\mathcal N(0,\sigma^2)$, squared error: $$R(D) = \tfrac12\log_2\frac{\sigma^2}{D}\ \text{bits},\quad 0&lt;D\le\sigma^2.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Compressing a Gaussian sensor reading ($\sigma^2 = 16$) with tolerated MSE $D = 1$: $R = \frac12\log_2 16 = 2$ bits per sample. Want $D = 0.25$: $R = \frac12\log_2 64 = 3$ bits. Every extra bit halves... check: each additional bit multiplies allowed $\frac{\sigma^2}{D}$ by 4, i.e. cuts the distortion (MSE) by 4× — 6 dB per bit, the rule of thumb audio engineers use for quantizer resolution. And no engineering ingenuity can beat the curve: it is a converse theorem, not a design.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the $\sigma^2 = 16$ Gaussian, what distortion does a 1-bit-per-sample code allow at best? <details class="sol"><summary>Solution</summary><div>$1 = \frac12\log_2\frac{16}{D} \Rightarrow \frac{16}{D} = 4 \Rightarrow D = 4$ (MSE) — SD-2-sized errors with one bit.</div></details></li>
+  <li><span class="lvl m">MED</span> Where does $R(D)$ hit zero for the Gaussian/MSE pair, and why? <details class="sol"><summary>Solution</summary><div>At $D = \sigma^2$: guessing the constant $\hat x = 0$ (the mean) achieves MSE $= \sigma^2$ with ZERO transmitted bits. Beyond that, silence suffices; compression only has work to do when you demand better than the best blind guess.</div></details></li>
+  <li><span class="lvl h">HARD</span> A VAE's loss is reconstruction error plus $\mathrm{KL}(q(z\mid x)\|p(z))$, weighted by $\beta$. Cast it as rate–distortion. <details class="sol"><summary>Solution</summary><div>The KL term upper-bounds the information rate of the encoder channel $x\to z$ (bits used to describe $x$ in latent space: $\mathbb E_x[\mathrm{KL}(q(z\mid x)\|p(z))] \ge I(X;Z)$ with equality when $p(z)$ is the true marginal); reconstruction error is the distortion. A $\beta$-VAE sweeps the Lagrange multiplier of $R(D)$: large $\beta$ = few bits, blurry reconstructions (high $D$); small $\beta$ = many bits, sharp reconstructions. The "rate–distortion curve of a $\beta$-VAE" is not an analogy — it's the same Lagrangian (Ch 22).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="source-coding">
+ <h2>Source coding</h2>
+ <p>Shannon's source coding theorem is the punchline entropy was built for: you can compress a source to its entropy in bits per symbol — and not one bit less, on pain of losing data. Codes must also be decodable without separators, which pins their lengths to a beautiful geometric constraint, the Kraft inequality.</p>
+ <div class="box thm"><span class="label">Theorem</span> (1) <em>Kraft:</em> a prefix-free binary code with lengths $\ell_1..\ell_n$ exists iff $\sum_i 2^{-\ell_i} \le 1$. (2) <em>Source coding:</em> any uniquely decodable code has expected length $\bar\ell \ge H(X)$; and codes exist with $\bar\ell &lt; H(X) + 1$ (per symbol; blocking symbols drives the overhead to zero). Optimal lengths: $\ell_i^* = -\log_2 p_i$ — the surprisal, realized: frequent symbols get short words.</div>
+ <div class="box ex"><span class="label">Worked example</span> The $(\frac12, \frac14, \frac18, \frac18)$ source, $H = 1.75$. Code: A→0, B→10, C→110, D→111. Prefix-free ✓ (no codeword begins another); Kraft: $\frac12 + \frac14 + \frac18 + \frac18 = 1$ ✓ (tight — a complete code). Expected length: $\frac12(1) + \frac14(2) + \frac18(3) + \frac18(3) = 1.75 = H$ exactly, because every $p_i$ is a power of 2. Decode "1101011110": 110·10·111·10 → C B D B — no separators needed; the prefix property makes the boundaries self-announcing.</div>
+ <div class="box link"><span class="label">Where this goes</span> "$-\log_2 p$ = ideal code length" is the dictionary between probability and compression used by MDL (below), by "compression as prediction" (below), and by every claim that language models are compressors (Ch 23).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Can lengths $(1, 2, 2, 3)$ form a prefix code? $(1, 2, 2, 2)$? <details class="sol"><summary>Solution</summary><div>Kraft sums: $\frac12+\frac14+\frac14+\frac18 = 1.125 &gt; 1$: no. Second: $\frac12 + 3\cdot\frac14 = 1.25 &gt; 1$: also no. (E.g. $(1,2,3,3)$: sum $= 1$ ✓ works.)</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the lower bound $\bar\ell\ge H$ for prefix codes using Gibbs + Kraft. <details class="sol"><summary>Solution</summary><div>Define the implied distribution $q_i = 2^{-\ell_i}/c$ with $c = \sum2^{-\ell_j} \le 1$. Then $\bar\ell = \sum p_i\ell_i = -\sum p_i\log_2(cq_i) = -\sum p_i\log_2 q_i - \log_2c \ge H(p) + \mathrm{KL}(p\|q) - \log_2 c \ge H(p)$, since $\mathrm{KL}\ge0$ and $\log_2c\le0$. Equality iff $\ell_i = -\log_2p_i$ exactly. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> A source has $p = (0.9, 0.1)$, $H = 0.469$. Symbol-by-symbol coding can't beat 1 bit/symbol. How does blocking approach the entropy? <details class="sol"><summary>Solution</summary><div>Code PAIRS: probabilities $(0.81, 0.09, 0.09, 0.01)$; Huffman gives lengths $(1, 2, 3, 3)$: $\bar\ell = 0.81 + 0.18 + 0.27 + 0.03 = 1.29$ bits/pair $= 0.645$/symbol. Triples: → ~0.53. As block length $n\to\infty$, overhead $&lt;\frac1n$ vanishes: $\bar\ell/n \to H = 0.469$. (Arithmetic coding, below, achieves this without explicit blocking.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="huffman-coding">
+ <h2>Huffman coding</h2>
+ <p>Huffman's greedy gem builds the provably optimal symbol code: repeatedly merge the two least probable symbols into one node, and read the codewords off the resulting tree. Rare things end up deep (long codes), common things shallow — an optimality earned by one exchange argument.</p>
+ <div class="box def"><span class="label">Definition</span> Algorithm: maintain a forest of weighted nodes (initially the symbols); repeatedly join the two smallest weights into a parent with their sum; after $n-1$ merges, the tree assigns each symbol the path 0/1 labels from root to leaf. Result: minimal expected length among all prefix codes; $H \le \bar\ell_{\text{Huffman}} &lt; H + 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $p = (\mathrm A{:}0.4,\ \mathrm B{:}0.2,\ \mathrm C{:}0.2,\ \mathrm D{:}0.1,\ \mathrm E{:}0.1)$. Merge the two smallest, D+E → 0.2. Now three weights tie at 0.2 (B, C, DE); merge C+DE → 0.4. Merge B(0.2) with that 0.4 → 0.6. Finally A(0.4) + 0.6 → 1.0. Reading paths: A = 0; B = 10; C = 110; D = 1110; E = 1111. $\bar\ell = 0.4(1) + 0.2(2) + 0.2(3) + 0.1(4) + 0.1(4) = 0.4+0.4+0.6+0.8 = 2.2$ bits. Entropy: $-0.4\log_20.4 - 2(0.2\log_20.2) - 2(0.1\log_20.1) = 0.529 + 0.929 + 0.664 = 2.122$ bits: overhead 0.078 ✓ within $[H, H+1)$. (Different tie-breaks give different trees — e.g. merging B+C instead yields all-length-2-and-3 codes — but the same optimal $\bar\ell$.)</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Adjust the five symbol weights and watch the Huffman tree, codeword lengths and the gap to entropy rebuild live.</p>
+  <canvas id="cv-huff"></canvas>
+  <div class="ctl"><label>A <input type="range" id="hf-a" min="1" max="20" step="1" value="8"></label><label>B <input type="range" id="hf-b" min="1" max="20" step="1" value="4"></label><label>C <input type="range" id="hf-c" min="1" max="20" step="1" value="4"></label><label>D <input type="range" id="hf-d" min="1" max="20" step="1" value="2"></label><label>E <input type="range" id="hf-e" min="1" max="20" step="1" value="2"></label></div>
+  <div class="out" id="hf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Build the Huffman code for $p = (0.5, 0.25, 0.25)$. <details class="sol"><summary>Solution</summary><div>Merge the two 0.25s → 0.5; merge with 0.5 → 1. Codes: 0, 10, 11. $\bar\ell = 1.5 = H$ exactly (dyadic probabilities).</div></details></li>
+  <li><span class="lvl m">MED</span> Why must the two LEAST probable symbols be siblings at maximum depth in some optimal tree? <details class="sol"><summary>Solution</summary><div>Exchange argument: if a more probable symbol sat deeper than a less probable one, swapping them changes $\bar\ell$ by $(p_{\text{big}} - p_{\text{small}})(\ell_{\text{shallow}} - \ell_{\text{deep}}) \le 0$ — never worse. So depths can be ordered inversely to probability; the deepest level has $\ge2$ leaves (else its leaf could be raised), and the two rarest can be made siblings there. This justifies the greedy merge, and induction on the merged alphabet completes optimality. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Huffman's worst case: how bad can $\bar\ell - H$ get, and which sources cause it? <details class="sol"><summary>Solution</summary><div>Approaching 1 bit. Source $p = (1-\epsilon, \epsilon)$: Huffman must spend 1 bit/symbol while $H = H_2(\epsilon)\to0$ — overhead $\to1$. Root cause: symbol codes use INTEGER lengths, but the ideal length $-\log_2(1-\epsilon)$ is a fraction of a bit. Cures: block symbols together, or arithmetic coding (next), which spends fractional bits and reduces the overhead to ~2 bits per MESSAGE.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="arithmetic-coding">
+ <h2>Arithmetic coding</h2>
+ <p>Arithmetic coding drops the one-codeword-per-symbol constraint: it encodes the entire message as a single number in $[0,1)$, narrowing an interval by each symbol's probability as it goes. Code length tracks the message's total surprisal to within two bits — and, crucially, the probabilities may come from ANY model, updated on the fly. Plug in a neural net and you have modern lossless compression.</p>
+ <div class="box def"><span class="label">Definition</span> Maintain $[\text{lo}, \text{hi})$, initially $[0,1)$. For each symbol $s$ with (conditional) probability $p_s$ and cumulative $F(s^-)$: shrink to $$[\,\text{lo} + w\,F(s^-),\ \ \text{lo} + w\,F(s^-) + w\,p_s\,),\qquad w = \text{hi} - \text{lo}.$$ Emit any number in the final interval: it takes $\lceil-\log_2(\text{interval width})\rceil + 1 \le \sum_t -\log_2 p_{s_t} + 2$ bits. The decoder replays the same model to un-nest the intervals.</div>
+ <div class="box ex"><span class="label">Worked example</span> Alphabet (A: 0.7, B: 0.3), message "ABA". Start $[0, 1)$. A: $[0, 0.7)$. B: within width 0.7, B's slice is $[0.7, 1.0)$ of it: $[0 + 0.7(0.7),\ 0 + 0.7(1.0)) = [0.49, 0.7)$. A: $[0.49, 0.49 + 0.21(0.7)) = [0.49, 0.637)$. Width $= 0.147 = 0.7\cdot0.3\cdot0.7$ ✓ — exactly the message probability. Bits needed: $-\log_20.147 \approx 2.77$, so ~4 bits (e.g. binary 0.1001 = 0.5625 ∈ interval). Huffman on single symbols would spend 1 bit each = 3 bits here but loses badly on longer skewed runs; arithmetic coding's cost is the ideal $\sum -\log_2 p$ + 2 regardless of how fractional the ideal lengths are.</div>
+ <div class="box link"><span class="label">Where this goes</span> Pair arithmetic coding with a language model's next-token probabilities and you compress text at the model's cross-entropy — the literal implementation of "LLMs are compressors" (Ch 23; ts_zip, LLMzip) and the operational half of the MDL story (below).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> After encoding a message of total probability $2^{-20}$, roughly how many bits does arithmetic coding emit? <details class="sol"><summary>Solution</summary><div>About $20 + 2 = 22$ bits — the surprisal plus at most ~2 bits of overhead for the whole message, not per symbol.</div></details></li>
+  <li><span class="lvl m">MED</span> Encode "BA" with (A: 0.7, B: 0.3): give the final interval. <details class="sol"><summary>Solution</summary><div>B: $[0.7, 1.0)$. A within it: $[0.7, 0.7 + 0.3(0.7)) = [0.7, 0.91)$. Width $0.21 = 0.3\cdot0.7$ ✓; $-\log_20.21 \approx 2.25$ → 3–4 bits.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does arithmetic coding marry ADAPTIVE models so naturally, where Huffman struggles? <details class="sol"><summary>Solution</summary><div>The interval update uses whatever $p_t(s\mid s_{&lt;t})$ the model outputs at step $t$ — the model may change every symbol (context models, online-updating counts, a transformer's softmax) as long as the decoder can reproduce it, since it decodes symbol $t$ AFTER reconstructing $s_{&lt;t}$ and can query the same model. Huffman would need to REBUILD its tree after every symbol (expensive) and still pays the integer-length tax each time. Adaptive arithmetic coding thus achieves $\sum_t -\log_2 p_t(s_t\mid s_{&lt;t}) + O(1)$ — the model's cross-entropy on the sequence, exactly.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="channel-coding">
+ <h2>Channel coding</h2>
+ <p>Source coding removes redundancy; channel coding adds it back — deliberately, cleverly — so messages survive a noisy channel. Shannon's astonishing theorem: every channel has a capacity $C$, and below it, error-free communication is possible; above it, impossible. Noise sets a speed limit, not a quality limit.</p>
+ <div class="box thm"><span class="label">Theorem</span> (Noisy channel coding) For a channel $p(y\mid x)$ with capacity $$C = \max_{p(x)} I(X; Y)\quad\text{bits per use},$$ every rate $R &lt; C$ admits codes (blocklength $n\to\infty$) with error probability $\to 0$; every rate $R &gt; C$ forces error probability bounded away from 0. Binary symmetric channel (flip prob. $f$): $C = 1 - H_2(f)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> BSC with $f = 0.1$: $C = 1 - 0.469 = 0.531$ bits/use — you can push ~53 reliable bits through 100 noisy uses. Crude alternative, 3× repetition: rate $\frac13 = 0.333$, and error per bit $= P(\ge2$ flips$) = 3(0.1)^2(0.9) + (0.1)^3 = 0.028$ — better than 0.1 but nonzero, and driving it to $10^{-9}$ by more repetition sends the rate to 0. Shannon's theorem says smarter codes (today: LDPC, turbo, polar — used in 5G and deep-space links) get BOTH: rate 0.5 AND vanishing error. Redundancy must be structured, not repeated.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the capacity of a noiseless binary channel? Of a BSC with $f = 0.5$? <details class="sol"><summary>Solution</summary><div>$1$ bit/use; and $1 - H_2(0.5) = 0$ — a coin-flip channel transmits nothing, no code can help.</div></details></li>
+  <li><span class="lvl m">MED</span> Why is $C$ defined with a max over input distributions $p(x)$? <details class="sol"><summary>Solution</summary><div>$I(X;Y)$ depends on how you USE the channel — which inputs you favor. Capacity is the best achievable coupling; e.g. on asymmetric channels (some symbols noisier), the optimal $p(x)$ leans on reliable symbols. For the symmetric BSC the max is at uniform input.</div></details></li>
+  <li><span class="lvl h">HARD</span> The binary erasure channel loses each bit with probability $e$ (the receiver KNOWS which are lost). Guess and verify its capacity. <details class="sol"><summary>Solution</summary><div>$C = 1 - e$. With uniform input: $H(X) = 1$; given $Y$, $X$ is known unless erased: $H(X\mid Y) = e\cdot1$; $I = 1 - e$, and no input distribution does better ($I = H(X) - eH(X) = (1-e)H(X) \le 1-e$). Intuition: a fraction $1-e$ of slots arrive intact and — with coding — every surviving slot can carry a full bit of NEW information (fountain/LT codes realize this elegantly).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="noisy-channel">
+ <h2>Noisy channel</h2>
+ <p>The noisy channel is also an inference template: something clean passed through corruption, and you must decode. Spelling correction, speech recognition, machine translation, even DNA sequencing — all are "guess the input given the output," solved by Bayes with a source model (prior) and a channel model (likelihood).</p>
+ <div class="box def"><span class="label">Definition</span> A channel is $p(y\mid x)$. Optimal decoding of a message with prior $p(x)$: $$\hat x = \arg\max_x\ p(x\mid y) = \arg\max_x\ \underbrace{p(y\mid x)}_{\text{channel model}}\ \underbrace{p(x)}_{\text{source model}}$$ — MAP decoding (Ch 13). In the classic NLP instantiation: $y$ = observed noisy text, $p(x)$ = language model, $p(y\mid x)$ = error/acoustic/translation model.</div>
+ <div class="box ex"><span class="label">Worked example</span> Spelling correction of "teh". Candidates: "the" and "ten". Source (language model): $p(\text{the}) = 0.02$, $p(\text{ten}) = 0.0001$. Channel (typo model): transposition $p(\text{teh}\mid\text{the}) = 0.005$; substitution n→h $p(\text{teh}\mid\text{ten}) = 0.001$. Scores: the: $0.02\times0.005 = 10^{-4}$; ten: $0.0001\times0.001 = 10^{-7}$. Decode "the," by three orders of magnitude — the prior does most of the lifting, which is why a better language model improves a speller/ASR system even with the SAME channel model.</div>
+ <div class="box think"><span class="label">Think first</span> Under this framing, what is the difference between hallucination and denoising in a generative model? <details class="sol"><summary>Reveal</summary><div>Both let the prior fill gaps the observation doesn't determine. Denoising: the prior fills in with what the channel evidence UNDERDETERMINES but is consistent with. Hallucination: the prior overrides or invents beyond the evidence — the decoder trusts $p(x)$ where it should have trusted $p(y\mid x)$'s constraint. Same machinery, different balance; RAG (Ch 23) is an attempt to strengthen the evidence term.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the noisy-channel model of translation (source English $x$, observed French $y$), which components are $p(x)$ and $p(y\mid x)$? <details class="sol"><summary>Solution</summary><div>$p(x)$: an English language model (fluency); $p(y\mid x)$: a translation/adequacy model. Decoding: the English sentence both fluent AND faithful — the pre-neural statistical MT architecture verbatim.</div></details></li>
+  <li><span class="lvl m">MED</span> Observed "hte cat". With uniform channel probabilities over single-transposition corruptions, what determines the decode, and why is that reasonable? <details class="sol"><summary>Solution</summary><div>If the channel likelihood is (near) constant across candidates, the posterior ranks by the PRIOR alone: the language model picks "the cat." Reasonable because typo mechanics rarely discriminate between plausible intended strings; linguistic plausibility does. (When the channel IS informative — e.g. keyboard-adjacency — it sharpens the decode further.)</div></details></li>
+  <li><span class="lvl h">HARD</span> ASR: acoustic model says $p(y\mid\text{"recognize speech"}) = 10^{-8}$, $p(y\mid\text{"wreck a nice beach"}) = 3\times10^{-8}$. LM says $p_1 = 10^{-9}$ vs $p_2 = 10^{-12}$. Decode, and explain the "LM scale factor" trick practitioners use. <details class="sol"><summary>Solution</summary><div>Posteriors ∝ $10^{-17}$ vs $3\times10^{-20}$: "recognize speech" wins ~333:1 despite the worse acoustic score. Practitioners actually maximize $\log p(y\mid x) + \alpha\log p(x)$ with $\alpha \approx 10$–20, up-weighting the LM: the acoustic model's independence assumptions (per-frame) make its likelihoods overconfident (too peaked) by orders of magnitude, and $\alpha$ recalibrates the two information sources — a hand-tuned fix for miscalibrated likelihoods (Ch 13's calibration, applied).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="minimum-description-length">
+ <h2>Minimum Description Length</h2>
+ <p>MDL turns Occam's razor into arithmetic: the best model of data is the one that yields the shortest total description — bits to describe the model, plus bits to describe the data given the model. Overfit models pay in the first term what they save in the second; noise, being incompressible, never pays for itself.</p>
+ <div class="box def"><span class="label">Definition</span> (Two-part code) Choose $$\hat M = \arg\min_M\ \underbrace{L(M)}_{\text{model bits}} + \underbrace{L(D\mid M)}_{\text{data bits} \,=\, -\log_2 p_M(D)}.$$ Refined MDL replaces two-part codes with one-part universal codes (normalized maximum likelihood, Bayesian mixtures — whose length is $-\log_2\int p_M(D)\pi(M)dM$, tying MDL to the Bayesian evidence). Relatives: BIC $= -2\ln\hat L + k\ln n$ is an asymptotic two-part code; regularized losses are description lengths in disguise.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1000 binary outcomes, 700 ones. Model A: "fair coin" — model cost ~0 bits (it's a fixed default); data cost $1000\times1 = 1000$ bits. Model B: "Bernoulli($\hat p$), $\hat p = 0.7$ to ~$\frac12\log_2 1000 \approx 5$ bits precision" — model cost ≈ 5 bits; data cost $1000\times H_2(0.7) = 1000(0.881) = 881$ bits. Total: 1000 vs 886: model B wins by 114 bits — the regularity is real. Now suppose the data were 520 ones: B's saving is $1000(1 - H_2(0.52)) \approx 1000(1-0.9988) = 1.2$ bits &lt; its 5-bit price: MDL says keep the fair coin — a 2% wobble in 1000 flips is noise, not structure. Model selection with no tuning parameter anywhere.</div>
+ <div class="box link"><span class="label">Where this goes</span> MDL is the formal backbone of "simplicity priors": weight decay as parameter-description cost (Ch 15), the ELBO as a description length (Ch 13's ELBO = data bits + KL bits; Hinton's "keeping neural networks simple"), and Solomonoff induction / Kolmogorov complexity as its idealized limit (Ch 36's AIXI).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does a polynomial that interpolates all 50 noisy points lose to a line, in MDL terms? <details class="sol"><summary>Solution</summary><div>Its 50 coefficients cost ~50 × (precision) bits in $L(M)$, while saving few data bits over the line (residuals were mostly incompressible noise). The line: 2 coefficients + residual bits ≈ noise entropy. Total favors the line — overfitting is buying data bits at an exorbitant model-bit price.</div></details></li>
+  <li><span class="lvl m">MED</span> Where does the $\frac12\log_2 n$ bits-per-parameter rule come from? <details class="sol"><summary>Solution</summary><div>A maximum-likelihood estimate from $n$ samples has standard error $\Theta(1/\sqrt n)$: specifying a parameter beyond that precision is describing noise. Encoding it to resolution $1/\sqrt n$ on an $O(1)$ range costs $\log_2\frac{O(1)}{1/\sqrt n} = \frac12\log_2 n + O(1)$ bits. Summed over $k$ parameters: $\frac k2\log_2 n$ — exactly BIC's penalty (in bits).</div></details></li>
+  <li><span class="lvl h">HARD</span> Two-part MDL and MAP estimation are related how, exactly? <details class="sol"><summary>Solution</summary><div>Take logs of the posterior: $\arg\max_M p(M)p(D\mid M) = \arg\min_M\ [-\log_2 p(M)] + [-\log_2 p(D\mid M)] = \arg\min\ L(M) + L(D\mid M)$ where the model code is the Shannon code for the prior. MAP IS two-part MDL with $L(M) = -\log_2 p(M)$; priors are codebooks, codebooks are priors. The refined/one-part versions correspond to full Bayesian evidence rather than MAP — integrating over parameters instead of picking one, which additionally penalizes model FLEXIBILITY, not just parameter count.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="compression">
+ <h2>Compression</h2>
+ <p>Everything converges here: compression is the craft of finding and exploiting regularity, and its hard floor is entropy (lossless) or the rate–distortion curve (lossy). Practical compressors are model-plus-coder sandwiches: a probability model of the data feeds an entropy coder that turns predictions into bits.</p>
+ <div class="box def"><span class="label">Definition</span> A lossless compressor is an injective map from sequences to bit strings; by counting, no compressor shrinks ALL inputs — it wins on the regular ones by losing (slightly) on the random ones. Architecture of the practical stack: <em>modeling</em> (Markov/context models, dictionaries as in LZ77/LZW, learned neural models) + <em>entropy coding</em> (Huffman, arithmetic, ANS). Kolmogorov complexity $K(x)$ — the shortest program printing $x$ — is the uncomputable ideal; compressed size is its computable upper bound.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three 60-character strings: (a) "aaaa…a": gzip → a few bytes (run of one symbol — near-zero entropy rate). (b) "abababab…": also tiny (period-2 structure; LZ references or a 2-state model capture it). (c) 60 truly random letters: gzip output ≥ 60 bytes + header — INCOMPRESSIBLE, and provably most strings are like this (fewer than $2^{n-k}$ strings of length $n$ compress by $k$ bits, so a random string compresses by 10+ bits with probability $&lt; 2^{-10}$). Compressibility is a measurable fingerprint of structure — which is why compressed-size distances can cluster languages, genomes and malware families (normalized compression distance).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Prove no lossless compressor shrinks every input of length $n$. <details class="sol"><summary>Solution</summary><div>There are $2^n$ inputs but only $2^n - 1$ nonempty bit strings SHORTER than $n$ ($\sum_{k&lt;n}2^k = 2^n - 1$... and injectivity needs distinct outputs). Pigeonhole: two inputs would share an output — not decodable. Someone must map to length $\ge n$. ∎</div></details></li>
+  <li><span class="lvl m">MED</span> English text compresses to roughly 1–2 bits/character from 8 (ASCII). What does that ratio measure, and what did Shannon's guessing experiment have to do with it? <details class="sol"><summary>Solution</summary><div>The entropy RATE of English given its statistical structure (letter frequencies, words, grammar, semantics): about 1 bit/char by Shannon's 1951 estimate, obtained by having humans guess the next letter — the number of guesses proxies the conditional distribution, i.e. a human LANGUAGE MODEL. Compressors approach the entropy rate their internal model can see: gzip (short-range) ~2.5–3, strong context models ~1.7, LLM-based ~&lt;1 bit/char — model quality IS compression ratio.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is Kolmogorov complexity uncomputable, in one paragraph? <details class="sol"><summary>Solution</summary><div>Suppose a program $Q$ computes $K(x)$. Then the program "enumerate strings until finding the first $x^*$ with $K(x^*) &gt; |Q| + c$; print it" outputs a string whose Kolmogorov complexity exceeds its own description length (the program IS a short description of $x^*$) — a Berry-paradox contradiction. Formally: if $K$ were computable, this self-referential searcher of size $O(\log n)$-ish would print strings of complexity $&gt; $ its size, impossible. Hence only upper bounds (actual compressors) are attainable. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="compression-as-prediction">
+ <h2>Compression as prediction</h2>
+ <p>The chapter's closing identity: compressing and predicting are the same skill wearing different clothes. A predictor with cross-entropy $h$ bits/symbol yields (via arithmetic coding) a compressor at $h$ bits/symbol, and vice versa. "Language models are trained by compression" is not a metaphor — and it is one serious framing of why prediction pressure produces understanding.</p>
+ <div class="box def"><span class="label">Definition</span> Given any predictive model $q(x_t\mid x_{&lt;t})$, arithmetic coding compresses sequences to $\sum_t -\log_2 q(x_t\mid x_{&lt;t}) + O(1)$ bits — the model's log loss. Conversely any compressor $C$ induces a predictor $q_C(x_t\mid x_{&lt;t}) \propto 2^{-[\,|C(x_{&lt;t}x_t)| - |C(x_{&lt;t})|\,]}$. Hence: expected bits/symbol $\ge$ source entropy rate, with the gap $= \mathrm{KL}$ — better prediction ⟺ better compression, bit for bit. Idealized limit: Solomonoff's universal prior $2^{-K(x)}$, the best possible predictor/compressor, uncomputable.</div>
+ <div class="box ex"><span class="label">Worked example</span> Compress "the cat sat on the ___" with three models. Uniform over 50k tokens: next token costs $\log_2 50000 \approx 15.6$ bits. Unigram English: "mat" has frequency-based probability ~$10^{-5}$: ~16.6 bits (worse than uniform for rare words, better on average). An LLM given the context: $q(\text{mat}) \approx 0.6$: $0.74$ bits. The LLM's grasp of the idiom is WORTH 15 bits on this token, and arithmetic coding banks exactly those bits into a shorter file. Averaged over real text, a model at 0.7 bits/char compresses text ~11× versus ASCII — and a compressor achieving that ratio must, implicitly, know comparable English.</div>
+ <div class="box think"><span class="label">Think first</span> Chinchilla-scale LLMs compress Wikipedia better than bespoke compressors like CMIX. Does great compression imply understanding? <details class="sol"><summary>Reveal</summary><div>The identity guarantees: great compression ⟺ great next-symbol prediction on that distribution. Whether that constitutes "understanding" is a philosophical question — but note what the bits FORCE: to predict 0.7 bits/char, a model must implicitly encode syntax, facts, coreference, arithmetic patterns, even world regularities, because every unexploited regularity is paid for in bits. Compression is at minimum an operational, cheat-proof MEASURE of captured structure (Hutter Prize's premise) — you cannot fake it with confidence tricks, because the file size is the file size.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A model achieves 1.2 bits/character on a text of 10,000 characters. What compressed size does arithmetic coding deliver? <details class="sol"><summary>Solution</summary><div>$\approx 12{,}000$ bits $= 1500$ bytes (+ ~2 bits overhead), versus 10,000 bytes of ASCII: 6.7×.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that a compressor's code lengths define a (sub-)probability model via $q(x) = 2^{-|C(x)|}$. <details class="sol"><summary>Solution</summary><div>Prefix-free outputs satisfy Kraft: $\sum_x 2^{-|C(x)|} \le 1$ — a sub-probability distribution (normalize if desired). Its cross-entropy on the source equals the compressor's expected bits/symbol. Every compressor secretly carries a belief about what's likely: short codes = high probability. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Two models: A has lower log loss on average; B occasionally assigns a true token probability $10^{-9}$ but is usually sharper. As compressors, what happens with each, and what does this say about likelihood as a training objective? <details class="sol"><summary>Solution</summary><div>Compressed size = SUM of per-token bits: B's rare $10^{-9}$ events cost 30 bits each — spikes that can swamp its usual savings; A wins whenever its average (i.e., total) is lower, by definition. The exercise shows why log loss (not accuracy) is the right currency: it charges tail failures their true coding cost. A model can be argmax-accurate yet a terrible compressor/probability model — and log-loss training, unlike accuracy, refuses to let it ignore the tails (compare Ch 13's proper scoring rules: log loss is the proper rule whose penalty is literal bits).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">A language model's average loss is 0.9 bits/token. Paired with arithmetic coding, the best achievable lossless compression of matching text is:</div><button class="opt">≈0.9 bits/token — loss IS the compressed size</button><button class="opt">≈0.45 bits/token with clever coding</button><button class="opt">unknowable without the source entropy</button><div class="why" hidden>Arithmetic coding converts a model into a compressor at exactly its cross-entropy (+O(1) total). Beating 0.9 would require a better MODEL; coding is already optimal given the model.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <strong>An information audit.</strong> A medical test for a condition with prevalence 1% has sensitivity 90% and specificity 95%. Compute (a) $H(\text{Disease})$; (b) $H(\text{Disease}\mid\text{Test})$; (c) the mutual information $I$; (d) the fraction of the diagnostic uncertainty the test removes. <details class="sol"><summary>Solution</summary><div>(a) $H_2(0.01) = -0.01\log_20.01 - 0.99\log_20.99 = 0.0664 + 0.0144 = 0.0808$ bits. (b) Joint: $P(D,+) = 0.009$, $P(D,-) = 0.001$, $P(\bar D,+) = 0.0495$, $P(\bar D,-) = 0.9405$. $P(+) = 0.0585$. Posteriors: $P(D\mid+) = 0.009/0.0585 = 0.1538$; $P(D\mid-) = 0.001/0.9415 = 0.00106$. $H(D\mid+) = H_2(0.1538) = 0.617$; $H(D\mid-) = H_2(0.00106) = 0.0116$. $H(D\mid T) = 0.0585(0.617) + 0.9415(0.0116) = 0.0361 + 0.0109 = 0.0470$ bits. (c) $I = 0.0808 - 0.0470 = 0.0338$ bits. (d) $0.0338/0.0808 \approx 42\%$ — a "90%/95% accurate" test removes well under half the uncertainty at this prevalence; base rates dominate (Ch 11's Bayes lesson, in bits).</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Design the code, price the model.</strong> A source emits A, B, C, D with true $p = (0.4, 0.3, 0.2, 0.1)$. (a) Compute $H(p)$. (b) Build a Huffman code and its $\bar\ell$. (c) A modeler mistakenly believes $q = (0.25, 0.25, 0.25, 0.25)$ and codes accordingly (2 bits each): what is the redundancy, and verify it equals $\mathrm{KL}(p\|q)$. (d) With the optimal-for-$q$ code but blocks of 2 and arithmetic coding under the TRUE $p$, what rate is achievable? <details class="sol"><summary>Solution</summary><div>(a) $H = 0.4(1.322) + 0.3(1.737) + 0.2(2.322) + 0.1(3.322) = 0.529 + 0.521 + 0.464 + 0.332 = 1.846$ bits. (b) Merge D+C → 0.3; merge with B → 0.6... two smallest after first merge: 0.3 (B) and 0.3 (CD): → 0.6; then A(0.4) + 0.6 → 1. Codes: A = 0 (1 bit), B = 10 (2), C = 110, D = 111 (3 each). $\bar\ell = 0.4 + 0.6 + 0.6 + 0.3 = 1.9$ bits — 0.054 above entropy. (c) Uniform coding spends 2.0 bits always: redundancy $= 2.0 - 1.846 = 0.154$ bits. $\mathrm{KL}(p\|q) = \sum p_i\log_2\frac{p_i}{0.25} = \sum p_i\log_2 p_i + 2 = -1.846 + 2 = 0.154$ ✓ — the mismatch cost identity $H(p,q) = H(p) + \mathrm{KL}(p\|q)$, live. (d) Arithmetic coding under the true model achieves $H = 1.846$ + O(1/blocklength) — blocks of 2 already beat Huffman's 1.9 (pair-Huffman would too); with the WRONG model it would cost $H + \mathrm{KL} = 2.0$: the coder is never the bottleneck, the model is.</div></details></li>
+  <li><span class="lvl h">HARD</span> <strong>Bottleneck by hand.</strong> $X$ uniform on $\{1,2,3,4\}$; $Y = 1$ if $X\in\{1,2\}$ else $0$, but observed through 10% label noise. Consider encoders $Z_k$: $Z_4 = X$ (identity), $Z_2 = \lceil X/2\rceil$ (the pair), $Z_1 = $ constant. For each compute $(I(X;Z), I(Z;Y))$ and identify which are on the IB frontier for some $\beta$ in the objective $\min I(X;Z) - \beta I(Z;Y)$. <details class="sol"><summary>Solution</summary><div>$Y$'s useful part is the pair indicator $C = \mathbf 1[X\le2]$; $Y$ = $C$ flipped w.p. 0.1, so $I(C;Y) = 1 - H_2(0.1) = 0.531$. $Z_4$: $I(X;Z) = 2$, $I(Z;Y) = I(X;Y) = 0.531$ (all label info present). $Z_2$: $I(X;Z) = 1$, $I(Z;Y) = 0.531$ (still all of it — $Z_2 = C$). $Z_1$: $(0, 0)$. Frontier: $Z_1$ (optimal for $\beta &lt; \beta_c$) and $Z_2$ (optimal for $\beta$ large: any $\beta$ with $1 - \beta(0.531) &lt; 0 - 0$, i.e. $\beta &gt; 1.88$); $Z_4$ is DOMINATED — it pays 1 extra bit of $I(X;Z)$ for zero extra $I(Z;Y)$, so no $\beta$ selects it. Objective values at $\beta = 3$: $Z_4$: $2 - 1.594 = 0.406$; $Z_2$: $1 - 1.594 = -0.594$ (best); $Z_1$: $0$. The bottleneck provably discards the within-pair bit: minimal sufficient statistics are what IB frontiers are made of.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p><strong>Task 1 — Entropy, cross-entropy, KL from scratch.</strong> Implement the three quantities, verify $H(p,q) = H(p) + \mathrm{KL}(p\|q)$ numerically, and reproduce the asymmetry of KL on a small example.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def H(p):        p = p[p &gt; 0];              return -(p*np.log2(p)).sum()
+def CE(p, q):    m = p &gt; 0;                 return -(p[m]*np.log2(q[m])).sum()
+def KL(p, q):    m = p &gt; 0;                 return (p[m]*np.log2(p[m]/q[m])).sum()
+
+p = np.array([0.5, 0.25, 0.125, 0.125])
+q = np.array([0.25, 0.25, 0.25, 0.25])
+
+print(f"H(p)   = {H(p):.4f}  (expect 1.75)")
+print(f"H(p,q) = {CE(p,q):.4f}  (expect 2.0)")
+print(f"KL(p||q) = {KL(p,q):.4f}, H+KL = {H(p)+KL(p,q):.4f}")   # identity
+print(f"KL(q||p) = {KL(q,p):.4f}  (asymmetry)")
+assert abs(CE(p,q) - H(p) - KL(p,q)) &lt; 1e-12</code></pre></div></details>
+ <p><strong>Task 2 — Huffman coder.</strong> Build Huffman codes with a heap, encode/decode a string, and compare achieved rate to the empirical entropy.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import heapq, collections, math
+
+def huffman(freq):
+    heap = [[w, i, sym] for i, (sym, w) in enumerate(freq.items())]
+    heapq.heapify(heap); n = len(heap)
+    while len(heap) &gt; 1:
+        a = heapq.heappop(heap); b = heapq.heappop(heap)
+        heapq.heappush(heap, [a[0]+b[0], n, (a, b)]); n += 1
+    codes = {}
+    def walk(node, prefix):
+        if isinstance(node[2], tuple):
+            walk(node[2][0], prefix+'0'); walk(node[2][1], prefix+'1')
+        else: codes[node[2]] = prefix or '0'
+    walk(heap[0], ''); return codes
+
+text = "abracadabra alakazam" * 50
+freq = collections.Counter(text)
+codes = huffman(freq)
+inv = {v: k for k, v in codes.items()}
+
+bits = ''.join(codes[c] for c in text)
+# decode
+out, cur = [], ''
+for b in bits:
+    cur += b
+    if cur in inv: out.append(inv[cur]); cur = ''
+assert ''.join(out) == text
+
+n = len(text)
+Hemp = -sum((c/n)*math.log2(c/n) for c in freq.values())
+print(f"rate = {len(bits)/n:.4f} bits/char, entropy = {Hemp:.4f}, ascii = 8")</code></pre></div></details>
+ <p><strong>Task 3 — A predictor is a compressor.</strong> Implement an adaptive (Laplace-smoothed) bigram model and measure its ideal code length $\sum -\log_2 q(x_t\mid x_{t-1})$ on text; compare to a unigram and to uniform coding — no entropy coder needed to know the file size arithmetic coding would deliver.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import math, collections
+
+text = open(__file__).read()          # compress this very file
+syms = sorted(set(text)); V = len(syms)
+
+def codelen_unigram(s):
+    cnt = collections.Counter(); total = 0.0
+    for ch in s:
+        p = (cnt[ch] + 1) / (sum(cnt.values()) + V)   # adaptive Laplace
+        total += -math.log2(p); cnt[ch] += 1
+    return total
+
+def codelen_bigram(s):
+    cnt = collections.defaultdict(collections.Counter)
+    ctx_tot = collections.Counter(); total = 0.0; prev = ''
+    for ch in s:
+        p = (cnt[prev][ch] + 1) / (ctx_tot[prev] + V)
+        total += -math.log2(p)
+        cnt[prev][ch] += 1; ctx_tot[prev] += 1; prev = ch
+    return total
+
+n = len(text)
+print(f"uniform : {math.log2(V):.3f} bits/char")
+print(f"unigram : {codelen_unigram(text)/n:.3f} bits/char")
+print(f"bigram  : {codelen_bigram(text)/n:.3f} bits/char")
+# better prediction =&gt; fewer bits, symbol for symbol; an arithmetic coder
+# would realize exactly these sizes (+2 bits total).</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://www.inference.org.uk/itprnn/book.pdf">MacKay, <em>Information Theory, Inference, and Learning Algorithms</em> (free PDF)</a> — the best book in this list; entropy through codes to Bayesian ML, with exercises.</li>
+  <li><a href="https://ocw.mit.edu/courses/6-441-information-theory-spring-2016/">MIT OCW 6.441 Information Theory</a> — a rigorous course: AEP, coding theorems, channel capacity.</li>
+  <li><a href="https://colah.github.io/posts/2015-09-Visual-Information/">Olah, "Visual Information Theory"</a> — entropy, cross-entropy and KL drawn until they're obvious.</li>
+  <li><a href="https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf">Shannon, "A Mathematical Theory of Communication" (1948)</a> — the founding paper; Part I is astonishingly readable.</li>
+  <li><a href="https://arxiv.org/abs/physics/0004057">Tishby, Pereira &amp; Bialek, "The Information Bottleneck Method"</a> — the IB objective and its self-consistent equations.</li>
+  <li><a href="https://arxiv.org/abs/2309.10668">Delétang et al., "Language Modeling Is Compression"</a> — LLMs + arithmetic coding beat classical compressors; the identity, demonstrated.</li>
+  <li><a href="http://prize.hutter1.net/">The Hutter Prize</a> — compression of Wikipedia as an operational intelligence benchmark; rationale and rules.</li>
+  <li><a href="https://www.youtube.com/watch?v=v68zYyaEmEA">3Blue1Brown, "Solving Wordle using information theory"</a> — expected information gain as a game strategy; entropy made playable.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a href="ch15.html">← 15 · Optimization</a>
+ <a href="ch17.html">17 · Discrete Mathematics and Computation →</a>
+</div>
+
+</main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var e=document.getElementById(id); if(e)e.addEventListener(ev,fn); return e;}
+function val(id){var e=document.getElementById(id); return e?parseFloat(e.value):0;}
+function out(id,t){var e=document.getElementById(id); if(e)e.textContent=t;}
+function axes(g,w,h,pad){g.strokeStyle=cssVar('--ink-2');g.lineWidth=1;g.beginPath();g.moveTo(pad,h-pad);g.lineTo(w-8,h-pad);g.moveTo(pad,h-pad);g.lineTo(pad,8);g.stroke();g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';}
+function h2(p){if(p<=0||p>=1)return 0;return -p*Math.log2(p)-(1-p)*Math.log2(1-p);}
+
+/* 1. Binary entropy curve */
+var c1=document.getElementById('cv-ent');
+function drawEnt(){
+ if(!c1)return; var p=val('en-p');
+ var st=setupCanvas(c1,280),g=st.g,w=st.w,h=st.h,pad=40;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ function X(x){return pad+x*(w-pad-16);} function Y(y){return h-pad-y*(h-pad-24);}
+ g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();var i;
+ for(i=0;i<=300;i++){var x=i/300;var py=Y(h2(x));if(i===0)g.moveTo(X(x),py);else g.lineTo(X(x),py);}
+ g.stroke();
+ g.fillStyle=cssVar('--red')||'#c33';g.beginPath();g.arc(X(p),Y(h2(p)),5,0,7);g.fill();
+ g.fillStyle=cssVar('--ink-2');
+ g.fillText('0',pad-4,h-pad+16);g.fillText('0.5',X(0.5)-10,h-pad+16);g.fillText('1',X(1)-4,h-pad+16);
+ g.fillText('1 bit',4,Y(1)+4);g.fillText('H₂(p)',pad+8,20);
+ out('en-out','p = '+p.toFixed(3)+'   H = '+h2(p).toFixed(4)+' bits   surprisal of heads = '+(-Math.log2(p)).toFixed(2)+' bits, tails = '+(-Math.log2(1-p)).toFixed(2)+' bits');
+}
+on('en-p','input',drawEnt);
+
+/* 2. Forward vs reverse KL: Gaussian q vs bimodal p */
+var c2=document.getElementById('cv-kl');
+var GRID=[],PV=[];
+(function(){var i;for(i=0;i<=400;i++){var x=-6+12*i/400;GRID.push(x);
+ var p=0.5*Math.exp(-(x+2)*(x+2)/(2*0.49))/Math.sqrt(2*Math.PI*0.49)+0.5*Math.exp(-(x-2)*(x-2)/(2*0.49))/Math.sqrt(2*Math.PI*0.49);
+ PV.push(p);}})();
+function drawKL(){
+ if(!c2)return; var m=val('kl-m'),s=val('kl-s');
+ var st=setupCanvas(c2,280),g=st.g,w=st.w,h=st.h,pad=36;
+ g.clearRect(0,0,w,h);axes(g,w,h,pad);
+ var dx=12/400,i;
+ var QV=GRID.map(function(x){return Math.exp(-(x-m)*(x-m)/(2*s*s))/(s*Math.sqrt(2*Math.PI));});
+ var ymax=0.6;
+ function X(i2){return pad+i2/400*(w-pad-16);} function Y(v){return h-pad-Math.min(v,ymax)/ymax*(h-pad-24);}
+ g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();
+ for(i=0;i<=400;i++){if(i===0)g.moveTo(X(i),Y(PV[i]));else g.lineTo(X(i),Y(PV[i]));}g.stroke();
+ g.strokeStyle=cssVar('--cobalt');g.beginPath();
+ for(i=0;i<=400;i++){if(i===0)g.moveTo(X(i),Y(QV[i]));else g.lineTo(X(i),Y(QV[i]));}g.stroke();
+ var klf=0,klr=0;
+ for(i=0;i<=400;i++){var p=PV[i],q=Math.max(QV[i],1e-300);
+  if(p>1e-12)klf+=p*Math.log2(p/q)*dx;
+  if(QV[i]>1e-12&&p>1e-300)klr+=QV[i]*Math.log2(QV[i]/Math.max(p,1e-300))*dx;}
+ g.fillStyle=cssVar('--ink-2');g.fillText('p: two modes (dark)   q: Gaussian (blue)',pad+8,20);
+ out('kl-out','KL(p‖q) = '+klf.toFixed(3)+' bits (mass-covering: wants q wide)   KL(q‖p) = '+klr.toFixed(3)+' bits (mode-seeking: wants q on one bump)');
+}
+on('kl-m','input',drawKL);on('kl-s','input',drawKL);
+
+/* 3. Huffman tree builder */
+var c3=document.getElementById('cv-huff');
+function drawHuff(){
+ if(!c3)return;
+ var wts=[val('hf-a'),val('hf-b'),val('hf-c'),val('hf-d'),val('hf-e')];
+ var tot=wts.reduce(function(a,b){return a+b;},0);
+ var names=['A','B','C','D','E'];
+ // build huffman
+ var nodes=wts.map(function(wt,i){return {w:wt,sym:names[i],kids:null};});
+ var forest=nodes.slice();
+ while(forest.length>1){
+  forest.sort(function(a,b){return a.w-b.w;});
+  var a=forest.shift(),b=forest.shift();
+  forest.push({w:a.w+b.w,sym:null,kids:[a,b]});}
+ var root=forest[0];
+ var codes={};
+ (function walk(nd,pre){if(nd.kids){walk(nd.kids[0],pre+'0');walk(nd.kids[1],pre+'1');}else codes[nd.sym]=pre||'0';})(root,'');
+ // layout: assign leaf x positions in-order, depth = y
+ var st=setupCanvas(c3,280),g=st.g,w=st.w,h=st.h;
+ g.clearRect(0,0,w,h);g.font='13px JetBrains Mono';
+ var leafX=0,leafCount=5,pad=40;
+ function layout(nd,depth){
+  nd.y=30+depth*44;
+  if(nd.kids){layout(nd.kids[0],depth+1);layout(nd.kids[1],depth+1);nd.x=(nd.kids[0].x+nd.kids[1].x)/2;}
+  else {nd.x=pad+leafX*((w-2*pad)/(leafCount-1));leafX++;}}
+ layout(root,0);
+ (function drawNode(nd){
+  if(nd.kids){nd.kids.forEach(function(k,idx){
+   g.strokeStyle=cssVar('--ink-2');g.beginPath();g.moveTo(nd.x,nd.y);g.lineTo(k.x,k.y);g.stroke();
+   g.fillStyle=cssVar('--ink-2');g.fillText(''+idx,(nd.x+k.x)/2+4,(nd.y+k.y)/2);
+   drawNode(k);});}
+  g.fillStyle=nd.sym?cssVar('--cobalt'):cssVar('--ink-2');
+  g.beginPath();g.arc(nd.x,nd.y,nd.sym?12:7,0,7);g.fill();
+  if(nd.sym){g.fillStyle='#fff';g.fillText(nd.sym,nd.x-4,nd.y+4);}
+ })(root);
+ var H=0,L=0,i;
+ for(i=0;i<5;i++){var p=wts[i]/tot;H+=-p*Math.log2(p);L+=p*codes[names[i]].length;}
+ var cs=names.map(function(nm){return nm+':'+codes[nm];}).join('  ');
+ out('hf-out',cs+'   |   H = '+H.toFixed(3)+' bits, Huffman rate = '+L.toFixed(3)+' bits/symbol (overhead '+(L-H).toFixed(3)+')');
+}
+['hf-a','hf-b','hf-c','hf-d','hf-e'].forEach(function(id){on(id,'input',drawHuff);});
+
+function drawAll(){drawEnt();drawKL();drawHuff();}
+window.addEventListener('resize',drawAll);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',drawAll);else drawAll();
+})();
+</script>
+
+</body></html>

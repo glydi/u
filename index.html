@@ -1,0 +1,184 @@
+<title>ULTIMATUM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="book.css">
+<script src="book.js"></script>
+<script src="search-index.js"></script>
+<style>
+.hero{max-width:1180px;margin:0 auto;padding:64px 16px 30px}
+.hero h1{font-size:clamp(52px,9vw,110px);margin:0;letter-spacing:-.045em;line-height:.95}
+.hero h1 b{color:var(--cobalt)}
+.hero .sub{font-size:21px;color:var(--ink-2);max-width:62ch;margin-top:14px}
+.searchrow{position:relative;display:flex;gap:10px;margin-top:24px;max-width:560px}
+#srch{flex:1;font:16px var(--body);padding:10px 14px;border:1px solid var(--rule);border-radius:8px;background:var(--paper);color:var(--ink)}
+#srchout{position:absolute;top:100%;left:0;right:0;z-index:30;background:var(--paper);border:1px solid var(--rule);border-radius:8px;max-height:320px;overflow:auto;box-shadow:0 8px 24px rgba(0,0,0,.12)}
+#srchout a{display:flex;gap:10px;padding:8px 14px;text-decoration:none;color:var(--ink);font:15px var(--display)}
+#srchout a:hover{background:var(--cobalt-soft)}
+#srchout a .cnum{font:600 12px var(--mono);color:var(--cobalt);min-width:2em}
+.stats{display:flex;gap:12px;flex-wrap:wrap;margin-top:22px}
+.stat{border:1px solid var(--rule);border-radius:10px;padding:12px 18px;background:var(--paper)}
+.stat b{font:800 26px var(--display);display:block;font-variant-numeric:tabular-nums}
+.stat span{font:600 12px var(--mono);color:var(--ink-2);letter-spacing:.08em;text-transform:uppercase}
+.body{max-width:1180px;margin:0 auto;padding:0 16px 90px}
+.part{font-size:15px;font-family:var(--mono);font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2);border-bottom:1px solid var(--rule);padding-bottom:8px;margin:44px 0 18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:14px}
+.card{border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:16px 18px;text-decoration:none;color:var(--ink);display:flex;flex-direction:column;gap:6px}
+.card:hover{border-color:var(--cobalt);transform:translateY(-2px);transition:.15s}
+.card .cn{font:800 30px var(--display);color:var(--cobalt);letter-spacing:-.03em}
+.card h3{margin:0;font-size:19px}
+.card p{margin:0;font-size:15px;color:var(--ink-2);flex:1}
+.card .foot{display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+.prog{font:600 12px var(--mono);color:var(--moss)}
+.how{border:1px solid var(--rule);border-radius:12px;background:var(--paper);padding:20px 24px;margin-top:34px;max-width:820px}
+.how h2{margin-top:0} .how li{margin:6px 0}
+.review{border:2px solid var(--amber);border-radius:12px;background:var(--paper);padding:20px 24px;margin-top:20px;max-width:820px}
+.review h2{margin-top:0;color:var(--amber)}
+.review ul{padding-left:20px} .review .none{color:var(--ink-2)}
+.dep{margin-top:20px} .dep svg{width:100%;height:auto}
+</style>
+<header class="topbar"><div class="in">
+<a class="brand" href="index.html">ULTI<b>MATUM</b></a>
+<nav><button class="btn" data-theme-toggle>Theme</button></nav>
+<div class="progressbar"></div></div></header>
+<div class="hero">
+<h1>ULTI<b>MATUM</b></h1>
+<p class="sub">One book, arithmetic to AGI theory. Thirty-six chapters, every idea taught four ways: see it, prove it, play with it, drill it — until it's second nature.</p>
+<div class="searchrow">
+<input id="srch" type="search" placeholder="Search 1,124 topics… (press /)" autocomplete="off">
+<button class="btn" id="shuffle" title="Open a random topic you marked mastered — re-explain it cold">Quiz me</button>
+<div id="srchout" hidden></div></div>
+<div class="quicklinks" style="display:flex;gap:10px;margin-top:14px"><a class="btn" href="threads.html">Concept threads</a><a class="btn" href="formulas.html">Formula sheet</a></div>
+<div class="stats"><div class="stat"><b>36</b><span>chapters</span></div><div class="stat"><b>1124</b><span>topics</span></div><div class="stat"><b id="st-done">0</b><span>mastered</span></div><div class="stat"><b id="st-pct">0%</b><span>of the book</span></div></div>
+<div class="how"><h2>How to use this book</h2><ol>
+<li><b>Think first.</b> Attempt every "Think first" box and drill before opening the solution.</li>
+<li><b>Play.</b> Every chapter has explorers — drag the sliders until the behavior is obvious to you.</li>
+<li><b>Drill to mastery.</b> Tick a topic only when you can explain it aloud without notes and solved its drill. Ticks are saved in this browser.</li>
+<li><b>Come back.</b> The review box below resurfaces what you mastered longest ago — re-test yourself cold.</li>
+<li><b>Build.</b> Do the coding lab at the end of each chapter; implementation is what makes it stick.</li></ol></div>
+<div class="review"><h2>Spaced review</h2><p>Topics you marked mastered earliest — verify you still own them:</p><ul id="rev"><li class="none">Nothing mastered yet. Start with Chapter 01.</li></ul></div>
+</div>
+<div class="body">
+<h2 class="part">The spine — how chapters feed each other</h2>
+<div class="dep"><svg viewBox="0 0 900 150" role="img" aria-label="Dependency spine">
+<style>.dt{font:600 12px "JetBrains Mono",monospace}</style>
+<g fill="none" stroke="var(--rule)" stroke-width="2">
+<path d="M115 75 H185"/><path d="M315 75 H385"/><path d="M515 75 H585"/><path d="M715 75 H785"/>
+</g>
+<g text-anchor="middle">
+<rect x="15" y="45" width="100" height="60" rx="10" fill="var(--cobalt-soft)"/><text class="dt" x="65" y="70" fill="var(--ink)">Foundations</text><text class="dt" x="65" y="88" fill="var(--ink-2)">01–07</text>
+<rect x="185" y="45" width="130" height="60" rx="10" fill="var(--plum-soft)"/><text class="dt" x="250" y="70" fill="var(--ink)">Core math</text><text class="dt" x="250" y="88" fill="var(--ink-2)">08–18</text>
+<rect x="385" y="45" width="130" height="60" rx="10" fill="var(--moss-soft)"/><text class="dt" x="450" y="70" fill="var(--ink)">Learning</text><text class="dt" x="450" y="88" fill="var(--ink-2)">19–23</text>
+<rect x="585" y="45" width="130" height="60" rx="10" fill="var(--amber-soft)"/><text class="dt" x="650" y="70" fill="var(--ink)">Agents</text><text class="dt" x="650" y="88" fill="var(--ink-2)">24–33</text>
+<rect x="785" y="45" width="100" height="60" rx="10" fill="var(--rust-soft)"/><text class="dt" x="835" y="70" fill="var(--ink)">Frontier</text><text class="dt" x="835" y="88" fill="var(--ink-2)">34–36</text>
+</g></svg></div>
+<h2 class="part">Foundations (01–07)</h2><div class="grid"><a class="card" href="chapters/ch01.html" data-ch="01">
+<div class="cn">01</div><h3>Arithmetic</h3><p>The number systems and the everyday machinery of quantity.</p>
+<div class="foot"><span class="chip">21 topics</span><span class="prog" id="pg-01"></span></div></a><a class="card" href="chapters/ch02.html" data-ch="02">
+<div class="cn">02</div><h3>Algebra</h3><p>Symbols that stand for numbers, and the rules that move them.</p>
+<div class="foot"><span class="chip">53 topics</span><span class="prog" id="pg-02"></span></div></a><a class="card" href="chapters/ch03.html" data-ch="03">
+<div class="cn">03</div><h3>Sets, Logic and Proof</h3><p>The language every later chapter is written in.</p>
+<div class="foot"><span class="chip">28 topics</span><span class="prog" id="pg-03"></span></div></a><a class="card" href="chapters/ch04.html" data-ch="04">
+<div class="cn">04</div><h3>Functions</h3><p>Rules that turn inputs into outputs, and every shape they take.</p>
+<div class="foot"><span class="chip">58 topics</span><span class="prog" id="pg-04"></span></div></a><a class="card" href="chapters/ch05.html" data-ch="05">
+<div class="cn">05</div><h3>Geometry</h3><p>Shape, distance and direction, from triangles to vectors.</p>
+<div class="foot"><span class="chip">29 topics</span><span class="prog" id="pg-05"></span></div></a><a class="card" href="chapters/ch06.html" data-ch="06">
+<div class="cn">06</div><h3>Trigonometry</h3><p>Circles, waves and rotation.</p>
+<div class="foot"><span class="chip">28 topics</span><span class="prog" id="pg-06"></span></div></a><a class="card" href="chapters/ch07.html" data-ch="07">
+<div class="cn">07</div><h3>Calculus</h3><p>Change and accumulation in one variable.</p>
+<div class="foot"><span class="chip">56 topics</span><span class="prog" id="pg-07"></span></div></a></div><h2 class="part">Core Mathematics (08–18)</h2><div class="grid"><a class="card" href="chapters/ch08.html" data-ch="08">
+<div class="cn">08</div><h3>Linear Algebra</h3><p>Vectors, matrices and the geometry of linear maps.</p>
+<div class="foot"><span class="chip">47 topics</span><span class="prog" id="pg-08"></span></div></a><a class="card" href="chapters/ch09.html" data-ch="09">
+<div class="cn">09</div><h3>Multivariable and Matrix Calculus</h3><p>Calculus in many dimensions, and the gradients that train networks.</p>
+<div class="foot"><span class="chip">35 topics</span><span class="prog" id="pg-09"></span></div></a><a class="card" href="chapters/ch10.html" data-ch="10">
+<div class="cn">10</div><h3>Differential Equations</h3><p>Laws of change written as equations.</p>
+<div class="foot"><span class="chip">22 topics</span><span class="prog" id="pg-10"></span></div></a><a class="card" href="chapters/ch11.html" data-ch="11">
+<div class="cn">11</div><h3>Probability</h3><p>Reasoning precisely about uncertainty.</p>
+<div class="foot"><span class="chip">51 topics</span><span class="prog" id="pg-11"></span></div></a><a class="card" href="chapters/ch12.html" data-ch="12">
+<div class="cn">12</div><h3>Stochastic Processes</h3><p>Randomness that unfolds in time, up to the math of diffusion models.</p>
+<div class="foot"><span class="chip">18 topics</span><span class="prog" id="pg-12"></span></div></a><a class="card" href="chapters/ch13.html" data-ch="13">
+<div class="cn">13</div><h3>Statistics</h3><p>Learning about the world from data.</p>
+<div class="foot"><span class="chip">44 topics</span><span class="prog" id="pg-13"></span></div></a><a class="card" href="chapters/ch14.html" data-ch="14">
+<div class="cn">14</div><h3>Fourier Analysis and Signals</h3><p>Every signal as a sum of waves.</p>
+<div class="foot"><span class="chip">15 topics</span><span class="prog" id="pg-14"></span></div></a><a class="card" href="chapters/ch15.html" data-ch="15">
+<div class="cn">15</div><h3>Optimization</h3><p>Finding the best, and the algorithms that train every model.</p>
+<div class="foot"><span class="chip">45 topics</span><span class="prog" id="pg-15"></span></div></a><a class="card" href="chapters/ch16.html" data-ch="16">
+<div class="cn">16</div><h3>Information Theory</h3><p>Measuring surprise, and why cross-entropy is the loss.</p>
+<div class="foot"><span class="chip">22 topics</span><span class="prog" id="pg-16"></span></div></a><a class="card" href="chapters/ch17.html" data-ch="17">
+<div class="cn">17</div><h3>Discrete Mathematics and Computation</h3><p>Graphs, recursion and the limits of computation.</p>
+<div class="foot"><span class="chip">28 topics</span><span class="prog" id="pg-17"></span></div></a><a class="card" href="chapters/ch18.html" data-ch="18">
+<div class="cn">18</div><h3>Numerical Mathematics</h3><p>How real computers actually compute.</p>
+<div class="foot"><span class="chip">28 topics</span><span class="prog" id="pg-18"></span></div></a></div><h2 class="part">Learning (19–23)</h2><div class="grid"><a class="card" href="chapters/ch19.html" data-ch="19">
+<div class="cn">19</div><h3>Machine Learning</h3><p>Learning functions from examples.</p>
+<div class="foot"><span class="chip">44 topics</span><span class="prog" id="pg-19"></span></div></a><a class="card" href="chapters/ch20.html" data-ch="20">
+<div class="cn">20</div><h3>Statistical Learning Theory</h3><p>Why learning from finite data can work at all.</p>
+<div class="foot"><span class="chip">18 topics</span><span class="prog" id="pg-20"></span></div></a><a class="card" href="chapters/ch21.html" data-ch="21">
+<div class="cn">21</div><h3>Deep Learning</h3><p>Neural networks from the neuron to the transformer.</p>
+<div class="foot"><span class="chip">60 topics</span><span class="prog" id="pg-21"></span></div></a><a class="card" href="chapters/ch22.html" data-ch="22">
+<div class="cn">22</div><h3>Generative Models</h3><p>Learning to produce new data from a distribution.</p>
+<div class="foot"><span class="chip">22 topics</span><span class="prog" id="pg-22"></span></div></a><a class="card" href="chapters/ch23.html" data-ch="23">
+<div class="cn">23</div><h3>Large Language Models</h3><p>How today's language models are built, trained, tuned and run.</p>
+<div class="foot"><span class="chip">28 topics</span><span class="prog" id="pg-23"></span></div></a></div><h2 class="part">Decisions & Agents (24–33)</h2><div class="grid"><a class="card" href="chapters/ch24.html" data-ch="24">
+<div class="cn">24</div><h3>Decision and Game Theory</h3><p>Choosing well alone, and against others.</p>
+<div class="foot"><span class="chip">24 topics</span><span class="prog" id="pg-24"></span></div></a><a class="card" href="chapters/ch25.html" data-ch="25">
+<div class="cn">25</div><h3>Reinforcement Learning</h3><p>Learning to act from reward.</p>
+<div class="foot"><span class="chip">38 topics</span><span class="prog" id="pg-25"></span></div></a><a class="card" href="chapters/ch26.html" data-ch="26">
+<div class="cn">26</div><h3>Planning and Search</h3><p>Looking ahead before acting.</p>
+<div class="foot"><span class="chip">27 topics</span><span class="prog" id="pg-26"></span></div></a><a class="card" href="chapters/ch27.html" data-ch="27">
+<div class="cn">27</div><h3>Causality</h3><p>Telling what causes what, and what would have happened.</p>
+<div class="foot"><span class="chip">20 topics</span><span class="prog" id="pg-27"></span></div></a><a class="card" href="chapters/ch28.html" data-ch="28">
+<div class="cn">28</div><h3>Dynamical Systems and Control</h3><p>Systems that evolve, and how to steer them.</p>
+<div class="foot"><span class="chip">25 topics</span><span class="prog" id="pg-28"></span></div></a><a class="card" href="chapters/ch29.html" data-ch="29">
+<div class="cn">29</div><h3>World Models</h3><p>Agents that learn an internal simulator of their world.</p>
+<div class="foot"><span class="chip">20 topics</span><span class="prog" id="pg-29"></span></div></a><a class="card" href="chapters/ch30.html" data-ch="30">
+<div class="cn">30</div><h3>Reasoning</h3><p>Deduction, induction and search over thoughts.</p>
+<div class="foot"><span class="chip">20 topics</span><span class="prog" id="pg-30"></span></div></a><a class="card" href="chapters/ch31.html" data-ch="31">
+<div class="cn">31</div><h3>Agent Architectures</h3><p>Memory, planning loops and the anatomy of an agent.</p>
+<div class="foot"><span class="chip">33 topics</span><span class="prog" id="pg-31"></span></div></a><a class="card" href="chapters/ch32.html" data-ch="32">
+<div class="cn">32</div><h3>Tool-Using Agents</h3><p>Letting a model act safely through tools.</p>
+<div class="foot"><span class="chip">25 topics</span><span class="prog" id="pg-32"></span></div></a><a class="card" href="chapters/ch33.html" data-ch="33">
+<div class="cn">33</div><h3>Multi-Agent Systems</h3><p>Many agents: cooperation, conflict and coordination.</p>
+<div class="foot"><span class="chip">22 topics</span><span class="prog" id="pg-33"></span></div></a></div><h2 class="part">Guarantees & Frontier (34–36)</h2><div class="grid"><a class="card" href="chapters/ch34.html" data-ch="34">
+<div class="cn">34</div><h3>Formal Methods</h3><p>Proving that systems do what they must.</p>
+<div class="foot"><span class="chip">22 topics</span><span class="prog" id="pg-34"></span></div></a><a class="card" href="chapters/ch35.html" data-ch="35">
+<div class="cn">35</div><h3>Interpretability, Alignment and Safety</h3><p>Understanding what models compute and making them do what we intend.</p>
+<div class="foot"><span class="chip">22 topics</span><span class="prog" id="pg-35"></span></div></a><a class="card" href="chapters/ch36.html" data-ch="36">
+<div class="cn">36</div><h3>Advanced AGI Theory</h3><p>What general intelligence is and how to measure it.</p>
+<div class="foot"><span class="chip">26 topics</span><span class="prog" id="pg-36"></span></div></a></div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded',function(){
+ var counts={"01": 21, "02": 53, "03": 28, "04": 58, "05": 29, "06": 28, "07": 56, "08": 47, "09": 35, "10": 22, "11": 51, "12": 18, "13": 44, "14": 15, "15": 45, "16": 22, "17": 28, "18": 28, "19": 44, "20": 18, "21": 60, "22": 22, "23": 28, "24": 24, "25": 38, "26": 27, "27": 20, "28": 25, "29": 20, "30": 20, "31": 33, "32": 25, "33": 22, "34": 22, "35": 22, "36": 26};var done=0,total=0,items=[];
+ try{
+  for(var i=0;i<localStorage.length;i++){var k=localStorage.key(i);
+    if(k&&k.indexOf('ult-m-')===0&&localStorage.getItem(k)==='1'){done++;items.push(k.slice(6));}}
+ }catch(e){}
+ var per={};items.forEach(function(s){var ch=s.split('-')[0];per[ch]=(per[ch]||0)+1;});
+ Object.keys(counts).forEach(function(ch){total+=counts[ch];var el=document.getElementById('pg-'+ch);
+   if(el&&per[ch])el.textContent=per[ch]+'/'+counts[ch]+' ✓';});
+ var d=document.getElementById('st-done');if(d)d.textContent=done;
+ var p=document.getElementById('st-pct');if(p)p.textContent=Math.round(100*done/Math.max(1,total))+'%';
+ 
+ /* search */
+ var inp=document.getElementById('srch'),out=document.getElementById('srchout');
+ if(inp&&window.SEARCH_INDEX){
+  document.addEventListener('keydown',function(e){if(e.key==='/'&&document.activeElement!==inp){e.preventDefault();inp.focus();}});
+  inp.addEventListener('input',function(){var q=inp.value.trim().toLowerCase();
+   if(q.length<2){out.hidden=true;return;}
+   var hits=window.SEARCH_INDEX.filter(function(r){return r[2].toLowerCase().indexOf(q)>=0}).slice(0,20);
+   out.innerHTML=hits.map(function(r){return '<a href="chapters/ch'+r[0]+'.html#'+r[1]+'"><span class="cnum">'+r[0]+'</span>'+r[2]+'</a>'}).join('')||'<a>No match</a>';
+   out.hidden=false;});
+  document.addEventListener('click',function(e){if(!e.target.closest('.searchrow'))out.hidden=true;});
+ }
+ /* shuffle: random mastered topic, oldest-weighted */
+ var sh=document.getElementById('shuffle');
+ if(sh)sh.addEventListener('click',function(){
+   if(!items.length){alert1();return;}
+   var s=items[Math.floor(Math.random()*items.length)];
+   var ch=s.split('-')[0];location='chapters/ch'+ch+'.html#'+s.slice(ch.length+1);});
+ function alert1(){sh.textContent='Nothing mastered yet';setTimeout(function(){sh.textContent='Quiz me'},1600);}
+ var rev=document.getElementById('rev');
+ items.sort(function(a,b){var ta=+((function(){try{return localStorage.getItem('ult-m-'+a+'-t')}catch(e){return 0}})()||0),tb=+((function(){try{return localStorage.getItem('ult-m-'+b+'-t')}catch(e){return 0}})()||0);return ta-tb});
+ if(rev&&items.length){rev.innerHTML='';items.slice(0,8).forEach(function(s){
+   var ch=s.split('-')[0],id=s.slice(ch.length+1);
+   var li=document.createElement('li');li.innerHTML='<a href="chapters/ch'+ch+'.html#'+id+'">'+id.replace(/-/g,' ')+'</a> <span style="color:var(--ink-2)">(ch '+ch+')</span>';rev.appendChild(li);});}
+});
+</script>

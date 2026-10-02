@@ -1,0 +1,1080 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 19 Machine Learning</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','19')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">19</div><h1>Machine Learning</h1>
+   <p class="lede">Learning functions from examples.</p>
+   <div class="meta"><span class="chip">44 topics</span><span class="chip">needs: chapters 8, 9, 11, 13, 15, 16</span><span class="chip">feeds: chapters 20, 21, 22</span></div>
+  </div>
+
+<section class="topic" id="the-learning-problem">
+ <h2>The learning problem</h2>
+ <p>Machine learning inverts programming: instead of writing the rule, you show examples of inputs and desired outputs and search for a rule that fits — and, crucially, keeps working on examples you never showed. Three ingredients define every setup: the data, the class of candidate functions, and the score that says how wrong a candidate is.</p>
+ <div class="box def"><span class="label">Definition</span> <em>Supervised learning:</em> given training data $D = \{(x_i, y_i)\}_{i=1}^n$ drawn i.i.d. from an unknown distribution $P(x, y)$, choose from a hypothesis class $\mathcal H$ a function $h$ minimizing the <em>risk</em> $R(h) = \mathbb E_{(x,y)\sim P}[\ell(h(x), y)]$ for a loss $\ell$. Regression: $y \in \mathbb R$; classification: $y$ in a finite set. <em>Unsupervised:</em> only $x_i$, find structure. The whole difficulty: we can only measure the loss on $D$, but we are judged on $P$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Spam filtering: $x$ = an email's features (word counts), $y \in \{\text{spam}, \text{ham}\}$, $\mathcal H$ = linear scoring rules, $\ell$ = misclassification. From 10,000 labeled emails, learn weights so that "free", "winner" push toward spam. The learned rule is judged not on those 10,000 but on tomorrow's mail — drawn, we hope, from the same distribution.</div>
+ <div class="box link"><span class="label">Where this goes</span> Whether and why the training-set score transfers to the distribution is Ch 20 (statistical learning theory) in its entirety; every model in this chapter instantiates this template.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify each as supervised regression, supervised classification, or unsupervised: (a) predicting house prices, (b) grouping customers by behavior, (c) flagging tumors in X-rays. <details class="sol"><summary>Solution</summary><div>(a) regression (real-valued $y$); (b) unsupervised (no labels — clustering); (c) classification (label = tumor / no tumor).</div></details></li>
+  <li><span class="lvl m">MED</span> Why is the i.i.d. assumption doing enormous work in the definition? Give a real scenario where it fails. <details class="sol"><summary>Solution</summary><div>It licenses estimating the risk (an expectation over $P$) from a sample average, and using held-out data as a proxy for the future. Failures: time series (tomorrow ≠ yesterday's distribution), a spam filter after spammers adapt to it (the deployment changes the distribution), hospital A's scans used for hospital B (covariate shift, end of this chapter).</div></details></li>
+  <li><span class="lvl h">HARD</span> A memorizer sets $h(x_i) = y_i$ on training points and outputs a constant elsewhere. What is its training loss? Its risk? What does this show about "fitting the data" as a goal? <details class="sol"><summary>Solution</summary><div>Training loss: 0 (perfect). Risk: that of the constant (for continuous $x$, new points hit the memorized set with probability 0) — usually terrible. Fitting the sample is trivially achievable and worthless by itself; learning = fitting PLUS a constraint (a restricted $\mathcal H$, regularization, inductive bias) that forces the fit to be structured enough to extrapolate. This tension is the entire subject.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-regression">
+ <h2>Linear regression</h2>
+ <p>Fit a straight line — more generally a hyperplane — to numeric data: predict $y$ as a weighted sum of features. It is the fruit fly of machine learning: simple enough to solve exactly, rich enough to exhibit almost every phenomenon (overfitting, regularization, feature design), and the top layer of most neural networks.</p>
+ <div class="box def"><span class="label">Definition</span> Model $\hat y = w^\top x + b$, or with the bias absorbed as a constant feature: $\hat y = w^\top x$, $x \in \mathbb R^d$. Given $X \in \mathbb R^{n\times d}$ (rows = examples) and $y\in\mathbb R^n$, the least-squares weights minimize $\|Xw - y\|_2^2$. Linear <em>in the weights</em>: the features may be arbitrary nonlinear functions of raw inputs ($x, x^2, \sin x, \dots$) — polynomial regression is linear regression in disguise.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data $(x, y)$: $(0, 1), (1, 3), (2, 5)$. Fit $\hat y = w_0 + w_1 x$. These points are exactly collinear: slope $\frac{5-1}{2-0} = 2$, intercept 1: $\hat y = 1 + 2x$, residuals all zero. Add a noisy point $(3, 6)$: now no line is exact; least squares (next section) balances the misses: means $\bar x = 1.5, \bar y = 3.75$; $w_1 = \frac{\sum(x_i-\bar x)(y_i - \bar y)}{\sum(x_i-\bar x)^2} = \frac{(-1.5)(-2.75)+(-0.5)(-0.75)+(0.5)(1.25)+(1.5)(2.25)}{2.25+0.25+0.25+2.25} = \frac{4.125+0.375+0.625+3.375}{5} = \frac{8.5}{5} = 1.7$; $w_0 = 3.75 - 1.7\times1.5 = 1.2$. Line: $\hat y = 1.2 + 1.7x$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Linear" limits the model's shape in FEATURE space, not input space. If the truth is $y \approx x^2$, linear regression on the raw $x$ fails, and linear regression on features $(1, x, x^2)$ nails it. Model criticism should ask "wrong features?" before "wrong model class?".</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> With $\hat y = 1.2 + 1.7x$, predict at $x = 4$ and compute the residual if the observed value is 8. <details class="sol"><summary>Solution</summary><div>$\hat y = 8.0$; residual $y - \hat y = 0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Fit $\hat y = w_1 x$ (no intercept) to $(1, 2), (2, 3)$ by least squares. <details class="sol"><summary>Solution</summary><div>Minimize $(w-2)^2 + (2w-3)^2$: derivative $2(w-2)+4(2w-3) = 10w - 16 = 0$: $w = 1.6$. (General formula $w = \frac{\sum x_iy_i}{\sum x_i^2} = \frac{2+6}{1+4} = 1.6$ ✓.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Two features are exactly collinear: $x_2 = 3x_1$. What happens to the least-squares solution, and what does it mean for interpreting coefficients? <details class="sol"><summary>Solution</summary><div>$X^\top X$ is singular: infinitely many $w$ give identical predictions (only $w_1 + 3w_2$ is identified — any trade along $w_1 \to w_1 + 3t$, $w_2 \to w_2 - t$ changes nothing). Predictions are fine; individual coefficients are meaningless. Near-collinearity is worse in practice: huge, wildly unstable coefficients (variance $\propto (X^\top X)^{-1}$ blows up). Fixes: drop/combine features, or ridge regularization, which picks the minimum-norm representative.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="least-squares">
+ <h2>Least squares</h2>
+ <p>Least squares picks the parameters minimizing the sum of squared residuals. Geometrically, it projects the target vector $y$ orthogonally onto the span of the feature columns — the fitted values are the shadow of $y$ on the model's subspace, and the residual is perpendicular to everything the model can express.</p>
+ <div class="box def"><span class="label">Definition</span> $\hat w = \arg\min_w \|Xw - y\|_2^2$. Setting the gradient $2X^\top(Xw - y)$ to zero yields the <em>normal equations</em> $X^\top X\, \hat w = X^\top y$; for full-column-rank $X$: $\hat w = (X^\top X)^{-1}X^\top y$. The fit $\hat y = X\hat w$ is the orthogonal projection of $y$ onto $\mathrm{col}(X)$; residual $r = y - \hat y \perp \mathrm{col}(X)$. Compute via QR (Ch 18), not the normal equations, when conditioning matters.</div>
+ <div class="box ex"><span class="label">Worked example</span> $X = \begin{pmatrix}1 & 0\\ 1 & 1\\ 1 & 2\end{pmatrix}$ (intercept + slope), $y = (1, 3, 4)^\top$. $X^\top X = \begin{pmatrix}3 & 3\\ 3 & 5\end{pmatrix}$, $X^\top y = (8, 11)^\top$. Solve: $3w_0 + 3w_1 = 8$; $3w_0 + 5w_1 = 11$ ⟹ $2w_1 = 3$, $w_1 = 1.5$, $w_0 = \frac{8 - 4.5}{3} = \frac{7}{6}$. Fit: $\hat y = (\frac76, \frac{8}{3}, \frac{25}{6})$; residual $r = (-\frac16, \frac13, -\frac16)$. Check orthogonality: $r^\top\mathbf 1 = -\frac16+\frac13-\frac16 = 0$ ✓, $r^\top(0,1,2)^\top = \frac13 - \frac13 = 0$ ✓.</div>
+ <div class="box think"><span class="label">Think first</span> Why squared error rather than absolute error? Name one statistical and one computational reason — and one reason you might prefer absolute error anyway. <details class="sol"><summary>Reveal</summary><div>Statistical: least squares = maximum likelihood under Gaussian noise (below); the conditional mean minimizes it. Computational: smooth and quadratic — closed form, nice gradients. But squares are hypersensitive to outliers (a 10× error counts 100×); absolute error (median regression) is robust — used when data has heavy tails.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For the constant model $\hat y = w_0$, show least squares gives $w_0 = \bar y$. <details class="sol"><summary>Solution</summary><div>$\frac{d}{dw_0}\sum(y_i - w_0)^2 = -2\sum(y_i - w_0) = 0 \Rightarrow w_0 = \frac1n\sum y_i = \bar y$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the projection matrix $H = X(X^\top X)^{-1}X^\top$ satisfies $H^2 = H$ and $H^\top = H$, and interpret. <details class="sol"><summary>Solution</summary><div>$H^2 = X(X^\top X)^{-1}(X^\top X)(X^\top X)^{-1}X^\top = H$; symmetry is visible. Idempotent + symmetric = orthogonal projection: applying the fit twice changes nothing (fitted values are already in the column space), and "hat matrix" diagonal entries $H_{ii}$ measure each point's leverage.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that adding any feature (column) to $X$ can never increase the training SSE, and explain why that makes training error useless for feature selection. <details class="sol"><summary>Solution</summary><div>The old solution is still available in the enlarged model (set the new weight to 0), so the new minimum is ≤ the old. Geometrically, the column space grows, and projecting onto a larger subspace only shortens the residual. Hence training SSE monotonically "improves" with junk features — selection must use held-out error, cross-validation, or penalized criteria (AIC/BIC, regularization).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logistic-regression">
+ <h2>Logistic regression</h2>
+ <p>For yes/no targets, predicting a raw linear score is awkward — you want a probability. Logistic regression squashes the linear score through the sigmoid into $(0,1)$ and trains by maximum likelihood. Despite the name it is a classifier, and it remains the strongest baseline in tabular ML and the last layer of every binary neural classifier.</p>
+ <div class="box def"><span class="label">Definition</span> Model $P(y = 1 \mid x) = \sigma(w^\top x)$ with $\sigma(z) = \frac{1}{1+e^{-z}}$. Equivalently the <em>log-odds</em> are linear: $\log\frac{P(1\mid x)}{P(0\mid x)} = w^\top x$. Train by minimizing the negative log-likelihood (log loss): $L(w) = -\sum_i [y_i\log p_i + (1-y_i)\log(1-p_i)]$, $p_i = \sigma(w^\top x_i)$ — convex, no closed form, solved by gradient methods; gradient $\nabla L = \sum_i (p_i - y_i)x_i$. Decision boundary $\{x: w^\top x = 0\}$ is a hyperplane.</div>
+ <div class="box ex"><span class="label">Worked example</span> One feature, $w = (w_0, w_1) = (-3, 2)$: $P(1\mid x) = \sigma(2x - 3)$. At $x = 1.5$: $\sigma(0) = 0.5$ — the boundary. At $x = 3$: $\sigma(3) = 0.953$. Interpretation: each unit of $x$ multiplies the odds by $e^{2} \approx 7.39$. Gradient check at a point $(x = 3, y = 0)$: $p - y = 0.953$, so the update pushes $w_1$ down by $\eta\cdot 0.953\cdot 3$ — the confident mistake generates a large correction.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the weights and watch the sigmoid slide over the two point clouds; the readout shows the log loss you are minimizing.</p>
+  <canvas id="cv-logit"></canvas>
+  <div class="ctl">
+   <label>w₁ (steepness) <input type="range" id="lg-w" min="-2" max="8" step="0.1" value="1"></label>
+   <label>w₀ (shift) <input type="range" id="lg-b" min="-12" max="6" step="0.2" value="0"></label>
+  </div>
+  <div class="out" id="lg-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> On perfectly separable data, the likelihood improves forever as $\|w\|\to\infty$ (probabilities $\to$ 0/1): weights diverge and outputs become absurdly overconfident. Regularization (or early stopping) is not optional there — it is what makes the optimum exist.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $w^\top x = 1.386$ for some input. Compute $P(y=1\mid x)$ and the odds. <details class="sol"><summary>Solution</summary><div>Odds $= e^{1.386} \approx 4$; $p = \frac{4}{5} = 0.8$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ and use it to derive the gradient $\nabla_w L = \sum(p_i - y_i)x_i$ for one example. <details class="sol"><summary>Solution</summary><div>$\sigma' = \frac{e^{-z}}{(1+e^{-z})^2} = \sigma\cdot\frac{e^{-z}}{1+e^{-z}} = \sigma(1-\sigma)$. For one example, $L = -[y\log p + (1-y)\log(1-p)]$, $\frac{\partial L}{\partial p} = -\frac yp + \frac{1-y}{1-p} = \frac{p - y}{p(1-p)}$; chain through $p = \sigma(z)$: $\frac{\partial L}{\partial z} = \frac{p-y}{p(1-p)}\cdot p(1-p) = p - y$; then $\nabla_w = (p-y)x$. The clean "error × input" form is why sigmoid + log loss pair so well.</div></details></li>
+  <li><span class="lvl h">HARD</span> Multiclass: softmax regression sets $P(y = k\mid x) \propto e^{w_k^\top x}$. Show that for $K = 2$ it reduces exactly to logistic regression, and identify the redundancy in its parameters. <details class="sol"><summary>Solution</summary><div>$P(1\mid x) = \frac{e^{w_1^\top x}}{e^{w_1^\top x} + e^{w_0^\top x}} = \frac{1}{1 + e^{-(w_1 - w_0)^\top x}} = \sigma((w_1 - w_0)^\top x)$: only the difference matters. Generally adding any vector $c$ to every $w_k$ leaves all probabilities unchanged — one class's weights can be pinned to 0 (or the redundancy absorbed by regularization). Softmax over $K$ classes has $K{-}1$ effective weight vectors.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="maximum-likelihood-view-of-ml">
+ <h2>Maximum likelihood view of ML</h2>
+ <p>Most standard losses are not arbitrary: they are negative log-likelihoods of a noise model. Squared error is Gaussian noise; log loss is Bernoulli; absolute error is Laplace. This one observation unifies the zoo — "choose a loss" is secretly "choose a probabilistic model of your errors," which tells you when each loss is right.</p>
+ <div class="box def"><span class="label">Definition</span> Model $p(y \mid x; \theta)$. Maximum likelihood (Ch 13) picks $\hat\theta = \arg\max_\theta \sum_i \log p(y_i \mid x_i; \theta) = \arg\min_\theta \sum_i -\log p(y_i\mid x_i;\theta)$: <em>the training loss is the negative log-likelihood</em>. Gaussian $y = f_\theta(x) + \epsilon$, $\epsilon\sim\mathcal N(0,\sigma^2)$ ⟹ loss $\frac{1}{2\sigma^2}\sum(y_i - f_\theta(x_i))^2 + $ const: least squares. Bernoulli ⟹ log loss. Categorical softmax ⟹ cross-entropy (Ch 16). MAP estimation adds $-\log p(\theta)$: a regularizer.</div>
+ <div class="box ex"><span class="label">Worked example</span> Derive least squares: $-\log p(y\mid x) = -\log\left[\frac{1}{\sqrt{2\pi}\sigma}e^{-(y - f(x))^2/2\sigma^2}\right] = \frac{(y-f(x))^2}{2\sigma^2} + \log(\sqrt{2\pi}\sigma)$. Summing over data and dropping $\theta$-free terms: minimizing NLL ⟺ minimizing $\sum(y_i - f(x_i))^2$. Swap the Gaussian for Laplace ($p \propto e^{-|y-f(x)|/b}$) and the same computation yields absolute error — heavy-tailed noise model ⟹ robust loss.</div>
+ <div class="box link"><span class="label">Where this goes</span> Cross-entropy as NLL is Ch 16's compression story wearing training clothes; the MAP-regularization bridge returns under L2 regularization below; language models (Ch 23) are trained by exactly this recipe on next-token categoricals.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What noise/output model corresponds to each loss: squared error, log loss, absolute error? <details class="sol"><summary>Solution</summary><div>Gaussian; Bernoulli (sigmoid output); Laplace.</div></details></li>
+  <li><span class="lvl m">MED</span> Under Gaussian noise with UNKNOWN $\sigma$, does the ML estimate of $w$ change? What is the ML estimate of $\sigma^2$? <details class="sol"><summary>Solution</summary><div>No: $\hat w$ minimizes SSE regardless of $\sigma$ (it factors out). Then $\hat\sigma^2 = \frac1n\sum(y_i - \hat w^\top x_i)^2$ — mean squared residual (biased low; unbiased version divides by $n - d$).</div></details></li>
+  <li><span class="lvl h">HARD</span> A regression's residuals show variance growing with $x$ (heteroscedastic). Write the correct NLL and show it becomes a WEIGHTED least squares. <details class="sol"><summary>Solution</summary><div>Model $y_i \sim \mathcal N(f(x_i), \sigma_i^2)$ with known/modeled $\sigma_i$: NLL $= \sum\left[\frac{(y_i - f(x_i))^2}{2\sigma_i^2} + \log\sigma_i\right]$. With fixed $\sigma_i$: minimize $\sum \frac{(y_i - f(x_i))^2}{\sigma_i^2}$ — each point weighted by inverse variance: noisy points count less. (If $\sigma_i = \sigma(x_i;\theta)$ is learned too, the $\log\sigma$ term prevents the model claiming infinite noise everywhere — this is exactly the Gaussian-head NLL used in deep probabilistic regression.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="loss-functions">
+ <h2>Loss functions</h2>
+ <p>The loss is the contract between you and the optimizer: it will deliver exactly what the loss rewards, including everything perverse. Choosing a loss fixes what "wrong" costs, what the ideal prediction is (mean? median? probability?), and how gradients flow. The three classics for classification — squared, log, hinge — are compared head-to-head in the next three sections.</p>
+ <div class="box def"><span class="label">Definition</span> A loss $\ell(\hat y, y) \ge 0$ scores prediction $\hat y$ against truth $y$. The <em>Bayes-optimal predictor</em> minimizes expected loss pointwise: $f^*(x) = \arg\min_a \mathbb E[\ell(a, y)\mid x]$. Squared error ⟹ $f^*(x) = \mathbb E[y\mid x]$ (conditional mean); absolute error ⟹ conditional median; 0-1 loss ⟹ the most probable class; log loss ⟹ the true conditional probability. A loss is a <em>surrogate</em> when it stands in for an unoptimizable target (0-1 loss is NP-hard and gradient-free; hinge/log losses are its convex surrogates).</div>
+ <div class="box ex"><span class="label">Worked example</span> $y\mid x$ takes values 0 (prob 0.9) and 10 (prob 0.1). Best constant prediction under squared error: the mean, 1.0 — a value that never occurs. Under absolute error: the median, 0. Under 0-1-style "exactly right" scoring: 0. One distribution, three "correct" answers: the loss defines the target, and asymmetric business costs (a missed fraud ≠ a false alarm) belong IN the loss, not bolted on later.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Optimizing a metric you didn't train for and hoping: accuracy on 99:1 imbalanced data is maximized by "always predict the majority" (99% accurate, useless). Align the loss (or class weights / threshold) with the actual cost structure before blaming the model.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $y\in\{2, 4, 9\}$ equally likely. Best constant under squared error? Under absolute error? <details class="sol"><summary>Solution</summary><div>Mean 5; median 4.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove the conditional-mean claim: $a^* = \mathbb E[y]$ minimizes $\mathbb E[(a - y)^2]$. <details class="sol"><summary>Solution</summary><div>$\mathbb E[(a-y)^2] = a^2 - 2a\mathbb E[y] + \mathbb E[y^2]$: a parabola in $a$, minimized at $a = \mathbb E[y]$. (Or: $\mathbb E[(a-y)^2] = (a - \mathbb E y)^2 + \mathrm{Var}(y)$ — bias-variance in embryo.)</div></details></li>
+  <li><span class="lvl h">HARD</span> The pinball (quantile) loss $\ell_\tau(a, y) = (y-a)(\tau - \mathbf 1[y &lt; a])$. Show the minimizer of $\mathbb E[\ell_\tau]$ is the $\tau$-quantile of $y$. <details class="sol"><summary>Solution</summary><div>$\mathbb E[\ell_\tau(a, y)] = \tau\mathbb E[(y-a)^+] + (1-\tau)\mathbb E[(a - y)^+]$; derivative in $a$: $-\tau P(y &gt; a) + (1-\tau)P(y &lt; a)$. Set to 0: $P(y &lt; a)(1 - \tau) = \tau(1 - P(y \le a))$, i.e. $P(y \le a) = \tau$: the $\tau$-quantile. Quantile regression = swap the loss; prediction intervals for free.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="squared-error">
+ <h2>Squared error</h2>
+ <p>Squared error charges the square of the miss: being off by 2 costs 4× being off by 1. It is smooth, decomposes beautifully (Pythagoras everywhere), targets the conditional mean, and pairs with Gaussian noise — the default loss of regression, with one temper: outliers dominate it quadratically.</p>
+ <div class="box def"><span class="label">Definition</span> $\ell(\hat y, y) = (\hat y - y)^2$; empirical version MSE $= \frac1n\sum(\hat y_i - y_i)^2$ (RMSE its square root, in $y$'s units). Gradient w.r.t. prediction: $2(\hat y - y)$ — linear in the error. Robust variant: Huber loss, quadratic within $\pm\delta$, linear outside — Gaussian center, Laplace tails.</div>
+ <div class="box ex"><span class="label">Worked example</span> Predictions $(3, 5, 7)$ vs truths $(2, 5, 10)$: errors $(1, 0, -3)$; MSE $= \frac{1 + 0 + 9}{3} = \frac{10}{3} \approx 3.33$; RMSE $\approx 1.83$. The single 3-unit miss contributes 90% of the loss. Under absolute error, MAE $= \frac{4}{3}$: the big miss contributes 75%. Squared error's gradient on that point is 3× the others' — it will bend the model hardest toward the outlier.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute MSE and RMSE for predictions $(1, 2)$ vs truths $(2, 4)$. <details class="sol"><summary>Solution</summary><div>Errors $(-1, -2)$: MSE $= \frac{1+4}{2} = 2.5$; RMSE $\approx 1.58$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show MSE decomposes as (bias)² + variance for an estimator $\hat\theta$ of $\theta$: $\mathbb E[(\hat\theta - \theta)^2] = (\mathbb E\hat\theta - \theta)^2 + \mathrm{Var}(\hat\theta)$. <details class="sol"><summary>Solution</summary><div>Insert $\mathbb E\hat\theta$: $\mathbb E[(\hat\theta - \mathbb E\hat\theta + \mathbb E\hat\theta - \theta)^2] = \mathrm{Var}(\hat\theta) + (\mathbb E\hat\theta - \theta)^2 + 2(\mathbb E\hat\theta - \theta)\underbrace{\mathbb E[\hat\theta - \mathbb E\hat\theta]}_{0}$. ∎ (The full model version is the bias-variance decomposition below.)</div></details></li>
+  <li><span class="lvl h">HARD</span> One label in 100 is corrupted to $y + 100$. Quantify the pull on the least-squares constant fit vs the median fit. <details class="sol"><summary>Solution</summary><div>Mean shifts by $\frac{100}{100} = 1$ — a full unit from one bad point, however many clean ones agree. Median shifts by at most one order-statistic gap — for reasonable data essentially 0 (breakdown point 50% vs the mean's 0%). Squared error buys efficiency at clean Gaussian data with total fragility to gross errors; Huber with $\delta \approx 1.35\sigma$ keeps 95% efficiency and bounded influence.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="log-loss">
+ <h2>Log loss</h2>
+ <p>Log loss scores probabilistic predictions: charge $-\log p$ where $p$ is the probability you assigned to what actually happened. Confident and right: near-free. Confident and wrong: catastrophic ($-\log 0.001 \approx 6.9$; $-\log 0 = \infty$). It is the only smooth score that elicits honest probabilities, and it is identical to cross-entropy (Ch 16).</p>
+ <div class="box def"><span class="label">Definition</span> Binary: $\ell(p, y) = -[y\log p + (1-y)\log(1-p)]$. Multiclass with predicted distribution $q$: $\ell(q, y) = -\log q_y$. It is a <em>strictly proper scoring rule</em>: $\mathbb E_{y\sim p^*}[\ell(q, y)]$ is uniquely minimized at $q = p^*$ — truth-telling is optimal. Expected log loss = cross-entropy $H(p^*, q) = H(p^*) + \mathrm{KL}(p^*\|q)$: the irreducible part plus your model's divergence from truth.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three test examples, true classes with predicted probabilities $0.9, 0.6, 0.2$: log loss $= -\frac13(\log 0.9 + \log 0.6 + \log 0.2) = -\frac13(-0.105 - 0.511 - 1.609) = 0.742$ nats. Now hedge the bad prediction to $0.4$: $-\frac13(0.105 + 0.511 + 0.916)\ldots$ compute: $= \frac{1.532}{3} = 0.511$ — better. Log loss rewards knowing what you don't know.</div>
+ <div class="box think"><span class="label">Think first</span> A weather forecaster is scored by log loss. Rain probability is truly 0.3. Why is reporting 0.3 better in expectation than the "safer" 0.5 — and than the "bolder" 0.1? <details class="sol"><summary>Reveal</summary><div>Expected loss reporting $q$: $-0.3\log q - 0.7\log(1-q)$, minimized where $\frac{0.3}{q} = \frac{0.7}{1-q}$, i.e. $q = 0.3$. Numbers: $q=0.3$: $0.611$; $q=0.5$: $0.693$; $q=0.1$: $0.765$. Any deviation from the truth costs, in either direction — that is what "strictly proper" means, and why log loss trains calibrated models (calibration topic, end of chapter).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the log loss of predicting $p = 0.99$ when $y = 0$. <details class="sol"><summary>Solution</summary><div>$-\log(1 - 0.99) = -\log 0.01 = \ln 100 \approx 4.605$ nats — one confident mistake outweighs dozens of good calls.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that among constant predictions $p$, the log-loss minimizer on a dataset with fraction $\pi$ positives is $p = \pi$. <details class="sol"><summary>Solution</summary><div>Loss $= -[\pi\log p + (1-\pi)\log(1-p)]$; derivative $-\frac\pi p + \frac{1-\pi}{1-p} = 0 \Rightarrow p = \pi$. The best ignorant forecast is the base rate — and its loss is the label entropy $H(\pi)$: the noise floor.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does log loss (rather than squared error on probabilities) give logistic regression a convex training problem? Sketch the argument. <details class="sol"><summary>Solution</summary><div>With $p = \sigma(w^\top x)$: log loss in $z = w^\top x$ is $\log(1 + e^{-\tilde y z})$ (with $\tilde y = \pm1$) — convex in $z$ (second derivative $\sigma(1-\sigma) &gt; 0$… precisely the logistic loss's curvature), and convexity survives the linear map $z = w^\top x$: convex in $w$. Squared error $(\sigma(z) - y)^2$ is NOT convex in $z$ (the sigmoid's saturation creates plateaus and a non-convex composite), giving spurious flat regions with vanishing gradients exactly at confident mistakes. Log loss's gradient $p - y$ never saturates on mistakes.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hinge-loss">
+ <h2>Hinge loss</h2>
+ <p>The hinge loss doesn't care about probabilities — it demands a <em>margin</em>: score every correct classification at least 1 unit clear of the boundary, and charge linearly for any shortfall. Points comfortably beyond the margin cost zero and exert no pull; the model is shaped only by the borderline cases. This is the loss of support vector machines.</p>
+ <div class="box def"><span class="label">Definition</span> For labels $y \in \{-1, +1\}$ and score $s = w^\top x$: $\ell(s, y) = \max(0,\ 1 - ys)$. Zero iff $ys \ge 1$ (correct with margin); slope $-y$ when violated. It upper-bounds the 0-1 loss and is convex (a max of affine functions). Squared hinge $\max(0, 1-ys)^2$ smooths the corner.</div>
+ <div class="box ex"><span class="label">Worked example</span> Three points with $y = +1$ and scores $s = 2.5,\ 0.4,\ -1.0$: losses $\max(0, -1.5) = 0$; $\max(0, 0.6) = 0.6$; $\max(0, 2.0) = 2.0$. Total $2.6$. The first point is beyond the margin: moving it (short of crossing $s = 1$) changes nothing — it is not a support vector. Compare log loss on the same points (as $\log(1+e^{-s})$): $0.079, 0.513, 1.313$ — every point always contributes a little.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Hinge scores are not probabilities and cannot be read as confidence without post-hoc calibration (Platt scaling fits a sigmoid to SVM scores). If you need $P(y\mid x)$, train with log loss or calibrate afterward.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the hinge loss: $y = -1$, $s = 0.3$. And for $y = -1$, $s = -2$? <details class="sol"><summary>Solution</summary><div>$\max(0, 1 - (-1)(0.3)) = 1.3$; $\max(0, 1 - 2) = 0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show hinge loss upper-bounds 0-1 loss, and explain why that matters for surrogate minimization. <details class="sol"><summary>Solution</summary><div>Misclassification means $ys \le 0$, so $1 - ys \ge 1$: hinge $\ge 1 = $ 0-1 loss; when correct, hinge $\ge 0 = $ 0-1 loss. Hence (empirical) hinge risk ≥ 0-1 risk: driving the convex surrogate down forces the true error rate down with it — the basic justification for replacing the intractable 0-1 objective.</div></details></li>
+  <li><span class="lvl h">HARD</span> Subgradient: hinge loss is not differentiable at $ys = 1$. Give its subdifferential w.r.t. $w$ at a violating point, at a margin point, and at a satisfied point, and write one subgradient-descent update. <details class="sol"><summary>Solution</summary><div>$\ell(w) = \max(0, 1 - y w^\top x)$. Violated ($yw^\top x &lt; 1$): gradient $-yx$. Satisfied ($&gt; 1$): $0$. At the corner ($= 1$): the whole segment $\{-tyx : t\in[0,1]\}$. Update with regularization $\frac\lambda2\|w\|^2$: $w \leftarrow (1 - \eta\lambda)w + \eta\,yx\cdot\mathbf 1[yw^\top x &lt; 1]$ — the Pegasos algorithm: shrink always, kick only on margin violations.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="regularization">
+ <h2>Regularization</h2>
+ <p>Regularization is a thumb on the scale toward simpler hypotheses: add a penalty for complexity to the training loss, so the model must buy its flexibility with real predictive gains. It trades a little bias for a lot of variance reduction, and it is the practical answer to "my model class is too rich for my data."</p>
+ <div class="box def"><span class="label">Definition</span> Minimize $\hat R(h) + \lambda\,\Omega(h)$: empirical risk plus penalty, $\lambda \ge 0$ the knob. Common $\Omega$: $\|w\|_2^2$ (ridge/L2 — shrinks weights), $\|w\|_1$ (lasso/L1 — sparsifies), early stopping (implicit), dropout, data augmentation (regularize by enlarging data). Bayesian reading: $\lambda\Omega = -\log p(\theta)$ makes the whole thing MAP estimation. Choose $\lambda$ by validation — never by training loss (which always prefers $\lambda = 0$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Ridge regression: $\hat w = \arg\min \|Xw - y\|^2 + \lambda\|w\|^2 = (X^\top X + \lambda I)^{-1}X^\top y$. Tiny example: one feature, $X^\top X = 5$, $X^\top y = 8$. OLS: $w = 1.6$. Ridge $\lambda = 5$: $w = \frac{8}{10} = 0.8$ — shrunk halfway. Side benefit: $X^\top X + \lambda I$ is always invertible (adds $\lambda$ to every eigenvalue), curing the collinearity singularity and improving conditioning from $\frac{\sigma_1^2}{\sigma_d^2}$ to $\frac{\sigma_1^2 + \lambda}{\sigma_d^2 + \lambda}$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Regularization theory gets its own treatment in Ch 20 (structural risk minimization, stability); weight decay in deep nets is Ch 21; the L1/L2 duo is detailed in Ch 15.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> As $\lambda \to \infty$ in ridge regression, what happens to $w$, training error, and (typically) test error? <details class="sol"><summary>Solution</summary><div>$w \to 0$ (predict the constant); training error rises monotonically; test error typically falls then rises — the U-curve whose bottom you find by validation.</div></details></li>
+  <li><span class="lvl m">MED</span> Show ridge = MAP with prior $w \sim \mathcal N(0, \tau^2 I)$ and Gaussian noise $\sigma^2$, with $\lambda = \sigma^2/\tau^2$. <details class="sol"><summary>Solution</summary><div>$-\log[p(y\mid w)p(w)] = \frac{1}{2\sigma^2}\|Xw - y\|^2 + \frac{1}{2\tau^2}\|w\|^2 + $ const. Multiply by $2\sigma^2$: $\|Xw-y\|^2 + \frac{\sigma^2}{\tau^2}\|w\|^2$. ∎ Strong prior belief in small weights (small $\tau$) = heavy regularization.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why does L1 produce exact zeros while L2 only shrinks? Argue with the 1-D problem $\min_w \frac12(w - a)^2 + \lambda|w|$ vs $+\frac\lambda2 w^2$. <details class="sol"><summary>Solution</summary><div>L2: derivative $(w - a) + \lambda w = 0 \Rightarrow w = \frac{a}{1+\lambda}$ — nonzero whenever $a$ is: pure proportional shrinkage. L1: for $w &gt; 0$ optimality needs $w = a - \lambda$; for $w &lt; 0$, $w = a + \lambda$; and $w = 0$ is optimal iff $|a| \le \lambda$ (0 is in the subdifferential). Soft-thresholding: a finite dead zone $[-\lambda, \lambda]$ maps to exactly 0. The corner of $|w|$ at 0 does it — L2's penalty is flat there ($2\lambda w \to 0$) and can't hold weights at zero.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">You picked λ by minimizing TRAINING loss. What did you get?</div><button class="opt">The best generalizing λ</button><button class="opt">A random λ</button><button class="opt">λ = 0, i.e. no regularization</button><div class="why" hidden>The penalty can only hurt training loss, so training loss is minimized by turning regularization off. λ must be chosen on data the fit hasn't seen — a validation set or cross-validation.</div></div>
+</section>
+
+<section class="topic" id="empirical-risk-minimization">
+ <h2>Empirical risk minimization</h2>
+ <p>You cannot minimize the true risk — you don't know the distribution. Empirical risk minimization (ERM) does the only available thing: minimize the average loss on the sample and hope the average tracks the expectation. Nearly every training procedure in this book is ERM or ERM-plus-penalty.</p>
+ <div class="box def"><span class="label">Definition</span> Empirical risk: $\hat R_n(h) = \frac1n\sum_{i=1}^n \ell(h(x_i), y_i)$. ERM: $\hat h = \arg\min_{h\in\mathcal H}\hat R_n(h)$. For any FIXED $h$, LLN gives $\hat R_n(h) \to R(h)$; the subtlety is that $\hat h$ is chosen using the same sample, so its empirical risk is biased low — the amount of bias grows with the richness of $\mathcal H$ (Ch 20 quantifies this via uniform convergence).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathcal H$ = two weather rules, $h_1$ ("rain if cloudy", true error 30%) and $h_2$ ("always dry", true error 40%). On a sample of 10 days, by luck, $h_1$ errs 4 times and $h_2$ errs 3: ERM picks the worse rule. With $n = 1000$ the sample proportions concentrate ($\pm 3\%$) and ERM picks correctly with overwhelming probability. ERM's reliability is exactly the concentration of $|\hat R_n - R|$ over $\mathcal H$.</div>
+ <div class="box think"><span class="label">Think first</span> Suppose $\mathcal H$ contains $2^n$ classifiers and one of them, by pure chance, has zero errors on your $n$ points despite all of them having true error 50%. Should you be surprised? <details class="sol"><summary>Reveal</summary><div>No: each random classifier has probability $2^{-n}$ of a perfect sample score, and there are $2^n$ tries — expected number of "perfect" ones is 1. ERM will select it and its true error is still 50%. Empirical risk of the SELECTED hypothesis is an optimistically biased estimate; richness of $\mathcal H$ is the multiplier. This is Ch 20's finite-class bound in a nutshell (and multiple testing in Ch 13's clothes).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the empirical risk of a classifier under 0-1 loss in plain words. <details class="sol"><summary>Solution</summary><div>The fraction of training examples it misclassifies — the training error rate.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does ERM over the class of ALL functions fail, even with infinite compute? <details class="sol"><summary>Solution</summary><div>The memorizer (fit every training point, arbitrary elsewhere) achieves $\hat R_n = 0$, and so do infinitely many functions with every possible behavior off-sample: the data cannot distinguish them, and the guarantee $\hat R \approx R$ fails completely (no free lunch, Ch 20). Learning requires restricting or penalizing $\mathcal H$ — the inductive bias IS the learning.</div></details></li>
+  <li><span class="lvl h">HARD</span> Decompose the excess risk of ERM: $R(\hat h) - R^* = \underbrace{[R(\hat h) - \inf_{h\in\mathcal H}R(h)]}_{\text{estimation}} + \underbrace{[\inf_{h\in\mathcal H}R(h) - R^*]}_{\text{approximation}}$. How does enlarging $\mathcal H$ move each term? <details class="sol"><summary>Solution</summary><div>Approximation error (how close the best-in-class is to the Bayes optimum $R^*$) falls as $\mathcal H$ grows — a bigger class can express more. Estimation error (how far ERM's pick is from the best-in-class, due to finite data) rises — more hypotheses to be fooled by. The sum is U-shaped in complexity: this is the bias-variance trade-off in learning-theory dress, and model selection is the search for the bottom.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="training-error">
+ <h2>Training error</h2>
+ <p>Training error is the score on the exam you studied from: it measures fit, not learning. It is cheap, useful for debugging optimization (is the loss going down at all?), and systematically flattering — every choice you make to reduce it is a chance to fit noise.</p>
+ <div class="box def"><span class="label">Definition</span> $\hat R_{\text{train}}(\hat h) = \frac1n\sum_{i\in\text{train}}\ell(\hat h(x_i), y_i)$, evaluated on the same data used to fit $\hat h$. Facts: $\mathbb E[\hat R_{\text{train}}(\hat h)] \le \mathbb E[R(\hat h)]$ (optimism is nonnegative in expectation for ERM-type fitting); for OLS with $d$ parameters and noise $\sigma^2$, the expected optimism is exactly $\frac{2d\sigma^2}{n}$ — the origin of AIC-style corrections.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit polynomials of degree 0–9 to 10 points from $y = \sin(2\pi x) + $ noise. Training MSE falls monotonically with degree, hitting exactly 0 at degree 9 (10 coefficients interpolate 10 points). Meanwhile the curve at degree 9 whips ±50 between the samples. Training error CANNOT see the whipping — the samples are precisely where the curve behaves.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Zero training error is not by itself pathological (deep nets often interpolate and still generalize, Ch 20's double descent) — but a training/test GAP is information. Watch both curves, not either alone; and never report training numbers as performance.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A model gets 98% training accuracy, 71% test accuracy. Diagnose. <details class="sol"><summary>Solution</summary><div>Large gap: overfitting (high variance). Remedies: more data, regularization, simpler model, augmentation.</div></details></li>
+  <li><span class="lvl m">MED</span> A model gets 62% training accuracy AND 61% test accuracy on a task humans do at 95%. Diagnose, and say why "add regularization" is the wrong move. <details class="sol"><summary>Solution</summary><div>No gap but poor fit: underfitting (high bias) — the model can't even capture the training data. Regularization constrains further and worsens it. Fixes: richer model, better features, longer/better optimization.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for linear regression with the hat matrix $H$, the training residuals satisfy $\mathbb E[\frac1n\|y - \hat y\|^2] = \sigma^2\frac{n - d}{n}$ (noise-only case, correct model), and read off the optimism. <details class="sol"><summary>Solution</summary><div>$y - \hat y = (I - H)y$; with $y = f + \epsilon$ and $Hf = f$ (correct model): residual $= (I-H)\epsilon$. $\mathbb E\|(I-H)\epsilon\|^2 = \sigma^2\,\mathrm{tr}(I - H) = \sigma^2(n - d)$ (projection trace = rank $d$). So training MSE averages $\sigma^2(1 - d/n)$ — BELOW the noise floor $\sigma^2$, while the test MSE of the fit is $\sigma^2(1 + d/n)$ at a fresh point drawn like the training ones: total optimism $\frac{2d\sigma^2}{n}$, growing with parameters per datum.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="test-error">
+ <h2>Test error</h2>
+ <p>Test error is measured on data the model has never influenced — the only honest estimate of deployment performance. Its integrity is fragile: every decision made while peeking at it (tuning, model choice, early stopping) leaks information and inflates your confidence. Guard the test set like a lab notebook.</p>
+ <div class="box def"><span class="label">Definition</span> Split data into train / validation / test. Fit on train; select hyperparameters and models on <em>validation</em>; report ONCE on <em>test</em>. For a test set of size $m$ and 0-1 loss, $\hat R_{\text{test}}$ is an unbiased estimate of $R(\hat h)$ with standard error $\sqrt{\hat R(1-\hat R)/m}$ (binomial); Hoeffding (Ch 11): $|\hat R_{\text{test}} - R| \le \sqrt{\frac{\log(2/\delta)}{2m}}$ with probability $1-\delta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Test accuracy 90% on $m = 1000$: standard error $\sqrt{0.9\times0.1/1000} \approx 0.95\%$ — the honest claim is "90% ± 2%", and a competitor's 90.8% on the same set is statistically indistinguishable. On $m = 100$: ±6% — leaderboard deltas of a point or two are noise.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Adaptive reuse: try 50 model variants, keep the best test score, and you have silently converted the test set into a validation set — the winner's score is biased upward by roughly $\sigma\sqrt{2\log 50}$ (max of 50 noisy scores, $\approx 2.8$ standard errors). Kaggle's public/private leaderboard split exists precisely to catch this.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why must the test set never be used for early stopping? <details class="sol"><summary>Solution</summary><div>Early stopping selects a checkpoint by score — a form of model selection. Doing it on test data leaks test information into the choice, biasing the reported number. Use validation for stopping; test once at the end.</div></details></li>
+  <li><span class="lvl m">MED</span> How large a test set do you need to certify error ≤ 1% with a ±0.2% (95%) margin? <details class="sol"><summary>Solution</summary><div>SE target: $0.001$ (so 1.96·SE ≈ 0.2%). $\sqrt{0.01\times0.99/m} = 0.001 \Rightarrow m = \frac{0.0099}{10^{-6}} \approx 9900$: about 10k examples — and you need ~100 errors observed to be comfortable. Rare-event evaluation is expensive.</div></details></li>
+  <li><span class="lvl h">HARD</span> You evaluate $k$ models on one test set of size $m$ and report the best. Bound the expected optimism of the reported score (0-1 loss, models with equal true error $R$). <details class="sol"><summary>Solution</summary><div>Each estimate is $R + \varepsilon_j$, $\varepsilon_j$ roughly $\mathcal N(0, \sigma^2)$, $\sigma = \sqrt{R(1-R)/m}$. The reported score is $R + \min_j \varepsilon_j$, and $\mathbb E[\min_j \varepsilon_j] \approx -\sigma\sqrt{2\ln k}$. Numbers: $R = 0.1$, $m = 10^4$, $k = 100$: $\sigma = 0.003$, bias $\approx -0.003\times3.03 \approx -0.9\%$ — you'll report ~9.1% for models that are all truly 10%. Selection turns noise into (fake) signal at rate $\sqrt{\ln k}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="generalization">
+ <h2>Generalization</h2>
+ <p>Generalization is the whole point: performing well on what you haven't seen. Its measure is the gap between training and true risk. Small gaps come from having, in some sense, less capacity than data — few parameters, or heavy regularization, or (subtler, in deep learning) optimization dynamics that prefer simple fits first.</p>
+ <div class="box def"><span class="label">Definition</span> The <em>generalization gap</em> of $\hat h$ is $R(\hat h) - \hat R_n(\hat h)$. Classical guarantees (Ch 20) bound it uniformly over $\mathcal H$: with probability $1-\delta$, $\sup_{h\in\mathcal H}|R(h) - \hat R_n(h)| \le \text{complexity}(\mathcal H, n) + \sqrt{\frac{\log(1/\delta)}{2n}}$, where complexity is measured by VC dimension, Rademacher complexity, etc. Rule of shapes: gap shrinks like $\sqrt{\text{capacity}/n}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Two students before an exam: one memorizes 100 past papers verbatim (perfect on those, lost on any new question), one extracts the 5 underlying methods (misses quirky past questions, handles new ones). Same "training data," opposite generalization. In model terms: the memorizer has capacity ≥ data and no inductive bias; the methods-learner compressed — and Ch 16's compression-prediction link says compression is exactly what predicts.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 20 is this topic made rigorous: PAC learning, VC bounds, Rademacher complexity, and the modern puzzles (double descent, benign overfitting) where the classical gap story needs repair.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Model A: train 5%, test 6% error. Model B: train 1%, test 8%. Which generalizes better, and which is better? <details class="sol"><summary>Solution</summary><div>A has the smaller gap (1% vs 7%): generalizes better. A is also simply better (6% &lt; 8% test). Note the two questions can dissociate — a model can have a big gap and still the best test error.</div></details></li>
+  <li><span class="lvl m">MED</span> Doubling the training data typically shrinks the generalization gap by what factor, per the $\sqrt{\cdot/n}$ heuristic? What does it NOT shrink? <details class="sol"><summary>Solution</summary><div>$\sqrt2 \approx 1.4$×. It does not shrink the approximation error — if the model class can't express the truth, more data converges you faster to the same wrong answer.</div></details></li>
+  <li><span class="lvl h">HARD</span> Give a concrete scenario where training error 0 and excellent generalization coexist, and reconcile with the classical gap bound. <details class="sol"><summary>Solution</summary><div>Interpolating a nearly noiseless problem with a model whose inductive bias matches: e.g. 1-nearest-neighbor on well-separated clusters, or a wide network on MNIST reaching 0 training error and ~1% test. Reconciliation: bounds of the form gap ≤ complexity/√n are upper bounds and can be loose; refined analyses (margins, stability, benign-overfitting conditions — Ch 20) show that WHICH zero-training-error solution the algorithm picks matters: min-norm/max-margin interpolants of low effective complexity generalize even though the class's worst interpolant would not.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="overfitting">
+ <h2>Overfitting</h2>
+ <p>Overfitting is mistaking noise for signal: the model contorts to explain the accidents of your particular sample, and those contortions are anti-knowledge on fresh data. Symptoms: training error falling while validation error rises; predictions oscillating implausibly; coefficients exploding. It is the default failure mode of flexible models on small data.</p>
+ <div class="box def"><span class="label">Definition</span> A fitted model overfits when there exists an alternative with higher training error but lower true risk — the extra fit bought worse generalization. Operational test: the validation curve. As capacity (degree, depth, training epochs, 1/λ) increases, training error falls monotonically while validation error is U-shaped; overfitting is the right-hand branch of the U.</div>
+ <div class="box ex"><span class="label">Worked example</span> 10 samples from $y = \sin(2\pi x) + \varepsilon$, $\sigma = 0.2$. Degree-3 polynomial: training RMSE ≈ 0.18, test ≈ 0.25 — captures the wave. Degree-9: training RMSE 0 (interpolation), test RMSE ≈ 4 — between the points the polynomial swings to ±5 to thread every noisy sample. The interpolant KNOWS the training set exactly, and that is precisely what it knows.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the polynomial degree and the noise level; watch training error march to zero while the curve between samples goes feral. Resample to see the fit's variance across datasets.</p>
+  <canvas id="cv-fit"></canvas>
+  <div class="ctl">
+   <label>degree <input type="range" id="pf-deg" min="0" max="9" step="1" value="3"></label>
+   <label>noise σ <input type="range" id="pf-noise" min="0" max="0.5" step="0.05" value="0.2"></label>
+   <button class="btn" id="pf-re">Resample</button>
+  </div>
+  <div class="out" id="pf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Name four remedies for overfitting. <details class="sol"><summary>Solution</summary><div>More data; regularization (L2/L1/dropout); reduce capacity (simpler model/features); early stopping; data augmentation; ensembling (bagging) — any four.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does adding training NOISE (e.g. augmentation, label smoothing) fight overfitting rather than worsen it? <details class="sol"><summary>Solution</summary><div>Fitting deliberately perturbed copies forces the model's answer to be stable in a neighborhood of each input — smoothness — which suppresses the high-frequency contortions that constitute noise-fitting. Formally, small input-noise augmentation ≈ a Tikhonov (ridge-type) penalty on the function's derivatives.</div></details></li>
+  <li><span class="lvl h">HARD</span> Overfitting can happen to a WORKFLOW, not just a model: describe how repeated cross-validated hyperparameter search overfits the validation folds, and one mitigation. <details class="sol"><summary>Solution</summary><div>Each of hundreds of configurations gets a CV score with noise $\sigma$; picking the max overfits the folds by $\approx\sigma\sqrt{2\ln(\#\text{configs})}$ — the chosen config is partly "lucky on these folds." Mitigations: nested CV (an outer loop that the search never sees) for honest assessment; fewer, coarser searches; or a final untouched test set. Selection pressure on any dataset eventually memorizes it.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="underfitting">
+ <h2>Underfitting</h2>
+ <p>Underfitting is the opposite sin: the model is too rigid (or too under-trained) to capture real structure, so it is wrong everywhere — including on its own training set. High bias, low variance, and no amount of extra data fixes it; the model needs more expressive power or better features.</p>
+ <div class="box def"><span class="label">Definition</span> A model underfits when its training error is far above the achievable (Bayes/noise-floor) level — the approximation error dominates. Signature: training ≈ validation error, both bad; learning curves that plateau early and stay flat as $n$ grows.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fit a straight line to $y = x^2$ on $x\in[-1, 1]$ (noise-free). Best line: $\hat y = \frac13$ (the mean; the slope term vanishes by symmetry). Training MSE $= \mathbb E[(x^2 - \frac13)^2] = \mathbb E[x^4] - \frac19 = \frac15 - \frac19 = \frac{4}{45} \approx 0.089$ — an error floor no optimizer, dataset size, or regularization tweak can breach. One added feature ($x^2$) sends it to zero: underfitting is a representation problem.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Underfitting from UNDER-OPTIMIZATION masquerades as model weakness: a net trained with a broken learning rate has high training error but plenty of capacity. Before enlarging the model, verify the optimizer can overfit a tiny subset (a 50-example sanity check) — if it can't, fix training, not architecture.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Train error 40%, validation 41%, human performance ~5%. Overfitting or underfitting, and two fixes? <details class="sol"><summary>Solution</summary><div>Underfitting. Fixes: bigger/richer model, better features, train longer / fix optimization, reduce regularization.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch the learning curves (error vs $n$) of an underfit model and an overfit-prone model. What distinguishes them at large $n$? <details class="sol"><summary>Solution</summary><div>Underfit: train and validation curves converge quickly to the SAME high plateau (approximation floor); more data doesn't help. Overfit-prone: large gap at small $n$ — train low, validation high — with the gap closing as $n$ grows toward a lower plateau; more data helps. Reading learning curves tells you whether to buy data or capacity.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute the best CONSTANT fit to $y = x^2$ on $[-1,1]$ and its MSE; compare to the best line's, and explain why they coincide here. <details class="sol"><summary>Solution</summary><div>Best constant = mean of $x^2$ = $\frac13$; MSE $= \mathrm{Var}(x^2) = \frac15 - \frac19 = \frac4{45}$ — identical to the line's, because the optimal line's slope is 0 by the odd-symmetry of $x\cdot x^2$ over the symmetric interval ($\mathbb E[x\cdot x^2] = 0$): the extra parameter buys nothing on this problem. Capacity only helps if it points in a useful direction — expressiveness is geometry, not parameter count.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="bias-variance-decomposition">
+ <h2>Bias-variance decomposition</h2>
+ <p>Retrain the same procedure on many independent datasets: the fits scatter. Bias is how far their AVERAGE sits from the truth; variance is how much they scatter around that average. Squared-error risk splits exactly into noise + bias² + variance — the accounting identity behind the underfit/overfit trade-off.</p>
+ <div class="box thm"><span class="label">Theorem</span> Let $y = f(x) + \epsilon$, $\mathbb E\epsilon = 0$, $\mathrm{Var}(\epsilon) = \sigma^2$, and let $\hat f_D$ be the model trained on random dataset $D$. At a fixed $x$: $$\mathbb E_{D,\epsilon}\big[(y - \hat f_D(x))^2\big] = \sigma^2 + \underbrace{\big(f(x) - \bar f(x)\big)^2}_{\text{bias}^2} + \underbrace{\mathbb E_D\big[(\hat f_D(x) - \bar f(x))^2\big]}_{\text{variance}}$$ where $\bar f(x) = \mathbb E_D[\hat f_D(x)]$. Proof: insert $\bar f$, expand, cross-terms vanish by independence and $\mathbb E[\hat f - \bar f] = 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimate a constant $\mu = 5$ ($\sigma^2 = 1$, $n = 10$) two ways. (a) $\hat\mu = \bar y$: bias 0, variance $\frac{\sigma^2}{n} = 0.1$; risk contribution 0.1. (b) Shrunk $\hat\mu = 0.8\bar y$: bias $= \mathbb E[0.8\bar y] - 5 = -1$, variance $= 0.64\times0.1 = 0.064$; contribution $1 + 0.064 = 1.064$ — worse here. But if $\mu$ were 0.5: (a) still 0.1; (b) bias $-0.1$, total $0.01 + 0.064 = 0.074$ — the shrunk estimator wins. Shrinkage trades bias for variance; whether it pays depends on the truth's size. (This is ridge regression's soul, and Stein's paradox in embryo.)</div>
+ <div class="box think"><span class="label">Think first</span> Where do (a) k-NN with growing k, and (b) polynomial regression with growing degree, each sit on the bias-variance dial? <details class="sol"><summary>Reveal</summary><div>k-NN: $k = 1$ is low bias / high variance (jagged, noise-chasing); $k = n$ predicts the global mean: high bias / ~zero variance — variance falls ~like $1/k$ while bias grows with the neighborhood radius. Polynomials: degree ↑ = bias ↓, variance ↑ — the two knobs turn OPPOSITE directions. Every hyperparameter that controls capacity is secretly this dial.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> An estimator has bias 0.3 and variance 0.05, noise σ² = 0.1. Expected squared prediction error? <details class="sol"><summary>Solution</summary><div>$0.1 + 0.09 + 0.05 = 0.24$.</div></details></li>
+  <li><span class="lvl m">MED</span> Averaging $B$ independent unbiased models, each with variance $v$: what happens to bias, variance and risk? What if the models are correlated with pairwise correlation $\rho$? <details class="sol"><summary>Solution</summary><div>Independent: bias stays 0; variance $v/B$: risk → noise floor. Correlated: variance $= \rho v + \frac{1-\rho}{B}v$ — the correlated part $\rho v$ never averages away. This single formula explains bagging (drive $\rho$ down by resampling) and random forests (decorrelate further with random feature subsets).</div></details></li>
+  <li><span class="lvl h">HARD</span> Complete the decomposition proof: expand $\mathbb E[(y - \hat f)^2]$ with $y = f + \epsilon$ and show the three cross-terms vanish. <details class="sol"><summary>Solution</summary><div>$(y - \hat f) = \epsilon + (f - \bar f) + (\bar f - \hat f)$. Square and take $\mathbb E$: the three squares give $\sigma^2$, bias², variance. Cross terms: $\mathbb E[\epsilon(f - \bar f)] = (f-\bar f)\mathbb E\epsilon = 0$; $\mathbb E[\epsilon(\bar f - \hat f)] = 0$ since the test noise $\epsilon$ is independent of the training set $D$; $\mathbb E[(f - \bar f)(\bar f - \hat f)] = (f - \bar f)\,\mathbb E[\bar f - \hat f] = 0$ by definition of $\bar f$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cross-validation">
+ <h2>Cross-validation</h2>
+ <p>Cross-validation lets every data point take a turn on the jury: split the data into K folds, train on K−1, test on the held-out fold, rotate, and average. You get a lower-variance estimate of generalization than a single split, at K× the training cost — the standard tool for model and hyperparameter selection on modest data.</p>
+ <div class="box def"><span class="label">Definition</span> <em>K-fold CV:</em> partition $D$ into folds $F_1..F_K$; $\mathrm{CV} = \frac1K\sum_k \hat R_{F_k}\!\big(\hat h^{(-k)}\big)$ where $\hat h^{(-k)}$ is trained without fold $k$. $K = n$: leave-one-out (LOO). Each fold's model sees $\frac{K-1}{K}n$ points, so CV slightly OVERestimates the error of the full-data model (pessimistic bias, shrinking with $K$). Standard choices: $K = 5$ or 10. Stratify folds for classification; split by GROUP/time when data has structure.</div>
+ <div class="box ex"><span class="label">Worked example</span> Choosing ridge $\lambda \in \{0.01, 1, 100\}$ by 5-fold CV. Per-fold validation MSEs average to: $\lambda = 0.01$: 3.9; $\lambda = 1$: 2.7; $\lambda = 100$: 4.8. Select $\lambda = 1$, then refit on ALL data with it. The reported 2.7 is an honest estimate for the selection process only if a further untouched test set confirms it — the chosen minimum-of-three is itself slightly optimistic.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Leakage: any preprocessing that looks at the whole dataset (feature scaling statistics, feature selection by correlation with $y$, imputation) must happen INSIDE the CV loop, fit on each training fold only. Selecting features on all data first can make pure noise look 90%+ accurate under subsequent CV — the most reproduced methodological error in applied ML papers.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> 10-fold CV on 500 samples: how many models are trained, on how many points each? <details class="sol"><summary>Solution</summary><div>10 models, 450 training points each, validated on 50.</div></details></li>
+  <li><span class="lvl m">MED</span> Data are daily stock returns over 4 years. Why is random K-fold wrong, and what replaces it? <details class="sol"><summary>Solution</summary><div>Random folds let the model train on the future and validate on the past (and neighboring days are correlated): optimistic leakage. Use forward-chaining / rolling-origin validation: train on days $1..t$, validate on $t+1..t+h$, slide. Respect the arrow of time.</div></details></li>
+  <li><span class="lvl h">HARD</span> For linear smoothers ($\hat y = Hy$), LOO has a closed form: $\mathrm{LOO} = \frac1n\sum_i\left(\frac{y_i - \hat y_i}{1 - H_{ii}}\right)^2$. Interpret, and compute for a point with residual 0.5 and leverage $H_{ii} = 0.9$ vs 0.1. <details class="sol"><summary>Solution</summary><div>The formula rescales each training residual by how much the point influenced its own fit: high leverage means the model bent to accommodate it, so removing it would reveal a much bigger error. Leverage 0.9: LOO residual $\frac{0.5}{0.1} = 5$ (25× the squared contribution); leverage 0.1: $\frac{0.5}{0.9} \approx 0.56$. One pass over the hat diagonal gives all $n$ leave-one-out errors without refitting — and flags influential points.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="evaluation-metrics">
+ <h2>Evaluation metrics</h2>
+ <p>The loss trains; metrics judge. A good metric matches the decision the model serves: a threshold-free ranking quality, a cost-weighted error, a top-k hit rate. Know the confusion matrix cold — nearly every classification metric is a ratio of its four cells.</p>
+ <div class="box def"><span class="label">Definition</span> Binary confusion matrix: TP, FP, FN, TN. <em>Accuracy</em> $= \frac{TP+TN}{n}$. <em>Precision</em> $= \frac{TP}{TP+FP}$, <em>Recall (sensitivity, TPR)</em> $= \frac{TP}{TP+FN}$, <em>Specificity (TNR)</em> $= \frac{TN}{TN+FP}$, <em>F1</em> $= \frac{2PR}{P+R}$ (harmonic mean), <em>FPR</em> $= 1 - $ specificity. Regression: MSE/RMSE, MAE, $R^2 = 1 - \frac{\mathrm{SSE}}{\mathrm{SST}}$. Probabilistic: log loss, Brier, calibration (Ch 13, and below).</div>
+ <div class="box ex"><span class="label">Worked example</span> Disease screen on 1000 people, 50 truly sick. Model flags 80: 45 sick (TP), 35 healthy (FP); misses 5 (FN); TN = 915. Accuracy $= \frac{45+915}{1000} = 96\%$ — sounds great. Precision $= 45/80 = 56\%$ (nearly half the alarms are false); recall $= 45/50 = 90\%$; F1 $= \frac{2(0.5625)(0.9)}{1.4625} \approx 0.69$. The "always healthy" model scores 95% accuracy with recall 0 — accuracy hides everything that matters at 5% prevalence.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From TP=30, FP=10, FN=20, TN=940: compute accuracy, precision, recall. <details class="sol"><summary>Solution</summary><div>Accuracy $= 970/1000 = 97\%$; precision $= 30/40 = 75\%$; recall $= 30/50 = 60\%$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why harmonic (not arithmetic) mean for F1? Compare P=0.9, R=0.1. <details class="sol"><summary>Solution</summary><div>Arithmetic: 0.5 — looks respectable. Harmonic: $\frac{2\cdot0.09}{1.0} = 0.18$ — the harmonic mean is dragged toward the worse number, refusing to let excellence on one axis launder failure on the other. A metric meant to require BOTH should use it.</div></details></li>
+  <li><span class="lvl h">HARD</span> $R^2$ can be negative on a test set. How, and what does it mean? Also: give a model change that raises accuracy while degrading log loss. <details class="sol"><summary>Solution</summary><div>$R^2 = 1 - \frac{\sum(y-\hat y)^2}{\sum(y - \bar y)^2}$ with $\bar y$ from the test targets: a model worse than predicting the test mean gives SSE &gt; SST, $R^2 &lt; 0$ — routine under distribution shift or overfitting. Accuracy-vs-log-loss: push all predicted probabilities toward 0/1 (e.g. temperature → 0). Threshold decisions may flip a few to correct (accuracy up a hair) while every wrong confident prediction now costs $-\log(\text{tiny})$: log loss explodes. Metrics disagree because they price confidence differently.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="precision-and-recall">
+ <h2>Precision and recall</h2>
+ <p>Precision answers "when you cry wolf, how often is there a wolf?"; recall answers "of all the wolves, how many did you catch?" They fight: lower your alarm threshold and recall rises while precision falls. The right operating point is a cost decision, not a modeling one.</p>
+ <div class="box def"><span class="label">Definition</span> $P = \frac{TP}{TP + FP}$ (purity of positive predictions), $R = \frac{TP}{TP+FN}$ (coverage of actual positives). Sweeping the decision threshold traces the <em>precision-recall curve</em>; area under it (average precision, AP) summarizes ranking quality with emphasis on the positive class. Baseline: a random ranker's precision ≈ prevalence $\pi$ at every recall. PR curves are the right lens under heavy class imbalance.</div>
+ <div class="box ex"><span class="label">Worked example</span> A search engine returns 10 documents; 6 are relevant, out of 20 relevant documents in the corpus. Precision $= 6/10 = 0.6$; recall $= 6/20 = 0.3$. Return 50 documents and catch 16: precision $= 0.32$, recall $= 0.8$. Neither point is "correct" — a surgeon researching a rare procedure wants recall; a homepage wants precision.</div>
+ <div class="box think"><span class="label">Think first</span> Your fraud model at the current threshold: precision 0.95, recall 0.05. The team celebrates the 95%. What's your question? <details class="sol"><summary>Reveal</summary><div>"We're missing 95% of fraud — what does a missed fraud cost versus a false alarm?" Ultra-high precision at token recall usually means the threshold is absurdly conservative (or the model only detects one blatant fraud type). Push along the PR curve until marginal alarm-review cost = marginal fraud caught.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Threshold ↓. What happens to precision, recall, and the number of flagged items — typically? <details class="sol"><summary>Solution</summary><div>More items flagged; recall ↑ (weakly — never decreases); precision typically ↓ (the new flags are lower-confidence). </div></details></li>
+  <li><span class="lvl m">MED</span> With prevalence 1%, model A has precision 0.5 at recall 0.5. How much better than random is that precision? <details class="sol"><summary>Solution</summary><div>Random precision ≈ prevalence = 1%. A's 50% is a 50× lift. (This is why PR curves, unlike ROC, make skill on rare classes visible — the baseline moves with prevalence.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove that on a ranked list, average precision equals $\frac{1}{|\text{pos}|}\sum_{k \in \text{pos ranks}} P@k$, and compute it for the ranking (+, −, +, −, −) with 2 positives total. <details class="sol"><summary>Solution</summary><div>AP is defined as $\sum_k P@k\,\Delta R@k$; each positive at rank $k$ raises recall by $\frac{1}{|\text{pos}|}$ and contributes $P@k\cdot\frac1{|\text{pos}|}$; negatives contribute nothing ($\Delta R = 0$). Here: positives at ranks 1 and 3: $P@1 = 1$, $P@3 = 2/3$. AP $= \frac{1 + 2/3}{2} = \frac56 \approx 0.833$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="roc-and-auc">
+ <h2>ROC and AUC</h2>
+ <p>The ROC curve sweeps the threshold and plots true-positive rate against false-positive rate: every point is an operating trade-off between catching positives and mislabeling negatives. AUC — the area under it — compresses the whole curve into one number with a lovely meaning: the probability the model ranks a random positive above a random negative.</p>
+ <div class="box def"><span class="label">Definition</span> ROC: parametric curve $(FPR(t), TPR(t))$ as threshold $t$ sweeps. Chance = the diagonal (AUC 0.5); perfection = the top-left corner (AUC 1). $\mathrm{AUC} = P(s(X^+) &gt; s(X^-))$ for independent random positive/negative examples (ties count ½) — a pure RANKING measure: invariant to any monotone rescaling of scores, and to class prevalence.</div>
+ <div class="box ex"><span class="label">Worked example</span> Scores: positives {0.9, 0.7, 0.4}, negatives {0.6, 0.3}. All 6 pairs: 0.9 beats both (2); 0.7 beats both (2); 0.4 beats 0.3 only (1). AUC $= 5/6 \approx 0.833$. Check via the curve: thresholds descending give (FPR, TPR) = (0,⅓), (0,⅔), (½,⅔), (½,1), (1,1) — area $= \frac23\cdot\frac12 + 1\cdot\frac12 = \frac13 + \frac12 = \frac56$ ✓.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the threshold across two overlapping score distributions; watch the confusion counts change and the operating point slide along the ROC curve.</p>
+  <canvas id="cv-roc"></canvas>
+  <div class="ctl">
+   <label>threshold <input type="range" id="rc-t" min="-3" max="5" step="0.1" value="1"></label>
+   <label>class separation <input type="range" id="rc-d" min="0" max="4" step="0.1" value="2"></label>
+  </div>
+  <div class="out" id="rc-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> On heavily imbalanced problems ROC can flatter: with 1M negatives, FPR 1% "looks" fine but means 10,000 false alarms drowning 100 true hits (precision &lt; 1%). AUC ignores prevalence by design; check the PR curve before shipping a rare-event detector.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What does AUC = 0.5 mean? AUC = 0.2? <details class="sol"><summary>Solution</summary><div>0.5: ranking indistinguishable from chance. 0.2: systematically anti-correlated — flip the score sign and you have a 0.8 model.</div></details></li>
+  <li><span class="lvl m">MED</span> Scores: positives {0.8, 0.5}, negatives {0.6, 0.5, 0.2}. Compute AUC with the tie rule. <details class="sol"><summary>Solution</summary><div>Pairs (6): 0.8 &gt; all three (3). 0.5 vs 0.6: 0; vs 0.5: tie ½; vs 0.2: 1. AUC $= \frac{3 + 1.5}{6} = 0.75$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two Gaussian score distributions $\mathcal N(\mu_+, 1)$ and $\mathcal N(\mu_-, 1)$, $d = \mu_+ - \mu_-$. Derive AUC in terms of $\Phi$ and evaluate at $d = 2$. <details class="sol"><summary>Solution</summary><div>$s^+ - s^- \sim \mathcal N(d, 2)$; AUC $= P(s^+ - s^- &gt; 0) = \Phi\!\big(\frac{d}{\sqrt2}\big)$. At $d = 2$: $\Phi(1.414) \approx 0.921$. (Effect size ↔ AUC dictionary: $d$ = 1 gives 0.76; $d$ = 3 gives 0.983.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="feature-engineering">
+ <h2>Feature engineering</h2>
+ <p>Models learn from the representation you give them; feature engineering is choosing that representation. Encode categories, scale magnitudes, transform skew, cross features, inject domain knowledge (day-of-week, ratios, distances). A linear model on great features routinely beats a fancy model on raw ones — and deep learning's celebrated trick is learning the features itself.</p>
+ <div class="box def"><span class="label">Definition</span> A feature map $\phi: \text{raw inputs} \to \mathbb R^d$. Standard moves: <em>standardization</em> $x \mapsto \frac{x - \mu}{\sigma}$ (fit $\mu, \sigma$ on training data only); <em>one-hot encoding</em> of categoricals; $\log(1+x)$ for heavy-tailed counts; binning; interactions $x_ix_j$; target/frequency encodings (with in-fold fitting to avoid leakage); domain aggregates (counts, recency, ratios).</div>
+ <div class="box ex"><span class="label">Worked example</span> Predicting taxi fare from pickup/dropoff coordinates: raw lat/lon is nearly useless to a linear model. Engineer: haversine distance, bearing, airport-zone flags, hour-of-day, day-of-week. A linear model jumps from ~nothing to competitive: the distance feature alone carries most of the signal, because fare ≈ base + rate × distance is literally linear in the RIGHT feature.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Leakage through features: any feature computed with information unavailable at prediction time (future values, whole-dataset statistics, the label in disguise — "days_until_churn"). Symptom: validation performance too good to be true, production collapse. Audit every feature with the question "could I compute this at the moment of prediction?"</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why do k-NN and SVMs need feature scaling while decision trees don't? <details class="sol"><summary>Solution</summary><div>k-NN/SVM decisions depend on distances/inner products, where a feature in units of dollars (range 10⁵) drowns one in years (range 10) — scaling equalizes the vote. Trees split one feature at a time by threshold; monotone rescaling doesn't change any split's effect.</div></details></li>
+  <li><span class="lvl m">MED</span> Encode "city" with 10,000 distinct values for a linear model — one-hot is huge and sparse-lonely. Give two alternatives and their leakage risk. <details class="sol"><summary>Solution</summary><div>(1) Frequency encoding (city → count): no label leakage, coarse. (2) Target encoding (city → mean label in that city): powerful but leaks fiercely if computed on the full data — must be fit out-of-fold with smoothing toward the global mean for rare cities. (3) Hashing trick or learned embeddings as further options.</div></details></li>
+  <li><span class="lvl h">HARD</span> You standardize using the FULL dataset's mean/σ before splitting. How bad is this leak really, and when does it become serious? <details class="sol"><summary>Solution</summary><div>Usually mild: means/σ are weakly informative statistics, so the optimism is small — but it is nonzero, becomes serious when (a) $n$ is small (test points meaningfully move the statistics), (b) the pipeline uses stronger whole-data statistics (feature selection by correlation, PCA on all data, target encodings — these can be catastrophic), or (c) distribution shift matters (test-time scaling in production will use TRAINING statistics, so your evaluation should too). Rule: fit EVERY transform inside the training fold; it's free insurance and settles all cases.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="k-nearest-neighbors">
+ <h2>k-nearest neighbors</h2>
+ <p>k-NN barely "learns" at all: store the training set; to predict, find the k closest stored points and let them vote (or average). It is the purest expression of the smoothness assumption — nearby inputs have similar outputs — and a surprisingly strong baseline whose failures teach you about your distance metric and dimensionality.</p>
+ <div class="box def"><span class="label">Definition</span> Given metric $d$ (usually Euclidean on standardized features), $\hat y(x) = $ majority label (classification) or mean (regression) of the $k$ nearest training points. $k$ controls bias-variance: small $k$ = jagged, low bias/high variance; large $k$ = smooth, high bias/low variance. Theory: 1-NN's asymptotic risk ≤ 2× Bayes risk (Cover–Hart); $k$-NN → Bayes-optimal if $k \to\infty,\ k/n \to 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Points: $(1,1,\mathrm A), (2,1,\mathrm A), (3,3,\mathrm B), (4,3,\mathrm B), (2,3,\mathrm B)$. Query $(2, 2)$: distances $\sqrt2, 1, \sqrt2, \sqrt5, 1$. $k = 3$: nearest are $(2,1,\mathrm A)$, $(2,3,\mathrm B)$, then tie at $\sqrt2$ between an A and a B — with $(1,1,\mathrm A)$: vote A,B,A → A; with $(3,3,\mathrm B)$: A,B,B → B. Ties in distance (and votes: use odd $k$) need explicit policy — the prediction here genuinely hangs on it.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide k and watch the decision boundary morph from noise-hugging islands (k=1) to a smooth, sometimes oversimplified frontier (large k).</p>
+  <canvas id="cv-knn"></canvas>
+  <div class="ctl">
+   <label>k <input type="range" id="kn-k" min="1" max="25" step="2" value="1"></label>
+   <button class="btn" id="kn-re">New data</button>
+  </div>
+  <div class="out" id="kn-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The curse of dimensionality: in high dimensions, all pairwise distances concentrate ($\frac{\max - \min}{\min} \to 0$), and "nearest" stops meaning "similar" — k-NN degrades unless data lies on a low-dimensional manifold (Ch 9). Also, prediction is $O(n)$ per query without index structures (Ch 31's ANN search).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the training error of 1-NN (no duplicate inputs with different labels)? What does that tell you about using training error to pick k? <details class="sol"><summary>Solution</summary><div>Zero — each point is its own nearest neighbor. So training error always prefers $k=1$: pick k by cross-validation.</div></details></li>
+  <li><span class="lvl m">MED</span> In $d$ dimensions, to capture 1% of uniform data in a hypercube neighborhood, what edge length do you need (as a fraction of the domain) for d = 1, 10, 100? <details class="sol"><summary>Solution</summary><div>Edge $= 0.01^{1/d}$: d=1: 0.01; d=10: $0.63$; d=100: $0.955$. In 100 dimensions your "local neighborhood" spans 95% of each axis — locality is gone. This is the curse, quantified.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch why 1-NN's asymptotic error is at most twice the Bayes error. <details class="sol"><summary>Solution</summary><div>As $n\to\infty$ the nearest neighbor $x'$ of $x$ converges to $x$, so its label is a draw from $\eta(x) = P(y=1\mid x)$. 1-NN errs when the test label and neighbor label disagree: probability $\eta(1-\eta) + (1-\eta)\eta = 2\eta(1-\eta)$. Bayes error is $\min(\eta, 1-\eta)$. And $2\eta(1-\eta) \le 2\min(\eta,1-\eta)$ since the larger factor is ≤ 1. Integrate over $x$: $R_{1NN} \le 2R^*$ (Cover–Hart; the refined bound is $2R^*(1 - R^*)$). One neighbor already contains half the achievable information.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="naive-bayes">
+ <h2>Naive Bayes</h2>
+ <p>Naive Bayes classifies via Bayes' theorem with one heroic simplification: pretend every feature is independent given the class. The lie is usually blatant — words in an email are not independent — yet the classifier works remarkably well, because classification only needs the argmax to be right, not the probabilities.</p>
+ <div class="box def"><span class="label">Definition</span> $P(y\mid x) \propto P(y)\prod_{j=1}^d P(x_j\mid y)$. Train by counting: class priors $P(y)$ and per-class feature distributions (Bernoulli/multinomial for text; Gaussian per feature for continuous data). <em>Laplace smoothing</em>: $P(x_j = v\mid y) = \frac{\#\{x_j = v, y\} + \alpha}{\#\{y\} + \alpha\,|\text{values}|}$ so unseen combinations don't zero out the whole product. Predict in log space (Ch 18!): $\arg\max_y \log P(y) + \sum_j \log P(x_j\mid y)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Spam filter, priors $P(S) = 0.4$. Word likelihoods: $P(\text{"free"}\mid S) = 0.30$, $P(\text{"free"}\mid H) = 0.02$; $P(\text{"meeting"}\mid S) = 0.01$, $P(\text{"meeting"}\mid H) = 0.20$. Email contains both: spam score $0.4\times0.3\times0.01 = 1.2\times10^{-3}$; ham score $0.6\times0.02\times0.2 = 2.4\times10^{-3}$. Posterior $P(S\mid x) = \frac{1.2}{1.2+2.4} = \frac13$: classify ham — "meeting" outvoted "free".</div>
+ <div class="box link"><span class="label">Where this goes</span> Naive Bayes is a <em>generative</em> classifier (models $P(x, y)$) versus logistic regression's <em>discriminative</em> $P(y\mid x)$ — same linear decision boundary family (for exponential-family likelihoods), different estimation; the generative-discriminative axis returns with GMMs and Ch 22.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why smooth? What happens to an email containing a word never seen in training spam? <details class="sol"><summary>Solution</summary><div>Its spam likelihood factor is 0, annihilating the entire product regardless of every other word: one unseen word vetoes the class. Laplace smoothing keeps all factors positive.</div></details></li>
+  <li><span class="lvl m">MED</span> With word counts spam: ("free": 3 of 10 spam docs), and $\alpha = 1$ over a binary present/absent model: compute the smoothed $P(\text{"free"}\mid S)$. <details class="sol"><summary>Solution</summary><div>$\frac{3 + 1}{10 + 2} = \frac{4}{12} = \frac13$ (denominator adds $\alpha\times2$ for present/absent).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show Gaussian Naive Bayes with SHARED per-feature variances across classes yields a linear decision boundary, i.e. logistic-regression-shaped posteriors. <details class="sol"><summary>Solution</summary><div>$\log\frac{P(1\mid x)}{P(0\mid x)} = \log\frac{\pi_1}{\pi_0} + \sum_j\left[\frac{(x_j - \mu_{j0})^2 - (x_j-\mu_{j1})^2}{2\sigma_j^2}\right]$. Each bracket is linear in $x_j$ (the $x_j^2$ terms cancel): the log-odds are $w^\top x + b$ with $w_j = \frac{\mu_{j1}-\mu_{j0}}{\sigma_j^2}$. So GNB and logistic regression share a hypothesis class; GNB fits it by counting (fast, more bias, better with tiny data), logistic by discriminative ML (slower, less bias, better asymptotically) — the Ng–Jordan comparison.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="decision-trees">
+ <h2>Decision trees</h2>
+ <p>A decision tree plays twenty questions with features: each internal node tests one feature against a threshold, each leaf holds a prediction. Grown greedily to purify the leaves, trees are interpretable, handle mixed feature types without scaling, capture interactions naturally — and, fully grown, overfit with gusto. They matter most as the raw material of forests and boosting.</p>
+ <div class="box def"><span class="label">Definition</span> Grow by recursive splitting: at each node choose the (feature, threshold) minimizing weighted child impurity. Impurity: <em>Gini</em> $G = 1 - \sum_k p_k^2$, <em>entropy</em> $H = -\sum_k p_k\log_2 p_k$ (classification); variance (regression). Split gain $= I(\text{parent}) - \frac{n_L}{n}I(L) - \frac{n_R}{n}I(R)$. Control overfitting: max depth, min leaf size, or grow-then-prune (cost-complexity: minimize error $+\ \alpha\cdot\#\text{leaves}$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Node with 10 examples (6 A, 4 B): Gini $= 1 - 0.36 - 0.16 = 0.48$. Candidate split → left (4 A, 0 B), right (2 A, 4 B): child Ginis $0$ and $1 - \frac19 - \frac49 = \frac49$. Weighted: $\frac4{10}(0) + \frac6{10}\cdot\frac49 = 0.267$. Gain $= 0.213$. A competing split → (3 A, 2 B), (3 A, 2 B): children each $1 - 0.36 - 0.16 = 0.48$; gain 0 — a split that separates nothing scores nothing.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Trees give axis-aligned boundaries: a diagonal frontier costs a staircase of many splits. And single trees are unstable — a few changed points can flip the root split and reshape everything below (high variance): exactly the weakness bagging exploits.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the entropy (bits) of a node with 8 A and 8 B; with 16 A and 0 B. <details class="sol"><summary>Solution</summary><div>$H(\frac12) = 1$ bit; $H(1) = 0$ bits.</div></details></li>
+  <li><span class="lvl m">MED</span> A node has 50/50 classes and 100 points. Split X: children (40 A, 10 B) and (10 A, 40 B). Split Y: (50 A, 25 B) and (0 A, 25 B). Compute both Gini gains and pick. <details class="sol"><summary>Solution</summary><div>Parent Gini 0.5. X: each child $1 - 0.64 - 0.04 = 0.32$; weighted 0.32; gain 0.18. Y: children $1 - (\frac{50}{75})^2 - (\frac{25}{75})^2 = 1 - \frac{4}{9} - \frac19 = \frac49 \approx 0.444$ (75 pts) and $0$ (25 pts); weighted $0.75\times0.444 = 0.333$; gain 0.167. Choose X — even though Y makes a PURE leaf, X purifies more mass overall.</div></details></li>
+  <li><span class="lvl h">HARD</span> XOR data: $y = \mathbf 1[x_1 &gt; 0] \oplus \mathbf 1[x_2 &gt; 0]$, balanced. Show every single split has zero gain, and what this implies about greedy growing. <details class="sol"><summary>Solution</summary><div>Split on $x_1$ at 0: each side has 50/50 labels (the $x_2$ sign still decides) — child impurity = parent impurity: gain 0; same for any threshold on either feature by symmetry. Greedy sees no first move worth making, though depth-2 solves XOR perfectly. Greedy split selection is myopic — it needs lookahead, randomness (forests try many structures), or interaction features to escape. XOR is the canonical counterexample to "greedy finds it if it's there."</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">Why do trees NOT need feature standardization?</div><button class="opt">They internally standardize</button><button class="opt">Splits compare one feature to a threshold — monotone transforms don't change achievable splits</button><button class="opt">They only use categorical features</button><div class="why" hidden>A split "x &gt; t" partitions the data identically under any monotone rescaling of x (with a rescaled threshold). Distances between features never enter — unlike k-NN and SVMs.</div></div>
+</section>
+
+<section class="topic" id="random-forests">
+ <h2>Random forests</h2>
+ <p>A random forest grows many deliberately diverse trees and averages them. Diversity comes from two randomizers: each tree trains on a bootstrap resample of the data, and each split considers only a random subset of features. Averaging keeps the trees' low bias while destroying most of their variance — a wisdom-of-crowds machine that is still the best "just works" tabular baseline.</p>
+ <div class="box def"><span class="label">Definition</span> For $b = 1..B$: draw a bootstrap sample ($n$ points with replacement), grow a deep tree where each split searches only $m$ random features ($m \approx \sqrt d$ classification, $d/3$ regression). Predict by majority vote / average. Variance of the average with pairwise tree correlation $\rho$: $\rho\sigma^2 + \frac{1-\rho}{B}\sigma^2$ — feature subsampling lowers $\rho$. <em>OOB estimate:</em> each point is out-of-bag for $\approx e^{-1} \approx 37\%$ of trees; their votes on it give free cross-validation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Trees with individual error variance $\sigma^2 = 0.09$ and correlation $\rho = 0.3$: a 500-tree forest has variance $0.3\times0.09 + \frac{0.7\times0.09}{500} \approx 0.027 + 0.000126 \approx 0.0272$ — a 3.3× reduction, and note the plateau: after ~100 trees, extra trees change almost nothing; only reducing $\rho$ (more feature randomness) breaks the floor.</div>
+ <div class="box think"><span class="label">Think first</span> Why must the trees be deep/unpruned in a forest, when a single deep tree overfits? <details class="sol"><summary>Reveal</summary><div>Averaging attacks variance, not bias: the ensemble inherits the bias of its members, so members should be low-bias (deep) and the ensemble will handle their high variance. Bagging shallow trees averages away variance they don't have while keeping bias they do — backwards. (Boosting, next, makes the opposite choice for the opposite reason.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What fraction of distinct training points does one bootstrap sample contain, in expectation, for large n? <details class="sol"><summary>Solution</summary><div>$1 - (1 - \frac1n)^n \to 1 - e^{-1} \approx 63.2\%$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the forest's OOB error not require a separate validation set, and what subtle bias does it retain? <details class="sol"><summary>Solution</summary><div>Each point is predicted only by trees that never saw it (~37% of them, i.e. ~$B/3$ trees) — a built-in held-out estimate. Residual bias: the OOB prediction uses a smaller sub-ensemble than the deployed full forest (slightly pessimistic), and any preprocessing/tuning done on all data still leaks as usual.</div></details></li>
+  <li><span class="lvl h">HARD</span> With $m = d$ (no feature subsampling), what does the forest reduce to, and why does raising the per-split randomness typically trade a little bias for a bigger variance drop? Use the ρ-formula. <details class="sol"><summary>Solution</summary><div>$m = d$ is plain bagging: trees differ only via bootstrap, so $\rho$ stays high (~0.5–0.9 on strong-signal data — every tree finds the same dominant splits). Small $m$ forces trees to use different features: individual trees get slightly worse (bias/σ² up a little), but $\rho$ drops a lot, and the ensemble variance floor $\rho\sigma^2$ falls more than $\sigma^2$ rises — net win, up to the point where trees become too weak. The optimal $m$ balances the terms; $\sqrt d$ is the folk optimum.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradient-boosting">
+ <h2>Gradient boosting</h2>
+ <p>Boosting builds its ensemble sequentially: each new small tree is fit to the CURRENT mistakes — formally, to the negative gradient of the loss with respect to the ensemble's predictions — and added with a small learning rate. It is gradient descent in function space, and in the XGBoost/LightGBM incarnation it has won more tabular competitions than everything else combined.</p>
+ <div class="box def"><span class="label">Definition</span> Start $F_0(x) = $ best constant. For $m = 1..M$: compute pseudo-residuals $r_i = -\frac{\partial\ell(F_{m-1}(x_i), y_i)}{\partial F_{m-1}(x_i)}$; fit a small tree $h_m$ to $\{(x_i, r_i)\}$; update $F_m = F_{m-1} + \nu\, h_m$ with learning rate $\nu \in (0.01, 0.3]$. For squared error, $r_i = y_i - F_{m-1}(x_i)$: literally fit the residuals. Regularize by $\nu$, tree depth (3–8), subsampling, and early stopping on validation.</div>
+ <div class="box ex"><span class="label">Worked example</span> Data $y = (2, 4, 9)$, squared error, stumps, $\nu = 1$ for clarity. $F_0 = 5$ (mean). Residuals $(-3, -1, 4)$. A stump splitting the third point off: leaves predict mean$(-3,-1) = -2$ and $4$. $F_1 = (3, 3, 9)$. Residuals $(-1, 1, 0)$: next stump splits point 1 vs rest: predictions $(-1, 0.5, 0.5)$: $F_2 = (2, 3.5, 9.5)$… each round the residuals shrink; with $\nu = 0.1$ the same shrinkage takes ~10× more, gentler steps — slower is smoother is better-generalizing.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Boosting fits residuals — i.e., increasingly, the noise: unlike forests it CAN overfit badly with too many rounds. Always early-stop on validation. And its sequential nature means mislabeled points get chased with growing intensity (use robust losses like Huber for dirty data).</div>
+ <div class="box link"><span class="label">Where this goes</span> "Fit the negative gradient with a weak learner" is a functional-gradient view of Ch 15's descent; the same staging idea reappears as learning-rate schedules and residual connections in deep nets (Ch 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For squared error, why are pseudo-residuals just residuals (up to a factor)? <details class="sol"><summary>Solution</summary><div>$\ell = \frac12(F - y)^2 \Rightarrow -\partial\ell/\partial F = y - F$: the residual itself.</div></details></li>
+  <li><span class="lvl m">MED</span> Contrast forests vs boosting on: tree depth, training parallelism, main overfitting control, bias-variance roles. <details class="sol"><summary>Solution</summary><div>Forest: deep trees (low bias members), trained in parallel, variance killed by averaging, nearly tune-free. Boosting: shallow trees (high bias members), inherently sequential, bias killed by staging; variance controlled by ν + early stopping + subsampling; more tuning, usually higher ceiling.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the pseudo-residual for log loss ($y\in\{0,1\}$, $F$ = log-odds), and interpret. <details class="sol"><summary>Solution</summary><div>$\ell = -[yF - \log(1 + e^F)]$ (since $\log p = F - \log(1+e^F)$ and $\log(1-p) = -\log(1+e^F)$). $\frac{\partial \ell}{\partial F} = -(y - \sigma(F))$, so $r = y - p$: fit each tree to the current probability errors — the same "error = target − prediction" shape as regression, which is why one algorithm handles both. XGBoost refines with second-order (Newton) leaf weights $\frac{\sum r_i}{\sum p_i(1-p_i) + \lambda}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="support-vector-machines">
+ <h2>Support Vector Machines</h2>
+ <p>Among all hyperplanes separating two classes, the SVM picks the one with the widest street between them — maximum margin. Only the points on the street's edges (the support vectors) matter; move anything else and the answer doesn't budge. Wide margins buy generalization (Ch 20 makes this precise), and the dual form opens the door to kernels.</p>
+ <div class="box def"><span class="label">Definition</span> Hard margin (separable): $\min \frac12\|w\|^2$ s.t. $y_i(w^\top x_i + b) \ge 1$ — the margin (street half-width) is $\frac{1}{\|w\|}$. Soft margin: $\min \frac12\|w\|^2 + C\sum\xi_i$, s.t. $y_i(w^\top x_i + b)\ge 1 - \xi_i,\ \xi_i \ge 0$ — equivalently hinge loss + L2 (with $C \leftrightarrow \frac{1}{\lambda}$). Dual: $\max_\alpha \sum\alpha_i - \frac12\sum_{ij}\alpha_i\alpha_j y_iy_j\,x_i^\top x_j$, $0\le\alpha_i\le C$, $\sum\alpha_iy_i = 0$; $w = \sum\alpha_iy_ix_i$ — only support vectors have $\alpha_i &gt; 0$ (KKT, Ch 15).</div>
+ <div class="box ex"><span class="label">Worked example</span> 1-D: negatives at $x = 0, 1$; positives at $x = 3, 4$. Widest street: between 1 and 3, midpoint 2, half-width 1. So $w x + b = x - 2$ scaled so the margin points score ±1: at $x = 3$: $+1$ ✓; at $x = 1$: $-1$ ✓. $w = 1, b = -2$; margin $= 1/|w| = 1$. Support vectors: $\{1, 3\}$; the points at 0 and 4 could slide anywhere (outside the street) with no effect.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $C$ misread: LARGE $C$ punishes violations hard → narrow street, wiggly fit, overfitting risk; SMALL $C$ tolerates violations → wide street, smoother, underfitting risk. It is an inverse regularization knob. Scale features first: margins are Euclidean geometry.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A separable dataset has margin points at score ±1 with $\|w\| = 0.5$. What's the street's full width? <details class="sol"><summary>Solution</summary><div>Full width $= \frac{2}{\|w\|} = 4$.</div></details></li>
+  <li><span class="lvl m">MED</span> After training, 40 of 10,000 points have α &gt; 0. What does this mean for (a) prediction cost with kernels, (b) what happens if you delete a non-support point and retrain? <details class="sol"><summary>Solution</summary><div>(a) Kernel prediction $\sum_{\alpha_i &gt; 0}\alpha_iy_iK(x_i, x)$ needs only 40 kernel evaluations — sparsity is the SVM's runtime gift. (b) Nothing changes: the optimum's KKT conditions still hold without it; the solution is a function of support vectors only.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the dual objective from the hard-margin Lagrangian. <details class="sol"><summary>Solution</summary><div>$\mathcal L = \frac12\|w\|^2 - \sum\alpha_i[y_i(w^\top x_i + b) - 1]$, $\alpha \ge 0$. $\partial_w = 0$: $w = \sum\alpha_iy_ix_i$; $\partial_b = 0$: $\sum\alpha_iy_i = 0$. Substitute: $\frac12\|w\|^2 - w^\top w - \ldots$ carefully: $\mathcal L = \frac12\|w\|^2 - w^\top(\sum\alpha_iy_ix_i) - b\sum\alpha_iy_i + \sum\alpha_i = \frac12\|w\|^2 - \|w\|^2 + 0 + \sum\alpha_i = \sum\alpha_i - \frac12\sum_{ij}\alpha_i\alpha_jy_iy_jx_i^\top x_j$. Maximize over $\alpha\ge0$ with $\sum\alpha_iy_i = 0$. ∎ Data enters ONLY via inner products $x_i^\top x_j$ — the door the kernel trick walks through.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kernels">
+ <h2>Kernels</h2>
+ <p>A kernel is a similarity function that secretly computes an inner product in some feature space: $K(x, x') = \langle\phi(x), \phi(x')\rangle$. Choose the kernel and you've chosen the geometry — polynomial interactions, smooth radial neighborhoods, string overlaps — without ever building $\phi$ explicitly.</p>
+ <div class="box def"><span class="label">Definition</span> $K: \mathcal X\times\mathcal X\to\mathbb R$ is a <em>positive semidefinite kernel</em> if it is symmetric and every Gram matrix $[K(x_i, x_j)]_{ij}$ is PSD. Mercer/Moore–Aronszajn: such $K$ are exactly the inner products of some feature map. Standards: linear $x^\top x'$; polynomial $(x^\top x' + c)^p$; RBF/Gaussian $\exp(-\frac{\|x - x'\|^2}{2\gamma^{-1}\cdot\ldots})$ — write it $\exp(-\gamma\|x-x'\|^2)$ (infinite-dimensional $\phi$). Closure: sums, products, positive scalings of kernels are kernels.</div>
+ <div class="box ex"><span class="label">Worked example</span> $K(x, z) = (x^\top z)^2$ on $\mathbb R^2$: expand $ (x_1z_1 + x_2z_2)^2 = x_1^2z_1^2 + 2x_1x_2z_1z_2 + x_2^2z_2^2 = \langle\phi(x), \phi(z)\rangle$ with $\phi(x) = (x_1^2, \sqrt2\,x_1x_2, x_2^2)$: a 3-D feature space of pure quadratics, computed with one dot product and one squaring. Degree-$p$ on $d$ features: $\binom{d + p}{p}$-dimensional $\phi$ at $O(d)$ kernel cost.</div>
+ <div class="box think"><span class="label">Think first</span> What does the RBF kernel's γ control, and what happens to an SVM as γ → ∞? <details class="sol"><summary>Reveal</summary><div>γ sets the similarity length-scale ($1/\sqrt{2\gamma}$-ish radius). γ → ∞: every point is similar only to itself — the Gram matrix → identity, the model memorizes (every point a support vector, islands around each): maximal overfitting. γ → 0: everything similar to everything — underfitting toward linearity. γ is RBF's bias-variance dial, tuned jointly with C.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the RBF kernel $e^{-\gamma\|x - z\|^2}$ for $x = (0,0)$, $z = (1,1)$, γ = 0.5. <details class="sol"><summary>Solution</summary><div>$\|x - z\|^2 = 2$: $e^{-1} \approx 0.368$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that if $K_1, K_2$ are kernels, so is $K_1 + K_2$, exhibiting the feature map. <details class="sol"><summary>Solution</summary><div>$\phi(x) = (\phi_1(x), \phi_2(x))$ (concatenation): $\langle\phi(x), \phi(z)\rangle = K_1(x,z) + K_2(x,z)$. (Products correspond to tensor products of feature maps.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Is $K(x, z) = \|x\| + \|z\| - \|x - z\|$ …too hard to check directly — instead: prove $K(x,z) = \min(x, z)$ on $x, z \ge 0$ is a kernel by exhibiting the feature map. <details class="sol"><summary>Solution</summary><div>Take $\phi(x) = \mathbf 1_{[0, x]}$, the indicator function of $[0, x]$ in $L^2([0,\infty))$: $\langle\phi(x), \phi(z)\rangle = \int_0^\infty \mathbf 1_{[0,x]}(t)\mathbf 1_{[0,z]}(t)\,dt = \min(x, z)$. ∎ (This is the covariance of Brownian motion, Ch 12 — kernels, stochastic processes, and GPs are one subject in three costumes.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="kernel-trick">
+ <h2>Kernel trick</h2>
+ <p>Any algorithm that touches data ONLY through inner products can be upgraded: replace every $x_i^\top x_j$ with $K(x_i, x_j)$ and the algorithm now runs implicitly in the kernel's feature space — possibly infinite-dimensional — at no extra cost beyond kernel evaluations. Linear method in, nonlinear method out.</p>
+ <div class="box def"><span class="label">Definition</span> The trick: (1) express the algorithm in inner products (SVM dual, ridge in dual form, PCA on the Gram matrix, k-means distances via $\|x - z\|^2 = K(x,x) - 2K(x,z) + K(z,z)$); (2) substitute $K$. The <em>representer theorem</em> (next section) guarantees the solution has the form $f(x) = \sum_i\alpha_iK(x_i, x)$ — a linear combination of kernels anchored at training points. Cost shift: from dimension $d$ to sample size $n$ (Gram matrix is $n\times n$) — kernels shine when $n$ is modest and features would be huge.</div>
+ <div class="box ex"><span class="label">Worked example</span> XOR-like data — positives at $(1,1), (-1,-1)$, negatives at $(1,-1), (-1,1)$ — is not linearly separable. Under $K(x,z) = (x^\top z)^2$, i.e. features $(x_1^2, \sqrt2x_1x_2, x_2^2)$: positives map to $(1, \sqrt2, 1)$, negatives to $(1, -\sqrt2, 1)$ — separated by the single coordinate $\sqrt2\,x_1x_2$ with margin $\sqrt2$ on each side. A hyperplane in feature space = the curve $x_1x_2 = 0$ in input space.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The $n\times n$ Gram matrix: at $n = 10^6$, storing it costs 8 TB and factoring it $O(n^3)$ — kernel methods do not scale raw. Workarounds: Nyström / random Fourier features (approximate $\phi$ explicitly, then go linear), or inducing points (GPs). This scaling wall is a big part of why deep learning displaced kernels on large data.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Kernelize the distance: with RBF kernel, what is $\|\phi(x) - \phi(z)\|^2$? <details class="sol"><summary>Solution</summary><div>$K(x,x) - 2K(x,z) + K(z,z) = 2 - 2e^{-\gamma\|x - z\|^2}$ (RBF has $K(x,x) = 1$): all mapped points live on a unit sphere, distances in $[0, 2]$... precisely $\|\phi\|=1$ and squared distances in $[0,2]$.</div></details></li>
+  <li><span class="lvl m">MED</span> Kernel ridge regression: from $\hat w = (X^\top X + \lambda I)^{-1}X^\top y$, derive the dual form $\hat\alpha = (G + \lambda I)^{-1}y$ with $G = XX^\top$, prediction $f(x) = \sum_i\hat\alpha_i\,x_i^\top x$. <details class="sol"><summary>Solution</summary><div>Identity $(X^\top X + \lambda I)^{-1}X^\top = X^\top(XX^\top + \lambda I)^{-1}$ (verify by multiplying both sides by the respective bracketed matrices: $X^\top(XX^\top + \lambda I) = (X^\top X + \lambda I)X^\top$ ✓). So $\hat w = X^\top\hat\alpha$ with $\hat\alpha = (G + \lambda I)^{-1}y$, and $f(x) = \hat w^\top x = \sum_i\hat\alpha_i x_i^\top x$: inner products only — kernelizable. Primal solves $d\times d$; dual solves $n\times n$: pick the smaller.</div></details></li>
+  <li><span class="lvl h">HARD</span> Random Fourier features: Bochner's theorem says a shift-invariant kernel is the Fourier transform of a probability measure; for RBF, $K(x - z) = \mathbb E_{\omega}[\cos(\omega^\top(x - z))]$ with Gaussian ω. Show $z_\omega(x) = \sqrt2\cos(\omega^\top x + b)$, $b\sim U[0, 2\pi]$, gives $\mathbb E[z_\omega(x)z_\omega(z)] = K(x - z)$, and why this rescues scalability. <details class="sol"><summary>Solution</summary><div>$\mathbb E_b[2\cos(\omega^\top x + b)\cos(\omega^\top z + b)] = \mathbb E_b[\cos(\omega^\top(x - z)) + \cos(\omega^\top(x + z) + 2b)]$: the second term averages to 0 over $b$; the first survives. Averaging over ω recovers $K$. So $D$ sampled features $\frac{1}{\sqrt D}(z_{\omega_1}(x), .., z_{\omega_D}(x))$ give an EXPLICIT map whose ordinary dot product ≈ RBF kernel (error $O(1/\sqrt D)$): train a linear model in $O(nD)$ — no Gram matrix, kernel quality at linear cost.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="reproducing-kernel-hilbert-spaces">
+ <h2>Reproducing kernel Hilbert spaces</h2>
+ <p>The RKHS is the function space a kernel implicitly defines: all functions of the form $\sum_i\alpha_iK(x_i,\cdot)$, with a norm that measures their wiggliness in the kernel's own geometry. Its keystone, the reproducing property, says evaluation is an inner product — and the representer theorem then guarantees kernel learning problems have finite, computable solutions.</p>
+ <div class="box def"><span class="label">Definition</span> For PSD kernel $K$, the RKHS $\mathcal H_K$ is the completion of $\{\sum_i\alpha_iK(x_i,\cdot)\}$ under $\langle K(x,\cdot), K(z,\cdot)\rangle_{\mathcal H} = K(x, z)$. <em>Reproducing property:</em> $f(x) = \langle f, K(x,\cdot)\rangle_{\mathcal H}$. <em>Representer theorem:</em> the minimizer of $\sum_i\ell(f(x_i), y_i) + \lambda\|f\|^2_{\mathcal H}$ over all of $\mathcal H_K$ has the form $f^* = \sum_{i=1}^n \alpha_iK(x_i, \cdot)$ — an $n$-dimensional search, however infinite $\mathcal H_K$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f = 2K(x_1,\cdot) - K(x_2,\cdot)$ with RBF kernel, $K(x_1, x_2) = 0.5$. Evaluate via reproducing: $f(x_1) = 2K(x_1,x_1) - K(x_2,x_1) = 2 - 0.5 = 1.5$. Norm: $\|f\|^2 = 4K(x_1,x_1) - 4K(x_1,x_2) + K(x_2,x_2) = 4 - 2 + 1 = 3$. The norm is small when the anchors cooperate ($K$ large between same-sign coefficients would raise... here opposite signs with high similarity RAISE the function's wiggle cost — it must change quickly between two similar points).</div>
+ <div class="box link"><span class="label">Where this goes</span> $\|f\|_{\mathcal H}$ is the regularizer that makes Ch 20's generalization bounds go through for kernel machines; GP regression (next) is Bayesian inference whose posterior mean lives in exactly this space; the neural tangent kernel (Ch 21) says wide networks train inside an RKHS too.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Use the reproducing property to show $|f(x)| \le \|f\|_{\mathcal H}\sqrt{K(x,x)}$. <details class="sol"><summary>Solution</summary><div>$|f(x)| = |\langle f, K(x,\cdot)\rangle| \le \|f\|\cdot\|K(x,\cdot)\| = \|f\|\sqrt{K(x,x)}$ (Cauchy–Schwarz): bounded RKHS norm ⟹ uniformly bounded (for bounded kernels) — RKHS balls are well-behaved function classes.</div></details></li>
+  <li><span class="lvl m">MED</span> For the linear kernel $K(x,z) = x^\top z$, identify $\mathcal H_K$ and $\|f\|_{\mathcal H}$. <details class="sol"><summary>Solution</summary><div>Functions $f(x) = w^\top x$ (with $w = \sum\alpha_ix_i$ spanning $\mathbb R^d$ generically); $\|f\|_{\mathcal H} = \|w\|_2$. RKHS regularization = ridge: the familiar case, generalized by every other kernel.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the representer theorem. <details class="sol"><summary>Solution</summary><div>Decompose any $f\in\mathcal H$ as $f = f_\parallel + f_\perp$ with $f_\parallel \in \mathrm{span}\{K(x_i,\cdot)\}$ and $f_\perp$ orthogonal to it. By reproducing, $f(x_i) = \langle f, K(x_i,\cdot)\rangle = \langle f_\parallel, K(x_i,\cdot)\rangle$: the data term never sees $f_\perp$. The penalty: $\|f\|^2 = \|f_\parallel\|^2 + \|f_\perp\|^2 \ge \|f_\parallel\|^2$, strict if $f_\perp \ne 0$. So dropping $f_\perp$ never hurts the loss and strictly helps the penalty: the minimizer lies in the span. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gaussian-processes">
+ <h2>Gaussian processes</h2>
+ <p>A Gaussian process is a probability distribution over FUNCTIONS: any finite set of input points gets a joint Gaussian over their function values, with covariance given by a kernel. Condition on observed data and you get, in closed form, a posterior mean curve AND error bars — the honest uncertainty that most models fake.</p>
+ <div class="box def"><span class="label">Definition</span> $f \sim \mathcal{GP}(m, K)$: for any $x_1..x_n$, $(f(x_1)..f(x_n)) \sim \mathcal N(m(\mathbf x), K(\mathbf x, \mathbf x))$. Regression with noise $\sigma^2$: given data $(X, y)$ and test point $x_*$, the posterior is Gaussian with $$\mu_* = k_*^\top(K + \sigma^2I)^{-1}y, \qquad \mathrm{var}_* = K(x_*, x_*) - k_*^\top(K + \sigma^2I)^{-1}k_*$$ where $k_* = [K(x_i, x_*)]_i$. Cost $O(n^3)$ (Cholesky, Ch 18). The posterior mean equals kernel ridge regression; the variance is the GP's gift.</div>
+ <div class="box ex"><span class="label">Worked example</span> One observation: $x_1 = 0$, $y_1 = 2$, RBF kernel ($K(x,x) = 1$), noise $\sigma^2 = 0$. At $x_* $ with $K(x_1, x_*) = 0.8$: $\mu_* = 0.8\times\frac{2}{1} = 1.6$; $\mathrm{var}_* = 1 - 0.64 = 0.36$ (σ = 0.6). Far away, $K \to 0$: $\mu_* \to 0$ (the prior mean) and var $\to 1$ (full prior uncertainty). The GP interpolates near data and honestly shrugs far from it.</div>
+ <div class="box pit"><span class="label">Pitfall</span> GP quality = kernel quality: an RBF with the wrong length-scale gives confident nonsense (too-long: oversmoothed with tiny error bars; too-short: wiggle + huge bars). Fit hyperparameters by maximizing the marginal likelihood $\log p(y\mid X) = -\frac12 y^\top(K+\sigma^2I)^{-1}y - \frac12\log\det(K + \sigma^2I) - \frac n2\log 2\pi$ — its two terms trade data fit against model complexity automatically.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the GP posterior variance AT a noiselessly observed training point, and why? <details class="sol"><summary>Solution</summary><div>Zero: with $\sigma^2 = 0$, $k_*$ is a column of $K$, and the algebra gives $\mathrm{var} = K_{**} - K_{*}K^{-1}K_* = 0$ — the function is pinned exactly there.</div></details></li>
+  <li><span class="lvl m">MED</span> Two noiseless observations $y = (1, 3)$ at $x_1, x_2$ with $K = \begin{pmatrix}1 & 0.5\\ 0.5 & 1\end{pmatrix}$; test point with $k_* = (0.5, 0.5)^\top$. Compute μ* and var*. <details class="sol"><summary>Solution</summary><div>$K^{-1} = \frac{1}{0.75}\begin{pmatrix}1 & -0.5\\ -0.5 & 1\end{pmatrix}$. $K^{-1}y = \frac{1}{0.75}(1 - 1.5, -0.5 + 3)^\top = \frac{1}{0.75}(-0.5, 2.5)^\top = (-\frac23, \frac{10}{3})^\top$. μ* $= 0.5(-\frac23) + 0.5(\frac{10}3) = \frac{4}{3} \approx 1.33$. var* $= 1 - k_*^\top K^{-1}k_*$: $K^{-1}k_* = \frac{1}{0.75}(0.5 - 0.25, -0.25 + 0.5)^\top = (\frac13, \frac13)^\top$; $k_*^\top(\ldots) = \frac13$. var* $= \frac23 \approx 0.667$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Where does the $O(n^3)$ come from, and name two standard escapes with their costs. <details class="sol"><summary>Solution</summary><div>The Cholesky factorization of $(K + \sigma^2 I)$ ($\frac13 n^3$ flops), reused for solves and the log-det. Escapes: (1) sparse/inducing-point GPs (SoR/FITC/SVGP): condition on $m \ll n$ pseudo-inputs, cost $O(nm^2)$ — variational versions choose the pseudo-inputs by maximizing an ELBO (Ch 13); (2) random Fourier features: explicit $D$-dim map + Bayesian linear regression, $O(nD^2)$; (also structured kernels/Kronecker, conjugate-gradient GPs with matvec-only access.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="k-means">
+ <h2>K-means</h2>
+ <p>K-means carves data into K clusters by alternating two obvious steps: assign each point to its nearest center, then move each center to its points' mean. Each step lowers the total squared distance, so it always converges — though only to a local optimum, which is why you restart it and why initialization (k-means++) matters.</p>
+ <div class="box def"><span class="label">Definition</span> Objective: $\min_{C_1..C_K,\ \mu_1..\mu_K}\sum_k\sum_{x\in C_k}\|x - \mu_k\|^2$ (within-cluster sum of squares). Lloyd's algorithm: repeat {assign: $C_k = \{x : k = \arg\min_j\|x - \mu_j\|\}$; update: $\mu_k = \mathrm{mean}(C_k)$} until stable. Both steps weakly decrease the objective ⟹ finite convergence. <em>k-means++</em> seeding: pick first center at random, then each next center with probability ∝ squared distance to the nearest chosen one — $O(\log K)$-competitive in expectation. Choose K by elbow/silhouette/downstream utility.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1-D points $\{1, 2, 3, 10, 11, 12\}$, K = 2, bad init $\mu = (3, 10)$. Assign: $\{1,2,3\}$ (nearer 3… check 3: |3-3|=0 &lt; 7 ✓) and $\{10,11,12\}$. Update: $\mu = (2, 11)$. Assign again: unchanged. Converged in one round to the obviously right clustering, objective $= (1+0+1) + (1+0+1) = 4$. Init $\mu = (1, 2)$ instead: assign $\{1\}$, $\{2,3,10,11,12\}$; update $\mu = (1, 7.6)$; assign $\{1,2,3\}$/$\{10,11,12\}$; recover. K-means is forgiving in easy geometry — and treacherous in hard geometry (elongated or unequal clusters).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Step Lloyd's algorithm on clustered 2-D data: watch assignments (colors) and centroids (crosses) negotiate. Bad initializations sometimes trap it — resample and see.</p>
+  <canvas id="cv-km"></canvas>
+  <div class="ctl">
+   <label>K <input type="range" id="km-k" min="2" max="6" step="1" value="3"></label>
+   <button class="btn" id="km-step">Step</button>
+   <button class="btn" id="km-re">New data + init</button>
+  </div>
+  <div class="out" id="km-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> K-means loves round, similar-sized, similar-density blobs — its objective literally assumes them (isotropic squared distance). Two crescent moons, nested rings, or one dense + one sparse cluster defeat it structurally, not by bad luck: reach for DBSCAN, GMMs with full covariances, or spectral clustering.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why does the update step use the mean specifically? <details class="sol"><summary>Solution</summary><div>The mean minimizes the sum of squared distances to a set of points ($\arg\min_\mu\sum\|x - \mu\|^2$) — proved in the loss-functions drill. Swap the objective to absolute distance and the optimal center is the median: k-medians.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove Lloyd's algorithm terminates in finitely many iterations. <details class="sol"><summary>Solution</summary><div>Both steps weakly decrease the objective (assignment: each point moves to a no-farther center; update: the mean is per-cluster optimal). There are finitely many partitions of $n$ points into K clusters, and the objective strictly decreases whenever the partition changes (with suitable tie-breaking); no partition can recur. Hence finite termination — though possibly at a local optimum, and possibly after exponentially many steps in theory (polynomial "smoothed" complexity in practice).</div></details></li>
+  <li><span class="lvl h">HARD</span> Run one Lloyd round by hand: points $(0,0), (0,2), (4,0), (4,2)$, init centers $(0,1), (1,1)$. What happens, and what does the result say about init sensitivity? <details class="sol"><summary>Solution</summary><div>Assign: $(0,0)$: d² = 1 vs 2 → c1; $(0,2)$: 1 vs 2 → c1; $(4,0)$: 17 vs 10 → c2; $(4,2)$: 17 vs 10 → c2. Update: c1 = $(0,1)$, c2 = $(4,1)$. Next assign: unchanged; converged to the natural left/right split, objective $= 4\times1 = 4$. But init both centers on the LEFT, e.g. $(0,0.5), (0,1.5)$: converges to top/bottom split {(0,0),(4,0)} / {(0,2),(4,2)} with centers $(2,0), (2,2)$, objective $= 4\times4 = 16$ — a 4× worse local optimum that Lloyd cannot escape. Hence k-means++ and restarts.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dbscan">
+ <h2>DBSCAN</h2>
+ <p>DBSCAN clusters by density: a cluster is a region where points are packed tightly, and clusters are grown outward from dense cores until density fades. No K to choose, arbitrary cluster shapes (moons, rings, snakes), and a built-in notion of noise — the points too sparse to belong anywhere.</p>
+ <div class="box def"><span class="label">Definition</span> Parameters: radius $\varepsilon$, minimum neighborhood size $minPts$. A <em>core point</em> has $\ge minPts$ points within $\varepsilon$ (itself included). A <em>border point</em> is within $\varepsilon$ of a core but not core itself; everything else is <em>noise</em>. Clusters = connected components of core points (linked when within $\varepsilon$ of each other), plus their borders. Heuristic for ε: the elbow of the sorted k-distance plot ($k = minPts - 1$).</div>
+ <div class="box ex"><span class="label">Worked example</span> 1-D points $\{1, 2, 3, 10, 11, 25\}$, ε = 1.5, minPts = 2. Neighborhoods: 1↔2, 2↔3 (each of 1,2,3 has ≥2 in range → cores, connected: cluster {1,2,3}); 10↔11 (cores: cluster {10,11}); 25 alone → noise. Two clusters of different sizes plus an explicit outlier — three verdicts k-means (which would force 25 into a cluster and split on K) cannot give.</div>
+ <div class="box pit"><span class="label">Pitfall</span> One global ε means one global density standard: clusters of very different densities cannot both be right (loose ε merges the dense pair; tight ε shreds the sparse one). HDBSCAN and OPTICS exist for exactly this. Also ε is a DISTANCE: scale your features.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which of k-means' failure geometries does DBSCAN handle, and what does it output that k-means never can? <details class="sol"><summary>Solution</summary><div>Non-convex shapes (moons, rings) and unequal cluster sizes; it outputs "noise" — points belonging to no cluster.</div></details></li>
+  <li><span class="lvl m">MED</span> Points on a uniform grid of spacing 1, ε = 1.2, minPts = 5. Interior points have how many neighbors within ε (4-neighborhood counting)? Are they cores? What about corner points? <details class="sol"><summary>Solution</summary><div>Within 1.2 of an interior point: the 4 axis neighbors (distance 1) + itself = 5 ≥ 5: core (diagonals at √2 ≈ 1.41 are outside). Corner: itself + 2 neighbors = 3 &lt; 5: not core; it is border (within ε of a core edge point... edge point: itself+3 = 4 &lt; 5, also not core — actually edge points are borders of interior cores; the corner is within ε of an edge point which is NOT core, so the corner is noise unless within 1.2 of some core: its nearest interior point is at distance √2 &gt; 1.2 → noise). The grid's rim illustrates border/noise subtleties.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is DBSCAN's cluster assignment for BORDER points order-dependent, and does it matter? <details class="sol"><summary>Solution</summary><div>A border point within ε of cores from TWO different clusters gets claimed by whichever cluster's expansion reaches it first — an artifact of the scan order, not the data. Core points and noise are order-independent; only contested borders flip. Usually cosmetic (few points), but any pipeline hashing on exact cluster labels should canonicalize (e.g. assign borders to the nearest core's cluster).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gaussian-mixture-models">
+ <h2>Gaussian mixture models</h2>
+ <p>A GMM says the data was generated by K Gaussian blobs: pick a blob by weight, then sample from it. Clustering becomes probabilistic inference — each point gets soft RESPONSIBILITIES over clusters rather than a hard label — and clusters can be elliptical, tilted, and unequal, everything k-means' spherical squint cannot see.</p>
+ <div class="box def"><span class="label">Definition</span> Density $p(x) = \sum_{k=1}^K \pi_k\,\mathcal N(x\mid\mu_k, \Sigma_k)$, $\pi_k \ge 0$, $\sum\pi_k = 1$. Latent variable view: $z\sim\mathrm{Cat}(\pi)$, $x\mid z = k \sim \mathcal N(\mu_k, \Sigma_k)$. The <em>responsibility</em> $\gamma_k(x) = P(z = k\mid x) = \frac{\pi_k\mathcal N(x\mid\mu_k,\Sigma_k)}{\sum_j \pi_j\mathcal N(x\mid\mu_j,\Sigma_j)}$. Fit by maximum likelihood — no closed form: EM (next section). k-means is the limit of hard-assignment EM with $\Sigma_k = \sigma^2I$, $\sigma\to0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1-D, two components: $\pi = (0.5, 0.5)$, $\mathcal N(0, 1)$ and $\mathcal N(4, 1)$. Point $x = 1$: densities $\phi(1) = 0.242$, $\phi(-3) = 0.0044$. Responsibilities: $\gamma_1 = \frac{0.242}{0.242 + 0.0044} = 0.982$, $\gamma_2 = 0.018$. At $x = 2$ (equidistant): 50/50 exactly. The soft boundary carries honest ambiguity that a hard clustering discards.</div>
+ <div class="box link"><span class="label">Where this goes</span> The latent-variable + EM pattern is the ancestor of VAEs (Ch 22: EM's E-step becomes an encoder, responsibilities become approximate posteriors); mixture densities also model heteroscedastic multimodal outputs (mixture density networks).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many free parameters does a K-component GMM in d dimensions have (full covariances)? Evaluate K=3, d=2. <details class="sol"><summary>Solution</summary><div>$(K{-}1) + Kd + K\frac{d(d+1)}{2}$: weights + means + covariances. K=3, d=2: $2 + 6 + 9 = 17$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the responsibility $\gamma_1(x)$ for $x = 3$ under $\pi = (0.7, 0.3)$, components $\mathcal N(0, 4)$ and $\mathcal N(5, 1)$. <details class="sol"><summary>Solution</summary><div>$\mathcal N(3\mid0,4) = \frac{1}{\sqrt{8\pi}}e^{-9/8} = 0.1995\times0.3247 = 0.0648$; $\mathcal N(3\mid5,1) = \frac{1}{\sqrt{2\pi}}e^{-2} = 0.3989\times0.1353 = 0.0540$. Weighted: $0.7\times0.0648 = 0.0454$ vs $0.3\times0.0540 = 0.0162$. $\gamma_1 = \frac{0.0454}{0.0616} = 0.737$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The GMM likelihood is unbounded: show how, and name the standard fixes. <details class="sol"><summary>Solution</summary><div>Park one component exactly on a data point ($\mu_k = x_i$) and shrink $\sigma_k \to 0$: that point's density $\frac{1}{\sqrt{2\pi}\sigma_k} \to \infty$ while other points remain covered by the remaining components — likelihood → ∞ via a degenerate spike, which is memorization, not modeling. Fixes: lower-bound eigenvalues of $\Sigma_k$ (jitter), a Wishart/inverse-Wishart prior (MAP-EM), tie covariances across components, or discard singular solutions across restarts.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="expectation-maximization">
+ <h2>Expectation-Maximization</h2>
+ <p>EM cracks a chicken-and-egg: if you knew which component generated each point, fitting is trivial averaging; if you knew the components, inferring assignments is trivial Bayes. EM alternates the two — softly. E-step: compute responsibilities under current parameters. M-step: refit parameters with points weighted by responsibility. Each round provably raises the likelihood.</p>
+ <div class="box def"><span class="label">Definition</span> For latent-variable model $p_\theta(x, z)$: E-step: $q(z) = p_{\theta^{(t)}}(z\mid x)$. M-step: $\theta^{(t+1)} = \arg\max_\theta\ \mathbb E_{q}[\log p_\theta(x, z)]$. Justification: $\log p_\theta(x) \ge \mathcal L(q, \theta) = \mathbb E_q[\log p_\theta(x, z)] + H(q)$ (the ELBO, Ch 13); the E-step makes the bound tight at $\theta^{(t)}$, the M-step raises it — so $\log p_{\theta^{(t+1)}}(x) \ge \log p_{\theta^{(t)}}(x)$: monotone ascent to a stationary point (local optimum in general). GMM M-step: $\pi_k = \frac{N_k}{n}$, $\mu_k = \frac{\sum_i\gamma_{ik}x_i}{N_k}$, $\Sigma_k = \frac{\sum_i\gamma_{ik}(x_i - \mu_k)(x_i-\mu_k)^\top}{N_k}$, with $N_k = \sum_i\gamma_{ik}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> 1-D data $\{0, 1, 5, 6\}$, two components, $\sigma = 1$ fixed, init $\mu = (1, 5)$, $\pi = (0.5, 0.5)$. E-step at $x = 0$: densities $\propto e^{-0.5}, e^{-12.5}$: $\gamma_1 \approx 1.0$; similarly $x=1$: $\gamma_1 \approx 1$ ($e^0$ vs $e^{-8}$); $x = 5, 6$: $\gamma_2 \approx 1$. M-step: $\mu_1 = \frac{0+1}{2} = 0.5$, $\mu_2 = 5.5$, $\pi = (0.5, 0.5)$. Next E-step: responsibilities barely move (well-separated): converged in effect. With overlapping data the soft weights genuinely matter — points between the clusters get split fractionally, pulling both means gently.</div>
+ <div class="box think"><span class="label">Think first</span> Why not just do gradient ascent on the log-likelihood directly — what does EM buy? <details class="sol"><summary>Reveal</summary><div>You can (and modern practice often does). EM buys: no learning rate; monotone improvement guaranteed every step; closed-form M-steps for exponential families (the GMM updates are just weighted means/covariances); automatic satisfaction of constraints ($\Sigma \succeq 0$, $\sum\pi = 1$) that gradients must handle with parameterizations. It loses on flexibility — hence VAEs replace the exact E-step with a learned one when the posterior is intractable.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In hard-EM (assign each point fully to its most probable component), what algorithm do you recover for spherical equal Gaussians? <details class="sol"><summary>Solution</summary><div>K-means: hard nearest-mean assignment (E) + means of assigned points (M).</div></details></li>
+  <li><span class="lvl m">MED</span> Given points {0, 2} and responsibilities to component 1 of (0.8, 0.4): compute the M-step $\pi_1, \mu_1$ (n = 2). <details class="sol"><summary>Solution</summary><div>$N_1 = 1.2$: $\pi_1 = 0.6$; $\mu_1 = \frac{0.8\times0 + 0.4\times2}{1.2} = \frac{0.8}{1.2} = \frac23$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove EM's monotonicity from the ELBO decomposition $\log p_\theta(x) = \mathcal L(q,\theta) + \mathrm{KL}(q\,\|\,p_\theta(z\mid x))$. <details class="sol"><summary>Solution</summary><div>E-step: set $q = p_{\theta^{(t)}}(z\mid x)$, making KL = 0, so $\mathcal L(q, \theta^{(t)}) = \log p_{\theta^{(t)}}(x)$. M-step: $\mathcal L(q, \theta^{(t+1)}) \ge \mathcal L(q, \theta^{(t)})$. Then $\log p_{\theta^{(t+1)}}(x) = \mathcal L(q, \theta^{(t+1)}) + \mathrm{KL}(q\|p_{\theta^{(t+1)}}(z\mid x)) \ge \mathcal L(q,\theta^{(t+1)}) \ge \mathcal L(q, \theta^{(t)}) = \log p_{\theta^{(t)}}(x)$. ∎ The likelihood never decreases; combined with boundedness (fixed covariance floors) it converges.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="principal-component-analysis">
+ <h2>Principal Component Analysis</h2>
+ <p>PCA finds the directions along which data varies most and re-expresses each point by its coordinates along the top few: an optimal flattening. Direction 1 captures the most variance; direction 2 the most of what remains, orthogonally; and truncating after k directions gives the best possible k-dimensional linear summary in the squared-error sense.</p>
+ <div class="box def"><span class="label">Definition</span> Center the data; compute the covariance $S = \frac1nX_c^\top X_c$. The principal components are $S$'s eigenvectors $v_1, v_2, \ldots$ (orthogonal, by the spectral theorem, Ch 8), ranked by eigenvalues $\lambda_1 \ge \lambda_2 \ge \dots$ ($\lambda_j$ = variance along $v_j$). Project: $z = V_k^\top(x - \bar x) \in \mathbb R^k$. Equivalent via SVD of $X_c$: components = right singular vectors, $\lambda_j = \sigma_j^2/n$. Optimality: $V_k$ minimizes reconstruction error $\sum_i\|x_i - \hat x_i\|^2$ over all rank-k linear projections, with error $= n\sum_{j&gt;k}\lambda_j$. Variance explained: $\frac{\sum_{j\le k}\lambda_j}{\sum_j\lambda_j}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Centered 2-D data with covariance $S = \begin{pmatrix}5 & 3\\ 3 & 5\end{pmatrix}$. Eigenvalues: $5 \pm 3 = 8, 2$; eigenvectors $\frac{1}{\sqrt2}(1,1)$ and $\frac1{\sqrt2}(1,-1)$. PC1 is the diagonal direction with variance 8; keeping it alone explains $\frac{8}{10} = 80\%$ of variance, and reconstructing from PC1 alone incurs squared error $n\lambda_2 = 2n$. The point $(2, 0)$ projects to $z_1 = \frac{2}{\sqrt2} = \sqrt2$, reconstructing to $\sqrt2\cdot\frac{1}{\sqrt2}(1,1) = (1,1)$ — its diagonal shadow.</div>
+ <div class="box pit"><span class="label">Pitfall</span> PCA is variance-chasing, and variance follows units: a feature measured in grams instead of kilograms gets 10⁶× the variance and hijacks PC1. Standardize first (= PCA on the correlation matrix) unless the units are genuinely commensurate. And remember: max-variance directions need not be class-discriminative — PCA is unsupervised and can happily discard the signal.</div>
+ <div class="box link"><span class="label">Where this goes</span> PCA = the SVD's low-rank optimality (Ch 8) applied to data; probabilistic PCA is a Gaussian latent-variable model bridging to VAEs (Ch 22); PCA on embeddings is the first tool of interpretability work (Ch 35).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Eigenvalues of a 4-D covariance: 6, 2, 1, 1. How many PCs to explain ≥ 80% of variance? <details class="sol"><summary>Solution</summary><div>Total 10. PC1: 60%; PC1+2: 80% ✓ — two.</div></details></li>
+  <li><span class="lvl m">MED</span> Why must the data be centered before computing components from $X^\top X$? What artifact appears otherwise? <details class="sol"><summary>Solution</summary><div>Uncentered $X^\top X$ mixes the mean into the second moment: the top "component" tilts toward the mean direction $\bar x$ (pointing from origin to the data cloud) rather than the direction of maximal SPREAD. You'd be modeling where the data sits, not how it varies.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove PC1 maximizes variance: $v_1 = \arg\max_{\|v\| = 1} v^\top S v$. <details class="sol"><summary>Solution</summary><div>Expand $v$ in $S$'s orthonormal eigenbasis: $v = \sum_j c_jv_j$, $\sum c_j^2 = 1$. Then $v^\top Sv = \sum_j\lambda_jc_j^2$ — a convex combination of eigenvalues, maximized by putting all weight on the largest: $c_1 = \pm1$, value $\lambda_1$. ∎ (Same argument constrained to $v \perp v_1$ gives PC2, and so on — the Rayleigh-quotient/Courant–Fischer story of Ch 8.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dimensionality-reduction">
+ <h2>Dimensionality reduction</h2>
+ <p>High-dimensional data usually doesn't fill its space — it hugs a lower-dimensional sheet (the manifold hypothesis, Ch 9). Dimensionality reduction finds compact coordinates for that sheet: linear methods (PCA, random projection) preserve global geometry cheaply; nonlinear methods (kernel PCA, autoencoders, t-SNE/UMAP) unroll curvature. Uses: compression, denoising, visualization, and taming the curse of dimensionality for downstream learners.</p>
+ <div class="box def"><span class="label">Definition</span> Learn $g: \mathbb R^d \to \mathbb R^k$, $k \ll d$, preserving what matters: variance (PCA), pairwise distances (MDS; random projections via Johnson–Lindenstrauss: $k = O(\varepsilon^{-2}\log n)$ preserves all pairwise distances within $1\pm\varepsilon$), local neighborhoods (t-SNE/UMAP), or reconstructability (autoencoders: minimize $\|x - \mathrm{dec}(\mathrm{enc}(x))\|^2$; with linear enc/dec, the optimum recovers the PCA subspace).</div>
+ <div class="box ex"><span class="label">Worked example</span> MNIST digits: $d = 784$ pixels. PCA: ~50 components keep ~90% of variance and classification accuracy; ~150 keep ~99%. The digits' true degrees of freedom (stroke thickness, slant, style) number in the dozens, not hundreds — the pixels are a redundant encoding of a low-dimensional cause. Random projection to $k = O(\log n / \varepsilon^2)$ dims would preserve pairwise structure with no training at all — sometimes that's all a downstream k-NN needs.</div>
+ <div class="box drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give three distinct reasons to reduce dimension before modeling. <details class="sol"><summary>Solution</summary><div>Fight the curse of dimensionality (distance concentration for k-NN/kernels); remove noise directions (regularization effect); computational/storage savings; visualization; decorrelate features for fragile downstream models — any three.</div></details></li>
+  <li><span class="lvl m">MED</span> Johnson–Lindenstrauss says ~$\frac{8\ln n}{\varepsilon^2}$ dimensions suffice to preserve distances among n points within 1±ε. For n = 10⁶ and ε = 0.1: how many dimensions, and what is remarkable about the answer? <details class="sol"><summary>Solution</summary><div>$\frac{8\times13.8}{0.01} \approx 11{,}000$ — independent of the ORIGINAL dimension d (be it 10⁹) and only logarithmic in n. Distance structure is astonishingly compressible; and the projection is data-oblivious (random Gaussian matrix).</div></details></li>
+  <li><span class="lvl h">HARD</span> Why can't PCA unroll a "Swiss roll" (a 2-D sheet rolled up in 3-D), and what property must a method have to succeed? <details class="sol"><summary>Solution</summary><div>PCA is a LINEAR projection: it can only flatten by shadowing onto a plane, which superimposes the roll's layers — points far apart along the sheet (geodesically) but close in ambient 3-D space get merged. Success requires respecting INTRINSIC (geodesic/neighborhood-graph) distances rather than ambient ones: Isomap (geodesics via shortest paths on the k-NN graph), LLE, diffusion maps, UMAP. The lesson: "close in ℝᵈ" ≠ "close on the manifold," and which one you preserve is the whole design decision.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="t-sne-and-umap">
+ <h2>t-SNE and UMAP</h2>
+ <p>t-SNE and UMAP make the 2-D scatterplots that decorate every embedding paper. Both convert high-dimensional neighborhoods into probabilities/graphs and lay points out in 2-D so that neighbors stay neighbors, accepting distortion of everything global. Read the resulting maps like political cartoons: local groupings are meaningful, sizes and distances between clusters largely are not.</p>
+ <div class="box def"><span class="label">Definition</span> <em>t-SNE:</em> in high-D, define $p_{ij}$ ∝ Gaussian affinities calibrated per-point so each has effective neighbor count = <em>perplexity</em>; in 2-D, $q_{ij} \propto (1 + \|y_i - y_j\|^2)^{-1}$ (heavy-tailed Student-t, which relieves crowding); minimize $\mathrm{KL}(P\|Q)$ by gradient descent. <em>UMAP:</em> build a fuzzy k-NN graph in high-D, then optimize a low-D layout matching its edge structure (cross-entropy on edges); faster, better global structure retention, has $n_{\text{neighbors}}$/​$min_{\text{dist}}$ in place of perplexity.</div>
+ <div class="box ex"><span class="label">Worked example</span> MNIST through t-SNE (perplexity 30): ten crisp islands, one per digit, with 4/9 and 3/5/8 adjacent — the honest signal is the neighborhood composition (which digits confuse). Rerun with perplexity 5: islands shatter into archipelagos (over-local); perplexity 100: islands merge (over-global). Same data, three different-looking "truths": the hyperparameter is part of the picture.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Things t-SNE plots do NOT mean: cluster sizes (t-SNE expands dense clusters and contracts sparse ones), inter-cluster distances (KL barely constrains them), density, or axes (meaningless). And with small perplexity, t-SNE will manufacture clusters from structureless noise. Never measure anything on a t-SNE plot; treat it as a neighborhood-preserving caricature and confirm structure with quantitative methods.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Why a heavy-tailed (Student-t) distribution in the LOW-dimensional space? <details class="sol"><summary>Solution</summary><div>The crowding problem: 2-D has far less room at moderate distances than high-D, so moderately-distant high-D pairs can't all be placed moderately far in 2-D. Heavy tails let such pairs sit far apart in 2-D while still paying little penalty — declumping the map.</div></details></li>
+  <li><span class="lvl m">MED</span> Your t-SNE shows two well-separated islands 3× farther apart than two others. What may you conclude? <details class="sol"><summary>Solution</summary><div>Only that the islands' members are mutual neighbors (local structure). The 3× gap is not evidence of greater dissimilarity — inter-cluster distances are largely arbitrary in t-SNE. Verify with distances in the original space, a dendrogram, or a linear projection.</div></details></li>
+  <li><span class="lvl h">HARD</span> Perplexity is $2^{H(P_i)}$ for each point's conditional neighbor distribution. Explain what calibrating σᵢ per point to hit a fixed perplexity accomplishes, and its failure mode on variable-density data. <details class="sol"><summary>Solution</summary><div>Each point's Gaussian bandwidth σᵢ is tuned (by bisection, Ch 18!) so its neighbor distribution has a fixed effective number of neighbors: dense regions get small σ, sparse get large — an adaptive density equalization letting all regions contribute comparable local structure. Failure: it ERASES density information by design (a tight clump and a diffuse cloud of the same membership look identical), which is one reason cluster sizes/densities in the plot are uninterpretable.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="distribution-shift">
+ <h2>Distribution shift</h2>
+ <p>Every guarantee so far assumed test data flows from the training distribution. Deployment breaks that promise constantly: seasons change, sensors drift, users adapt, one hospital's scanner isn't another's. Distribution shift is the umbrella term, and the taxonomy — what exactly changed: $P(x)$, $P(y)$, or $P(y\mid x)$ — decides what, if anything, can be fixed.</p>
+ <div class="box def"><span class="label">Definition</span> Train on $P_{tr}(x, y)$, deploy on $P_{te}(x, y) \ne P_{tr}$. Taxonomy: <em>covariate shift</em> — $P(x)$ changes, $P(y\mid x)$ fixed; <em>label shift</em> — $P(y)$ changes, $P(x\mid y)$ fixed; <em>concept drift</em> — $P(y\mid x)$ itself changes (the hardest: the meaning of the features moved). Detection: monitor input statistics, prediction distributions, and (when labels arrive) live accuracy; two-sample tests between reference and current windows.</div>
+ <div class="box ex"><span class="label">Worked example</span> A credit model trained pre-recession. Covariate shift: applicants' income distribution shifts down (same people-with-features default at same rates). Label shift: default rate rises from 2% → 8% economy-wide. Concept drift: a formerly safe profile (stable industry X) becomes risky because industry X collapsed — $P(\text{default}\mid x)$ itself changed, and no reweighting of old data recovers it: you need new labels.</div>
+ <div class="box link"><span class="label">Where this goes</span> Covariate and label shift get their own sections next; distribution shift is why Ch 20's i.i.d. bounds need care, why RL (Ch 25) is hard (the policy shifts its own data), and why agent evaluation (Ch 32) must probe off-distribution.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify: (a) a spam model degrading as spammers invent new tactics; (b) a diagnosis model moved from a young-skewing to old-skewing clinic; (c) flu-test triage in flu season vs summer. <details class="sol"><summary>Solution</summary><div>(a) concept drift (adversarial: $P(y\mid x)$ changes as spam adapts to look like ham); (b) covariate shift (patient features shift; biology fixed); (c) label shift (flu prevalence changes; symptom-given-flu fixed).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does high accuracy on a HELD-OUT set not certify robustness to shift, even with perfect protocol? <details class="sol"><summary>Solution</summary><div>The held-out set is drawn from the SAME distribution as training — it certifies i.i.d. generalization only. Shift robustness is performance under a DIFFERENT distribution, about which the held-out set is silent. Certify it with deliberately shifted evaluation sets (other hospitals, other years, corruptions).</div></details></li>
+  <li><span class="lvl h">HARD</span> You can afford to label a small trickle of production data. Design a monitoring + adaptation scheme distinguishing the three shift types. <details class="sol"><summary>Solution</summary><div>Monitor (1) input drift: two-sample tests / PSI on features (flags covariate shift, no labels needed); (2) prediction distribution drift (flags label shift under its assumption — predicted class rates move); (3) labeled-trickle accuracy and calibration by segment (the only detector of concept drift). Adapt: covariate shift → importance reweighting or fine-tune on reweighted data; label shift → re-estimate priors (BBSE/EM on the confusion matrix) and adjust the classifier's threshold/prior; concept drift → collect labels and retrain; keep a rolling window. And alert on any segment where confidence stays high while trickle accuracy falls — the silent failure mode.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="covariate-shift">
+ <h2>Covariate shift</h2>
+ <p>Covariate shift: the inputs move, the input-output rule doesn't. Your model is asked about regions it barely trained on. If it's flexible and well-specified everywhere, no problem in principle — but real models are best where data was dense, so accuracy quietly relocates away from where the test queries now live. The classical fix reweights training data to impersonate the test distribution.</p>
+ <div class="box def"><span class="label">Definition</span> $P_{te}(x) \ne P_{tr}(x)$, $P(y\mid x)$ shared. Importance weighting: $\mathbb E_{te}[\ell] = \mathbb E_{tr}\!\left[w(x)\,\ell\right]$ with $w(x) = \frac{P_{te}(x)}{P_{tr}(x)}$ — train on weighted empirical risk $\frac1n\sum w(x_i)\ell_i$: unbiased for the test risk. Estimate $w$ by density-ratio methods, e.g. train a domain classifier $c(x) = P(\text{test}\mid x)$ and use $w = \frac{c}{1-c}\cdot\frac{n_{tr}}{n_{te}}$. Cost: weighting inflates variance (effective sample size $\frac{(\sum w_i)^2}{\sum w_i^2}$ shrinks); clip or smooth weights.</div>
+ <div class="box ex"><span class="label">Worked example</span> Train pool: 80% daytime / 20% night driving images; deployment: 50/50. Weights: night images get $w = \frac{0.5}{0.2} = 2.5$, day $\frac{0.5}{0.8} = 0.625$. A model that was trading night accuracy for day accuracy re-balances its capacity. Effective sample size with these weights on 1000 images (800 day, 200 night): $\frac{(800\times0.625 + 200\times2.5)^2}{800\times0.39 + 200\times6.25} = \frac{1000^2}{1562.5} = 640$ — you "paid" 360 images for the correction.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Importance weights explode where the test distribution lives but training barely does ($P_{tr}(x) \approx 0$): a few enormous weights dominate training and the variance kills you. No reweighting conjures information about truly unvisited regions — there, only new data collection (or strong model assumptions) helps. Check weight histograms before trusting the fix.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Under covariate shift, which factorization piece stays valid — and so which trained object transfers as-is if correctly specified? <details class="sol"><summary>Solution</summary><div>$P(y\mid x)$ is unchanged: a correctly specified conditional model transfers perfectly; only its ESTIMATE is worse where training data was thin. (Misspecified models do change their best fit under reweighting — that's when importance weighting matters most.)</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the identity $\mathbb E_{te}[\ell(x,y)] = \mathbb E_{tr}[w(x)\ell(x,y)]$. <details class="sol"><summary>Solution</summary><div>$\mathbb E_{te}[\ell] = \int \ell(x,y)P_{te}(x)P(y\mid x)\,dy\,dx = \int \ell\,\frac{P_{te}(x)}{P_{tr}(x)}P_{tr}(x)P(y\mid x)\,dy\,dx = \mathbb E_{tr}[w(x)\ell]$ — using the SHARED $P(y\mid x)$; the ratio only touches the $x$-marginal. (This is importance sampling, Ch 13, wearing ML clothes.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show how a domain classifier yields the density ratio, and what its failure to beat 50% accuracy tells you. <details class="sol"><summary>Solution</summary><div>Pool training (label D=0) and test-input (D=1) samples in ratio $n_{tr}:n_{te}$. Bayes: $P(D{=}1\mid x) = \frac{P_{te}(x)n_{te}}{P_{te}(x)n_{te} + P_{tr}(x)n_{tr}}$, so $\frac{P_{te}(x)}{P_{tr}(x)} = \frac{P(D{=}1\mid x)}{P(D{=}0\mid x)}\cdot\frac{n_{tr}}{n_{te}}$: read the ratio off any calibrated classifier. If the classifier can't beat chance, the domains are indistinguishable — $w \approx 1$ everywhere: no meaningful covariate shift (in the features it sees). Domain-classifier AUC is thus a practical shift meter.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="label-shift">
+ <h2>Label shift</h2>
+ <p>Label shift: the class proportions change, but each class still looks the same. Flu season doesn't change what flu looks like; it changes how much of it walks in. Because the change lives in one small object — the prior $P(y)$ — it can be estimated from UNLABELED deployment data and corrected with a one-line Bayes adjustment.</p>
+ <div class="box def"><span class="label">Definition</span> $P_{te}(y) \ne P_{tr}(y)$, $P(x\mid y)$ shared. Correction: reweight training examples by class weights $w(y) = \frac{P_{te}(y)}{P_{tr}(y)}$, or adjust predictions: $P_{te}(y\mid x) \propto P_{tr}(y\mid x)\,\frac{P_{te}(y)}{P_{tr}(y)}$ (renormalize). Estimating $P_{te}(y)$ without labels — <em>Black-Box Shift Estimation:</em> with confusion matrix $C_{ij} = P_{tr}(\hat y = i\mid y = j)$ and deployed prediction rates $\hat\mu_i = P_{te}(\hat y = i)$: solve $C\,q = \hat\mu$ for the test priors $q$ (valid when $C$ invertible).</div>
+ <div class="box ex"><span class="label">Worked example</span> Binary flu classifier: training prevalence 5%, calibrated $P_{tr}(y{=}1\mid x) = 0.5$ for some patient. Flu season: prevalence 20%. Adjust: odds multiply by $\frac{0.20/0.05}{0.80/0.95} = \frac{4}{0.842} = 4.75$: new odds $= 1\times4.75$, so $P_{te}(y{=}1\mid x) = \frac{4.75}{5.75} = 0.826$. Same symptoms, same $P(x\mid y)$ — but the base rate quadrupled, and Bayes says the posterior must follow.</div>
+ <div class="box think"><span class="label">Think first</span> Why can label shift be detected and corrected from unlabeled test data, while concept drift cannot? <details class="sol"><summary>Reveal</summary><div>Under label shift, everything observable about test data — $P_{te}(x) = \sum_y P(x\mid y)P_{te}(y)$ — is determined by a $K$-vector of priors, with the class-conditionals known from training: a tiny, identifiable parameter. Concept drift changes $P(y\mid x)$, which is unobservable without labels: any unlabeled $P_{te}(x)$ is consistent with infinitely many new conditionals. Identifiability is everything.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Training set: 50/50 cats/dogs. Deployment: 90/10. What weight does each training dog example get for reweighted retraining? <details class="sol"><summary>Solution</summary><div>$w(\text{dog}) = \frac{0.1}{0.5} = 0.2$; cats get 1.8.</div></details></li>
+  <li><span class="lvl m">MED</span> Apply BBSE: $C = \begin{pmatrix}0.9 & 0.2\\ 0.1 & 0.8\end{pmatrix}$ (columns = true class), deployed prediction rates $\hat\mu = (0.55, 0.45)$. Estimate test priors. <details class="sol"><summary>Solution</summary><div>Solve $0.9q_1 + 0.2q_2 = 0.55$, $0.1q_1 + 0.8q_2 = 0.45$ with $q_1 + q_2 = 1$ implied: from the first, using $q_2 = 1 - q_1$: $0.7q_1 = 0.35 \Rightarrow q_1 = 0.5$… check second: $0.05 + 0.4 = 0.45$ ✓. Test priors (0.5, 0.5) — the prediction-rate change you'd SEE, $\hat\mu$, already encodes them through the confusion matrix.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive the posterior adjustment formula from Bayes, and explain why the classifier must be CALIBRATED for it to work. <details class="sol"><summary>Solution</summary><div>$P_{te}(y\mid x) = \frac{P(x\mid y)P_{te}(y)}{\sum_{y'}P(x\mid y')P_{te}(y')}$; substituting $P(x\mid y) = \frac{P_{tr}(y\mid x)P_{tr}(x)}{P_{tr}(y)}$ (shared class-conditionals) and canceling $P_{tr}(x)$: $P_{te}(y\mid x) \propto P_{tr}(y\mid x)\frac{P_{te}(y)}{P_{tr}(y)}$. The derivation treats $P_{tr}(y\mid x)$ as the TRUE training posterior; a miscalibrated score isn't a posterior, so multiplying it by prior ratios compounds nonsense. Calibrate first (this chapter's last section), then shift the prior.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="out-of-distribution-detection">
+ <h2>Out-of-distribution detection</h2>
+ <p>Before answering, a deployed model should ask: is this input even the kind of thing I was trained on? OOD detection tries to flag inputs from beyond the training distribution — the X-ray of a species the classifier never saw, the sensor glitch, the adversarial garbage — so the system can abstain, escalate, or route to a human rather than confidently hallucinate.</p>
+ <div class="box def"><span class="label">Definition</span> Score each input $s(x)$ and threshold: low score ⟹ flag OOD. Families: <em>softmax-based</em> — max softmax probability (MSP), energy score $-\log\sum_k e^{f_k(x)}$ (better: uses logit magnitudes); <em>density-based</em> — likelihood under a generative model of $P(x)$ (treacherous: deep generative models often assign HIGHER likelihood to some OOD data); <em>feature-based</em> — Mahalanobis distance to class-conditional Gaussians in embedding space; <em>with outlier exposure</em> — train against a corpus of miscellaneous outliers. Evaluate by AUROC of ID-vs-OOD discrimination.</div>
+ <div class="box ex"><span class="label">Worked example</span> A digit classifier receives a letter "A". Softmax output: $(0.71, 0.05, \ldots)$ — it says "7" with 71% confidence: MSP would NOT flag it at a 0.5 threshold. Embedding-space Mahalanobis distance to the nearest class centroid: 6.2σ, versus a 95th-percentile ID distance of 2.8σ — flagged. Softmax confidence is a statement about which of the K known classes fits RELATIVELY best; it carries no information that none fit. That asymmetry is the field's founding observation.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "The model will be uncertain on weird inputs" is false: ReLU networks provably become MORE confident far from the training data along many directions, and CIFAR-trained density models rank SVHN images as more likely than CIFAR test images. Neither confidence nor naive likelihood is an OOD detector. Test your detector against a battery of OOD sources — near-OOD (similar datasets) is much harder than far-OOD (noise).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Distinguish OOD detection from misclassification detection. <details class="sol"><summary>Solution</summary><div>OOD: "is this input from the training distribution at all?" Misclassification detection: "is my answer on this (in-distribution) input likely wrong?" A blurry in-distribution digit is the second problem; a letter fed to a digit model is the first. Detectors for one are often mediocre at the other.</div></details></li>
+  <li><span class="lvl m">MED</span> Your OOD detector achieves AUROC 0.95 against random noise and 0.62 against images from a sister dataset. What deployment conclusion follows? <details class="sol"><summary>Solution</summary><div>Far-OOD is nearly solved; near-OOD — the realistic case (new categories, adjacent domains) — is barely better than chance. Deployment risk mostly comes from near-OOD, so 0.62 is the operative number: don't ship claims based on the 0.95.</div></details></li>
+  <li><span class="lvl h">HARD</span> Selective prediction: the model may abstain on a fraction of inputs. Define the risk-coverage trade-off and how an OOD/confidence score induces it; what curve summarizes quality? <details class="sol"><summary>Solution</summary><div>Given score $s(x)$ and threshold τ: predict when $s \ge \tau$ (coverage $= P(s \ge \tau)$), abstain otherwise; selective risk = error rate among covered inputs. Sweeping τ traces the risk-coverage curve; area under it (AURC) summarizes. A perfect score would order inputs by correctness probability, putting all errors into the abstained tail — the practical form of "knowing what you don't know," and the bridge to Ch 24's abstention decisions where each abstention has a price.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="calibration">
+ <h2>Calibration</h2>
+ <p>A calibrated model's probabilities mean what they say: of all the times it says "70%", about 70% happen. Calibration is orthogonal to accuracy — a model can rank perfectly yet be systematically overconfident — and it is what turns a score into a number you can multiply by costs and act on. Modern deep nets are famously miscalibrated out of the box; fixing them is cheap.</p>
+ <div class="box def"><span class="label">Definition</span> Perfect calibration: $P(y = 1\mid \hat p(x) = p) = p$ for all $p$. Diagnostics: <em>reliability diagram</em> (bin predictions by confidence; plot observed frequency vs mean confidence per bin); <em>Expected Calibration Error</em> $\mathrm{ECE} = \sum_b \frac{n_b}{n}\big|\mathrm{acc}(b) - \mathrm{conf}(b)\big|$ (Ch 13). Recalibration (fit on validation!): <em>temperature scaling</em> — one scalar $T$: $\hat p = \mathrm{softmax}(z/T)$, chosen to minimize validation NLL (preserves accuracy: argmax unchanged); Platt scaling (sigmoid on scores); isotonic regression (monotone nonparametric).</div>
+ <div class="box ex"><span class="label">Worked example</span> Validation, 3 bins: [0.6–0.8]: 200 predictions, mean confidence 0.72, accuracy 0.60; [0.8–0.9]: 300, conf 0.85, acc 0.78; [0.9–1.0]: 500, conf 0.96, acc 0.90. ECE $= \frac{200(0.12) + 300(0.07) + 500(0.06)}{1000} = \frac{24 + 21 + 30}{1000} = 0.075$. Every bin's accuracy sits BELOW its confidence: uniform overconfidence — the signature temperature scaling fixes: fitting $T \approx 1.4$ drags all confidences down toward honesty without changing a single decision.</div>
+ <div class="box think"><span class="label">Think first</span> Temperature scaling with $T &gt; 1$ lowers every confidence. Can it change accuracy? Log loss? ECE? AUC? <details class="sol"><summary>Reveal</summary><div>Accuracy: no — dividing logits by $T$ preserves their order, so the argmax (and the full ranking: AUC) is untouched. Log loss and ECE: yes — that is the point; the optimal $T$ on validation strictly improves NLL for an overconfident model. One parameter, pure calibration, zero accuracy risk: the best deal in deep learning.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Calibration under shift degrades first (Ch 13's uncertainty quantification and this chapter's shift sections meet here); calibrated uncertainty feeds decision theory (Ch 24: expected-cost decisions need real probabilities) and honesty in LLMs (Ch 35).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A weather model says 90% rain on 50 days; it rained on 32. Calibrated at that level? <details class="sol"><summary>Solution</summary><div>Observed 64% vs stated 90%: severely overconfident (a 26-point gap; binomial SE $\approx \sqrt{0.9\times0.1/50} \approx 4\%$, so the gap is real).</div></details></li>
+  <li><span class="lvl m">MED</span> Why must recalibration be fit on held-out data rather than training data? <details class="sol"><summary>Solution</summary><div>On training data the model is unrealistically accurate (it overfit there), so calibration fitted to training statistics under-corrects for deployment. The miscalibration you must fix is the TEST-time gap, estimated on data the model didn't fit. (Same leakage logic as every other fitted component.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that log loss decomposes into calibration + refinement, and what it implies about a model that hedges everything to the base rate. <details class="sol"><summary>Solution</summary><div>Binning predictions, expected log loss $= \underbrace{\mathbb E_b[\mathrm{KL}(\bar y_b \| \mathrm{conf}_b)]}_{\text{calibration}} + \underbrace{\mathbb E_b[H(\bar y_b)]}_{\text{refinement}}$ (with $\bar y_b$ the empirical outcome rate in bin $b$): a proper score rewards being right about frequencies AND making bins whose outcomes are near-deterministic (low entropy: sharp). Predicting the base rate everywhere is perfectly calibrated (one bin, correct frequency) but maximally unrefined: high entropy bin, poor log loss. Good forecasting = calibration + sharpness; calibration alone is cheap and insufficient.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">A model has AUC 0.93 but ECE 0.15 (overconfident). For expected-cost triage decisions you should…</div><button class="opt">Retrain from scratch — it's broken</button><button class="opt">Temperature-scale on validation, then use its probabilities</button><button class="opt">Use the probabilities as-is — AUC is high</button><div class="why" hidden>Ranking (AUC) is fine; the probabilities are inflated. Temperature scaling fixes calibration without touching the ranking or accuracy — after which expected-cost decisions are trustworthy. Retraining is wasteful; using raw overconfident probabilities systematically distorts every cost calculation.</div></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>One dataset, three lenses.</b> Data: $x$-values $(0, 1, 2, 3)$, $y$-values $(1, 2, 5, 10)$ (truth: $y = x^2 + 1$, noise-free). (a) Fit $\hat y = w_0 + w_1x$ by least squares. (b) Compute training MSE and identify the error type (bias or variance). (c) Fit on features $(1, x, x^2)$ and explain what changed. (d) With 4 points and 4 polynomial coefficients (degree 3), what would happen, and which principle warns you? <details class="sol"><summary>Solution</summary><div>(a) $\bar x = 1.5, \bar y = 4.5$; $\sum(x-\bar x)(y - \bar y) = (-1.5)(-3.5)+(-0.5)(-2.5)+(0.5)(0.5)+(1.5)(5.5) = 5.25+1.25+0.25+8.25 = 15$; $\sum(x - \bar x)^2 = 5$: $w_1 = 3$, $w_0 = 4.5 - 4.5 = 0$: $\hat y = 3x$. (b) Predictions $(0,3,6,9)$; residuals $(1,-1,-1,1)$: MSE $= 1$. Pure BIAS: no noise exists, the model class simply can't bend — no amount of data fixes it. (c) Features $(1, x, x^2)$ make the truth expressible; least squares recovers $w = (1, 0, 1)$ exactly, MSE 0 — underfitting was a representation problem. (d) Degree 3 = 4 coefficients through 4 points: exact interpolation, MSE 0 again — but now ANY noise would be swallowed into the coefficients (variance), and between points the cubic can bow away from $x^2 + 1$. With noise-free data from a lower-degree truth it happens to recover the truth ($w_3 = 0$), but the principle — capacity beyond data invites variance; only inductive bias or regularization protects you — is Ch 20's opening question.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>The imbalanced screening pipeline.</b> Disease prevalence 2%. Your classifier's scores are calibrated; at threshold 0.5 it has recall 0.4, precision 0.7 on validation (n = 10,000). (a) Reconstruct the confusion matrix. (b) Compute accuracy, and the accuracy of "never flag" — comment. (c) A missed case costs 100; a false alarm costs 2. Using calibrated probability $p$ per patient, derive the optimal decision threshold. (d) Deployment moves to a clinic with prevalence 10%. Assuming pure label shift, give the corrected posterior for a patient scored $p = 0.3$ by the old model, and the decision under (c)'s rule. <details class="sol"><summary>Solution</summary><div>(a) Positives: 200. Recall 0.4: TP = 80, FN = 120. Precision 0.7: flagged = TP/0.7 = 114.3 ≈ 114, FP = 34 (rounding: FP ≈ 34). TN = 9800 − 34 = 9766. (b) Accuracy = (80 + 9766)/10000 = 98.5%; "never flag" scores 98.0% — nearly identical while catching zero disease: accuracy is the wrong metric at 2% prevalence. (c) Flag iff expected cost of flagging &lt; not flagging: $2(1 - p) &lt; 100p \Rightarrow p &gt; \frac{2}{102} \approx 0.0196$: flag anyone above ~2% probability — the asymmetry (50:1 costs) drives the threshold near the prevalence, trading many false alarms for recall. (d) Label-shift posterior update: odds multiply by $\frac{0.10/0.02}{0.90/0.98} = \frac{5}{0.918} = 5.44$. Old odds $= \frac{0.3}{0.7} = 0.4286$; new odds $= 2.333$; $p_{te} = \frac{2.333}{3.333} = 0.70$. Decision: 0.70 &gt; 0.0196: flag (it already would have been flagged; the update matters for borderline sub-2% scores, which the higher prevalence pushes over the line).</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Kernels end to end.</b> Four training points in 1-D: $x = (-2, -1, 1, 2)$ with labels $y = (+1, -1, -1, +1)$ (sign of $|x| - 1.5$). (a) Show no linear classifier (threshold on x) achieves zero error. (b) With feature map $\phi(x) = (x, x^2)$, exhibit a separating line and its margin geometry. (c) Express the same classifier via the kernel $K(x, z) = xz + x^2z^2$ evaluated on support vectors. (d) Connect: which theorem guarantees the solution needs only training-point kernels? <details class="sol"><summary>Solution</summary><div>(a) The +1 points flank the −1 points ($-2 &lt; -1 &lt; 1 &lt; 2$): any threshold rule sign$(x - t)$ (or its flip) misclassifies at least one — labels are not monotone in x. (b) In $(x, x^2)$-space: points $(-2,4)_+, (-1,1)_-, (1,1)_-, (2,4)_+$. The horizontal line $x^2 = 2.5$, i.e. $w = (0, 1), b = -2.5$, separates: scores $4 - 2.5 = 1.5$ for +, $1 - 2.5 = -1.5$ for −. Scaling by $\frac{1}{1.5}$ puts all four points AT margin 1 — all four are support vectors; geometric margin $= 1.5/\|w\|$ with $w = (0, \frac{1}{1.5})$: margin $= 1.5\ldots$ cleanly: street from $x^2 = 1$ to $x^2 = 4$, boundary at 2.5, half-width 1.5 in the $x^2$ coordinate. (c) $f(x) = \sum_i \alpha_iy_iK(x_i, x) + b$; by symmetry $\alpha$ equal on all four: $f(x) = \alpha[K(-2,x) + K(2,x) - K(-1,x) - K(1,x)] + b = \alpha[(−2x+4x^2)+(2x+4x^2)−(−x+x^2)−(x+x^2)] + b = \alpha\,6x^2 + b$. Choose $\alpha = \frac{1}{9}, b = -\frac{2.5}{1.5}$: $f(x) = \frac{2}{3}x^2 - \frac53$, which is $\frac{1}{1.5}(x^2 - 2.5)$ ✓ — the same separator, written without ever forming φ. (d) The representer theorem: the RKHS-regularized optimum lies in span$\{K(x_i,\cdot)\}$ — four kernel functions suffice, whatever the feature space's dimension.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: logistic regression by gradient descent, the bias-variance experiment, and k-means with k-means++ seeding.</p>
+ <p><b>Task 1 — Logistic regression from scratch.</b> Implement batch gradient descent for logistic regression with L2 regularization on synthetic 2-D Gaussian class data; report accuracy and verify the gradient with finite differences.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+
+n = 400
+X0 = rng.normal([-1, -1], 1.0, (n // 2, 2))
+X1 = rng.normal([1.5, 1.5], 1.0, (n // 2, 2))
+X = np.vstack([X0, X1]); X = np.hstack([np.ones((n, 1)), X])   # bias feature
+y = np.r_[np.zeros(n // 2), np.ones(n // 2)]
+
+def sigmoid(z): return 1 / (1 + np.exp(-z))
+def loss_grad(w, lam=0.01):
+    p = sigmoid(X @ w)
+    eps = 1e-12
+    loss = -np.mean(y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps)) + lam * w @ w / 2
+    grad = X.T @ (p - y) / n + lam * w
+    return loss, grad
+
+w = np.zeros(3)
+for t in range(2000):
+    L, g = loss_grad(w)
+    w -= 0.5 * g
+acc = np.mean((sigmoid(X @ w) &gt; 0.5) == y)
+print(f"loss {L:.4f}  acc {acc:.3f}  w {w.round(3)}")
+
+# gradient check
+_, g = loss_grad(w); h = 1e-6
+for j in range(3):
+    e = np.zeros(3); e[j] = h
+    num = (loss_grad(w + e)[0] - loss_grad(w - e)[0]) / (2 * h)
+    assert abs(num - g[j]) &lt; 1e-6
+print("gradient check passed")</code></pre></div></details>
+ <p><b>Task 2 — Bias-variance, empirically.</b> Repeatedly sample 20-point datasets from $y = \sin(2\pi x) + \varepsilon$, fit polynomials of degree 1, 3, 9 (with tiny ridge for stability), and estimate bias², variance, and total error at a grid of test points. Confirm the decomposition and the U-curve.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(1)
+sigma = 0.2
+xg = np.linspace(0.05, 0.95, 50)          # test grid
+f = lambda x: np.sin(2 * np.pi * x)
+
+def fit_predict(deg, trials=500, lam=1e-8):
+    preds = np.empty((trials, len(xg)))
+    for t in range(trials):
+        x = rng.uniform(0, 1, 20)
+        y = f(x) + rng.normal(0, sigma, 20)
+        Phi = np.vander(x, deg + 1)
+        w = np.linalg.solve(Phi.T @ Phi + lam * np.eye(deg + 1), Phi.T @ y)
+        preds[t] = np.vander(xg, deg + 1) @ w
+    return preds
+
+for deg in (1, 3, 9):
+    P = fit_predict(deg)
+    mean_pred = P.mean(axis=0)
+    bias2 = np.mean((mean_pred - f(xg)) ** 2)
+    var = np.mean(P.var(axis=0))
+    total = np.mean((P - f(xg)) ** 2)          # excludes label noise
+    print(f"deg {deg}: bias² {bias2:.4f}  var {var:.4f}  "
+          f"sum {bias2 + var:.4f}  ≈ total {total:.4f}")
+# deg 1: high bias, low var; deg 9: low bias, high var; deg 3: best sum</code></pre></div></details>
+ <p><b>Task 3 — K-means with k-means++.</b> Implement Lloyd's algorithm with k-means++ initialization; compare final objective vs random init over 20 restarts on three-blob data.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(2)
+
+X = np.vstack([rng.normal(c, 0.6, (100, 2))
+               for c in ([0, 0], [5, 0], [2.5, 4])])
+
+def kmeanspp_init(X, k):
+    C = [X[rng.integers(len(X))]]
+    for _ in range(k - 1):
+        d2 = np.min([np.sum((X - c) ** 2, axis=1) for c in C], axis=0)
+        C.append(X[rng.choice(len(X), p=d2 / d2.sum())])
+    return np.array(C)
+
+def lloyd(X, C, iters=100):
+    for _ in range(iters):
+        a = np.argmin(((X[:, None] - C[None]) ** 2).sum(-1), axis=1)
+        newC = np.array([X[a == k].mean(0) if np.any(a == k) else C[k]
+                         for k in range(len(C))])
+        if np.allclose(newC, C): break
+        C = newC
+    obj = ((X - C[a]) ** 2).sum()
+    return C, a, obj
+
+for name, init in [("random", lambda: X[rng.choice(len(X), 3, replace=False)]),
+                   ("k-means++", lambda: kmeanspp_init(X, 3))]:
+    objs = [lloyd(X, init())[2] for _ in range(20)]
+    print(f"{name:10s} best {min(objs):8.1f}  worst {max(objs):8.1f}  mean {np.mean(objs):8.1f}")
+# k-means++ rarely lands in the bad local optima random init falls into</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://hastie.su.domains/ElemStatLearn/">Hastie, Tibshirani &amp; Friedman, <em>The Elements of Statistical Learning</em> (free PDF)</a> — the canonical reference for nearly every model in this chapter.</li>
+  <li><a href="https://hastie.su.domains/ISLR2/ISLRv2_website.pdf">James et al., <em>An Introduction to Statistical Learning</em> (free PDF)</a> — the gentler on-ramp, with labs.</li>
+  <li><a href="https://cs229.stanford.edu/main_notes.pdf">Stanford CS229 lecture notes (Ng et al.)</a> — crisp derivations: logistic regression, GDA/Naive Bayes, SVMs, EM.</li>
+  <li><a href="https://probml.github.io/pml-book/book1.html">Kevin Murphy, <em>Probabilistic Machine Learning: An Introduction</em> (free PDF)</a> — the modern probabilistic treatment, calibration and shift included.</li>
+  <li><a href="https://gaussianprocess.org/gpml/">Rasmussen &amp; Williams, <em>Gaussian Processes for Machine Learning</em> (free book)</a> — the GP bible; chapters 2 and 5 cover everything used here.</li>
+  <li><a href="https://www.youtube.com/watch?v=aircAruvnKk">3Blue1Brown, neural networks series</a> — visual intuition for the gradient-fitting mindset before Ch 21 formalizes it.</li>
+  <li><a href="https://distill.pub/2016/misread-tsne/">Wattenberg, Viégas &amp; Johnson, "How to Use t-SNE Effectively" (Distill)</a> — interactive proof of every t-SNE pitfall listed above.</li>
+  <li><a href="https://arxiv.org/abs/1706.04599">Guo et al., "On Calibration of Modern Neural Networks"</a> — the temperature-scaling paper; ECE and reliability diagrams in practice.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch18.html">← 18 · Numerical Mathematics</a>
+ <a class="btn" href="ch20.html">20 · Statistical Learning Theory →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+function gauss(rng){ return Math.sqrt(-2*Math.log(1-Math.random()))*Math.cos(2*Math.PI*Math.random()); }
+
+/* ---------- Logistic regression 1-D ---------- */
+(function(){
+ var c = document.getElementById('cv-logit'); if(!c) return;
+ // fixed 1-D data: class 0 centered at 2, class 1 centered at 6
+ var pts = [];
+ for(var i=0;i<25;i++){ pts.push([2 + gauss()*1.1, 0]); pts.push([6 + gauss()*1.1, 1]); }
+ function draw(){
+  var s = setupCanvas(c, 260), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var w1 = val('lg-w'), w0 = val('lg-b');
+  var xmin = -1, xmax = 9;
+  function X(x){ return (x - xmin)/(xmax - xmin)*(W - 30) + 15; }
+  function Y(p){ return H - 34 - p*(H - 60); }
+  g.strokeStyle = cssVar('--rule');
+  g.beginPath(); g.moveTo(X(xmin), Y(0)); g.lineTo(X(xmax), Y(0)); g.stroke();
+  g.beginPath(); g.moveTo(X(xmin), Y(1)); g.lineTo(X(xmax), Y(1)); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('p=0', X(xmin), Y(0) + 16); g.fillText('p=1', X(xmin), Y(1) - 6);
+  // sigmoid curve
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2; g.beginPath();
+  for(var i = 0; i <= 200; i++){
+   var x = xmin + i/200*(xmax - xmin), p = 1/(1 + Math.exp(-(w1*x + w0)));
+   if(i === 0) g.moveTo(X(x), Y(p)); else g.lineTo(X(x), Y(p));
+  }
+  g.stroke(); g.lineWidth = 1;
+  // decision boundary
+  if(Math.abs(w1) > 1e-9){
+   var xb = -w0/w1;
+   if(xb > xmin && xb < xmax){
+    g.strokeStyle = cssVar('--plum'); g.setLineDash([4,4]);
+    g.beginPath(); g.moveTo(X(xb), Y(0)); g.lineTo(X(xb), Y(1)); g.stroke(); g.setLineDash([]);
+   }
+  }
+  // points + loss
+  var loss = 0;
+  pts.forEach(function(pt){
+   var p = 1/(1 + Math.exp(-(w1*pt[0] + w0)));
+   var eps = 1e-9;
+   loss += pt[1] ? -Math.log(p + eps) : -Math.log(1 - p + eps);
+   g.fillStyle = pt[1] ? cssVar('--moss') : cssVar('--rust');
+   g.beginPath(); g.arc(X(pt[0]), Y(pt[1]) + (pt[1] ? 8 : -8), 4, 0, 7); g.fill();
+  });
+  loss /= pts.length;
+  var out = document.getElementById('lg-out');
+  if(out) out.textContent = 'P(y=1|x) = σ(' + w1.toFixed(1) + '·x ' + (w0 >= 0 ? '+ ' : '− ') + Math.abs(w0).toFixed(1) + ') · mean log loss = ' + loss.toFixed(3) + (Math.abs(w1) > 1e-9 ? ' · boundary at x = ' + (-w0/w1).toFixed(2) : '');
+ }
+ ['lg-w','lg-b'].forEach(function(id){ on(id, 'input', draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Polynomial overfitting ---------- */
+(function(){
+ var c = document.getElementById('cv-fit'); if(!c) return;
+ var xs = [], ys = [];
+ function resample(){
+  var sig = val('pf-noise');
+  xs = []; ys = [];
+  for(var i = 0; i < 10; i++){
+   var x = (i + 0.5)/10;
+   xs.push(x); ys.push(Math.sin(2*Math.PI*x) + sig*gauss());
+  }
+ }
+ function polyfit(deg){
+  // normal equations with tiny ridge, solved by Gaussian elimination
+  var n = deg + 1, A = [], b = [];
+  for(var r = 0; r < n; r++){ A.push(new Array(n).fill(0)); b.push(0); }
+  for(var i = 0; i < xs.length; i++){
+   var phi = []; for(var j = 0; j < n; j++) phi.push(Math.pow(xs[i], j));
+   for(var r = 0; r < n; r++){ b[r] += phi[r]*ys[i]; for(var q = 0; q < n; q++) A[r][q] += phi[r]*phi[q]; }
+  }
+  for(var r = 0; r < n; r++) A[r][r] += 1e-9;
+  // solve
+  for(var k = 0; k < n; k++){
+   var piv = k;
+   for(var r = k+1; r < n; r++) if(Math.abs(A[r][k]) > Math.abs(A[piv][k])) piv = r;
+   var tmp = A[k]; A[k] = A[piv]; A[piv] = tmp;
+   var tb = b[k]; b[k] = b[piv]; b[piv] = tb;
+   for(var r = k+1; r < n; r++){
+    var m = A[r][k]/A[k][k];
+    for(var q = k; q < n; q++) A[r][q] -= m*A[k][q];
+    b[r] -= m*b[k];
+   }
+  }
+  var w = new Array(n).fill(0);
+  for(var r = n-1; r >= 0; r--){
+   var sum = b[r];
+   for(var q = r+1; q < n; q++) sum -= A[r][q]*w[q];
+   w[r] = sum/A[r][r];
+  }
+  return w;
+ }
+ function evalp(w, x){ var s = 0; for(var j = w.length-1; j >= 0; j--) s = s*x + w[j]; return s; }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var deg = Math.round(val('pf-deg'));
+  var w = polyfit(deg);
+  function X(x){ return 15 + x*(W - 30); }
+  function Y(y){ return H/2 - 10 - y*(H/2 - 30)/1.6; }
+  // true curve
+  g.strokeStyle = cssVar('--rule'); g.lineWidth = 1.5; g.beginPath();
+  for(var i = 0; i <= 100; i++){ var x = i/100; var y = Math.sin(2*Math.PI*x); if(i===0) g.moveTo(X(x), Y(y)); else g.lineTo(X(x), Y(y)); }
+  g.stroke();
+  // fitted curve
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2; g.beginPath();
+  var started = false;
+  for(var i = 0; i <= 300; i++){
+   var x = i/300, y = evalp(w, x);
+   if(y > 3 || y < -3){ started = false; continue; }
+   if(!started){ g.moveTo(X(x), Y(y)); started = true; } else g.lineTo(X(x), Y(y));
+  }
+  g.stroke(); g.lineWidth = 1;
+  // points
+  g.fillStyle = cssVar('--rust');
+  for(var i = 0; i < xs.length; i++){ g.beginPath(); g.arc(X(xs[i]), Y(ys[i]), 4, 0, 7); g.fill(); }
+  // errors
+  var tr = 0, te = 0, m = 60;
+  for(var i = 0; i < xs.length; i++) tr += Math.pow(evalp(w, xs[i]) - ys[i], 2);
+  tr = Math.sqrt(tr/xs.length);
+  for(var i = 0; i < m; i++){ var x = (i + 0.5)/m; te += Math.pow(evalp(w, x) - Math.sin(2*Math.PI*x), 2); }
+  te = Math.sqrt(te/m);
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('grey: truth · blue: degree-' + deg + ' fit', 15, 20);
+  var out = document.getElementById('pf-out');
+  if(out) out.textContent = 'train RMSE ' + tr.toFixed(3) + ' · true-function RMSE ' + te.toFixed(3) + (deg >= 8 ? ' — interpolation: train → 0, truth-error explodes' : '');
+ }
+ on('pf-deg', 'input', draw);
+ on('pf-noise', 'input', function(){ resample(); draw(); });
+ on('pf-re', 'click', function(){ resample(); draw(); });
+ window.addEventListener('resize', draw);
+ resample(); draw();
+})();
+
+/* ---------- ROC threshold ---------- */
+(function(){
+ var c = document.getElementById('cv-roc'); if(!c) return;
+ function phi(z){ return Math.exp(-z*z/2)/Math.sqrt(2*Math.PI); }
+ function Phi(z){ // erf approximation
+  var t = 1/(1 + 0.2316419*Math.abs(z));
+  var d = phi(z);
+  var p = d*t*(0.319381530 + t*(-0.356563782 + t*(1.781477937 + t*(-1.821255978 + t*1.330274429))));
+  return z >= 0 ? 1 - p : p;
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var t = val('rc-t'), d = val('rc-d');
+  var muN = 0, muP = d;
+  // left: two densities
+  var lw = W*0.55, xmin = -4, xmax = d + 4;
+  function X(x){ return 15 + (x - xmin)/(xmax - xmin)*(lw - 30); }
+  function Y(y){ return H - 40 - y*(H - 80)/0.45; }
+  g.strokeStyle = cssVar('--rule'); g.beginPath(); g.moveTo(15, H - 40); g.lineTo(lw - 15, H - 40); g.stroke();
+  [[muN, '--rust', 'negatives'], [muP, '--moss', 'positives']].forEach(function(spec, idx){
+   g.strokeStyle = cssVar(spec[1]); g.lineWidth = 2; g.beginPath();
+   for(var i = 0; i <= 150; i++){
+    var x = xmin + i/150*(xmax - xmin), y = phi(x - spec[0]);
+    if(i === 0) g.moveTo(X(x), Y(y)); else g.lineTo(X(x), Y(y));
+   }
+   g.stroke();
+   g.fillStyle = cssVar(spec[1]); g.font = '13px JetBrains Mono';
+   g.fillText(spec[2], X(spec[0]) - 28, Y(0.42) - 4 + idx*0);
+  });
+  g.lineWidth = 1;
+  // threshold line
+  g.strokeStyle = cssVar('--plum'); g.setLineDash([4,4]);
+  g.beginPath(); g.moveTo(X(t), Y(0)); g.lineTo(X(t), Y(0.44)); g.stroke(); g.setLineDash([]);
+  var tpr = 1 - Phi(t - muP), fpr = 1 - Phi(t - muN);
+  // right: ROC
+  var rx = lw + 10, rw = W - rx - 15, ry = 20, rh = H - 60;
+  g.strokeStyle = cssVar('--rule'); g.strokeRect(rx, ry, rw, rh);
+  g.beginPath(); g.moveTo(rx, ry + rh); g.lineTo(rx + rw, ry); g.stroke();
+  g.strokeStyle = cssVar('--cobalt'); g.lineWidth = 2; g.beginPath();
+  for(var i = 0; i <= 100; i++){
+   var th = -5 + i/100*(d + 10);
+   var fp = 1 - Phi(th - muN), tp = 1 - Phi(th - muP);
+   var px = rx + fp*rw, py = ry + rh - tp*rh;
+   if(i === 0) g.moveTo(px, py); else g.lineTo(px, py);
+  }
+  g.stroke(); g.lineWidth = 1;
+  g.fillStyle = cssVar('--plum'); g.beginPath(); g.arc(rx + fpr*rw, ry + rh - tpr*rh, 5, 0, 7); g.fill();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('ROC', rx + rw/2 - 14, ry + 14);
+  g.fillText('FPR →', rx + rw - 48, ry + rh + 16);
+  var auc = Phi(d/Math.SQRT2);
+  var out = document.getElementById('rc-out');
+  if(out) out.textContent = 'threshold ' + t.toFixed(1) + ' → TPR ' + tpr.toFixed(2) + ', FPR ' + fpr.toFixed(2) + ' · AUC = Φ(d/√2) = ' + auc.toFixed(3);
+ }
+ ['rc-t','rc-d'].forEach(function(id){ on(id, 'input', draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- k-NN decision regions ---------- */
+(function(){
+ var c = document.getElementById('cv-knn'); if(!c) return;
+ var pts = [];
+ function resample(){
+  pts = [];
+  for(var i = 0; i < 30; i++){
+   var cls = i % 2;
+   var cx = cls ? 0.62 : 0.38, cy = cls ? 0.4 : 0.6;
+   pts.push([cx + gauss()*0.16, cy + gauss()*0.16, cls]);
+  }
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var k = Math.round(val('kn-k'));
+  var res = 3; // px per cell
+  for(var px = 0; px < W; px += res){
+   for(var py = 0; py < H; py += res){
+    var x = px/W, y = py/H;
+    // find k nearest
+    var ds = pts.map(function(p, i){ return [Math.pow(p[0]-x,2) + Math.pow(p[1]-y,2), p[2]]; });
+    ds.sort(function(a,b){ return a[0]-b[0]; });
+    var vote = 0;
+    for(var j = 0; j < k && j < ds.length; j++) vote += ds[j][1];
+    var cls = vote*2 > k ? 1 : 0;
+    g.fillStyle = cls ? cssVar('--moss-soft') : cssVar('--rust-soft');
+    g.fillRect(px, py, res, res);
+   }
+  }
+  pts.forEach(function(p){
+   g.fillStyle = p[2] ? cssVar('--moss') : cssVar('--rust');
+   g.beginPath(); g.arc(p[0]*W, p[1]*H, 4, 0, 7); g.fill();
+   g.strokeStyle = cssVar('--paper'); g.stroke();
+  });
+  var out = document.getElementById('kn-out');
+  if(out) out.textContent = 'k = ' + k + (k === 1 ? ' — every point carves its own island (variance)' : k >= 15 ? ' — smooth, majority-driven frontier (bias)' : ' — the dial between noise-hugging and oversmoothing');
+ }
+ on('kn-k', 'input', draw);
+ on('kn-re', 'click', function(){ resample(); draw(); });
+ window.addEventListener('resize', draw);
+ resample(); draw();
+})();
+
+/* ---------- K-means stepper ---------- */
+(function(){
+ var c = document.getElementById('cv-km'); if(!c) return;
+ var pts = [], cents = [], assign = [], iter = 0;
+ function resample(){
+  pts = []; iter = 0;
+  var centers = [[0.25, 0.3], [0.72, 0.35], [0.5, 0.75], [0.2, 0.8], [0.85, 0.8], [0.5, 0.15]];
+  var K = Math.round(val('km-k'));
+  for(var i = 0; i < 90; i++){
+   var cc = centers[i % 3]; // 3 true blobs regardless of chosen K
+   pts.push([cc[0] + gauss()*0.07, cc[1] + gauss()*0.07]);
+  }
+  cents = [];
+  for(var k = 0; k < K; k++) cents.push([Math.random(), Math.random()]);
+  assignStep();
+ }
+ function assignStep(){
+  assign = pts.map(function(p){
+   var best = 0, bd = 1e9;
+   cents.forEach(function(ce, k){
+    var d = Math.pow(p[0]-ce[0],2) + Math.pow(p[1]-ce[1],2);
+    if(d < bd){ bd = d; best = k; }
+   });
+   return best;
+  });
+ }
+ function step(){
+  // update means then reassign
+  cents = cents.map(function(ce, k){
+   var mine = pts.filter(function(p, i){ return assign[i] === k; });
+   if(!mine.length) return ce;
+   var mx = 0, my = 0;
+   mine.forEach(function(p){ mx += p[0]; my += p[1]; });
+   return [mx/mine.length, my/mine.length];
+  });
+  assignStep(); iter++;
+  draw();
+ }
+ function objective(){
+  var o = 0;
+  pts.forEach(function(p, i){
+   var ce = cents[assign[i]];
+   o += Math.pow(p[0]-ce[0],2) + Math.pow(p[1]-ce[1],2);
+  });
+  return o;
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var cols = ['--cobalt','--moss','--rust','--amber','--plum','--ink-2'];
+  pts.forEach(function(p, i){
+   g.fillStyle = cssVar(cols[assign[i] % cols.length]);
+   g.beginPath(); g.arc(p[0]*W, p[1]*H, 4, 0, 7); g.fill();
+  });
+  cents.forEach(function(ce, k){
+   g.strokeStyle = cssVar(cols[k % cols.length]); g.lineWidth = 3;
+   var x = ce[0]*W, y = ce[1]*H;
+   g.beginPath(); g.moveTo(x-8, y); g.lineTo(x+8, y); g.moveTo(x, y-8); g.lineTo(x, y+8); g.stroke();
+   g.lineWidth = 1;
+  });
+  var out = document.getElementById('km-out');
+  if(out) out.textContent = 'iteration ' + iter + ' · within-cluster SS = ' + objective().toFixed(3) + ' (each Step: move centroids to means, reassign)';
+ }
+ on('km-step', 'click', step);
+ on('km-k', 'input', function(){ resample(); draw(); });
+ on('km-re', 'click', function(){ resample(); draw(); });
+ window.addEventListener('resize', draw);
+ resample(); draw();
+})();
+})();
+</script>
+
+</body></html>

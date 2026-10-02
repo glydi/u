@@ -1,0 +1,965 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 07 Calculus</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','07')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">07</div><h1>Calculus</h1><p class="lede">Change and accumulation in one variable.</p>
+   <div class="meta"><span class="chip">56 topics</span><span class="chip">needs: chapters 02, 04, 06</span><span class="chip">feeds: chapters 09, 10, 15</span></div>
+  </div>
+
+<section class="topic" id="limits">
+ <h2>Limits</h2>
+ <p>A limit asks: as $x$ crowds in on a point, where do the values $f(x)$ head? Not what $f$ <em>is</em> at the point — what it is <em>approaching</em>. The whole of calculus is built on this one idea: derivatives and integrals are both limits.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{x\to a} f(x) = L$ means $f(x)$ can be made as close to $L$ as desired by taking $x$ close enough (but not equal) to $a$. The value $f(a)$ — even whether it exists — is irrelevant to the limit.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x^2 - 9}{x - 3}$ is undefined at $x = 3$, yet for $x \ne 3$, $f(x) = x + 3$. So $\lim_{x\to3} f(x) = 6$: the values 5.9, 5.99, 5.999… (from $x = 2.9, 2.99, \dots$) and 6.1, 6.01… (from above) both squeeze onto 6.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Plug it in" only works for continuous functions. Limits exist where functions don't ($\frac{x^2-9}{x-3}$ at 3) and fail to exist where functions do ($\lim_{x\to0}\sin\frac1x$ oscillates forever).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{x\to2}\dfrac{x^2-4}{x-2} = ?$ <details class="sol"><summary>Solution</summary><div>Factor: $x + 2 \to 4$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\lim_{h\to0}\dfrac{(2+h)^2 - 4}{h} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{4 + 4h + h^2 - 4}{h} = 4 + h \to 4$. (This is a derivative in disguise: $\frac{d}{dx}x^2$ at 2.)</div></details></li>
+  <li><span class="lvl h">HARD</span> $\lim_{x\to0}\dfrac{\sqrt{x+4} - 2}{x} = ?$ <details class="sol"><summary>Solution</summary><div>Multiply by the conjugate: $\frac{(x+4)-4}{x(\sqrt{x+4}+2)} = \frac{1}{\sqrt{x+4}+2} \to \frac14$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="epsilon-delta">
+ <h2>Epsilon-delta definition of limits</h2>
+ <p>"As close as desired" needs teeth. The ε–δ definition is a challenge game: you name a tolerance ε around $L$; I must produce a radius δ around $a$ so that every $x$ within δ (except $a$ itself) lands within ε. If I can always win, the limit is $L$.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{x\to a} f(x) = L$ iff: for every $\varepsilon &gt; 0$ there exists $\delta &gt; 0$ such that $$0 &lt; |x - a| &lt; \delta \implies |f(x) - L| &lt; \varepsilon.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Prove $\lim_{x\to3}(2x + 1) = 7$. Given $\varepsilon &gt; 0$, we need $|2x + 1 - 7| = 2|x - 3| &lt; \varepsilon$. Choose $\delta = \varepsilon/2$: then $|x-3| &lt; \delta$ gives $2|x-3| &lt; 2\cdot\tfrac\varepsilon2 = \varepsilon$. $\blacksquare$</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Shrink ε and find a δ that keeps the whole tube of the curve inside the band — for f(x)=x² at a=1, L=1.</p>
+  <canvas id="cv-eps"></canvas>
+  <div class="ctl">
+   <label>ε <input type="range" id="ed-eps" min="0.05" max="1" step="0.01" value="0.5"></label>
+   <label>δ <input type="range" id="ed-del" min="0.02" max="1" step="0.01" value="0.4"></label>
+  </div>
+  <div class="out" id="ed-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $f(x) = 5x$, $a = 2$, $L = 10$: what δ works for $\varepsilon = 0.1$? <details class="sol"><summary>Solution</summary><div>$|5x - 10| = 5|x-2| &lt; 0.1$ needs $|x - 2| &lt; 0.02$: take $\delta = 0.02$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove $\lim_{x\to a} c = c$ for a constant function. <details class="sol"><summary>Solution</summary><div>$|f(x) - c| = 0 &lt; \varepsilon$ always: any δ (say δ = 1) works for every ε. $\blacksquare$</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $\lim_{x\to2} x^2 = 4$. <details class="sol"><summary>Solution</summary><div>$|x^2 - 4| = |x-2||x+2|$. First restrict $\delta \le 1$, so $|x - 2| &lt; 1 \Rightarrow x \in (1,3) \Rightarrow |x+2| &lt; 5$. Then $|x^2-4| &lt; 5|x-2|$, and choosing $\delta = \min(1, \varepsilon/5)$ gives $|x^2 - 4| &lt; 5\cdot\tfrac\varepsilon5 = \varepsilon$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="one-sided-limits">
+ <h2>One-sided limits</h2>
+ <p>Approach from the left and from the right separately. A two-sided limit exists exactly when both one-sided limits exist and agree — a step function fails precisely because its two sides disagree.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{x\to a^-} f(x)$ uses only $x &lt; a$; $\lim_{x\to a^+} f(x)$ uses only $x &gt; a$. Then $\lim_{x\to a} f(x) = L \iff \lim_{x\to a^-} f(x) = \lim_{x\to a^+} f(x) = L$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{|x|}{x}$: for $x &gt; 0$, $f = 1$; for $x &lt; 0$, $f = -1$. So $\lim_{x\to0^+} f = 1$, $\lim_{x\to0^-} f = -1$: the two-sided limit at 0 does not exist.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{x\to0^+}\sqrt{x} = ?$ (Why only one side?) <details class="sol"><summary>Solution</summary><div>$0$. $\sqrt x$ has no values for $x &lt; 0$, so only the right limit is meaningful.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x) = \begin{cases} x^2 &amp; x &lt; 1 \\ 3x - 2 &amp; x \ge 1\end{cases}$. Does $\lim_{x\to1} f$ exist? <details class="sol"><summary>Solution</summary><div>Left: $1^2 = 1$. Right: $3 - 2 = 1$. Equal: limit exists, $= 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\lim_{x\to2^-}\lfloor x\rfloor$ and $\lim_{x\to2^+}\lfloor x\rfloor$ and conclude. <details class="sol"><summary>Solution</summary><div>From the left, $x \in (1,2)$ gives $\lfloor x\rfloor = 1$; from the right, $\lfloor x\rfloor = 2$. One-sided limits 1 and 2 differ: no two-sided limit at 2 (and similarly at every integer).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="limits-at-infinity">
+ <h2>Limits at infinity</h2>
+ <p>What does $f$ settle toward as $x$ marches off to $+\infty$ or $-\infty$? The answer describes end behavior: horizontal asymptotes, the long-run of a training curve, the saturation of a sigmoid.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{x\to\infty} f(x) = L$ means: for every $\varepsilon &gt; 0$ there is an $M$ with $x &gt; M \Rightarrow |f(x) - L| &lt; \varepsilon$. For rational functions, divide by the highest power of the denominator; only the leading terms matter. Key fact: $\lim_{x\to\infty}\frac1{x^p} = 0$ for $p &gt; 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\lim_{x\to\infty}\dfrac{3x^2 - x + 5}{2x^2 + 7}$: divide top and bottom by $x^2$: $\dfrac{3 - \frac1x + \frac5{x^2}}{2 + \frac7{x^2}} \to \dfrac{3}{2}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\lim_{x\to-\infty}\frac{\sqrt{x^2+1}}{x}$: $\sqrt{x^2} = |x| = -x$ when $x &lt; 0$, so the limit is $-1$, not $1$. The sign of $x$ hides inside the square root.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{x\to\infty}\dfrac{5x + 1}{x - 2} = ?$ <details class="sol"><summary>Solution</summary><div>Leading terms: $5$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\lim_{x\to\infty}\dfrac{x^2 + 1}{x^3 + x} = ?$ and $\lim_{x\to\infty}\dfrac{x^3}{x^2 + 1} = ?$ <details class="sol"><summary>Solution</summary><div>First: degree of bottom wins, limit 0. Second: top wins, $\to +\infty$ (no finite limit).</div></details></li>
+  <li><span class="lvl h">HARD</span> $\lim_{x\to\infty}\big(\sqrt{x^2 + 6x} - x\big) = ?$ <details class="sol"><summary>Solution</summary><div>Conjugate: $\frac{x^2 + 6x - x^2}{\sqrt{x^2+6x} + x} = \frac{6x}{x(\sqrt{1 + 6/x} + 1)} \to \frac{6}{2} = 3$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="infinite-limits">
+ <h2>Infinite limits</h2>
+ <p>Sometimes the function doesn't settle — it explodes. Writing $\lim f(x) = \infty$ is shorthand for "grows beyond every bound"; the limit does not exist as a number, but the blow-up pattern is precise information: it draws vertical asymptotes.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{x\to a} f(x) = \infty$ means: for every $M$ there is $\delta &gt; 0$ with $0 &lt; |x - a| &lt; \delta \Rightarrow f(x) &gt; M$. If either one-sided limit is $\pm\infty$, the line $x = a$ is a <em>vertical asymptote</em>. Near a zero of the denominator not cancelled by the numerator, check signs on each side.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{1}{(x-2)^2}$: both sides of 2 give positive blow-up, $\lim_{x\to2} f = +\infty$. But $g(x) = \dfrac1{x-2}$: from the right $+\infty$, from the left $-\infty$ — the signed sides differ, and we only say $x=2$ is a vertical asymptote.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{x\to0^+}\dfrac1x$ and $\lim_{x\to0^-}\dfrac1x$? <details class="sol"><summary>Solution</summary><div>$+\infty$ and $-\infty$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the vertical asymptotes of $\dfrac{x+1}{x^2 - x - 6}$. <details class="sol"><summary>Solution</summary><div>Denominator $(x-3)(x+2)$ has zeros 3, $-2$; neither cancels with $x + 1$. Asymptotes $x = 3$ and $x = -2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\lim_{x\to(\pi/2)^-}\tan x$ and $\lim_{x\to0^+} x\ln x$. <details class="sol"><summary>Solution</summary><div>$\tan x = \sin x/\cos x$ with $\sin \to 1$, $\cos\to 0^+$: $+\infty$. For $x\ln x$: write $\frac{\ln x}{1/x}$, L'Hôpital (later in this chapter): $\frac{1/x}{-1/x^2} = -x \to 0$. So $0$ — the $x$ wins against the $\ln$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="limit-laws">
+ <h2>Limit laws</h2>
+ <p>Limits respect arithmetic: the limit of a sum is the sum of limits, and so on — provided the pieces' limits exist. These laws let you split a complicated limit into boring ones you know.</p>
+ <div class="box def"><span class="label">Definition</span> If $\lim_{x\to a} f = L$ and $\lim_{x\to a} g = M$: $\lim(f\pm g) = L \pm M$; $\lim(fg) = LM$; $\lim\frac fg = \frac LM$ if $M \ne 0$; $\lim c f = cL$; $\lim [f]^n = L^n$; $\lim \sqrt[n]{f} = \sqrt[n]{L}$ (when defined). Also: if $f$ is continuous at $L$ then $\lim f(g(x)) = f(M)$... more precisely $f(\lim g)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\lim_{x\to2}\dfrac{x^2 + 3x}{\sqrt{x + 7}}$: numerator $\to 4 + 6 = 10$ (sum/product laws), denominator $\to \sqrt9 = 3 \ne 0$ (root law): limit $= \tfrac{10}3$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The laws need the sub-limits to exist. $\lim_{x\to0}\big[x\cdot\frac1x\big] = 1$, but you cannot split it into $0 \times \infty$. Indeterminate forms ($\frac00$, $\frac\infty\infty$, $0\cdot\infty$, $\infty - \infty$) need algebra or L'Hôpital, not the laws.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Given $\lim f = 3$, $\lim g = -2$ at $x = a$: find $\lim(2f - g^2)$. <details class="sol"><summary>Solution</summary><div>$2(3) - (-2)^2 = 6 - 4 = 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Why can't the quotient law evaluate $\lim_{x\to1}\frac{x^2-1}{x-1}$ directly, and what is the limit? <details class="sol"><summary>Solution</summary><div>Denominator limit is 0, so the law's hypothesis fails. Cancel first: $x + 1 \to 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> True or false: if $\lim_{x\to a}[f(x) + g(x)]$ exists, then both $\lim f$ and $\lim g$ exist. <details class="sol"><summary>Solution</summary><div>False. $f(x) = \frac1x$, $g(x) = -\frac1x$ at $a = 0$: sum is 0 everywhere, limit 0, but neither piece has a limit.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="squeeze-theorem">
+ <h2>Squeeze theorem</h2>
+ <p>Trap a wild function between two tame ones. If both fences converge to the same value, the prisoner has nowhere else to go. This is how the crucial limit $\frac{\sin x}{x} \to 1$ is proved.</p>
+ <div class="box thm"><span class="label">Theorem</span> If $g(x) \le f(x) \le h(x)$ near $a$ (except possibly at $a$) and $\lim_{x\to a} g = \lim_{x\to a} h = L$, then $\lim_{x\to a} f = L$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\lim_{x\to0} x^2\sin\frac1x$: since $-1 \le \sin\frac1x \le 1$, we have $-x^2 \le x^2\sin\frac1x \le x^2$. Both fences $\to 0$, so the limit is 0 — even though $\sin\frac1x$ oscillates infinitely fast.</div>
+ <div class="box think"><span class="label">Think first</span> Why does $\frac{\sin x}{x} \to 1$ as $x \to 0$? Sketch the unit circle: compare the areas of the small triangle, the circular sector, and the big triangle at angle $x$. <details class="sol"><summary>Reveal</summary><div>For $0 &lt; x &lt; \tfrac\pi2$: $\tfrac12\sin x\cos x \le \tfrac12 x \le \tfrac12\tan x$. Divide by $\tfrac12\sin x$: $\cos x \le \frac{x}{\sin x} \le \frac1{\cos x}$. Invert: $\cos x \le \frac{\sin x}{x} \le \frac{1}{\cos x}$. Both fences $\to 1$; squeeze. (Even function ⇒ same from the left.)</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{x\to0} x\cos\frac1x = ?$ <details class="sol"><summary>Solution</summary><div>$-|x| \le x\cos\frac1x \le |x|$, both $\to 0$: limit 0.</div></details></li>
+  <li><span class="lvl m">MED</span> $\lim_{x\to0}\dfrac{\sin 5x}{x} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{\sin 5x}{x} = 5\cdot\frac{\sin 5x}{5x} \to 5\cdot1 = 5$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\lim_{x\to0}\dfrac{1 - \cos x}{x^2} = ?$ <details class="sol"><summary>Solution</summary><div>Multiply by $\frac{1+\cos x}{1+\cos x}$: $\frac{1-\cos^2x}{x^2(1+\cos x)} = \big(\frac{\sin x}{x}\big)^2\cdot\frac{1}{1+\cos x} \to 1\cdot\frac12 = \frac12$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="continuity">
+ <h2>Continuity</h2>
+ <p>A function is continuous where you can draw it without lifting the pen: no holes, jumps or explosions. Formally, the limit equals the value. Continuity is the license to "plug in" — and the hypothesis behind nearly every big theorem in this chapter.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is continuous at $a$ iff (1) $f(a)$ exists, (2) $\lim_{x\to a} f(x)$ exists, (3) they are equal: $\lim_{x\to a} f(x) = f(a)$. Continuous on an interval = continuous at each point. Polynomials, $\sin$, $\cos$, $e^x$ are continuous everywhere; rational functions, $\ln$, $\tan$ wherever defined. Sums, products, quotients (nonzero denominator) and compositions of continuous functions are continuous.</div>
+ <div class="box ex"><span class="label">Worked example</span> Choose $c$ so $f(x) = \begin{cases} x^2 + c &amp; x &lt; 2 \\ 3x &amp; x \ge 2 \end{cases}$ is continuous. Match at the seam: left limit $4 + c$, value/right limit $6$. Need $4 + c = 6$: $c = 2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Where is $f(x) = \dfrac{x+1}{x^2 - 4}$ continuous? <details class="sol"><summary>Solution</summary><div>Everywhere except $x = \pm2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $f(x) = \begin{cases}\frac{\sin x}{x} &amp; x \ne 0\\ 1 &amp; x = 0\end{cases}$ continuous at 0? <details class="sol"><summary>Solution</summary><div>Yes: $\lim_{x\to0}\frac{\sin x}{x} = 1 = f(0)$. The hole has been patched.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $f(x) = \lfloor x \rfloor + \lfloor -x\rfloor$ equals $0$ at integers and $-1$ elsewhere; where is it continuous? <details class="sol"><summary>Solution</summary><div>Integer $x = n$: $n + (-n) = 0$. Non-integer: $\lfloor x\rfloor = n$ where $n &lt; x &lt; n+1$, and $\lfloor -x \rfloor = -n - 1$: sum $-1$. So $f$ is $-1$ except at integers, where it spikes to 0: continuous exactly on $\mathbb{R}\setminus\mathbb{Z}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="types-of-discontinuity">
+ <h2>Types of discontinuity</h2>
+ <p>Not all breaks are equal. A removable hole can be patched with one value; a jump cannot be patched but stays bounded; an infinite or oscillating break is wilder still. Naming the break tells you what's fixable.</p>
+ <div class="box def"><span class="label">Definition</span> At $a$: <em>removable</em> — $\lim_{x\to a}f$ exists but $\ne f(a)$ (or $f(a)$ undefined); <em>jump</em> — both one-sided limits exist but differ; <em>infinite</em> — a one-sided limit is $\pm\infty$; <em>essential/oscillating</em> — a one-sided limit fails to exist even allowing $\pm\infty$ (e.g. $\sin\frac1x$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x^2 - 1}{x - 1}$ at 1: removable (limit 2, no value) — define $f(1) = 2$ and it heals. $g(x) = \dfrac{|x-1|}{x-1}$ at 1: jump ($-1$ vs $1$). $h(x) = \dfrac{1}{x-1}$ at 1: infinite.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify the discontinuity of $\lfloor x\rfloor$ at $x = 3$. <details class="sol"><summary>Solution</summary><div>Jump: left limit 2, right limit 3.</div></details></li>
+  <li><span class="lvl m">MED</span> Classify $f(x) = \dfrac{x^2 - 4}{x^2 - 2x}$ at $x = 0$ and $x = 2$. <details class="sol"><summary>Solution</summary><div>$f = \frac{(x-2)(x+2)}{x(x-2)} = \frac{x+2}{x}$ for $x \ne 0, 2$. At 2: removable (limit $\tfrac42 = 2$). At 0: infinite.</div></details></li>
+  <li><span class="lvl h">HARD</span> Classify $f(x) = \sin\frac1x$ at 0 and $g(x) = x\sin\frac1x$ at 0 (both undefined at 0). <details class="sol"><summary>Solution</summary><div>$f$: essential — it oscillates through $[-1,1]$ forever, no one-sided limit. $g$: removable — squeeze gives limit 0; set $g(0)=0$ to heal.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="intermediate-value-theorem">
+ <h2>Intermediate Value Theorem</h2>
+ <p>A continuous function cannot teleport: to get from $f(a)$ to $f(b)$ it must pass through every value in between. This innocent statement finds roots, prices options, and guarantees bisection search always works.</p>
+ <div class="box thm"><span class="label">Theorem</span> If $f$ is continuous on $[a, b]$ and $N$ is strictly between $f(a)$ and $f(b)$, then there exists $c \in (a, b)$ with $f(c) = N$. In particular if $f(a)$ and $f(b)$ have opposite signs, $f$ has a root in $(a,b)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Show $x^3 + x - 1 = 0$ has a root in $(0, 1)$: $f(0) = -1 &lt; 0$, $f(1) = 1 &gt; 0$, $f$ continuous (polynomial) — IVT gives a root. Bisect: $f(0.5) = -0.375$: root in $(0.5, 1)$. $f(0.75) \approx 0.172$: root in $(0.5, 0.75)$. Each halving doubles precision (the actual root is $\approx 0.6823$).</div>
+ <div class="box pit"><span class="label">Pitfall</span> Both hypotheses matter. $\frac1x$ has $f(-1) = -1$, $f(1) = 1$ but no root — it isn't continuous on $[-1,1]$. And IVT proves existence, not uniqueness.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Show $\cos x = x$ has a solution in $(0, 1)$. <details class="sol"><summary>Solution</summary><div>$g(x) = \cos x - x$: $g(0) = 1 &gt; 0$, $g(1) = 0.540 - 1 &lt; 0$; continuous, so a root exists.</div></details></li>
+  <li><span class="lvl m">MED</span> A hiker walks up a hill from 6am to 6pm, and down the same trail the next day 6am–6pm. Show there is a spot she occupies at exactly the same clock time both days. <details class="sol"><summary>Solution</summary><div>Let $u(t), d(t)$ be positions along the trail; $g(t) = u(t) - d(t)$ is continuous with $g(6\text{am}) = \text{bottom} - \text{top} &lt; 0$ and $g(6\text{pm}) &gt; 0$: some $t^*$ has $g(t^*) = 0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show every odd-degree polynomial with real coefficients has a real root. <details class="sol"><summary>Solution</summary><div>WLOG leading coefficient positive. As $x\to+\infty$, $p(x)\to+\infty$; as $x\to-\infty$, $p(x)\to-\infty$ (odd degree). So there are points where $p&lt;0$ and where $p&gt;0$; polynomials are continuous; IVT gives a root. $\blacksquare$</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">$f$ is continuous on $[0,2]$ with $f(0)=3$, $f(2)=3$. Must $f$ take the value 0 somewhere on $[0,2]$?</div><button class="opt">Yes, by IVT</button><button class="opt">No</button><button class="opt">Only if f is differentiable</button><div class="why" hidden>IVT only guarantees values between $f(0)=3$ and $f(2)=3$ — that's just {3}. $f$ could stay near 3 the whole way, e.g. $f \equiv 3$.</div></div>
+</section>
+
+<section class="topic" id="derivative-intuition">
+ <h2>Derivative intuition</h2>
+ <p>The derivative is instantaneous rate of change: how fast $f$ is changing <em>right now</em>. Speedometer, not trip average. Zoom into any smooth curve far enough and it looks like a straight line — the derivative is that line's slope.</p>
+ <div class="box def"><span class="label">Definition</span> Average rate of change of $f$ over $[a, a+h]$: $\frac{f(a+h) - f(a)}{h}$ (slope of the <em>secant</em> line). The derivative is what these averages approach as the window shrinks: the slope of the curve itself at $a$. Units: (units of $f$) per (unit of $x$).</div>
+ <div class="box ex"><span class="label">Worked example</span> A ball's height is $s(t) = 20t - 5t^2$ m. Average velocity over $[1, 1.1]$: $\frac{s(1.1) - s(1)}{0.1} = \frac{15.95 - 15}{0.1} = 9.5$ m/s. Over $[1, 1.01]$: $9.95$. Over $[1, 1.001]$: $9.995$. The instantaneous velocity at $t=1$ is evidently 10 m/s — and indeed $s'(t) = 20 - 10t$ gives $s'(1) = 10$.</div>
+ <div class="box link"><span class="label">Where this goes</span> Training a neural network is following derivatives: the gradient (Ch 9) is a vector of them, and gradient descent (Ch 15) steps downhill along it.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = x^2$. Average rate of change over $[3, 3.1]$? <details class="sol"><summary>Solution</summary><div>$\frac{9.61 - 9}{0.1} = 6.1$ (heading toward $f'(3) = 6$).</div></details></li>
+  <li><span class="lvl m">MED</span> Water drains so volume is $V(t) = 100(1 - t/10)^2$ liters, $0\le t\le 10$ min. Estimate the flow rate at $t = 5$ using windows 0.1 and 0.01. <details class="sol"><summary>Solution</summary><div>$V(5) = 25$; $V(5.1) = 100(0.49)^2 = 24.01$: rate $\approx -9.9$. $V(5.01) = 100(0.499)^2 = 24.9001$: rate $\approx -9.99$ L/min. True: $V'(t) = -20(1 - t/10)$, $V'(5) = -10$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Sketch (mentally) $f(x) = |x|$. Why does no single slope exist at 0? <details class="sol"><summary>Solution</summary><div>Secants from the right have slope $+1$; from the left $-1$. The zoom never straightens the corner: one-sided derivatives differ, so $f'(0)$ does not exist. Smoothness fails at kinks — relevant to ReLU (Ch 21), which is exactly this function.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="derivative-definition">
+ <h2>Derivative definition</h2>
+ <p>Freeze the intuition into a formula: the derivative is the limit of secant slopes. Every derivative rule you will ever use is proved from this one limit.</p>
+ <div class="box def"><span class="label">Definition</span> $$f'(a) = \lim_{h\to0}\frac{f(a+h) - f(a)}{h} = \lim_{x\to a}\frac{f(x) - f(a)}{x - a},$$ when the limit exists ($f$ is then <em>differentiable</em> at $a$). Notations: $f'(x)$, $\frac{df}{dx}$, $\dot f$, $D_x f$. Differentiable $\Rightarrow$ continuous (but not conversely: $|x|$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \frac1x$, from the definition: $$f'(a) = \lim_{h\to0}\frac{\frac{1}{a+h} - \frac1a}{h} = \lim_{h\to0}\frac{a - (a+h)}{h\,a(a+h)} = \lim_{h\to0}\frac{-1}{a(a+h)} = -\frac{1}{a^2}.$$</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Shrink h and watch the secant line rotate into the tangent of f(x) = x³/3 − x at the point a.</p>
+  <canvas id="cv-secant"></canvas>
+  <div class="ctl">
+   <label>a <input type="range" id="sc-a" min="-2" max="2" step="0.05" value="0.6"></label>
+   <label>h <input type="range" id="sc-h" min="0.01" max="2" step="0.01" value="1.4"></label>
+  </div>
+  <div class="out" id="sc-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From the definition, compute $f'(x)$ for $f(x) = 3x + 5$. <details class="sol"><summary>Solution</summary><div>$\frac{3(x+h)+5 - 3x - 5}{h} = 3$ for all $h$: $f' = 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> From the definition, $f(x) = x^2 - 4x$: find $f'(x)$. <details class="sol"><summary>Solution</summary><div>$\frac{(x+h)^2 - 4(x+h) - x^2 + 4x}{h} = \frac{2xh + h^2 - 4h}{h} = 2x + h - 4 \to 2x - 4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> From the definition, $f(x) = \sqrt x$: find $f'(x)$ for $x &gt; 0$. Is $f$ differentiable at 0? <details class="sol"><summary>Solution</summary><div>$\frac{\sqrt{x+h}-\sqrt x}{h} = \frac{h}{h(\sqrt{x+h}+\sqrt x)} \to \frac{1}{2\sqrt x}$. At 0: $\frac{\sqrt h}{h} = \frac1{\sqrt h}\to\infty$ — not differentiable (vertical tangent).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="geometric-meaning-of-derivative">
+ <h2>Geometric meaning of derivative</h2>
+ <p>$f'(a)$ is the slope of the tangent line — the unique line that kisses the curve at $(a, f(a))$ and matches its direction. Positive derivative: the curve climbs; negative: falls; zero: momentarily flat (a candidate peak or valley).</p>
+ <div class="box def"><span class="label">Definition</span> The <em>tangent line</em> to $y = f(x)$ at $a$: $$y = f(a) + f'(a)(x - a).$$ The <em>normal line</em> is perpendicular: slope $-1/f'(a)$ (if $f'(a)\ne0$).</div>
+ <div class="box ex"><span class="label">Worked example</span> Tangent to $y = x^2$ at $x = 3$: $f(3) = 9$, $f'(3) = 6$: $y = 9 + 6(x - 3) = 6x - 9$. Check by touching: $x^2 - (6x - 9) = (x-3)^2 \ge 0$ — the parabola sits on the line, touching only at $x = 3$. ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Tangent line to $y = x^3$ at $x = 1$ (use $y' = 3x^2$). <details class="sol"><summary>Solution</summary><div>$y = 1 + 3(x - 1) = 3x - 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> At which points does $y = x^3 - 3x$ have a horizontal tangent? <details class="sol"><summary>Solution</summary><div>$y' = 3x^2 - 3 = 0 \Rightarrow x = \pm1$: points $(1, -2)$ and $(-1, 2)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all tangent lines to $y = x^2$ passing through the external point $(1, -3)$. <details class="sol"><summary>Solution</summary><div>Tangent at $a$: $y = a^2 + 2a(x - a) = 2ax - a^2$. Through $(1,-3)$: $-3 = 2a - a^2 \Rightarrow a^2 - 2a - 3 = 0 \Rightarrow a = 3, -1$. Lines: $y = 6x - 9$ and $y = -2x - 1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="derivative-rules">
+ <h2>Derivative rules</h2>
+ <p>Nobody computes limits all day. A handful of rules — linearity, product, quotient, chain — turn differentiation into mechanical bookkeeping that always works. Autodiff frameworks (Ch 18) implement exactly these rules on computation graphs.</p>
+ <div class="box def"><span class="label">Definition</span> Given differentiable $f, g$ and constant $c$: linearity $(cf + g)' = cf' + g'$; product $(fg)' = f'g + fg'$; quotient $\big(\frac fg\big)' = \frac{f'g - fg'}{g^2}$; chain $(f\circ g)'(x) = f'(g(x))\,g'(x)$. Base cases: $(x^n)' = nx^{n-1}$, $(e^x)' = e^x$, $(\ln x)' = \frac1x$, $(\sin x)' = \cos x$, $(\cos x)' = -\sin x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x^2 e^x}{1 + x}$. Product for the top: $(x^2e^x)' = 2xe^x + x^2e^x$. Quotient: $$f'(x) = \frac{(2x + x^2)e^x(1+x) - x^2e^x}{(1+x)^2} = \frac{e^x\,x(x^2 + 3x + 2 - x)}{(1+x)^2} = \frac{x e^x (x^2 + 2x + 2)}{(1+x)^2}.$$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Differentiate $f(x) = 4x^3 - 2x + 7$. <details class="sol"><summary>Solution</summary><div>$12x^2 - 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate $f(x) = x^2\sin x$. <details class="sol"><summary>Solution</summary><div>$2x\sin x + x^2\cos x$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Differentiate $f(x) = \dfrac{e^{2x}}{x^2 + 1}$ and evaluate $f'(0)$. <details class="sol"><summary>Solution</summary><div>$f' = \frac{2e^{2x}(x^2+1) - e^{2x}\cdot 2x}{(x^2+1)^2} = \frac{2e^{2x}(x^2 - x + 1)}{(x^2+1)^2}$. At 0: $\frac{2\cdot1\cdot1}{1} = 2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="power-rule">
+ <h2>Power rule</h2>
+ <p>The most used rule in calculus: bring the exponent down, knock it down by one. It holds for every real exponent — integers, fractions, negatives — which covers polynomials, roots, and reciprocals in one stroke.</p>
+ <div class="box def"><span class="label">Definition</span> $$\frac{d}{dx}x^n = n x^{n-1}, \qquad n \in \mathbb{R}.$$ Special cases: $(\sqrt x)' = \tfrac12 x^{-1/2} = \frac1{2\sqrt x}$; $\big(\frac1x\big)' = -x^{-2}$; $(x)' = 1$; $(c)' = 0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \sqrt[3]{x^2} = x^{2/3}$: $f'(x) = \tfrac23 x^{-1/3} = \dfrac{2}{3\sqrt[3]{x}}$. And $g(x) = \dfrac{5}{x^3} = 5x^{-3}$: $g'(x) = -15x^{-4} = -\dfrac{15}{x^4}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The power rule needs a constant exponent and variable base. $x^x$ is neither: use logarithmic differentiation. And $(2^x)' \ne x2^{x-1}$ — that's an exponential, $(2^x)' = 2^x\ln 2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\frac{d}{dx} x^{10} = ?$ <details class="sol"><summary>Solution</summary><div>$10x^9$.</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate $f(x) = \dfrac{x^2 + 3\sqrt x}{x}$ by simplifying first. <details class="sol"><summary>Solution</summary><div>$f = x + 3x^{-1/2}$: $f' = 1 - \tfrac32 x^{-3/2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For which $p$ is $f(x) = |x|^p$ differentiable at 0? <details class="sol"><summary>Solution</summary><div>For $p &gt; 1$: the difference quotient $\frac{|h|^p}{h} = |h|^{p-1}\,\text{sgn}(h) \to 0$. For $p = 1$ (the corner) and $p &lt; 1$ (cusp/blow-up) it fails. Answer: $p &gt; 1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="constant-rule">
+ <h2>Constant rule</h2>
+ <p>Constants don't change, so their rate of change is zero — and a constant factor rides along for free. Small facts, used in every single differentiation you'll ever do.</p>
+ <div class="box def"><span class="label">Definition</span> $\frac{d}{dx} c = 0$ for any constant $c$, and $\frac{d}{dx}[c\,f(x)] = c\,f'(x)$ (constant multiple rule).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\frac{d}{dx}\big[7x^3\big] = 7\cdot 3x^2 = 21x^2$, and $\frac{d}{dx}[\pi^2] = 0$ — $\pi^2$ is a number, not a function of $x$, even though it wears an exponent.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\frac{d}{dx}[5e^x] = ?$ <details class="sol"><summary>Solution</summary><div>$5e^x$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\frac{d}{dx}\big[\frac{x^4}{8}\big]$ at $x = 2$? <details class="sol"><summary>Solution</summary><div>$\tfrac18\cdot4x^3 = \tfrac{x^3}{2}$; at 2: $4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Differentiate $f(x) = e^2 x^3 + \ln(5)\, x + \sin(\pi/7)$. <details class="sol"><summary>Solution</summary><div>All of $e^2$, $\ln 5$, $\sin(\pi/7)$ are constants: $f'(x) = 3e^2x^2 + \ln 5$. Spotting frozen constants is the whole game.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sum-rule">
+ <h2>Sum rule</h2>
+ <p>The derivative of a sum is the sum of derivatives: rates of change add. A car's total speed of separation from two directions, revenue from two products — differentiation distributes over $+$.</p>
+ <div class="box def"><span class="label">Definition</span> $(f + g)' = f' + g'$ and $(f - g)' = f' - g'$. Extends to any finite sum: $\big(\sum_i f_i\big)' = \sum_i f_i'$ — which is why you can differentiate polynomials term by term.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3 - 4x^2 + 6x - 2$: differentiate each term: $f'(x) = 3x^2 - 8x + 6$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\frac{d}{dx}[x^2 + \sin x] = ?$ <details class="sol"><summary>Solution</summary><div>$2x + \cos x$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x) = e^x + \ln x - \sqrt x$. Find $f'(1)$. <details class="sol"><summary>Solution</summary><div>$f' = e^x + \frac1x - \frac{1}{2\sqrt x}$; at 1: $e + 1 - 0.5 = e + 0.5 \approx 3.218$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Loss functions add: $L(w) = (w - 3)^2 + (w - 7)^2$. Find the $w$ minimizing $L$ using $L' = 0$. <details class="sol"><summary>Solution</summary><div>$L'(w) = 2(w-3) + 2(w-7) = 4w - 20 = 0 \Rightarrow w = 5$ — the mean of 3 and 7. Squared-error losses always minimize at the mean; this scales to all of least squares (Ch 13/19).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="product-rule">
+ <h2>Product rule</h2>
+ <p>The derivative of a product is <em>not</em> the product of derivatives. Picture a rectangle with growing sides: the area gains a strip from each side — $f'g$ from one, $fg'$ from the other.</p>
+ <div class="box def"><span class="label">Definition</span> $$(fg)' = f'g + fg'.$$ Three factors: $(fgh)' = f'gh + fg'h + fgh'$ — one term per factor differentiated.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x e^x$: $f' = 1\cdot e^x + x e^x = (1 + x)e^x$. Iterate: $f'' = e^x + (1+x)e^x = (2 + x)e^x$ — a pattern worth remembering: $\frac{d^n}{dx^n}[xe^x] = (n + x)e^x$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $(fg)' \ne f'g'$. Test: $f = g = x$ gives $(x^2)' = 2x$, but $f'g' = 1$. Wrong rule, wrong answer.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Differentiate $x^2\cos x$. <details class="sol"><summary>Solution</summary><div>$2x\cos x - x^2\sin x$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x) = (x^2 + 1)(x^3 - 2x)$: find $f'$ two ways (product rule; expand first) and check they agree. <details class="sol"><summary>Solution</summary><div>Product: $2x(x^3 - 2x) + (x^2+1)(3x^2 - 2) = 2x^4 - 4x^2 + 3x^4 + x^2 - 2 = 5x^4 - 3x^2 - 2$. Expand: $f = x^5 - x^3 - 2x$, $f' = 5x^4 - 3x^2 - 2$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Given $f(2) = 3$, $f'(2) = -1$, $g(2) = 5$, $g'(2) = 4$: compute $(fg)'(2)$ and $(f^2 g)'(2)$. <details class="sol"><summary>Solution</summary><div>$(fg)' = f'g + fg' = (-1)(5) + (3)(4) = 7$. $(f^2g)' = 2ff'g + f^2g' = 2(3)(-1)(5) + 9(4) = -30 + 36 = 6$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="quotient-rule">
+ <h2>Quotient rule</h2>
+ <p>For ratios: low d-high minus high d-low, over low squared. It is the product rule applied to $f \cdot g^{-1}$, packaged for direct use.</p>
+ <div class="box def"><span class="label">Definition</span> $$\left(\frac{f}{g}\right)' = \frac{f'g - fg'}{g^2}, \qquad g \ne 0.$$ Special case (reciprocal rule): $\big(\frac1g\big)' = -\frac{g'}{g^2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Derive $(\tan x)'$: $\tan = \frac{\sin}{\cos}$, so $$(\tan x)' = \frac{\cos x\cos x - \sin x(-\sin x)}{\cos^2 x} = \frac{\cos^2 + \sin^2}{\cos^2 x} = \sec^2 x.$$</div>
+ <div class="box pit"><span class="label">Pitfall</span> Order matters in the numerator: $f'g - fg'$, not $fg' - f'g$. Get it backwards and every sign flips.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Differentiate $\dfrac{x}{x+1}$. <details class="sol"><summary>Solution</summary><div>$\frac{(1)(x+1) - x(1)}{(x+1)^2} = \frac{1}{(x+1)^2}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate the sigmoid-like $f(x) = \dfrac{e^x}{1 + e^x}$ and show $f' = f(1 - f)$. <details class="sol"><summary>Solution</summary><div>$f' = \frac{e^x(1+e^x) - e^x e^x}{(1+e^x)^2} = \frac{e^x}{(1+e^x)^2}$. And $f(1-f) = \frac{e^x}{1+e^x}\cdot\frac{1}{1+e^x}$ — equal. ✓ (This identity makes backprop through sigmoids cheap, Ch 21.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Differentiate $\sec x$ via the reciprocal rule. <details class="sol"><summary>Solution</summary><div>$(\sec x)' = \big(\frac{1}{\cos x}\big)' = \frac{\sin x}{\cos^2 x} = \sec x\tan x$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="chain-rule">
+ <h2>Chain rule</h2>
+ <p>For nested functions — a function of a function — rates multiply. If $y$ changes 3× as fast as $u$, and $u$ changes 2× as fast as $x$, then $y$ changes 6× as fast as $x$. This is <em>the</em> rule of deep learning: a network is a deep nest, and backpropagation is the chain rule run in reverse.</p>
+ <div class="box def"><span class="label">Definition</span> $$\frac{d}{dx} f(g(x)) = f'(g(x))\cdot g'(x), \qquad \text{or} \qquad \frac{dy}{dx} = \frac{dy}{du}\cdot\frac{du}{dx}.$$ Chains compose: three layers give three factors.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = (3x^2 + 1)^5$: outer $u^5$, inner $u = 3x^2+1$: $y' = 5(3x^2+1)^4 \cdot 6x = 30x(3x^2+1)^4$. Deeper: $y = e^{\sin(x^2)}$: $y' = e^{\sin(x^2)}\cdot\cos(x^2)\cdot 2x$ — peel from the outside in, multiplying as you go.</div>
+ <div class="box link"><span class="label">Where this goes</span> Backpropagation (Ch 9, Ch 21) is this rule organized over a computation graph, reusing shared factors so a million-parameter gradient costs one extra forward pass.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Differentiate $\sqrt{1 + x^2}$. <details class="sol"><summary>Solution</summary><div>$\frac{2x}{2\sqrt{1+x^2}} = \frac{x}{\sqrt{1+x^2}}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate $\sin^3(2x)$. <details class="sol"><summary>Solution</summary><div>$3\sin^2(2x)\cdot\cos(2x)\cdot2 = 6\sin^2(2x)\cos(2x)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $L(w) = \big(\sigma(wx) - y\big)^2$ with $\sigma(z) = \frac{1}{1+e^{-z}}$, and $\sigma' = \sigma(1-\sigma)$. Compute $\frac{dL}{dw}$ at $w=0$, $x=2$, $y=1$. <details class="sol"><summary>Solution</summary><div>Chain: $\frac{dL}{dw} = 2(\sigma(wx) - y)\cdot\sigma'(wx)\cdot x$. At $w=0$: $\sigma(0) = \tfrac12$, $\sigma'(0) = \tfrac14$: $\frac{dL}{dw} = 2(\tfrac12 - 1)\cdot\tfrac14\cdot 2 = -\tfrac12$. (Negative: increasing $w$ decreases the loss — a one-neuron backprop.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">$\frac{d}{dx}\,e^{3x} = ?$</div><button class="opt">$3e^{3x}$</button><button class="opt">$e^{3x}$</button><button class="opt">$3xe^{3x-1}$</button><div class="why" hidden>Chain rule: outer $e^u$ (derivative $e^u$), inner $3x$ (derivative 3). The third option misapplies the power rule to an exponential.</div></div>
+</section>
+
+<section class="topic" id="implicit-differentiation">
+ <h2>Implicit differentiation</h2>
+ <p>Some curves refuse to be $y = f(x)$ — the circle $x^2 + y^2 = 25$ defines $y$ only implicitly. No matter: differentiate both sides treating $y$ as a function of $x$ (so $\frac{d}{dx}y^2 = 2y\,y'$ by the chain rule) and solve for $y'$.</p>
+ <div class="box def"><span class="label">Definition</span> Given a relation $F(x, y) = 0$, differentiate both sides with respect to $x$, applying the chain rule to every $y$-term, then solve the resulting linear equation for $\frac{dy}{dx}$ (the answer may involve both $x$ and $y$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $x^2 + y^2 = 25$: $2x + 2y\,y' = 0 \Rightarrow y' = -\frac xy$. At $(3, 4)$: slope $-\tfrac34$ — perpendicular to the radius of slope $\tfrac43$, exactly as circle geometry demands (Ch 5). ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $xy = 6$: find $y'$ implicitly. <details class="sol"><summary>Solution</summary><div>$y + xy' = 0 \Rightarrow y' = -\frac yx$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the tangent to $x^3 + y^3 = 9$ at $(1, 2)$. <details class="sol"><summary>Solution</summary><div>$3x^2 + 3y^2y' = 0 \Rightarrow y' = -\frac{x^2}{y^2} = -\tfrac14$. Tangent: $y = 2 - \tfrac14(x - 1)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the curve $x^2 - xy + y^2 = 3$ (an ellipse), find all points with horizontal tangent. <details class="sol"><summary>Solution</summary><div>$2x - y - xy' + 2yy' = 0 \Rightarrow y' = \frac{y - 2x}{2y - x}$. Horizontal: $y = 2x$ (and $2y \ne x$). Substitute: $x^2 - 2x^2 + 4x^2 = 3x^2 = 3 \Rightarrow x = \pm1$. Points $(1, 2)$ and $(-1, -2)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logarithmic-differentiation">
+ <h2>Logarithmic differentiation</h2>
+ <p>Take ln of both sides first: products become sums, powers become multiples, and monsters like $x^x$ become tame. Then differentiate implicitly. In ML we almost always work with log-likelihoods for exactly this reason.</p>
+ <div class="box def"><span class="label">Definition</span> To differentiate $y = f(x)$: write $\ln y = \ln f(x)$, simplify with log laws, differentiate ($\frac{y'}{y} = \dots$), then $y' = y \cdot(\dots)$. Also gives the general exponential rule: $(a^x)' = a^x\ln a$, and $\big(u^v\big)' = u^v\big(v'\ln u + v\frac{u'}{u}\big)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y = x^x$ ($x&gt;0$): $\ln y = x\ln x$, so $\frac{y'}{y} = \ln x + 1$, giving $y' = x^x(\ln x + 1)$. Minimum where $y' = 0$: $\ln x = -1$, $x = 1/e$ — the curious dip of $x^x$ at $x \approx 0.368$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Differentiate $y = 2^x$. <details class="sol"><summary>Solution</summary><div>$2^x\ln 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate $y = \dfrac{(x+1)^3\sqrt{x}}{(x^2+1)^2}$ logarithmically. <details class="sol"><summary>Solution</summary><div>$\ln y = 3\ln(x+1) + \tfrac12\ln x - 2\ln(x^2+1)$. $y' = y\Big[\frac{3}{x+1} + \frac{1}{2x} - \frac{4x}{x^2+1}\Big]$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Differentiate $y = x^{\sin x}$ for $x &gt; 0$. <details class="sol"><summary>Solution</summary><div>$\ln y = \sin x\ln x$: $\frac{y'}{y} = \cos x\ln x + \frac{\sin x}{x}$, so $y' = x^{\sin x}\big(\cos x\ln x + \frac{\sin x}{x}\big)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="trigonometric-derivatives">
+ <h2>Trigonometric derivatives</h2>
+ <p>Sine and cosine differentiate into each other in a four-step cycle — the analytic fingerprint of rotation. All six trig derivatives follow from these two plus the quotient rule. (Everything assumes radians.)</p>
+ <div class="box def"><span class="label">Definition</span> $$(\sin x)' = \cos x \quad (\cos x)' = -\sin x \quad (\tan x)' = \sec^2 x$$ $$(\cot x)' = -\csc^2 x \quad (\sec x)' = \sec x\tan x \quad (\csc x)' = -\csc x\cot x$$ Cofunctions carry the minus sign. Cycle: $\sin \to \cos \to -\sin \to -\cos \to \sin$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Prove $(\sin x)' = \cos x$ from the definition: $$\frac{\sin(x+h) - \sin x}{h} = \frac{\sin x\cos h + \cos x\sin h - \sin x}{h} = \sin x\,\frac{\cos h - 1}{h} + \cos x\,\frac{\sin h}{h}.$$ As $h\to0$: $\frac{\cos h - 1}{h}\to 0$ and $\frac{\sin h}{h}\to1$ (squeeze theorem), leaving $\cos x$. $\blacksquare$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Differentiate $f(x) = 3\sin x - 2\cos x$. <details class="sol"><summary>Solution</summary><div>$3\cos x + 2\sin x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate $f(x) = \sin(x^2)$ and $g(x) = \sin^2 x$; compare. <details class="sol"><summary>Solution</summary><div>$f' = 2x\cos(x^2)$; $g' = 2\sin x\cos x = \sin 2x$. Different functions, different chains.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the 100th derivative of $\sin x$. <details class="sol"><summary>Solution</summary><div>Derivatives cycle with period 4; $100 = 4\times25$: the 100th derivative is $\sin x$ itself.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inverse-function-derivatives">
+ <h2>Inverse function derivatives</h2>
+ <p>An inverse function's graph is the original reflected across $y = x$, so its slopes are reciprocals: where $f$ climbs steeply, $f^{-1}$ climbs gently. This one idea yields the derivatives of ln, arcsin, arctan without new limits.</p>
+ <div class="box def"><span class="label">Definition</span> If $f$ is differentiable and invertible near $a$ with $f'(f^{-1}(a)) \ne 0$: $$\big(f^{-1}\big)'(a) = \frac{1}{f'\big(f^{-1}(a)\big)}.$$ Standard results: $(\ln x)' = \frac1x$; $(\arcsin x)' = \frac{1}{\sqrt{1-x^2}}$; $(\arccos x)' = -\frac{1}{\sqrt{1-x^2}}$; $(\arctan x)' = \frac{1}{1+x^2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Derive $(\arctan x)'$: let $y = \arctan x$, so $\tan y = x$. Differentiate: $\sec^2 y\cdot y' = 1$, $y' = \cos^2 y$. With $\tan y = x$, the right triangle gives $\cos y = \frac{1}{\sqrt{1+x^2}}$: $y' = \frac{1}{1 + x^2}$. $\blacksquare$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = x^3$, so $f^{-1}(8) = 2$. Compute $(f^{-1})'(8)$. <details class="sol"><summary>Solution</summary><div>$\frac{1}{f'(2)} = \frac{1}{12}$. (Check: $(x^{1/3})' = \tfrac13 x^{-2/3}$ at 8: $\tfrac13\cdot\tfrac14 = \tfrac1{12}$. ✓)</div></details></li>
+  <li><span class="lvl m">MED</span> Differentiate $\arcsin(2x)$. <details class="sol"><summary>Solution</summary><div>Chain: $\frac{2}{\sqrt{1 - 4x^2}}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Derive $(\ln x)' = \frac1x$ from $(e^x)' = e^x$ via the inverse rule. <details class="sol"><summary>Solution</summary><div>$f = e^x$, $f^{-1} = \ln$. $(\ln)'(a) = \frac{1}{f'(\ln a)} = \frac{1}{e^{\ln a}} = \frac1a$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="higher-order-derivatives">
+ <h2>Higher-order derivatives</h2>
+ <p>Differentiate again: the second derivative is the rate of change of the rate of change — acceleration, curvature, the bend of a loss surface. Third and beyond appear in Taylor series, where each order adds one more layer of local detail.</p>
+ <div class="box def"><span class="label">Definition</span> $f'' = (f')'$, $f''' = (f'')'$, and in general $f^{(n)}$. Notations: $\frac{d^2y}{dx^2}$, $\ddot y$. Physics: position $s$, velocity $s'$, acceleration $s''$, jerk $s'''$. Sign of $f''$: positive = concave up (smile), negative = concave down (frown).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^4 - 2x^3$: $f' = 4x^3 - 6x^2$, $f'' = 12x^2 - 12x = 12x(x-1)$, $f''' = 24x - 12$, $f^{(4)} = 24$, $f^{(5)} = 0$ — an $n$th-degree polynomial dies after $n$ differentiations.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x) = \sin x$: find $f''(x)$. <details class="sol"><summary>Solution</summary><div>$-\sin x$.</div></details></li>
+  <li><span class="lvl m">MED</span> $s(t) = t^3 - 6t^2 + 9t$ (position, meters, seconds). When is acceleration zero, and what is the velocity then? <details class="sol"><summary>Solution</summary><div>$s'' = 6t - 12 = 0$ at $t = 2$; $s'(2) = 12 - 24 + 9 = -3$ m/s.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find a formula for $f^{(n)}(x)$ where $f(x) = \frac1x$. <details class="sol"><summary>Solution</summary><div>$f' = -x^{-2}$, $f'' = 2x^{-3}$, $f''' = -6x^{-4}$: pattern $f^{(n)}(x) = (-1)^n\, n!\, x^{-(n+1)}$. Verify by induction: differentiating multiplies by $-(n+1)$ and lowers the power. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="related-rates">
+ <h2>Related rates</h2>
+ <p>When two quantities are tied by an equation, their rates of change are tied too: differentiate the relation with respect to time. Inflating balloons, sliding ladders, filling cones — one known rate buys the other.</p>
+ <div class="box def"><span class="label">Definition</span> Method: (1) write the equation relating the quantities at all times, (2) differentiate implicitly with respect to $t$, (3) substitute the known instant's values and rates, (4) solve for the unknown rate. Never plug in frozen values before differentiating.</div>
+ <div class="box ex"><span class="label">Worked example</span> A spherical balloon inflates at $\frac{dV}{dt} = 100$ cm³/s. How fast is the radius growing when $r = 5$? $V = \tfrac43\pi r^3 \Rightarrow \frac{dV}{dt} = 4\pi r^2\frac{dr}{dt}$. So $\frac{dr}{dt} = \frac{100}{4\pi\cdot25} = \frac{1}{\pi} \approx 0.318$ cm/s.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Substituting $r = 5$ into $V = \tfrac43\pi r^3$ <em>before</em> differentiating turns $V$ into a constant and every rate into 0. Differentiate first, freeze later.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $y = x^2$ and $\frac{dx}{dt} = 3$. Find $\frac{dy}{dt}$ when $x = 4$. <details class="sol"><summary>Solution</summary><div>$\frac{dy}{dt} = 2x\frac{dx}{dt} = 24$.</div></details></li>
+  <li><span class="lvl m">MED</span> A 10 m ladder slides: its foot moves away at 1 m/s. How fast does the top descend when the foot is 6 m out? <details class="sol"><summary>Solution</summary><div>$x^2 + y^2 = 100$: $2x\dot x + 2y\dot y = 0$. At $x = 6$: $y = 8$, $\dot y = -\frac{x\dot x}{y} = -\frac{6}{8} = -0.75$ m/s.</div></details></li>
+  <li><span class="lvl h">HARD</span> Water fills an inverted cone (radius 3 m, height 6 m) at 2 m³/min. How fast does the water level rise when 4 m deep? <details class="sol"><summary>Solution</summary><div>By similar triangles $r = \frac h2$: $V = \frac\pi3 r^2 h = \frac{\pi h^3}{12}$. $\frac{dV}{dt} = \frac{\pi h^2}{4}\frac{dh}{dt}$: $\frac{dh}{dt} = \frac{2\cdot4}{\pi\cdot16} = \frac{1}{2\pi} \approx 0.159$ m/min.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linear-approximation">
+ <h2>Linear approximation</h2>
+ <p>Near a point, a smooth curve is essentially its tangent line — so use the line to estimate the curve. This "zoom until straight" move is the first term of Taylor, the heart of Newton's method, and the local model every gradient step trusts.</p>
+ <div class="box def"><span class="label">Definition</span> The linearization of $f$ at $a$: $$L(x) = f(a) + f'(a)(x - a), \qquad f(x) \approx L(x) \text{ for } x \text{ near } a.$$ Error shrinks like $(x-a)^2$ (the next Taylor term).</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimate $\sqrt{99.8}$. Take $f(x) = \sqrt x$, $a = 100$: $f(100) = 10$, $f'(100) = \frac{1}{20} = 0.05$. $L(99.8) = 10 + 0.05(-0.2) = 9.99$. True value: $9.98999\ldots$ — the linear estimate is off by about $5\times10^{-6}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Linearize $f(x) = e^x$ at 0 and estimate $e^{0.1}$. <details class="sol"><summary>Solution</summary><div>$L(x) = 1 + x$: $e^{0.1} \approx 1.1$ (true 1.10517).</div></details></li>
+  <li><span class="lvl m">MED</span> Use linearization to estimate $\sin 31^\circ$. <details class="sol"><summary>Solution</summary><div>Radians! $a = \tfrac\pi6$, $x - a = \tfrac{\pi}{180}$: $\sin 31^\circ \approx \tfrac12 + \cos\tfrac\pi6\cdot\tfrac{\pi}{180} = 0.5 + 0.8660\times0.01745 \approx 0.5151$ (true 0.51504).</div></details></li>
+  <li><span class="lvl h">HARD</span> The relative error version: show that for small relative change $\epsilon$, $(1+\epsilon)^n \approx 1 + n\epsilon$, and use it to estimate $1.002^{50}$. <details class="sol"><summary>Solution</summary><div>$f(\epsilon) = (1+\epsilon)^n$, $f(0) = 1$, $f'(0) = n$: $f \approx 1 + n\epsilon$. So $1.002^{50} \approx 1.1$. (True: $e^{50\ln 1.002} = e^{0.0999} \approx 1.105$ — good, and the second-order term $\binom{50}{2}\epsilon^2 \approx 0.0049$ explains most of the gap.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="differentials">
+ <h2>Differentials</h2>
+ <p>Differentials give the tangent-line estimate a notation of its own: $dy = f'(x)\,dx$ says "a small input change $dx$ produces output change about $f'(x)\,dx$". Error propagation in measurements runs on this.</p>
+ <div class="box def"><span class="label">Definition</span> For $y = f(x)$: the differential is $dy = f'(x)\,dx$, where $dx$ is an independent small change. Then $\Delta y \approx dy$, with $\Delta y = f(x + dx) - f(x)$ the true change. Relative error: $\frac{dy}{y}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A cube's side is measured as 10 cm with error up to $\pm 0.05$ cm. Volume $V = s^3$: $dV = 3s^2\,ds = 3(100)(\pm0.05) = \pm15$ cm³ on $V = 1000$ — a 1.5% volume error from a 0.5% length error. (Relative errors triple with the cube: $\frac{dV}{V} = 3\frac{ds}{s}$.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $y = x^2$, $x = 5$, $dx = 0.1$: compute $dy$ and the true $\Delta y$. <details class="sol"><summary>Solution</summary><div>$dy = 10(0.1) = 1$; $\Delta y = 26.01 - 25 = 1.01$.</div></details></li>
+  <li><span class="lvl m">MED</span> A circle's radius is measured 1% too big. How wrong is the computed area, approximately? <details class="sol"><summary>Solution</summary><div>$A = \pi r^2$: $\frac{dA}{A} = 2\frac{dr}{r} = 2\%$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A pendulum's period is $T = 2\pi\sqrt{L/g}$. If $L$ is known to 0.2% and $g$ to 0.1%, bound the relative error in $T$. <details class="sol"><summary>Solution</summary><div>$\ln T = \ln 2\pi + \tfrac12\ln L - \tfrac12\ln g$: $\frac{dT}{T} = \tfrac12\frac{dL}{L} - \tfrac12\frac{dg}{g}$. Worst case: $\tfrac12(0.2\%) + \tfrac12(0.1\%) = 0.15\%$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="mean-value-theorem">
+ <h2>Mean Value Theorem</h2>
+ <p>Somewhere on any smooth trip, your instantaneous speed equals your average speed. That is the Mean Value Theorem — the bridge between derivative facts ($f' &gt; 0$) and function facts ($f$ increasing), and the engine inside most proofs in this chapter.</p>
+ <div class="box thm"><span class="label">Theorem</span> If $f$ is continuous on $[a,b]$ and differentiable on $(a,b)$, then there exists $c\in(a,b)$ with $$f'(c) = \frac{f(b) - f(a)}{b - a}.$$ Consequences: $f' = 0$ on an interval $\Rightarrow$ $f$ constant; $f' &gt; 0 \Rightarrow$ strictly increasing; two functions with equal derivatives differ by a constant.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3$ on $[0, 2]$: average slope $= \frac{8 - 0}{2} = 4$. MVT point: $f'(c) = 3c^2 = 4 \Rightarrow c = \frac{2}{\sqrt3} \approx 1.155$ — inside $(0,2)$ as promised.</div>
+ <div class="box think"><span class="label">Think first</span> Two toll cameras 60 km apart clock you passing them 30 minutes apart. Can they prove you exceeded 100 km/h? <details class="sol"><summary>Reveal</summary><div>Average speed $= 120$ km/h; by MVT your instantaneous speed was exactly 120 at some moment — well over 100. Yes.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the MVT point for $f(x) = x^2$ on $[1, 3]$. <details class="sol"><summary>Solution</summary><div>Average slope $\frac{9-1}{2} = 4$; $2c = 4$, $c = 2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use MVT to prove $|\sin a - \sin b| \le |a - b|$ for all $a, b$. <details class="sol"><summary>Solution</summary><div>$\sin a - \sin b = \cos(c)(a - b)$ for some $c$ between; $|\cos c| \le 1$. $\blacksquare$ (Sine is 1-Lipschitz — the concept behind Lipschitz constants in Ch 15.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $f(x) = x^3 + 3x + 1$ has exactly one real root. <details class="sol"><summary>Solution</summary><div>Existence: $f(-1) = -3 &lt; 0 &lt; 5 = f(1)$, IVT. Uniqueness: two roots would give (by Rolle, next topic) a point with $f' = 0$; but $f' = 3x^2 + 3 \ge 3 &gt; 0$ always. Contradiction. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="rolles-theorem">
+ <h2>Rolle's theorem</h2>
+ <p>The MVT's special case and stepping stone: start and end at the same height, and somewhere in between your instantaneous slope must be zero — every round trip has a turning point.</p>
+ <div class="box thm"><span class="label">Theorem</span> If $f$ is continuous on $[a,b]$, differentiable on $(a,b)$, and $f(a) = f(b)$, then there exists $c \in (a,b)$ with $f'(c) = 0$. (Proof idea: the max or min of $f$ on $[a,b]$ either sits inside — where the derivative vanishes — or both extremes are at the endpoints, forcing $f$ constant.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^2 - 4x + 3$ on $[1, 3]$: $f(1) = 0 = f(3)$. Rolle point: $f'(x) = 2x - 4 = 0$ at $c = 2$ — the vertex, dead center.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify Rolle for $f(x) = \sin x$ on $[0, \pi]$. <details class="sol"><summary>Solution</summary><div>$\sin 0 = \sin\pi = 0$; $f'(c) = \cos c = 0$ at $c = \tfrac\pi2$. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Why does Rolle fail for $f(x) = |x|$ on $[-1, 1]$ despite $f(-1) = f(1)$? <details class="sol"><summary>Solution</summary><div>$f$ is not differentiable at 0, and indeed no point has slope 0 (slopes are $\pm1$). Hypotheses matter.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that between any two roots of $p(x) = x^4 - 4x + 1$ lies a root of $p'$; conclude $p$ has at most... how many real roots? <details class="sol"><summary>Solution</summary><div>Rolle: between consecutive roots of $p$ sits a root of $p' = 4x^3 - 4$, which has exactly one real root ($x = 1$). So $p$ has at most 2 real roots. (It has exactly 2: $p(0) = 1 &gt; 0$, $p(1) = -2 &lt; 0$, $p(2) = 9 &gt; 0$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lhopitals-rule">
+ <h2>L'Hopital's rule</h2>
+ <p>For limits that collapse to $\frac00$ or $\frac\infty\infty$: compare the racers' speeds instead of positions — replace the ratio of functions by the ratio of their derivatives, and try again.</p>
+ <div class="box thm"><span class="label">Theorem</span> If $\lim_{x\to a}\frac{f(x)}{g(x)}$ has form $\frac00$ or $\frac{\pm\infty}{\pm\infty}$, and $\lim_{x\to a}\frac{f'(x)}{g'(x)}$ exists (or is $\pm\infty$), then $$\lim_{x\to a}\frac{f(x)}{g(x)} = \lim_{x\to a}\frac{f'(x)}{g'(x)}.$$ Other forms ($0\cdot\infty$, $\infty - \infty$, $1^\infty$, $0^0$, $\infty^0$) must be rewritten as quotients (or via ln) first.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\lim_{x\to0}\dfrac{e^x - 1 - x}{x^2}$ ($\tfrac00$): differentiate: $\dfrac{e^x - 1}{2x}$ (still $\tfrac00$): again: $\dfrac{e^x}{2} \to \dfrac12$. And a $1^\infty$: $\lim_{x\to\infty}\big(1 + \tfrac3x\big)^x = e^{\lim x\ln(1 + 3/x)} = e^{\lim \frac{\ln(1+3/x)}{1/x}} \xrightarrow{\text{L'H}} e^{\lim\frac{\frac{-3/x^2}{1+3/x}}{-1/x^2}} = e^3$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Check the form first! $\lim_{x\to0}\frac{x}{\cos x}$ is $\frac{0}{1} = 0$ — L'Hôpital here would give $\frac{1}{-\sin x} \to$ nonsense. And don't quotient-rule: differentiate top and bottom separately.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{x\to0}\dfrac{\sin 3x}{x}$ via L'Hôpital. <details class="sol"><summary>Solution</summary><div>$\frac{3\cos 3x}{1}\to 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\lim_{x\to\infty}\dfrac{\ln x}{x^{0.1}} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{1/x}{0.1x^{-0.9}} = \frac{10}{x^{0.1}} \to 0$: any positive power of $x$ beats $\ln$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\lim_{x\to0^+} x^x = ?$ <details class="sol"><summary>Solution</summary><div>Form $0^0$: $\ln(x^x) = x\ln x = \frac{\ln x}{1/x} \xrightarrow{\text{L'H}} \frac{1/x}{-1/x^2} = -x \to 0$. So $x^x \to e^0 = 1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="critical-points">
+ <h2>Critical points</h2>
+ <p>Where can a function turn around? Only where its derivative is zero or fails to exist. These candidate locations are the critical points — the shortlist every optimization search begins with.</p>
+ <div class="box def"><span class="label">Definition</span> $c$ is a <em>critical point</em> of $f$ if $c$ is in the domain and $f'(c) = 0$ or $f'(c)$ does not exist. Fermat's theorem: if $f$ has a local extremum at an interior point $c$ and $f'(c)$ exists, then $f'(c) = 0$. The converse fails: $f(x) = x^3$ has $f'(0) = 0$ but no extremum.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3 - 3x^2 - 9x + 4$: $f' = 3x^2 - 6x - 9 = 3(x-3)(x+1)$: critical points $x = -1, 3$. Also $g(x) = x^{2/3}$: $g' = \tfrac23 x^{-1/3}$ never zero but undefined at 0 — the cusp at 0 is a critical point (in fact the minimum).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Critical points of $f(x) = x^2 - 6x$? <details class="sol"><summary>Solution</summary><div>$f' = 2x - 6$: $x = 3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Critical points of $f(x) = xe^{-x}$? <details class="sol"><summary>Solution</summary><div>$f' = e^{-x}(1 - x) = 0$: $x = 1$ only ($e^{-x}$ never 0).</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all critical points of $f(x) = |x^2 - 4|$. <details class="sol"><summary>Solution</summary><div>Smooth pieces: $f' = \pm2x$, zero at $x = 0$. Corners where $x^2 = 4$: $x = \pm2$ (derivative jumps between $\mp 4$ and $\pm4$, so undefined). Critical points: $\{-2, 0, 2\}$ — minima at $\pm2$ (value 0), local max at 0 (value 4).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="local-extrema">
+ <h2>Local extrema</h2>
+ <p>A local maximum is a hilltop: highest in its neighborhood, not necessarily on the map. Two tests classify critical points: watch the derivative's sign change (first-derivative test) or check the bend (second-derivative test).</p>
+ <div class="box def"><span class="label">Definition</span> $f$ has a <em>local max</em> at $c$ if $f(c) \ge f(x)$ for all $x$ near $c$ (local min: $\le$). <em>First-derivative test:</em> $f'$ flips $+ \to -$ at $c$: local max; $- \to +$: local min; no flip: neither. <em>Second-derivative test:</em> $f'(c) = 0$ and $f''(c) &gt; 0$: local min; $f''(c) &lt; 0$: local max; $f''(c) = 0$: inconclusive.</div>
+ <div class="box ex"><span class="label">Worked example</span> Continue $f(x) = x^3 - 3x^2 - 9x + 4$, critical at $-1, 3$. $f'' = 6x - 6$: $f''(-1) = -12 &lt; 0$: local max, $f(-1) = -1 - 3 + 9 + 4 = 9$. $f''(3) = 12 &gt; 0$: local min, $f(3) = 27 - 27 - 27 + 4 = -23$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify the critical point of $f(x) = x^2 - 6x$. <details class="sol"><summary>Solution</summary><div>$f'' = 2 &gt; 0$: local (indeed global) min at $x = 3$, $f(3) = -9$.</div></details></li>
+  <li><span class="lvl m">MED</span> Classify the critical point of $f(x) = xe^{-x}$ at $x=1$. <details class="sol"><summary>Solution</summary><div>$f'' = e^{-x}(x - 2)$: $f''(1) = -e^{-1} &lt; 0$: local max, value $e^{-1} \approx 0.368$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f(x) = x^4$: show the second-derivative test fails at 0 but the first-derivative test succeeds. <details class="sol"><summary>Solution</summary><div>$f' = 4x^3$, $f'' = 12x^2$: $f''(0) = 0$, inconclusive. But $f'$ flips $-\to+$ at 0: local min. (Same story with $x^3$: no flip, no extremum, and with $-x^4$: max. Degenerate criticals need the sign test — or higher derivatives.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="global-extrema">
+ <h2>Global extrema</h2>
+ <p>The global maximum is the highest point anywhere in the domain. On a closed interval, a continuous function must achieve one — and it can only hide at critical points or endpoints, so the search is a finite checklist.</p>
+ <div class="box thm"><span class="label">Theorem</span> <b>(Extreme Value Theorem.)</b> A continuous function on a closed bounded interval $[a,b]$ attains a global max and min. <em>Closed-interval method:</em> evaluate $f$ at all critical points in $(a,b)$ and at $a$, $b$; the largest value is the global max, smallest the global min.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3 - 3x$ on $[0, 2]$: $f' = 3x^2 - 3 = 0$ at $x = \pm1$; only $1 \in (0,2)$. Values: $f(0) = 0$, $f(1) = -2$, $f(2) = 2$. Global max 2 at $x=2$; global min $-2$ at $x=1$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Open or unbounded domains void the guarantee: $f(x) = x$ on $(0,1)$ has neither max nor min; $f(x) = \frac1x$ on $(0,1]$ has a min but no max. Check the domain before promising extrema.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Global extrema of $f(x) = x^2$ on $[-1, 2]$. <details class="sol"><summary>Solution</summary><div>Candidates $x = -1, 0, 2$: values 1, 0, 4. Min 0 at 0; max 4 at 2.</div></details></li>
+  <li><span class="lvl m">MED</span> Global extrema of $f(x) = x + \frac4x$ on $[1, 4]$. <details class="sol"><summary>Solution</summary><div>$f' = 1 - \frac4{x^2} = 0$ at $x = 2$. Values: $f(1) = 5$, $f(2) = 4$, $f(4) = 5$. Min 4 at 2; max 5 at both endpoints.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the global extrema of $f(x) = \sin x + \cos x$ on $[0, 2\pi]$. <details class="sol"><summary>Solution</summary><div>$f' = \cos x - \sin x = 0$: $\tan x = 1$: $x = \tfrac\pi4, \tfrac{5\pi}4$. Values: $f(\tfrac\pi4) = \sqrt2$, $f(\tfrac{5\pi}4) = -\sqrt2$, $f(0) = f(2\pi) = 1$. Max $\sqrt2$, min $-\sqrt2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="monotonicity">
+ <h2>Monotonicity</h2>
+ <p>The derivative's sign is the function's direction: positive means climbing, negative means falling. Splitting the domain at critical points into increasing/decreasing intervals gives you the function's whole storyline.</p>
+ <div class="box def"><span class="label">Definition</span> If $f' &gt; 0$ on an interval, $f$ is strictly increasing there; $f' &lt; 0$: strictly decreasing (both via MVT). Procedure: find critical points, test $f'$'s sign on each interval between them.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^3 - 3x^2 - 9x + 4$, $f' = 3(x-3)(x+1)$. Signs: $x &lt; -1$: $(+)(-)(-) \Rightarrow +$, increasing; $-1 &lt; x &lt; 3$: $-$, decreasing; $x &gt; 3$: $+$, increasing. Storyline: up to the peak at $-1$, down the valley to 3, up forever.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Where is $f(x) = e^{-x^2}$ increasing? <details class="sol"><summary>Solution</summary><div>$f' = -2xe^{-x^2}$: positive for $x &lt; 0$. Increasing on $(-\infty, 0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $f(x) = x - \sin x$ is nondecreasing on all of $\mathbb{R}$; where is it momentarily flat? <details class="sol"><summary>Solution</summary><div>$f' = 1 - \cos x \ge 0$ always; zero exactly at $x = 2k\pi$. Isolated flat points don't break monotonicity: $f$ is (weakly, in fact strictly) increasing.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove $e^x &gt; 1 + x$ for all $x \ne 0$. <details class="sol"><summary>Solution</summary><div>$g(x) = e^x - 1 - x$: $g' = e^x - 1$, negative for $x&lt;0$, positive for $x&gt;0$. So $g$ decreases to $g(0) = 0$ then increases: $g(x) &gt; 0$ for $x \ne 0$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="concavity">
+ <h2>Concavity</h2>
+ <p>The second derivative reads the bend: concave up (holds water, $f'' &gt; 0$) means the slope itself is rising; concave down means it's falling. Concavity tells you whether a function lies above or below its tangents — the geometric soul of convexity (Ch 15).</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is <em>concave up</em> on an interval if $f'$ is increasing there (guaranteed when $f'' &gt; 0$); <em>concave down</em> if $f'$ is decreasing ($f'' &lt; 0$). Concave-up curves lie above their tangent lines and below their chords.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = x^4 - 6x^2$: $f'' = 12x^2 - 12 = 12(x-1)(x+1)$. Concave up on $(-\infty,-1)$ and $(1,\infty)$; concave down on $(-1, 1)$ — a W-shaped curve with a dome in the middle.</div>
+ <div class="box link"><span class="label">Where this goes</span> "Concave up everywhere" is convexity — the property that makes optimization provably easy (Ch 15) and powers Jensen's inequality (Ch 11).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Concavity of $f(x) = e^x$? Of $\ln x$? <details class="sol"><summary>Solution</summary><div>$e^x$: $f'' = e^x &gt; 0$, concave up everywhere. $\ln x$: $f'' = -\frac1{x^2} &lt; 0$, concave down everywhere.</div></details></li>
+  <li><span class="lvl m">MED</span> Where is $f(x) = \frac{1}{1+x^2}$ concave up? <details class="sol"><summary>Solution</summary><div>$f' = \frac{-2x}{(1+x^2)^2}$, $f'' = \frac{-2(1+x^2)^2 + 2x\cdot2(1+x^2)\cdot2x}{(1+x^2)^4} = \frac{6x^2 - 2}{(1+x^2)^3}$. Concave up where $x^2 &gt; \tfrac13$: $|x| &gt; \tfrac{1}{\sqrt3}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: if $f'' &gt; 0$ on an interval, the graph lies above each tangent line. <details class="sol"><summary>Solution</summary><div>Fix $a$; let $g(x) = f(x) - [f(a) + f'(a)(x-a)]$. Then $g(a) = 0$, $g'(x) = f'(x) - f'(a)$, and $g'' = f'' &gt; 0$ makes $f'$ strictly increasing, so $g' &lt; 0$ for $x&lt;a$ and $g' &gt; 0$ for $x&gt;a$: $g$ has a strict minimum 0 at $a$: $g \ge 0$, equality only at $a$. $\blacksquare$</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="inflection-points">
+ <h2>Inflection points</h2>
+ <p>An inflection point is where the bend flips — concave up hands over to concave down. The tangent line crosses the curve there. In a growth curve it is the moment growth stops accelerating and starts decelerating.</p>
+ <div class="box def"><span class="label">Definition</span> $c$ is an <em>inflection point</em> if $f$ is continuous at $c$ and concavity changes across it. Necessary condition when $f''$ exists: $f''(c) = 0$ — but not sufficient ($x^4$ has $f''(0) = 0$ and no inflection). Verify the sign of $f''$ actually changes.</div>
+ <div class="box ex"><span class="label">Worked example</span> Logistic curve $f(x) = \frac{1}{1+e^{-x}}$: $f'' = f(1-f)(1-2f)$ (using $f' = f(1-f)$). $f'' = 0$ when $f = \tfrac12$, i.e. $x = 0$; sign flips (up for $x&lt;0$, down for $x&gt;0$). Inflection at $(0, \tfrac12)$ — the point of fastest growth.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Inflection points of $f(x) = x^3$? <details class="sol"><summary>Solution</summary><div>$f'' = 6x$: changes sign at 0. Inflection at $(0,0)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the inflection points of $f(x) = x^4 - 6x^2$. <details class="sol"><summary>Solution</summary><div>From before, $f'' = 12(x^2 - 1)$ flips at $x = \pm1$: inflections at $(\pm1, -5)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $f(x) = xe^{-x}$ has exactly one inflection point and find it. <details class="sol"><summary>Solution</summary><div>$f' = (1-x)e^{-x}$, $f'' = (x - 2)e^{-x}$: zero only at $x = 2$, sign flips $-\to+$. Inflection at $(2, 2e^{-2}) \approx (2, 0.271)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="curve-sketching">
+ <h2>Curve sketching</h2>
+ <p>Put the toolkit together: domain, intercepts, symmetry, asymptotes, increase/decrease, extrema, concavity, inflections — and the graph draws itself. Sketching is how you audit a function (or a loss curve) before trusting any single number about it.</p>
+ <div class="box def"><span class="label">Definition</span> Checklist: (1) domain and discontinuities; (2) intercepts; (3) symmetry (even/odd/periodic); (4) asymptotes (vertical, horizontal, slant); (5) $f'$: critical points, monotonic intervals, extrema; (6) $f''$: concavity, inflections; (7) plot key points, connect respecting all constraints.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x) = \dfrac{x}{x^2+1}$. Domain $\mathbb{R}$; odd; $f \to 0$ at $\pm\infty$ (horizontal asymptote $y = 0$); $f' = \frac{1 - x^2}{(x^2+1)^2}$: increasing on $(-1,1)$, max $f(1) = \tfrac12$, min $f(-1) = -\tfrac12$; $f'' = \frac{2x(x^2 - 3)}{(x^2+1)^3}$: inflections at $x = 0, \pm\sqrt3$. Sketch: an odd S-wave rising to $\tfrac12$ at 1 then decaying back to 0.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Which features does $f(x) = e^{-x^2}$ have: symmetry, max, asymptotes? <details class="sol"><summary>Solution</summary><div>Even; max 1 at 0; horizontal asymptote $y=0$ both ways. The bell curve.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch data for $f(x) = \frac{x^2}{x - 1}$: asymptotes and extrema. <details class="sol"><summary>Solution</summary><div>Vertical $x = 1$. Division: $f = x + 1 + \frac{1}{x-1}$: slant asymptote $y = x+1$. $f' = 1 - \frac{1}{(x-1)^2} = 0$ at $x = 0, 2$: local max $f(0) = 0$, local min $f(2) = 4$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $f(x) = x^{2/3}(x - 5)$, find the cusp and classify the critical points. <details class="sol"><summary>Solution</summary><div>$f = x^{5/3} - 5x^{2/3}$: $f' = \tfrac53 x^{2/3} - \tfrac{10}{3}x^{-1/3} = \tfrac{5}{3}x^{-1/3}(x - 2)$. Undefined at 0 (cusp; $f' \to +\infty$ from left, $-\infty$ from right: local max at 0, value 0). Zero at $x = 2$: sign $-\to+$: local min $f(2) = 2^{2/3}(-3) \approx -4.76$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="optimization">
+ <h2>Optimization</h2>
+ <p>Turn a "best possible" question into calculus: express the goal as a one-variable function, respect the constraints, and hunt its extrema through critical points. This is the ancestral form of everything Chapter 15 does at scale.</p>
+ <div class="box def"><span class="label">Definition</span> Recipe: (1) name variables, draw the picture; (2) write the objective; (3) use constraints to eliminate variables down to one; (4) determine the domain; (5) find critical points and compare with endpoints; (6) answer the actual question (including units).</div>
+ <div class="box ex"><span class="label">Worked example</span> A farmer has 100 m of fence for a rectangular pen against a river (no fence on the river side). Maximize area. Sides: $x$ (perpendicular, two of them) and $y$: $2x + y = 100$, $A = xy = x(100 - 2x)$. $A' = 100 - 4x = 0$: $x = 25$, $y = 50$, $A = 1250$ m². Endpoints ($x = 0, 50$) give 0. ✓</div>
+ <div class="box think"><span class="label">Think first</span> Among all rectangles with perimeter 20, which has the largest area — and can you guess before differentiating? <details class="sol"><summary>Reveal</summary><div>The square (5×5, area 25). $A = x(10 - x)$ peaks at $x = 5$. Symmetry usually wins.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find two nonnegative numbers summing to 10 with maximal product. <details class="sol"><summary>Solution</summary><div>$P = x(10-x)$, $P' = 10 - 2x = 0$: $x = 5$: $5 \times 5 = 25$.</div></details></li>
+  <li><span class="lvl m">MED</span> An open-top box is made from a 12×12 sheet by cutting squares of side $x$ from the corners and folding. Maximize the volume. <details class="sol"><summary>Solution</summary><div>$V = x(12 - 2x)^2$, $0 &lt; x &lt; 6$. $V' = (12-2x)^2 + x\cdot2(12-2x)(-2) = (12-2x)(12 - 6x) = 0$: $x = 2$ (interior). $V(2) = 2\cdot64 = 128$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the point on the parabola $y = x^2$ closest to $(3, 0)$. <details class="sol"><summary>Solution</summary><div>Minimize $D(x) = (x-3)^2 + x^4$. $D' = 2(x-3) + 4x^3 = 0 \Rightarrow 2x^3 + x - 3 = 0 \Rightarrow (x-1)(2x^2 + 2x + 3) = 0$. The quadratic has negative discriminant: $x = 1$ only. Point $(1, 1)$, distance $\sqrt{4 + 1} = \sqrt5$. ($D'' = 2 + 12x^2 &gt; 0$: a true min.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">To find global extrema of a differentiable $f$ on $[a,b]$ you must compare values at…</div><button class="opt">critical points only</button><button class="opt">endpoints only</button><button class="opt">critical points and endpoints</button><div class="why" hidden>Extrema hide in both places: $f(x)=x$ on $[0,1]$ peaks at an endpoint; $f(x)=-x^2$ on $[-1,1]$ at a critical point.</div></div>
+</section>
+
+<section class="topic" id="antiderivatives">
+ <h2>Antiderivatives</h2>
+ <p>Run differentiation backwards: an antiderivative of $f$ is any function whose derivative is $f$. There are infinitely many, all vertical shifts of each other — hence the "+ C".</p>
+ <div class="box def"><span class="label">Definition</span> $F$ is an <em>antiderivative</em> of $f$ on an interval if $F' = f$ there. If $F$ is one antiderivative, the complete family is $F(x) + C$, $C \in \mathbb{R}$ (by the MVT corollary: equal derivatives differ by a constant).</div>
+ <div class="box ex"><span class="label">Worked example</span> An object has velocity $v(t) = 6t^2 - 4$ and position $s(0) = 3$. Antidifferentiate: $s(t) = 2t^3 - 4t + C$; the initial condition pins $C$: $s(0) = C = 3$. So $s(t) = 2t^3 - 4t + 3$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give an antiderivative of $f(x) = 3x^2 + \cos x$. <details class="sol"><summary>Solution</summary><div>$x^3 + \sin x$ (+ C).</div></details></li>
+  <li><span class="lvl m">MED</span> Find $f$ given $f''(x) = 12x$, $f'(0) = 2$, $f(0) = 1$. <details class="sol"><summary>Solution</summary><div>$f' = 6x^2 + 2$ (constant from $f'(0)$); $f = 2x^3 + 2x + 1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Why is "the" antiderivative of $\frac1x$ written $\ln|x| + C$ — and is even that the full truth? <details class="sol"><summary>Solution</summary><div>For $x&gt;0$, $(\ln x)' = \frac1x$; for $x&lt;0$, $(\ln(-x))' = \frac{-1}{-x} = \frac1x$: together $\ln|x|$. Full truth: the domain is two disconnected intervals, so the constants may differ on each side — $\ln|x| + C_1$ on $x&gt;0$ and $\ln|x| + C_2$ on $x&lt;0$ is the most general antiderivative.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="indefinite-integrals">
+ <h2>Indefinite integrals</h2>
+ <p>The indefinite integral $\int f(x)\,dx$ is notation for the whole antiderivative family. Each derivative rule, read right-to-left, becomes an integration rule — a basic table you should know cold.</p>
+ <div class="box def"><span class="label">Definition</span> $$\int x^n dx = \frac{x^{n+1}}{n+1} + C \;(n \ne -1), \quad \int \frac{dx}{x} = \ln|x| + C, \quad \int e^x dx = e^x + C,$$ $$\int \sin x\,dx = -\cos x + C, \quad \int\cos x\,dx = \sin x + C, \quad \int \sec^2 x\,dx = \tan x + C, \quad \int\frac{dx}{1+x^2} = \arctan x + C.$$ Linearity: $\int(af + bg) = a\int f + b\int g$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int\Big(4x^3 - \dfrac2{x} + 5e^x\Big)dx = x^4 - 2\ln|x| + 5e^x + C$. Always check by differentiating: $(x^4)' = 4x^3$ ✓, $(-2\ln|x|)' = -\tfrac2x$ ✓, $(5e^x)' = 5e^x$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> There is no product rule for integrals: $\int fg \ne \int f\int g$. Products need substitution or parts. And never forget $+C$ — initial conditions live there.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\int (x^2 + 3)\,dx = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{x^3}{3} + 3x + C$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\int \dfrac{x^2 + 1}{x}\,dx = ?$ <details class="sol"><summary>Solution</summary><div>Split: $\int (x + \tfrac1x)dx = \frac{x^2}{2} + \ln|x| + C$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\int \tan^2 x\,dx = ?$ <details class="sol"><summary>Solution</summary><div>$\tan^2 = \sec^2 - 1$: $\int = \tan x - x + C$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="riemann-sums">
+ <h2>Riemann sums</h2>
+ <p>To measure the area under a curve, tile it with thin rectangles and add them up. Finer tiles, better estimate. The definite integral is the limit of this process — area as an infinitely refined sum.</p>
+ <div class="box def"><span class="label">Definition</span> Partition $[a,b]$ into $n$ slices of width $\Delta x = \frac{b-a}{n}$; pick a sample point $x_i^*$ in each. The Riemann sum is $$S_n = \sum_{i=1}^n f(x_i^*)\,\Delta x.$$ Left/right/midpoint rules choose $x_i^*$ at the left edge, right edge, or center. If $S_n$ converges to the same value for every choice as $n\to\infty$, that value is $\int_a^b f(x)\,dx$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimate $\int_0^1 x^2 dx$ with $n = 4$ right endpoints: $\Delta x = \tfrac14$, heights at $\tfrac14, \tfrac12, \tfrac34, 1$: $S_4 = \tfrac14\big(\tfrac1{16} + \tfrac14 + \tfrac9{16} + 1\big) = \tfrac14\cdot\tfrac{30}{16} = \tfrac{15}{32} = 0.46875$. True value $\tfrac13$; right endpoints overshoot an increasing function. Midpoint with $n=4$ gives $0.328$ — much closer.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Increase n and watch left, midpoint, and right Riemann sums squeeze onto the true area under x².</p>
+  <canvas id="cv-riemann"></canvas>
+  <div class="ctl">
+   <label>n <input type="range" id="rm-n" min="2" max="60" step="1" value="6"></label>
+   <label>rule <select id="rm-rule"><option value="left">left</option><option value="mid" selected>midpoint</option><option value="right">right</option></select></label>
+  </div>
+  <div class="out" id="rm-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Left sum for $\int_0^2 x\,dx$ with $n = 2$. <details class="sol"><summary>Solution</summary><div>$\Delta x = 1$; heights $f(0) = 0$, $f(1) = 1$: $S = 1$. (True: 2.)</div></details></li>
+  <li><span class="lvl m">MED</span> Show that for increasing $f$, left sums underestimate and right sums overestimate $\int_a^b f$. <details class="sol"><summary>Solution</summary><div>On each slice, the left height is the min of $f$ there and the right height the max (monotonicity), so each rectangle under/over-covers the strip. Summing preserves the inequalities.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\lim_{n\to\infty}\sum_{i=1}^n \frac{i^2}{n^3}$ by recognizing a Riemann sum. <details class="sol"><summary>Solution</summary><div>$\sum \frac{1}{n}\big(\frac in\big)^2$ is the right-endpoint sum for $\int_0^1 x^2 dx = \tfrac13$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="definite-integrals">
+ <h2>Definite integrals</h2>
+ <p>The definite integral $\int_a^b f\,dx$ is a number: the signed area between the curve and the axis from $a$ to $b$ — area above counts positive, below negative. It accumulates anything: distance from velocity, probability from density, total loss from loss rate.</p>
+ <div class="box def"><span class="label">Definition</span> $\int_a^b f(x)\,dx = \lim_{n\to\infty} \sum_{i=1}^n f(x_i^*)\Delta x$ (exists for continuous $f$). Properties: linearity; additivity $\int_a^b = \int_a^c + \int_c^b$; $\int_a^a = 0$; $\int_b^a = -\int_a^b$; comparison: $f \le g \Rightarrow \int_a^b f \le \int_a^b g$ (for $a &lt; b$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int_0^{2\pi}\sin x\,dx = 0$: the hump above $[0,\pi]$ (area 2) exactly cancels the dip below $[\pi, 2\pi]$ (area $-2$). Total <em>unsigned</em> area is $\int_0^{2\pi}|\sin x|\,dx = 4$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> "Area under the curve" is signed. If asked for geometric area, split at the zero crossings and integrate $|f|$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> From geometry (no antiderivatives): $\int_0^3 (2x)\,dx = ?$ <details class="sol"><summary>Solution</summary><div>Triangle: $\tfrac12\cdot3\cdot6 = 9$.</div></details></li>
+  <li><span class="lvl m">MED</span> Given $\int_0^5 f = 12$ and $\int_3^5 f = 4$: find $\int_0^3 f$ and $\int_5^0 2f$. <details class="sol"><summary>Solution</summary><div>$\int_0^3 = 12 - 4 = 8$; $\int_5^0 2f = -2\cdot12 = -24$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\int_{-2}^2 \big(x^3\cos x + \sqrt{4 - x^2}\big)dx$ with symmetry. <details class="sol"><summary>Solution</summary><div>$x^3\cos x$ is odd: integral 0. $\sqrt{4-x^2}$ is the upper semicircle of radius 2: area $\tfrac12\pi\cdot4 = 2\pi$. Total $2\pi$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="fundamental-theorem-of-calculus">
+ <h2>Fundamental theorem of calculus</h2>
+ <p>The theorem that makes calculus a subject rather than two: accumulation and rate-of-change are inverse operations. Part 1: the running area under $f$ has derivative $f$. Part 2: to total up $f$, just evaluate any antiderivative at the endpoints.</p>
+ <div class="box thm"><span class="label">Theorem</span> Let $f$ be continuous on $[a,b]$. <b>FTC 1:</b> $g(x) = \int_a^x f(t)\,dt$ is differentiable with $g'(x) = f(x)$. <b>FTC 2:</b> for any antiderivative $F$ of $f$: $$\int_a^b f(x)\,dx = F(b) - F(a).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int_0^1 x^2 dx = \Big[\frac{x^3}{3}\Big]_0^1 = \frac13$ — the limit Archimedes needed exhaustion for, in one line. And an FTC-1 example: $\frac{d}{dx}\int_0^{x^2} e^{-t^2} dt = e^{-x^4}\cdot 2x$ (chain rule on the upper limit).</div>
+ <div class="box link"><span class="label">Where this goes</span> FTC is why probabilities come from integrating densities and densities from differentiating CDFs (Ch 11).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\int_1^e \frac{dx}{x} = ?$ <details class="sol"><summary>Solution</summary><div>$\ln e - \ln 1 = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\int_0^{\pi/2}\cos x\,dx$ and $\frac{d}{dx}\int_2^x \sqrt{1 + t^3}\,dt$. <details class="sol"><summary>Solution</summary><div>$[\sin x]_0^{\pi/2} = 1$; and $\sqrt{1 + x^3}$ directly by FTC 1.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find and classify the critical points of $g(x) = \int_0^x t(t - 3)\,dt$ without integrating. <details class="sol"><summary>Solution</summary><div>$g'(x) = x(x-3)$: critical at 0 and 3. $g'' = 2x - 3$: $g''(0) = -3$: local max; $g''(3) = 3$: local min. FTC turns integral questions into derivative questions.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">$\frac{d}{dx}\int_x^5 \sin(t^2)\,dt = ?$</div><button class="opt">$\sin(x^2)$</button><button class="opt">$-\sin(x^2)$</button><button class="opt">$\sin(25) - \sin(x^2)$</button><div class="why" hidden>Flip the limits: $\int_x^5 = -\int_5^x$, then FTC 1 gives $-\sin(x^2)$.</div></div>
+</section>
+
+<section class="topic" id="substitution-integration">
+ <h2>Substitution integration</h2>
+ <p>Substitution is the chain rule in reverse: spot a nested function and its inner derivative loitering nearby, rename the inside as $u$, and the integral collapses. It is the single most used integration technique.</p>
+ <div class="box def"><span class="label">Definition</span> If $u = g(x)$ then $du = g'(x)dx$ and $$\int f(g(x))g'(x)\,dx = \int f(u)\,du.$$ For definite integrals, transform the limits too: $\int_a^b f(g(x))g'(x)dx = \int_{g(a)}^{g(b)} f(u)\,du$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int_0^2 x e^{x^2}dx$: let $u = x^2$, $du = 2x\,dx$, limits $0 \to 0$, $2 \to 4$: $$\int_0^4 e^u\,\frac{du}{2} = \frac12\big[e^u\big]_0^4 = \frac{e^4 - 1}{2} \approx 26.8.$$</div>
+ <div class="box pit"><span class="label">Pitfall</span> Change the limits or change back to $x$ — never both, never neither. Writing $\frac12 e^u\big|_0^2$ (old limits, new variable) is the classic lost-point.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\int \cos(3x)\,dx = ?$ <details class="sol"><summary>Solution</summary><div>$u = 3x$: $\tfrac13\sin 3x + C$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\int \frac{\ln x}{x}dx = ?$ <details class="sol"><summary>Solution</summary><div>$u = \ln x$, $du = \frac{dx}x$: $\int u\,du = \frac{(\ln x)^2}{2} + C$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\int_0^{\pi/2}\frac{\sin x}{1 + \cos^2 x}dx = ?$ <details class="sol"><summary>Solution</summary><div>$u = \cos x$, $du = -\sin x\,dx$; limits $1 \to 0$: $\int_1^0\frac{-du}{1+u^2} = \int_0^1\frac{du}{1+u^2} = \arctan 1 = \frac\pi4$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="integration-by-parts">
+ <h2>Integration by parts</h2>
+ <p>The product rule in reverse: trade the integral of $u\,dv$ for the (hopefully easier) integral of $v\,du$. It shines when one factor simplifies under differentiation (polynomials) while the other survives integration ($e^x$, $\sin$, $\cos$).</p>
+ <div class="box def"><span class="label">Definition</span> $$\int u\,dv = uv - \int v\,du.$$ Choosing $u$: LIATE priority (Log, Inverse trig, Algebraic, Trig, Exponential) — differentiate the earlier, integrate the later.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int x e^x dx$: $u = x$, $dv = e^x dx$; $du = dx$, $v = e^x$: $xe^x - \int e^x dx = (x-1)e^x + C$. Sneakier: $\int \ln x\,dx$: $u = \ln x$, $dv = dx$: $x\ln x - \int x\cdot\frac{dx}{x} = x\ln x - x + C$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\int x\cos x\,dx = ?$ <details class="sol"><summary>Solution</summary><div>$u = x$, $dv = \cos x\,dx$: $x\sin x + \cos x + C$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\int x^2 e^x dx = ?$ (parts twice) <details class="sol"><summary>Solution</summary><div>First: $x^2e^x - 2\int xe^x = x^2e^x - 2(x-1)e^x = (x^2 - 2x + 2)e^x + C$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\int e^x\sin x\,dx = ?$ (the boomerang) <details class="sol"><summary>Solution</summary><div>Parts twice: $I = e^x\sin x - \int e^x\cos x = e^x\sin x - \big(e^x\cos x + I\big)$. Solve: $2I = e^x(\sin x - \cos x)$: $I = \frac{e^x(\sin x - \cos x)}{2} + C$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="partial-fraction-integration">
+ <h2>Partial fraction integration</h2>
+ <p>Rational functions integrate by demolition: split $\frac{p(x)}{q(x)}$ into simple pieces — constants over linear factors, which integrate to logarithms, plus arctangent pieces from irreducible quadratics.</p>
+ <div class="box def"><span class="label">Definition</span> After polynomial division (if $\deg p \ge \deg q$), factor $q$ and expand: each factor $(x - a)^k$ contributes $\frac{A_1}{x-a} + \cdots + \frac{A_k}{(x-a)^k}$; each irreducible $(x^2 + bx + c)^k$ contributes terms $\frac{B_j x + C_j}{(x^2+bx+c)^j}$. Solve for the constants; integrate termwise: $\int\frac{dx}{x - a} = \ln|x-a|$, $\int \frac{dx}{x^2 + 1} = \arctan x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int\frac{x + 7}{x^2 - x - 6}dx$. Factor: $(x-3)(x+2)$. $\frac{x+7}{(x-3)(x+2)} = \frac{A}{x-3} + \frac{B}{x+2}$: $x + 7 = A(x+2) + B(x-3)$. At $x = 3$: $10 = 5A$, $A = 2$. At $x = -2$: $5 = -5B$, $B = -1$. Integral: $2\ln|x-3| - \ln|x+2| + C$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\int \frac{dx}{x(x+1)} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac1{x(x+1)} = \frac1x - \frac1{x+1}$: $\ln\big|\frac{x}{x+1}\big| + C$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\int\frac{2x + 3}{(x-1)^2}dx = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{2x+3}{(x-1)^2} = \frac{2}{x-1} + \frac{5}{(x-1)^2}$ (check: $2(x-1) + 5 = 2x + 3$ ✓): $2\ln|x-1| - \frac{5}{x-1} + C$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $\int_0^1\frac{dx}{(x+1)(x^2+1)} = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{1}{(x+1)(x^2+1)} = \frac{A}{x+1} + \frac{Bx + C}{x^2+1}$. $1 = A(x^2+1) + (Bx+C)(x+1)$. $x=-1$: $1 = 2A$, $A = \tfrac12$. Compare $x^2$: $0 = A + B$, $B = -\tfrac12$. Constant: $1 = A + C$, $C = \tfrac12$. Integral: $\tfrac12\ln|x+1| - \tfrac14\ln(x^2+1) + \tfrac12\arctan x\Big|_0^1 = \tfrac12\ln2 - \tfrac14\ln2 + \tfrac\pi8 = \tfrac14\ln 2 + \tfrac\pi8 \approx 0.566$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="improper-integrals">
+ <h2>Improper integrals</h2>
+ <p>Integrals over infinite ranges, or across a blow-up point, are defined as limits of ordinary ones. Some infinite regions have finite area — the whole of probability theory lives on this fact (densities integrate to 1 over all of $\mathbb{R}$).</p>
+ <div class="box def"><span class="label">Definition</span> $\int_a^\infty f\,dx = \lim_{t\to\infty}\int_a^t f\,dx$ (convergent if the limit is finite). Unbounded integrand at $b$: $\int_a^b f = \lim_{t\to b^-}\int_a^t f$. Benchmark ($p$-integrals): $\int_1^\infty \frac{dx}{x^p}$ converges iff $p &gt; 1$; $\int_0^1\frac{dx}{x^p}$ converges iff $p &lt; 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\int_1^\infty\frac{dx}{x^2} = \lim_{t\to\infty}\Big[-\frac1x\Big]_1^t = \lim_{t\to\infty}\Big(1 - \frac1t\Big) = 1$ — finite area under an infinite tail. But $\int_1^\infty \frac{dx}{x} = \lim \ln t = \infty$: the harmonic tail diverges. The boundary between them is exactly $p = 1$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\int_0^\infty e^{-x}dx = ?$ <details class="sol"><summary>Solution</summary><div>$[-e^{-x}]_0^\infty = 0 - (-1) = 1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Does $\int_0^1\frac{dx}{\sqrt x}$ converge? Evaluate if so. <details class="sol"><summary>Solution</summary><div>$p = \tfrac12 &lt; 1$: converges. $[2\sqrt x]_0^1 = 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\int_{-\infty}^{\infty}\frac{dx}{1 + x^2}$ and explain why the answer is beautiful. <details class="sol"><summary>Solution</summary><div>$[\arctan x]_{-\infty}^{\infty} = \frac\pi2 - (-\frac\pi2) = \pi$. The area under the Cauchy bell is exactly π — and dividing by π gives the Cauchy probability density (Ch 11), a distribution so heavy-tailed its mean doesn't exist.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sequences-and-limits">
+ <h2>Sequences and limits</h2>
+ <p>A sequence is an infinite list $a_1, a_2, a_3, \dots$ — a function on the natural numbers. Its limit, if any, is the value the terms crowd onto. Iterative algorithms produce sequences; "does training converge?" is literally a sequence-limit question.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{n\to\infty} a_n = L$ iff for every $\varepsilon &gt; 0$ there is $N$ with $n &gt; N \Rightarrow |a_n - L| &lt; \varepsilon$. Key facts: monotone + bounded $\Rightarrow$ convergent (the completeness of $\mathbb{R}$); $|r| &lt; 1 \Rightarrow r^n \to 0$; $\frac{n!}{n^n}\to0$; $n^{1/n}\to1$; $\big(1 + \frac xn\big)^n \to e^x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $a_{n+1} = \sqrt{2 + a_n}$, $a_1 = \sqrt2$. Bounded above by 2 (induction: $a_n &lt; 2 \Rightarrow a_{n+1} &lt; \sqrt4 = 2$) and increasing, so it converges. The limit satisfies $L = \sqrt{2 + L}$: $L^2 - L - 2 = 0$, $L = 2$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\lim_{n\to\infty}\frac{3n^2 + n}{n^2 + 5} = ?$ <details class="sol"><summary>Solution</summary><div>3 (leading terms).</div></details></li>
+  <li><span class="lvl m">MED</span> Does $a_n = (-1)^n\frac{n}{n+1}$ converge? <details class="sol"><summary>Solution</summary><div>No: even terms $\to 1$, odd terms $\to -1$. (But $|a_n| \to 1$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $a_n = \frac{2^n}{n!} \to 0$. <details class="sol"><summary>Solution</summary><div>For $n \ge 2$: $\frac{a_{n+1}}{a_n} = \frac{2}{n+1} \le \frac23$, so $a_n \le a_2 (\tfrac23)^{n-2} = 2(\tfrac23)^{n-2} \to 0$. Squeeze with $0$. $\blacksquare$ Factorials beat exponentials.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="infinite-series">
+ <h2>Infinite series</h2>
+ <p>A series adds infinitely many terms. The meaning: track the running total (partial sums); if those converge, the series has that sum. Whether an infinite sum makes sense at all is the entire subtlety.</p>
+ <div class="box def"><span class="label">Definition</span> $\sum_{n=1}^\infty a_n = \lim_{N\to\infty} S_N$ where $S_N = \sum_{n=1}^N a_n$, if the limit exists. <em>Divergence test:</em> if $a_n \not\to 0$ the series diverges. Converse fails: the harmonic series $\sum\frac1n$ has $a_n \to 0$ yet diverges.</div>
+ <div class="box ex"><span class="label">Worked example</span> Telescoping: $\sum_{n=1}^\infty \frac{1}{n(n+1)} = \sum\big(\frac1n - \frac1{n+1}\big)$. Partial sum: $S_N = 1 - \frac{1}{N+1} \to 1$. Sum: 1. And why the harmonic series diverges: group terms $\frac12, (\frac13 + \frac14) &gt; \frac12, (\frac15 + \cdots + \frac18) &gt; \frac12, \dots$ — infinitely many halves.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $\sum_{n=1}^\infty \frac{n}{2n+1}$ converge? <details class="sol"><summary>Solution</summary><div>Terms $\to \tfrac12 \ne 0$: diverges.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\sum_{n=2}^\infty \frac{2}{n^2 - 1}$. <details class="sol"><summary>Solution</summary><div>$\frac{2}{(n-1)(n+1)} = \frac1{n-1} - \frac1{n+1}$: partial sums telescope with two leftovers: $S_N = 1 + \frac12 - \frac1N - \frac1{N+1} \to \frac32$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A ball drops from 1 m and each bounce returns to $\tfrac23$ of its previous height. Total vertical distance traveled? <details class="sol"><summary>Solution</summary><div>Down 1, then each bounce contributes up+down $2(\tfrac23)^k$: total $= 1 + 2\sum_{k=1}^\infty(\tfrac23)^k = 1 + 2\cdot\frac{2/3}{1/3} = 1 + 4 = 5$ m.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="convergence-tests">
+ <h2>Convergence tests</h2>
+ <p>Most series can't be summed in closed form, but you can still decide <em>whether</em> they converge. Each test compares the tail of your series with something understood: an integral, a geometric series, another series.</p>
+ <div class="box def"><span class="label">Definition</span> For positive terms: <em>comparison</em> ($a_n \le b_n$, $\sum b_n$ converges $\Rightarrow \sum a_n$ converges); <em>limit comparison</em> ($a_n/b_n \to c \in (0,\infty)$: same fate); <em>integral test</em> ($\sum f(n)$ vs $\int f$, $f$ positive decreasing) — gives the $p$-series rule: $\sum \frac{1}{n^p}$ converges iff $p &gt; 1$; <em>ratio test</em> ($|a_{n+1}/a_n| \to L$: converges if $L &lt; 1$, diverges if $L &gt; 1$, silent at 1); <em>root test</em> ($|a_n|^{1/n}\to L$, same verdicts). Alternating series test: terms alternate, decrease in magnitude to 0 $\Rightarrow$ converge. Absolute convergence ($\sum|a_n| &lt; \infty$) implies convergence.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\sum \frac{n^2}{2^n}$: ratio $\frac{(n+1)^2}{2^{n+1}}\cdot\frac{2^n}{n^2} = \frac12\big(1 + \frac1n\big)^2 \to \frac12 &lt; 1$: converges. $\sum\frac{1}{\sqrt n}$: $p = \tfrac12 \le 1$: diverges. $\sum\frac{(-1)^n}{n}$: alternating, terms shrink to 0: converges (to $-\ln 2$) — but not absolutely.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The ratio test says nothing at $L = 1$ — both $\sum\frac1n$ (diverges) and $\sum\frac1{n^2}$ (converges) have ratio limit 1. Reach for comparison or the integral test instead.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $\sum\frac{1}{n^3}$ converge? <details class="sol"><summary>Solution</summary><div>$p = 3 &gt; 1$: yes.</div></details></li>
+  <li><span class="lvl m">MED</span> Test $\sum \frac{3^n}{n!}$. <details class="sol"><summary>Solution</summary><div>Ratio: $\frac{3}{n+1} \to 0 &lt; 1$: converges (its sum is $e^3 - 1$ if starting at $n=1$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Test $\sum_{n=2}^\infty \frac{1}{n\ln n}$. <details class="sol"><summary>Solution</summary><div>Integral test: $\int_2^\infty\frac{dx}{x\ln x} = [\ln\ln x]_2^\infty = \infty$: diverges — barely. (With $(\ln n)^2$ in the denominator it would converge.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="geometric-series">
+ <h2>Geometric series</h2>
+ <p>The one series family you can always sum exactly: each term is the last times a fixed ratio $r$. It converges precisely when $|r| &lt; 1$, and its sum formula powers everything from repeating decimals to discounted rewards in RL.</p>
+ <div class="box def"><span class="label">Definition</span> $$\sum_{n=0}^\infty ar^n = \frac{a}{1 - r} \quad (|r| &lt; 1); \qquad \sum_{n=0}^{N-1} ar^n = a\,\frac{1 - r^N}{1 - r}.$$ Diverges for $|r| \ge 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $0.\overline{7} = 0.7 + 0.07 + \cdots = \frac{0.7}{1 - 0.1} = \frac79$. RL flavor: reward 1 per step, discount $\gamma = 0.99$: total discounted return $\sum_{t=0}^\infty \gamma^t = \frac{1}{1 - 0.99} = 100$ — the "effective horizon" $\frac{1}{1-\gamma}$ of Ch 25.</div>
+ <div class="box link"><span class="label">Where this goes</span> Discounted returns (Ch 25) are geometric series; so are the eigen-decompositions of $(I - \gamma P)^{-1}$ behind value functions.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $\sum_{n=0}^\infty \big(\tfrac13\big)^n = ?$ <details class="sol"><summary>Solution</summary><div>$\frac{1}{1 - 1/3} = \frac32$.</div></details></li>
+  <li><span class="lvl m">MED</span> $\sum_{n=2}^\infty \frac{5}{4^n} = ?$ <details class="sol"><summary>Solution</summary><div>First term $\frac{5}{16}$, ratio $\frac14$: $\frac{5/16}{3/4} = \frac{5}{12}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For which $x$ does $\sum_{n=0}^\infty (x - 2)^n$ converge, and to what? <details class="sol"><summary>Solution</summary><div>Ratio $r = x - 2$: need $|x - 2| &lt; 1$, i.e. $1 &lt; x &lt; 3$. Sum $= \frac{1}{1 - (x-2)} = \frac{1}{3 - x}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="power-series">
+ <h2>Power series</h2>
+ <p>A power series is a polynomial that never ends: $\sum c_n (x - a)^n$. Each one converges on an interval centered at $a$ — inside it, the series behaves like the friendliest function imaginable: differentiate and integrate it term by term.</p>
+ <div class="box def"><span class="label">Definition</span> $\sum_{n=0}^\infty c_n(x-a)^n$ has a <em>radius of convergence</em> $R \in [0, \infty]$: absolute convergence for $|x - a| &lt; R$, divergence for $|x-a| &gt; R$ (endpoints case-by-case). Compute $R$ via ratio/root test. Within $(a-R, a+R)$: term-by-term differentiation and integration are valid and preserve $R$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\sum_{n=1}^\infty \frac{x^n}{n}$: ratio $\big|\frac{x^{n+1}/(n+1)}{x^n/n}\big| = |x|\frac{n}{n+1} \to |x|$: $R = 1$. Endpoints: $x = 1$ harmonic — diverges; $x = -1$ alternating harmonic — converges. Interval: $[-1, 1)$. (Its sum is $-\ln(1-x)$.)</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Radius of convergence of $\sum n! \,x^n$? <details class="sol"><summary>Solution</summary><div>Ratio $(n+1)|x| \to \infty$ unless $x = 0$: $R = 0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Radius of $\sum \frac{x^n}{n!}$? <details class="sol"><summary>Solution</summary><div>Ratio $\frac{|x|}{n+1}\to0 &lt; 1$ always: $R = \infty$ (it's $e^x$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Start from $\frac{1}{1-x} = \sum_{n\ge0} x^n$ ($|x|&lt;1$) and derive a series for $\ln(1+x)$, then estimate $\ln 1.1$ to 4 decimals. <details class="sol"><summary>Solution</summary><div>Replace $x \to -t$: $\frac1{1+t} = \sum (-1)^n t^n$. Integrate 0 to $x$: $\ln(1+x) = \sum_{n\ge0}(-1)^n\frac{x^{n+1}}{n+1} = x - \frac{x^2}2 + \frac{x^3}3 - \cdots$. At $x = 0.1$: $0.1 - 0.005 + 0.000333 - 0.000025 = 0.095308\ldots \approx 0.0953$. (True $\ln 1.1 = 0.0953102$.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="taylor-series">
+ <h2>Taylor series</h2>
+ <p>Build a polynomial that agrees with $f$ at a point to every order: match the value, the slope, the bend, and on forever. For nice functions the resulting series <em>is</em> the function — the ultimate local-to-global move, and the origin of every approximation in numerical computing.</p>
+ <div class="box def"><span class="label">Definition</span> The Taylor series of $f$ at $a$: $$f(x) \sim \sum_{n=0}^\infty \frac{f^{(n)}(a)}{n!}(x - a)^n.$$ The degree-$N$ truncation is the <em>Taylor polynomial</em> $T_N$; Lagrange remainder: $f(x) - T_N(x) = \frac{f^{(N+1)}(\xi)}{(N+1)!}(x-a)^{N+1}$ for some $\xi$ between $a$ and $x$ — small when derivatives are controlled and $x$ is near $a$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f = \ln x$ at $a = 1$: $f' = x^{-1}, f'' = -x^{-2}, f''' = 2x^{-3}$, so $f^{(n)}(1) = (-1)^{n-1}(n-1)!$: $$\ln x = (x-1) - \frac{(x-1)^2}{2} + \frac{(x-1)^3}{3} - \cdots \quad (0 &lt; x \le 2).$$ Estimate $\ln 1.2$ with 3 terms: $0.2 - 0.02 + 0.00267 = 0.18267$ (true $0.18232$).</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Raise the degree and watch Taylor polynomials of sin x (at 0) hug the curve further and further out.</p>
+  <canvas id="cv-taylor"></canvas>
+  <div class="ctl">
+   <label>degree N <input type="range" id="ty-n" min="1" max="15" step="2" value="3"></label>
+  </div>
+  <div class="out" id="ty-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> The second-order Taylor expansion of the loss (gradient + Hessian, Ch 9) justifies Newton's method (Ch 15/18) and explains why curvature governs learning rates.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Taylor polynomial $T_2$ of $e^x$ at $a = 0$, and estimate $e^{0.2}$. <details class="sol"><summary>Solution</summary><div>$1 + x + \frac{x^2}2$: $1 + 0.2 + 0.02 = 1.22$ (true 1.2214).</div></details></li>
+  <li><span class="lvl m">MED</span> Find the Taylor series of $\frac1x$ at $a = 2$. <details class="sol"><summary>Solution</summary><div>$\frac1x = \frac{1}{2 + (x-2)} = \frac12\cdot\frac{1}{1 + \frac{x-2}{2}} = \sum_{n\ge0}\frac{(-1)^n}{2^{n+1}}(x-2)^n$, valid $|x - 2| &lt; 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Bound the error of approximating $\sin x$ by $x - \frac{x^3}{6}$ on $|x| \le 0.5$. <details class="sol"><summary>Solution</summary><div>$T_3 = T_4$ for sine (the $x^4$ coefficient is 0), so use the degree-4 remainder: $|R_4| \le \frac{\max|f^{(5)}|}{5!}|x|^5 \le \frac{1}{120}(0.5)^5 = \frac{0.03125}{120} \approx 2.6\times10^{-4}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="maclaurin-series">
+ <h2>Maclaurin series</h2>
+ <p>A Maclaurin series is just a Taylor series centered at 0 — but the ones below are worth carrying in your head. Half of applied math is recognizing these five patterns in the wild.</p>
+ <div class="box def"><span class="label">Definition</span> $$e^x = \sum_{n\ge0}\frac{x^n}{n!} \;(\text{all } x)\qquad \sin x = \sum_{n\ge0}\frac{(-1)^n x^{2n+1}}{(2n+1)!} \qquad \cos x = \sum_{n\ge0}\frac{(-1)^n x^{2n}}{(2n)!}$$ $$\frac{1}{1-x} = \sum_{n\ge0}x^n \;(|x|&lt;1) \qquad \ln(1+x) = \sum_{n\ge1}\frac{(-1)^{n-1}x^n}{n} \;(-1&lt;x\le1) \qquad (1+x)^\alpha = \sum_{n\ge0}\binom{\alpha}{n}x^n \;(|x|&lt;1).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Multiply series: $e^x\sin x = \big(1 + x + \tfrac{x^2}2 + \tfrac{x^3}6\big)\big(x - \tfrac{x^3}6\big) + O(x^5) = x + x^2 + \big(\tfrac12 - \tfrac16\big)x^3 + \big(\tfrac16 - \tfrac16\big)x^4 + O(x^5) = x + x^2 + \tfrac{x^3}{3} + O(x^5)$.</div>
+ <div class="box think"><span class="label">Think first</span> Substitute $x = i\theta$ into the series of $e^x$, and split real/imaginary. What do you get? <details class="sol"><summary>Reveal</summary><div>$e^{i\theta} = \big(1 - \tfrac{\theta^2}{2!} + \tfrac{\theta^4}{4!} - \cdots\big) + i\big(\theta - \tfrac{\theta^3}{3!} + \cdots\big) = \cos\theta + i\sin\theta$ — Euler's formula (Ch 6), now proved.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> First three nonzero terms of the Maclaurin series of $e^{-x^2}$. <details class="sol"><summary>Solution</summary><div>Substitute into $e^u$: $1 - x^2 + \frac{x^4}{2}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use series to compute $\lim_{x\to0}\frac{\sin x - x}{x^3}$. <details class="sol"><summary>Solution</summary><div>$\sin x - x = -\frac{x^3}{6} + O(x^5)$: limit $-\frac16$. (Faster than triple L'Hôpital.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Estimate $\int_0^1 e^{-x^2}dx$ to three decimals with the series. <details class="sol"><summary>Solution</summary><div>$\int_0^1\sum\frac{(-1)^n x^{2n}}{n!}dx = \sum\frac{(-1)^n}{n!(2n+1)} = 1 - \tfrac13 + \tfrac1{10} - \tfrac1{42} + \tfrac1{216} - \tfrac1{1320}\cdots$ $= 1 - 0.3333 + 0.1 - 0.0238 + 0.00463 - 0.00076 \approx 0.7468$. Alternating: error below the first dropped term. Answer 0.747.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="uniform-convergence">
+ <h2>Uniform convergence</h2>
+ <p>Pointwise convergence lets each $x$ converge at its own pace; uniform convergence forces one pace for all — the whole graph of $f_n$ enters an ε-tube around $f$ at once. It's the hypothesis that lets you safely swap limits with integrals, and its failure is a classic source of paradoxes.</p>
+ <div class="box def"><span class="label">Definition</span> $f_n \to f$ <em>uniformly</em> on $S$ iff $\sup_{x\in S}|f_n(x) - f(x)| \to 0$. Consequences: a uniform limit of continuous functions is continuous, and $\int_a^b f_n \to \int_a^b f$. <em>Weierstrass M-test:</em> if $|u_n(x)| \le M_n$ on $S$ and $\sum M_n &lt; \infty$, then $\sum u_n$ converges uniformly on $S$. Power series converge uniformly on any closed interval strictly inside their radius.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f_n(x) = x^n$ on $[0, 1]$: pointwise limit $f(x) = 0$ for $x &lt; 1$, $f(1) = 1$ — discontinuous! So convergence cannot be uniform (indeed $\sup_{[0,1)}|x^n - 0| = 1$ always). On $[0, 0.9]$ instead: $\sup = 0.9^n \to 0$ — uniform there.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Pointwise convergence does not preserve integrals: $f_n = n\,\mathbb{1}_{(0,1/n)}$ (a spike) $\to 0$ pointwise, yet $\int_0^1 f_n = 1 \not\to 0$. Uniformity (or dominated convergence, later) is what rules the spikes out.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $f_n(x) = \frac{\sin nx}{n}$ converge uniformly on $\mathbb{R}$? <details class="sol"><summary>Solution</summary><div>$\sup|f_n| \le \frac1n \to 0$: yes, uniformly to 0.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\sum_{n=1}^\infty \frac{\cos nx}{n^2}$ converges uniformly on $\mathbb{R}$. <details class="sol"><summary>Solution</summary><div>M-test with $M_n = \frac1{n^2}$, $\sum M_n = \frac{\pi^2}6 &lt; \infty$. ✓ (The sum is continuous everywhere.)</div></details></li>
+  <li><span class="lvl h">HARD</span> $f_n(x) = \frac{x}{1 + nx^2}$ on $\mathbb{R}$: find the pointwise limit and decide uniformity. <details class="sol"><summary>Solution</summary><div>Pointwise limit 0. Maximize: $f_n'(x) = \frac{1 - nx^2}{(1+nx^2)^2} = 0$ at $x = \frac{1}{\sqrt n}$: $\sup f_n = \frac{1/\sqrt n}{2} = \frac{1}{2\sqrt n}\to0$: uniform. (Note $f_n'(0) = 1 \not\to 0 = f'(0)$... actually $f'(0)=0$; uniform convergence of functions does <em>not</em> give convergence of derivatives.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> A rectangular poster must contain 384 cm² of print, with 6 cm margins top/bottom and 4 cm margins left/right. Find the print dimensions minimizing total paper area. <details class="sol"><summary>Solution</summary><div>Print $w\times h$, $wh = 384$. Paper: $(w + 8)(h + 12)$. Minimize $A(w) = (w+8)\big(\tfrac{384}{w} + 12\big) = 384 + 12w + \tfrac{3072}{w} + 96$. $A' = 12 - \tfrac{3072}{w^2} = 0$: $w^2 = 256$, $w = 16$, $h = 24$. Paper: $24\times36 = 864$ cm². ($A'' &gt; 0$: min. ✓)</div></details></li>
+  <li><span class="lvl h">HARD</span> The logistic sigmoid is $\sigma(x) = \frac{1}{1+e^{-x}}$. (a) Show $\sigma' = \sigma(1-\sigma)$ and find where $\sigma'$ is maximal. (b) Compute $\int_0^t \sigma(x)\,dx$ in closed form. (c) Show the Maclaurin expansion $\sigma(x) = \tfrac12 + \tfrac x4 - \tfrac{x^3}{48} + O(x^5)$. <details class="sol"><summary>Solution</summary><div>(a) $\sigma' = \frac{e^{-x}}{(1+e^{-x})^2} = \sigma\cdot\frac{e^{-x}}{1+e^{-x}} = \sigma(1-\sigma)$. Max of $p(1-p)$ at $p = \tfrac12$, i.e. $x = 0$, value $\tfrac14$. (b) $\int\sigma = \int\frac{e^x}{1+e^x}dx = \ln(1+e^x)$: $\int_0^t = \ln\frac{1+e^t}{2}$ (the softplus, shifted). (c) $\sigma(0) = \tfrac12$, $\sigma'(0) = \tfrac14$, $\sigma''(0) = \sigma'(1-2\sigma)\big|_0 = \tfrac14\cdot0 = 0$, $\sigma''' = \frac{d}{dx}[\sigma'(1-2\sigma)] = \sigma''(1-2\sigma) - 2\sigma'^2\big|_0 = -2\cdot\tfrac1{16} = -\tfrac18$: coefficient $\frac{-1/8}{6} = -\frac{1}{48}$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Gradient descent on $f(w) = \tfrac12(w - 5)^2$ from $w_0 = 0$ with learning rate $\eta$: $w_{k+1} = w_k - \eta f'(w_k)$. (a) Show $w_k = 5\big(1 - (1-\eta)^k\big)$. (b) For which $\eta$ does the sequence converge to 5? (c) With $\eta = 0.2$, how many steps until $|w_k - 5| &lt; 0.01$? <details class="sol"><summary>Solution</summary><div>(a) $f'(w) = w - 5$: $w_{k+1} - 5 = (1-\eta)(w_k - 5)$, a geometric sequence: $w_k - 5 = (1-\eta)^k(w_0 - 5) = -5(1-\eta)^k$. ✓ (b) Need $|1 - \eta| &lt; 1$: $0 &lt; \eta &lt; 2$. ($\eta = 1$: one-step convergence; $\eta &gt; 1$: oscillating convergence; $\eta \ge 2$: divergence.) (c) $5(0.8)^k &lt; 0.01 \Rightarrow k &gt; \frac{\ln 500}{\ln 1.25} = \frac{6.215}{0.2231} \approx 27.9$: $k = 28$ steps. This tiny analysis is the seed of every learning-rate rule in Ch 15.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Derivatives and integrals, numerically — the versions computers actually run.</p>
+ <p><b>Task 1 — Numerical derivatives.</b> Implement forward difference $\frac{f(x+h)-f(x)}{h}$ and central difference $\frac{f(x+h)-f(x-h)}{2h}$. For $f = \sin$ at $x = 1$, plot (or print) the error vs $h \in \{10^{-1}, \dots, 10^{-12}\}$ and observe: central is $O(h^2)$, and both blow up for tiny $h$ (floating-point cancellation — Ch 18).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+f, x, true = np.sin, 1.0, np.cos(1.0)
+for h in 10.0 ** -np.arange(1, 13):
+    fwd = (f(x + h) - f(x)) / h
+    cen = (f(x + h) - f(x - h)) / (2 * h)
+    print(f"h={h:.0e}  fwd err={abs(fwd-true):.2e}  cen err={abs(cen-true):.2e}")
+# fwd error ~ h (best near h=1e-8); cen ~ h^2 (best near h=1e-5);
+# below that, rounding error ~ eps/h dominates and errors grow.</code></pre></div></details>
+ <p><b>Task 2 — Riemann vs Simpson.</b> Integrate $e^{-x^2}$ on $[0,1]$ with midpoint sums and Simpson's rule for $n = 2, 4, \dots, 256$; compare against the series value 0.746824. Verify midpoint error shrinks ~4× and Simpson ~16× per doubling.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+f = lambda x: np.exp(-x**2)
+true = 0.7468241328124271
+
+def midpoint(f, a, b, n):
+    x = a + (np.arange(n) + 0.5) * (b - a) / n
+    return f(x).sum() * (b - a) / n
+
+def simpson(f, a, b, n):          # n even
+    x = np.linspace(a, b, n + 1); y = f(x)
+    h = (b - a) / n
+    return h/3 * (y[0] + y[-1] + 4*y[1:-1:2].sum() + 2*y[2:-2:2].sum())
+
+for n in [2, 4, 8, 16, 32, 64, 128, 256]:
+    em = abs(midpoint(f, 0, 1, n) - true)
+    es = abs(simpson(f, 0, 1, n) - true)
+    print(f"n={n:4d}  mid={em:.2e}  simp={es:.2e}")
+# mid: O(1/n^2)  -&gt; /4 per doubling;  simp: O(1/n^4) -&gt; /16 per doubling</code></pre></div></details>
+ <p><b>Task 3 — Taylor engine.</b> Write <code>taylor_sin(x, N)</code> summing the Maclaurin series of sine through degree N (use the recurrence between consecutive terms, not factorials). Check against <code>np.sin</code> at x = 0.5, 2, 10 and find the N needed for 1e-12 accuracy at each — note how N grows with |x|.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def taylor_sin(x, N):
+    term, s = x, x
+    n = 1                              # current degree
+    while n + 2 &lt;= N:
+        term *= -x*x / ((n+1)*(n+2))   # t_{k+1} = -x^2/( (2k+2)(2k+3) ) t_k
+        s += term
+        n += 2
+    return s
+
+for x in [0.5, 2.0, 10.0]:
+    for N in range(1, 120, 2):
+        if abs(taylor_sin(x, N) - np.sin(x)) &lt; 1e-12:
+            print(f"x={x}: N={N}")
+            break
+# x=0.5: N~13,  x=2: N~21,  x=10: N~51 — terms must pass the hump |x|^n/n!</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/18-01sc-single-variable-calculus-fall-2010/">MIT OCW 18.01SC Single Variable Calculus</a>: complete course — videos, notes, exams with solutions; matches this chapter one-to-one.</li>
+  <li><a href="https://www.youtube.com/playlist?list=PLZHQObOWTQDMsr9K-rj53DwVRMYO3t5Yr">3Blue1Brown — Essence of Calculus</a>: the geometric intuition for derivatives, chain rule, integrals and Taylor series.</li>
+  <li><a href="https://openstax.org/details/books/calculus-volume-1">OpenStax Calculus Volume 1</a> and <a href="https://openstax.org/details/books/calculus-volume-2">Volume 2</a>: free textbooks with thousands of exercises (Vol 1: limits→optimization; Vol 2: integration→series).</li>
+  <li><a href="https://www.khanacademy.org/math/ap-calculus-bc">Khan Academy — AP Calculus BC</a>: practice-heavy coverage of every topic here including series.</li>
+  <li><a href="https://tutorial.math.lamar.edu/">Paul's Online Math Notes</a>: famously clear worked examples for techniques of integration and series tests.</li>
+  <li><a href="https://en.wikipedia.org/wiki/Taylor%27s_theorem">Wikipedia — Taylor's theorem</a>: precise remainder forms used in the error-bound drills.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch06.html">← 06 Trigonometry</a>
+ <a class="btn" href="ch08.html">08 Linear Algebra →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+ function on(id,ev,fn){var el=document.getElementById(id); if(el) el.addEventListener(ev,fn);}
+ function val(id){var el=document.getElementById(id); return el?parseFloat(el.value):0;}
+ function frame(g,s,x0,x1,y0,y1){
+  // returns mapping fns; draws axes at 0 if visible
+  function X(x){return (x - x0)/(x1-x0)*s.w;}
+  function Y(y){return s.h - (y - y0)/(y1-y0)*s.h;}
+  g.strokeStyle=cssVar('--ink-2'); g.lineWidth=1; g.globalAlpha=0.5;
+  g.beginPath();
+  if(y0<0 && y1>0){ g.moveTo(0,Y(0)); g.lineTo(s.w,Y(0)); }
+  if(x0<0 && x1>0){ g.moveTo(X(0),0); g.lineTo(X(0),s.h); }
+  g.stroke(); g.globalAlpha=1;
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  return {X:X, Y:Y};
+ }
+ function plot(g,m,f,x0,x1,color,w){
+  g.strokeStyle=color; g.lineWidth=w||2; g.beginPath();
+  var first=true;
+  for(var x=x0;x<=x1;x+=(x1-x0)/500){
+   var y=f(x); if(!isFinite(y)){first=true;continue;}
+   var px=m.X(x), py=m.Y(y);
+   if(py<-500||py>1000){first=true;continue;}
+   first?g.moveTo(px,py):g.lineTo(px,py); first=false;
+  }
+  g.stroke();
+ }
+
+ /* epsilon-delta: f(x)=x^2 at a=1 */
+ var ce=document.getElementById('cv-eps');
+ function drawEps(){
+  if(!ce) return;
+  var s=setupCanvas(ce,300), g=s.g;
+  var m=frame(g,s,-0.2,2.2,-0.2,3.2);
+  var eps=val('ed-eps'), del=val('ed-del');
+  // epsilon band around L=1
+  g.fillStyle=cssVar('--amber')||'#e8a13c'; g.globalAlpha=0.18;
+  g.fillRect(0, m.Y(1+eps), s.w, m.Y(1-eps)-m.Y(1+eps));
+  // delta band around a=1
+  g.fillStyle=cssVar('--cobalt'); g.globalAlpha=0.15;
+  g.fillRect(m.X(1-del), 0, m.X(1+del)-m.X(1-del), s.h);
+  g.globalAlpha=1;
+  plot(g,m,function(x){return x*x;},-0.2,2.2,cssVar('--cobalt'));
+  // check: does the delta-window map inside the eps band?
+  var lo=(1-del)*(1-del), hi=(1+del)*(1+del);
+  var ok = lo > 1-eps && hi < 1+eps;
+  g.fillStyle=cssVar('--ink-2');
+  g.fillText('a=1, L=1', m.X(1)+6, m.Y(1)-8);
+  var out=document.getElementById('ed-out');
+  if(out) out.textContent='ε = '+eps.toFixed(2)+', δ = '+del.toFixed(2)+'  →  f((1−δ,1+δ)) = ('+lo.toFixed(2)+', '+hi.toFixed(2)+')  '+(ok?'✓ inside the ε-band: this δ works':'✗ escapes the band: shrink δ');
+ }
+ on('ed-eps','input',drawEps); on('ed-del','input',drawEps);
+
+ /* secant -> tangent on f(x)=x^3/3 - x */
+ var cs=document.getElementById('cv-secant');
+ function f3(x){return x*x*x/3 - x;}
+ function drawSec(){
+  if(!cs) return;
+  var s=setupCanvas(cs,300), g=s.g;
+  var m=frame(g,s,-2.6,2.6,-2.2,2.2);
+  plot(g,m,f3,-2.6,2.6,cssVar('--cobalt'));
+  var a=val('sc-a'), h=val('sc-h');
+  var slopeSec=(f3(a+h)-f3(a))/h, slopeTan=a*a-1;
+  // tangent (faint)
+  plot(g,m,function(x){return f3(a)+slopeTan*(x-a);},-2.6,2.6,cssVar('--ink-2'),1);
+  // secant
+  plot(g,m,function(x){return f3(a)+slopeSec*(x-a);},-2.6,2.6,cssVar('--rose')||'#d35d7e',2);
+  // points
+  g.fillStyle=cssVar('--ink');
+  [[a,f3(a)],[a+h,f3(a+h)]].forEach(function(p){ g.beginPath(); g.arc(m.X(p[0]),m.Y(p[1]),4,0,7); g.fill(); });
+  var out=document.getElementById('sc-out');
+  if(out) out.textContent='secant slope = (f(a+h)−f(a))/h = '+slopeSec.toFixed(4)+'   tangent slope f′(a) = a²−1 = '+slopeTan.toFixed(4)+'   gap = '+Math.abs(slopeSec-slopeTan).toFixed(4);
+ }
+ on('sc-a','input',drawSec); on('sc-h','input',drawSec);
+
+ /* Riemann sums for x^2 on [0,1] */
+ var cr=document.getElementById('cv-riemann');
+ function drawRiem(){
+  if(!cr) return;
+  var s=setupCanvas(cr,300), g=s.g;
+  var m=frame(g,s,-0.08,1.15,-0.08,1.15);
+  var n=Math.round(val('rm-n'));
+  var ruleEl=document.getElementById('rm-rule'); var rule=ruleEl?ruleEl.value:'mid';
+  var sum=0, dx=1/n;
+  g.fillStyle=cssVar('--cobalt'); g.globalAlpha=0.35;
+  g.strokeStyle=cssVar('--cobalt');
+  for(var i=0;i<n;i++){
+   var xs = rule==='left'? i*dx : rule==='right' ? (i+1)*dx : (i+0.5)*dx;
+   var hgt = xs*xs; sum += hgt*dx;
+   g.fillRect(m.X(i*dx), m.Y(hgt), m.X(dx)-m.X(0), m.Y(0)-m.Y(hgt));
+   g.strokeRect(m.X(i*dx), m.Y(hgt), m.X(dx)-m.X(0), m.Y(0)-m.Y(hgt));
+  }
+  g.globalAlpha=1;
+  plot(g,m,function(x){return x*x;},0,1.1,cssVar('--ink'));
+  var out=document.getElementById('rm-out');
+  if(out) out.textContent=rule+' sum, n='+n+':  '+sum.toFixed(5)+'   true ∫₀¹x²dx = 1/3 ≈ 0.33333   error '+(sum-1/3).toExponential(2);
+ }
+ on('rm-n','input',drawRiem); on('rm-rule','change',drawRiem);
+
+ /* Taylor polynomials of sin */
+ var ct=document.getElementById('cv-taylor');
+ function drawTay(){
+  if(!ct) return;
+  var s=setupCanvas(ct,300), g=s.g;
+  var m=frame(g,s,-10,10,-3,3);
+  plot(g,m,Math.sin,-10,10,cssVar('--ink-2'),1.5);
+  var N=Math.round(val('ty-n'));
+  function T(x){
+   var term=x, sum=x;
+   for(var k=1; 2*k+1<=N; k++){ term *= -x*x/((2*k)*(2*k+1)); sum+=term; }
+   return sum;
+  }
+  plot(g,m,T,-10,10,cssVar('--cobalt'),2);
+  g.fillStyle=cssVar('--ink-2');
+  g.fillText('sin x (grey) vs T'+N+' (blue)', 12, 18);
+  var out=document.getElementById('ty-out');
+  if(out) out.textContent='T'+N+'(x) = x − x³/3! + …  matches sin x on a widening interval; at |x| beyond it, the polynomial flies off to ±∞.';
+ }
+ on('ty-n','input',drawTay);
+
+ function drawAll(){ drawEps(); drawSec(); drawRiem(); drawTay(); }
+ window.addEventListener('resize', drawAll);
+ if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', drawAll);
+ else drawAll();
+})();
+</script>
+
+</body></html>

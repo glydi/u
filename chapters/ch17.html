@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 17 Discrete Mathematics and Computation</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','17')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">17</div><h1>Discrete Mathematics and Computation</h1>
+   <p class="lede">Graphs, recursion and the limits of computation.</p>
+   <div class="meta"><span class="chip">28 topics</span><span class="chip">needs: chapters 3, 4</span><span class="chip">feeds: chapters 18, 26, 34</span></div>
+  </div>
+
+<section class="topic" id="recursion">
+ <h2>Recursion</h2>
+ <p>Recursion is solving a problem by solving smaller copies of itself. Picture Russian dolls: opening one reveals a smaller one, until you hit the tiny solid doll — the base case — and then everything closes back up, assembling the full answer. Every recursive definition needs two parts: a base case that answers directly, and a recursive step that reduces to strictly smaller inputs.</p>
+ <div class="box def"><span class="label">Definition</span> A function $f$ is <em>recursively defined</em> if $f$ on base inputs is given explicitly, and $f(n)$ for other inputs is defined in terms of $f$ at smaller inputs. Example: factorial. $0! = 1$ and $n! = n\cdot (n-1)!$ for $n\ge 1$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Compute $4!$ by unwinding: $4! = 4\cdot 3! = 4\cdot 3\cdot 2! = 4\cdot 3\cdot 2\cdot 1! = 4\cdot 3\cdot 2\cdot 1\cdot 0! = 4\cdot3\cdot2\cdot1\cdot1 = 24$. The call stack goes down four levels, hits the base case, and multiplies on the way back up.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A recursion without a reachable base case never terminates: $f(n)=f(n-2)$ with base $f(0)=1$ diverges on odd inputs. Always check that the recursive step strictly decreases a quantity that must eventually hit a base case (a "measure").</div>
+ <div class="box link"><span class="label">Where this goes</span> Recursion is the skeleton of divide-and-conquer algorithms (Master theorem below), tree algorithms, and dynamic programming — the same machinery behind Bellman equations in Ch 25.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Define $s(n)=1+2+\dots+n$ recursively, and compute $s(4)$ by unwinding. <details class="sol"><summary>Solution</summary><div>$s(0)=0$, $s(n)=n+s(n-1)$. $s(4)=4+s(3)=4+3+s(2)=4+3+2+s(1)=4+3+2+1+s(0)=10$.</div></details></li>
+  <li><span class="lvl m">MED</span> The Fibonacci numbers are $F_0=0, F_1=1, F_n=F_{n-1}+F_{n-2}$. How many <em>function calls</em> (including the top call) does naive recursive $F(4)$ make? <details class="sol"><summary>Solution</summary><div>Count calls $C(n)$: $C(0)=C(1)=1$, $C(n)=1+C(n-1)+C(n-2)$. $C(2)=3$, $C(3)=1+3+1=5$, $C(4)=1+5+3=9$. Nine calls — exponential blowup from recomputation, fixed by memoization.</div></details></li>
+  <li><span class="lvl h">HARD</span> The Ackermann function: $A(0,n)=n+1$; $A(m,0)=A(m-1,1)$; $A(m,n)=A(m-1,A(m,n-1))$. Compute $A(2,2)$. <details class="sol"><summary>Solution</summary><div>Fact: $A(1,n)=n+2$ (check: $A(1,0)=A(0,1)=2$; $A(1,n)=A(0,A(1,n-1))=A(1,n-1)+1$). Then $A(2,n)$: $A(2,0)=A(1,1)=3$; $A(2,n)=A(1,A(2,n-1))=A(2,n-1)+2$, so $A(2,n)=2n+3$. Hence $A(2,2)=7$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="structural-induction">
+ <h2>Structural induction</h2>
+ <p>Ordinary induction climbs the natural numbers. Structural induction climbs any recursively built structure — lists, trees, expressions. To prove a property of every structure, prove it for the base structures, then show that the building rules preserve it. If every brick is red and gluing red bricks makes red walls, every wall is red.</p>
+ <div class="box def"><span class="label">Definition</span> Let a set $S$ be defined inductively by base elements and construction rules. To prove $P(x)$ for all $x\in S$: (i) prove $P$ for each base element; (ii) for each rule that builds $x$ from parts $x_1,\dots,x_k \in S$, prove $P(x_1)\wedge\dots\wedge P(x_k) \Rightarrow P(x)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Claim: every full binary tree (each node has 0 or 2 children) with $\ell$ leaves has $\ell-1$ internal nodes. <em>Base:</em> a single leaf has $\ell=1$ leaves, $0=\ell-1$ internal nodes. <em>Step:</em> a tree built from subtrees $T_1, T_2$ under a new root: leaves $\ell = \ell_1+\ell_2$; internal nodes $=(\ell_1-1)+(\ell_2-1)+1 = \ell_1+\ell_2-1 = \ell-1$. ∎</div>
+ <div class="box think"><span class="label">Think first</span> Every propositional formula built from variables using only $\wedge$ and $\vee$ (no negation) is true when all its variables are true. Can you see the structural induction? <details class="sol"><summary>Reveal</summary><div>Base: a variable is true under the all-true assignment. Step: if $\varphi$ and $\psi$ are true under it, so are $\varphi\wedge\psi$ and $\varphi\vee\psi$. Hence no such formula can be a contradiction — you need $\neg$ for that.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Define lists by: nil is a list; cons$(x, L)$ is a list if $L$ is. Prove length(append$(A,B)$) = length$(A)$ + length$(B)$, where append(nil,$B$)=$B$ and append(cons$(x,A),B$)=cons$(x,$ append$(A,B))$. <details class="sol"><summary>Solution</summary><div>Induct on $A$. Base $A=$ nil: length(append(nil,$B$)) = length($B$) = $0+$length($B$). Step: length(append(cons$(x,A),B$)) = 1 + length(append$(A,B)$) = 1 + length$(A)$ + length$(B)$ = length(cons$(x,A)$) + length$(B)$. ∎</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: a binary tree of height $h$ (a single node has height 0) has at most $2^{h+1}-1$ nodes. <details class="sol"><summary>Solution</summary><div>Base: height 0 has $1 \le 2^1-1$ node. Step: a tree of height $h$ has a root and up to two subtrees of height $\le h-1$, so nodes $\le 1 + 2(2^{h}-1) = 2^{h+1}-1$. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Balanced parenthesis strings: $\varepsilon$ is balanced; if $u,v$ are balanced so are $(u)$ and $uv$. Prove every balanced string has equal counts of ( and ), and every prefix has at least as many ( as ). <details class="sol"><summary>Solution</summary><div>Induct structurally. $\varepsilon$: trivial. $(u)$: counts are (count$_($($u$)+1, count$_)$($u$)+1), equal by IH. Prefixes: "(" alone is fine; "(" + prefix of $u$ has surplus $\ge 1 + (\ge 0) &gt; 0$... precisely $1+(\text{surplus in } u)\ge 1 \ge 0$; the full string has surplus 0. $uv$: counts add; a prefix is either a prefix of $u$ (IH) or $u$ + prefix of $v$, with surplus $0 + (\ge 0) \ge 0$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="recurrence-relations">
+ <h2>Recurrence relations</h2>
+ <p>A recurrence relation defines a sequence by how each term depends on earlier terms. It is the discrete analogue of a differential equation: instead of a law for $\frac{dy}{dt}$, you have a law for $a_n$ in terms of $a_{n-1}, a_{n-2}, \dots$ Recurrences appear everywhere: loan balances, population models, and above all the running time of recursive algorithms.</p>
+ <div class="box def"><span class="label">Definition</span> A recurrence relation for $(a_n)$ expresses $a_n = g(a_{n-1},\dots,a_{n-k}, n)$ for $n \ge k$, together with initial conditions $a_0,\dots,a_{k-1}$. It is <em>linear</em> with <em>constant coefficients</em> if $a_n = c_1 a_{n-1} + \dots + c_k a_{n-k} + f(n)$; <em>homogeneous</em> if $f(n)=0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Towers of Hanoi: moving $n$ disks needs $T_n = 2T_{n-1}+1$, $T_1 = 1$. Compute: $T_2 = 3$, $T_3 = 7$, $T_4 = 15$. Guess $T_n = 2^n - 1$; verify: $2(2^{n-1}-1)+1 = 2^n - 1$. ✓</div>
+ <div class="box link"><span class="label">Where this goes</span> Divide-and-conquer recurrences like $T(n)=2T(n/2)+n$ are solved wholesale by the Master theorem, two sections down. Linear recurrences also drive the analysis of gradient-descent iterates in Ch 15.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $a_0 = 5$, $a_n = a_{n-1} + 3$. Find a closed form and $a_{10}$. <details class="sol"><summary>Solution</summary><div>Arithmetic: $a_n = 5 + 3n$, so $a_{10} = 35$.</div></details></li>
+  <li><span class="lvl m">MED</span> A loan of \$1000 grows 1% per month and you pay \$50 each month: $b_n = 1.01\, b_{n-1} - 50$, $b_0=1000$. Find the closed form. <details class="sol"><summary>Solution</summary><div>Fixed point: $b^* = 1.01 b^* - 50 \Rightarrow b^* = 5000$. Let $d_n=b_n-5000$: $d_n = 1.01 d_{n-1}$, $d_0=-4000$. So $b_n = 5000 - 4000(1.01)^n$. (Balance falls; it hits 0 when $(1.01)^n = 1.25$, i.e. $n \approx 22.4$ months.)</div></details></li>
+  <li><span class="lvl h">HARD</span> How many binary strings of length $n$ avoid two consecutive 1s? Set up and identify the recurrence. <details class="sol"><summary>Solution</summary><div>Let $a_n$ count them. A valid string ends in 0 (preceded by any valid string of length $n-1$) or in 01 (preceded by any valid string of length $n-2$). So $a_n = a_{n-1}+a_{n-2}$, with $a_1 = 2$ (0,1), $a_2 = 3$ (00,01,10). This is Fibonacci: $a_n = F_{n+2}$. E.g. $a_4 = 8$: check by the recurrence $a_3=5$, $a_4=a_3+a_2=8$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="solving-recurrences">
+ <h2>Solving recurrences</h2>
+ <p>Solving a recurrence means finding a closed form or a growth rate. The three workhorse methods: <em>unrolling</em> (substitute repeatedly until a pattern appears), the <em>characteristic equation</em> (for linear constant-coefficient recurrences: guess $a_n = r^n$), and <em>guess-and-verify by induction</em>. The characteristic method turns a recurrence into a polynomial equation, exactly as $e^{rt}$ turns a linear ODE into one (Ch 10).</p>
+ <div class="box def"><span class="label">Definition</span> For $a_n = c_1 a_{n-1} + \dots + c_k a_{n-k}$, the <em>characteristic equation</em> is $r^k = c_1 r^{k-1} + \dots + c_k$. If it has distinct roots $r_1,\dots,r_k$, the general solution is $a_n = \alpha_1 r_1^n + \dots + \alpha_k r_k^n$; a root $r$ of multiplicity $m$ contributes $(\alpha_0 + \alpha_1 n + \dots + \alpha_{m-1} n^{m-1}) r^n$. Constants are fixed by initial conditions.</div>
+ <div class="box ex"><span class="label">Worked example</span> Fibonacci: $F_n = F_{n-1}+F_{n-2}$, $F_0=0, F_1=1$. Characteristic: $r^2 = r+1$, roots $\varphi = \frac{1+\sqrt5}{2}$, $\psi = \frac{1-\sqrt5}{2}$. So $F_n = \alpha\varphi^n + \beta\psi^n$. From $F_0=0$: $\alpha = -\beta$. From $F_1=1$: $\alpha(\varphi-\psi) = \alpha\sqrt5 = 1$. Binet's formula: $F_n = \frac{\varphi^n - \psi^n}{\sqrt5}$. Check $n=3$: $\varphi^3\approx4.236$, $\psi^3\approx-0.236$; $(4.236+0.236)/\sqrt5 = 4.472/2.236 = 2 = F_3$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> Repeated roots need the extra factor of $n$: $a_n = 4a_{n-1}-4a_{n-2}$ has $r^2-4r+4=(r-2)^2$, so the solution is $(\alpha + \beta n)2^n$, <em>not</em> $\alpha 2^n$ alone — two initial conditions could not otherwise both be satisfied.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $a_n = 3a_{n-1}$, $a_0 = 2$. <details class="sol"><summary>Solution</summary><div>$a_n = 2\cdot 3^n$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $a_n = 5a_{n-1} - 6a_{n-2}$, $a_0 = 1$, $a_1 = 4$. <details class="sol"><summary>Solution</summary><div>$r^2-5r+6=0 \Rightarrow r = 2, 3$. $a_n = \alpha 2^n + \beta 3^n$. $\alpha+\beta = 1$, $2\alpha+3\beta = 4 \Rightarrow \beta = 2, \alpha = -1$. So $a_n = 2\cdot 3^n - 2^n$. Check $a_2 = 5\cdot4 - 6\cdot1 = 14 = 18-4$. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Unroll $T(n) = T(n-1) + n$, $T(0)=0$, to a closed form. <details class="sol"><summary>Solution</summary><div>$T(n) = n + (n-1) + \dots + 1 + T(0) = \frac{n(n+1)}{2}$. This is why insertion sort is $\Theta(n^2)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $a_n = 2a_{n-1} + 3^n$, $a_0 = 1$ (nonhomogeneous). <details class="sol"><summary>Solution</summary><div>Homogeneous: $\alpha 2^n$. Particular: try $c\,3^n$: $c\,3^n = 2c\,3^{n-1} + 3^n \Rightarrow 3c = 2c + 3 \Rightarrow c = 3$. General: $a_n = \alpha 2^n + 3^{n+1}$. From $a_0=1$: $\alpha + 3 = 1 \Rightarrow \alpha = -2$. $a_n = 3^{n+1} - 2^{n+1}$. Check $a_1 = 2\cdot1 + 3 = 5 = 9 - 4$. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="master-theorem">
+ <h2>Master theorem</h2>
+ <p>Divide-and-conquer algorithms split a problem of size $n$ into $a$ subproblems of size $n/b$ and spend $f(n)$ combining. Total work is a tree: $f(n)$ at the root, $a\,f(n/b)$ at level 1, and so on. The Master theorem asks one question: does the work per level shrink, stay flat, or grow as you descend? The answer decides whether the root, all levels equally, or the leaves dominate.</p>
+ <div class="box thm"><span class="label">Theorem (Master theorem)</span> Let $T(n) = a\,T(n/b) + f(n)$ with $a \ge 1, b > 1$, and let $c^* = \log_b a$.
+ <br>1. If $f(n) = O(n^{c})$ with $c &lt; c^*$: $T(n) = \Theta(n^{c^*})$ — leaves dominate.
+ <br>2. If $f(n) = \Theta(n^{c^*}\log^k n)$, $k\ge 0$: $T(n) = \Theta(n^{c^*}\log^{k+1} n)$ — every level contributes.
+ <br>3. If $f(n) = \Omega(n^{c})$ with $c &gt; c^*$ and $a f(n/b) \le \kappa f(n)$ for some $\kappa &lt; 1$ (regularity): $T(n) = \Theta(f(n))$ — root dominates.</div>
+ <div class="box ex"><span class="label">Worked example</span> Merge sort: $T(n) = 2T(n/2) + \Theta(n)$. Here $a=2, b=2$, $c^* = \log_2 2 = 1$, and $f(n) = \Theta(n^1)$ matches case 2 ($k=0$): $T(n) = \Theta(n\log n)$. Karatsuba multiplication: $T(n) = 3T(n/2) + \Theta(n)$, $c^* = \log_2 3 \approx 1.585 &gt; 1$, case 1: $T(n) = \Theta(n^{\log_2 3})$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $a$, $b$ and the exponent $c$ of $f(n)=n^c$; watch work-per-level across the recursion tree and see which regime you are in.</p>
+  <canvas id="cv-master"></canvas>
+  <div class="ctl">
+   <label>a (subproblems) <input type="range" id="ms-a" min="1" max="8" step="1" value="2"></label>
+   <label>b (shrink factor) <input type="range" id="ms-b" min="2" max="8" step="1" value="2"></label>
+   <label>c in f(n)=n^c <input type="range" id="ms-c" min="0" max="3" step="0.1" value="1"></label>
+  </div>
+  <div class="out" id="ms-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> The Master theorem has gaps: $T(n) = 2T(n/2) + n/\log n$ fits no case ($f$ is smaller than $n^{c^*}$ but not polynomially smaller). And case 3 needs the regularity condition — do not skip it in proofs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $T(n) = 4T(n/2) + n$. <details class="sol"><summary>Solution</summary><div>$c^* = \log_2 4 = 2 &gt; 1$: case 1, $T(n) = \Theta(n^2)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $T(n) = T(n/2) + 1$ and name the algorithm it describes. <details class="sol"><summary>Solution</summary><div>$c^* = \log_2 1 = 0$, $f(n) = \Theta(n^0)$: case 2, $T(n) = \Theta(\log n)$. Binary search.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $T(n) = 3T(n/4) + n\log n$. <details class="sol"><summary>Solution</summary><div>$c^* = \log_4 3 \approx 0.79$. $f(n) = n\log n = \Omega(n^{1})$, polynomially larger. Regularity: $3\frac{n}{4}\log\frac n4 \le \frac34 n\log n$. ✓ Case 3: $T(n) = \Theta(n\log n)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Strassen's algorithm does $T(n) = 7T(n/2) + \Theta(n^2)$. Solve it, and find the largest number of subproblems $a$ for which $aT(n/2)+\Theta(n^2)$ would still beat $\Theta(n^3)$ ordinary matrix multiplication. <details class="sol"><summary>Solution</summary><div>$c^* = \log_2 7 \approx 2.807 &gt; 2$: case 1, $T(n) = \Theta(n^{\log_2 7})$. We need $\log_2 a &lt; 3$, i.e. $a \le 7$ (at $a=8$, $T(n)=\Theta(n^3)$, no gain). Strassen's 7 is exactly the largest useful count — one multiplication saved is the whole trick.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">$T(n) = 9T(n/3) + n^2$. Which is it?</div><button class="opt">$\Theta(n^2)$ — root dominates</button><button class="opt">$\Theta(n^2\log n)$ — balanced</button><button class="opt">$\Theta(n^{2.5})$ — leaves dominate</button><div class="why" hidden>$c^* = \log_3 9 = 2$ and $f(n) = \Theta(n^2)$ matches it exactly, so this is case 2 with $k=0$: every one of the $\log_3 n$ levels does $\Theta(n^2)$ work, giving $\Theta(n^2\log n)$.</div></div>
+</section>
+
+<section class="topic" id="generating-functions">
+ <h2>Generating functions</h2>
+ <p>A generating function stores an entire sequence as the coefficients of a power series: it is a clothesline on which you hang the numbers $a_0, a_1, a_2, \dots$ Operations on sequences (shifting, adding, convolving) become algebra on the series, so counting problems and recurrences turn into manipulations of functions.</p>
+ <div class="box def"><span class="label">Definition</span> The (ordinary) generating function of $(a_n)_{n\ge0}$ is $A(x) = \sum_{n\ge0} a_n x^n$. Key facts: $\sum x^n = \frac1{1-x}$; $\sum \binom{n+k-1}{k-1}x^n = \frac1{(1-x)^k}$; and if $C(x) = A(x)B(x)$ then $c_n = \sum_{i=0}^n a_i b_{n-i}$ (convolution).</div>
+ <div class="box ex"><span class="label">Worked example</span> Solve Fibonacci with a generating function. $F(x) = \sum F_n x^n$. The recurrence gives $F(x) - x = x F(x) + x^2 F(x)$ (align coefficients of $x^n$, $n \geq 2$, and note $F_0 = 0$, $F_1 = 1$), so $F(x) = \frac{x}{1 - x - x^2}$. Partial fractions over the roots recovers Binet's formula. Sanity check: $\frac{x}{1-x-x^2} = x(1 + (x+x^2) + (x+x^2)^2 + \cdots) = x + x^2 + 2x^3 + 3x^4 + 5x^5 + \cdots$ ✓</div>
+ <div class="box think"><span class="label">Think first</span> How many ways can you make $n$ cents from pennies and nickels? What function has these counts as coefficients? <details class="sol"><summary>Reveal</summary><div>Pennies contribute $\frac1{1-x}$ (any number of 1s), nickels $\frac1{1-x^5}$. The product $\frac1{(1-x)(1-x^5)}$ generates the counts: the coefficient of $x^n$ is $\lfloor n/5\rfloor + 1$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What sequence does $\frac{1}{1-2x}$ generate? <details class="sol"><summary>Solution</summary><div>$\sum (2x)^n = \sum 2^n x^n$: the powers of two, $a_n = 2^n$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the generating function of $a_n = n$ and use it to evaluate $\sum_{n\ge1} n/2^n$. <details class="sol"><summary>Solution</summary><div>Differentiate $\frac1{1-x}$: $\sum n x^{n-1} = \frac1{(1-x)^2}$, so $\sum n x^n = \frac{x}{(1-x)^2}$. At $x = 1/2$: $\frac{1/2}{(1/2)^2} = 2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use generating functions to count how many ways to roll a total of 7 with two ordinary dice. <details class="sol"><summary>Solution</summary><div>One die: $D(x) = x + x^2 + \dots + x^6$. Two dice: $D(x)^2$; we need the coefficient of $x^7$, i.e. the number of pairs $(i,j)$, $1\le i,j\le 6$, $i+j = 7$: $(1,6),(2,5),(3,4),(4,3),(5,2),(6,1)$ — six ways. Generating functions turn the count into polynomial multiplication.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="graph-theory">
+ <h2>Graph theory</h2>
+ <p>A graph is dots and lines: a set of objects and a record of which pairs are related. Cities and roads, people and friendships, neurons and synapses, states and transitions — the same abstraction. Graph theory studies what you can conclude knowing only the connection pattern, ignoring everything else.</p>
+ <div class="box def"><span class="label">Definition</span> A graph $G = (V, E)$ is a set $V$ of <em>vertices</em> and a set $E$ of <em>edges</em>, each edge an unordered pair $\{u,v\}$ of distinct vertices (for a simple undirected graph). The <em>degree</em> $\deg(v)$ is the number of edges at $v$. Handshake lemma: $\sum_{v\in V}\deg(v) = 2|E|$.</div>
+ <div class="box ex"><span class="label">Worked example</span> A graph has 5 vertices with degrees $3,3,2,2,2$. How many edges? $\sum\deg = 12$, so $|E| = 6$. Could degrees be $3,3,3,2,2$? Sum $= 13$, odd — impossible: the number of odd-degree vertices is always even.</div>
+ <div class="box link"><span class="label">Where this goes</span> Graphs carry state machines and search (Ch 26), Bayesian networks and causal DAGs (Ch 27), computational graphs for autodiff (Ch 18), and graph neural networks (Ch 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many edges does the complete graph $K_n$ (every pair connected) have? Evaluate for $n=6$. <details class="sol"><summary>Solution</summary><div>$\binom n2 = \frac{n(n-1)}2$; for $n=6$: 15.</div></details></li>
+  <li><span class="lvl m">MED</span> At a party of 9 people, can everyone shake hands with exactly 3 others? <details class="sol"><summary>Solution</summary><div>No: that graph would have degree sum $27$, odd, contradicting the handshake lemma.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove: in any simple graph with $\ge 2$ vertices, two vertices have the same degree. <details class="sol"><summary>Solution</summary><div>Degrees lie in $\{0,\dots,n-1\}$, $n$ possible values for $n$ vertices. But degree $0$ (isolated) and degree $n-1$ (adjacent to all) cannot coexist, so at most $n-1$ values are actually available — pigeonhole (Ch 3) forces a repeat.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="graph-representations">
+ <h2>Graph representations</h2>
+ <p>To compute with a graph you must store it. The two classics: an <em>adjacency matrix</em> (a grid of 0/1 answering "is there an edge?" in constant time, at $n^2$ memory) and <em>adjacency lists</em> (each vertex keeps a list of its neighbors — memory proportional to edges, ideal for sparse graphs). The right choice depends on whether your graph is dense or sparse and which queries dominate.</p>
+ <div class="box def"><span class="label">Definition</span> For $G$ with $V = \{1,\dots,n\}$, the adjacency matrix $A\in\{0,1\}^{n\times n}$ has $A_{ij} = 1$ iff $\{i,j\}\in E$ (symmetric for undirected graphs). The adjacency list maps each $v$ to the list $N(v)$ of neighbors. Space: $\Theta(n^2)$ vs $\Theta(n + m)$ where $m = |E|$.</div>
+ <div class="box thm"><span class="label">Theorem</span> $(A^k)_{ij}$ counts the walks of length exactly $k$ from $i$ to $j$. (Proof by induction: a walk of length $k$ is a walk of length $k-1$ to some neighbor $\ell$ of $j$, and matrix multiplication sums over $\ell$.)</div>
+ <div class="box ex"><span class="label">Worked example</span> Triangle graph on $\{1,2,3\}$, all pairs joined. $A = \begin{pmatrix}0&1&1\\1&0&1\\1&1&0\end{pmatrix}$, $A^2 = \begin{pmatrix}2&1&1\\1&2&1\\1&1&2\end{pmatrix}$. Diagonal 2: from each vertex, two walks of length 2 return home (out-and-back via each neighbor). Off-diagonal 1: one 2-step walk between distinct vertices (via the third). $(A^3)_{11} = 2$: the two triangles $1\!\to\!2\!\to\!3\!\to\!1$ and $1\!\to\!3\!\to\!2\!\to\!1$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> On a sparse graph ($m \approx n$), iterating "for each neighbor" with an adjacency matrix costs $\Theta(n)$ per vertex, $\Theta(n^2)$ total — adjacency lists do it in $\Theta(n+m)$. BFS/DFS complexity claims assume lists.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the adjacency matrix of the path graph $1 - 2 - 3 - 4$. <details class="sol"><summary>Solution</summary><div>$\begin{pmatrix}0&1&0&0\\1&0&1&0\\0&1&0&1\\0&0&1&0\end{pmatrix}$</div></details></li>
+  <li><span class="lvl m">MED</span> For a graph with $n = 10^6$ vertices and $m = 5\times10^6$ edges, estimate memory for matrix vs lists (1 byte per matrix entry, 8 bytes per list entry). <details class="sol"><summary>Solution</summary><div>Matrix: $10^{12}$ bytes $= 1$ TB. Lists: $2m$ directed entries $\times 8$ B $= 8\times10^7$ B $= 80$ MB plus vertex array — four orders of magnitude smaller.</div></details></li>
+  <li><span class="lvl h">HARD</span> Using $A^2$, show a triangle exists in $G$ iff $A_{ij}(A^2)_{ij} &gt; 0$ for some $i\ne j$, and give the complexity of this test with fast matrix multiplication $O(n^\omega)$. <details class="sol"><summary>Solution</summary><div>$(A^2)_{ij} &gt; 0$ means a 2-path $i\to\ell\to j$ exists; $A_{ij}=1$ closes it into the triangle $i,\ell,j$. Conversely a triangle gives both factors. Computing $A^2$ costs $O(n^\omega)$ ($\omega &lt; 2.372$), then $O(n^2)$ to scan — so $O(n^\omega)$, beating the $O(n^3)$ brute force over vertex triples.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="paths">
+ <h2>Paths</h2>
+ <p>A path is a route through a graph that never revisits a vertex. Paths are how influence, messages and inference travel; "how far apart are two vertices" and "are they connected at all" are both path questions.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>walk</em> is a sequence $v_0, v_1, \dots, v_k$ with each $\{v_{i}, v_{i+1}\}\in E$. A <em>trail</em> repeats no edge; a <em>path</em> repeats no vertex. Its <em>length</em> is the number of edges, $k$. The <em>distance</em> $d(u,v)$ is the minimum length of a $u$–$v$ path ( $\infty$ if none exists).</div>
+ <div class="box thm"><span class="label">Theorem</span> If there is a walk from $u$ to $v$, there is a path from $u$ to $v$. (Cut out the cycle between any repeated vertex's two visits; repeat until no repeats remain — the walk length strictly decreases, so this terminates.)</div>
+ <div class="box ex"><span class="label">Worked example</span> In the cycle graph $C_6$ with vertices $1..6$ in a ring, $d(1,4) = 3$: both ways around take 3 steps. Add the chord $\{1,4\}$ and the distance drops to 1, while $d(2,5)$ drops from 3 to $2{+}1{=}3$… check: $2\to1\to4\to5$ has length 3, and $2\to3\to4\to5$ also 3 — the chord doesn't help there, $d(2,5)=3$ still.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> In the path graph $1-2-3-4-5$, what is $d(1,5)$, and how many distinct paths join 1 and 5? <details class="sol"><summary>Solution</summary><div>$d(1,5)=4$; exactly one path (trees have unique paths).</div></details></li>
+  <li><span class="lvl m">MED</span> How many paths of length 2 join opposite corners of the square $C_4$? Of length 3? <details class="sol"><summary>Solution</summary><div>Label 1,2,3,4 in a ring; opposite corners 1,3. Length 2: via 2 or via 4 — two paths. Length 3: a 1–3 path of length 3 would use all 4 vertices, i.e. 1,x,y,3 with $\{x,y\}=\{2,4\}$; but 2 and 4 are not adjacent, so zero.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that in any connected graph, the distance function satisfies the triangle inequality $d(u,w) \le d(u,v)+d(v,w)$. <details class="sol"><summary>Solution</summary><div>Concatenate a shortest $u$–$v$ path with a shortest $v$–$w$ path: a $u$–$w$ walk of length $d(u,v)+d(v,w)$. A walk contains a path of no greater length (previous theorem), and $d(u,w)$ is the minimum over all paths, hence $\le$ that. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="cycles">
+ <h2>Cycles</h2>
+ <p>A cycle is a path that closes on itself. Cycles are redundancy: a graph with a cycle offers two ways around, which means robustness in networks and trouble in dependency graphs (deadlock, circular imports). Acyclic-ness is precisely what makes trees and DAGs tractable.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>cycle</em> is a walk $v_0, v_1, \dots, v_k = v_0$ with $k\ge3$, all of $v_0,\dots,v_{k-1}$ distinct, and each consecutive pair adjacent. A graph with no cycles is <em>acyclic</em> (a <em>forest</em>; a connected forest is a tree). In directed graphs the edges must all point forward along the cycle, and length-2 directed cycles ($u\to v\to u$) count.</div>
+ <div class="box ex"><span class="label">Worked example</span> A connected graph with $n$ vertices and $n$ edges contains exactly one cycle. Why: a spanning tree uses $n-1$ edges; the one extra edge $\{u,v\}$ plus the unique tree path from $u$ to $v$ closes exactly one cycle. E.g. $n=4$, ring $1\text-2\text-3\text-4\text-1$: 4 vertices, 4 edges, the single cycle is the ring itself.</div>
+ <div class="box think"><span class="label">Think first</span> If every vertex of a finite graph has degree $\ge 2$, must the graph contain a cycle? <details class="sol"><summary>Reveal</summary><div>Yes. Take a maximal path $v_0\dots v_k$. $v_0$ has degree $\ge2$, so it has a neighbor besides $v_1$; by maximality that neighbor lies on the path, say $v_j$ ($j\ge2$), closing the cycle $v_0 v_1 \dots v_j v_0$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many distinct cycles (as vertex sets) does $K_4$ contain? <details class="sol"><summary>Solution</summary><div>Triangles: $\binom43 = 4$. 4-cycles: choose the vertex set (all 4), then pairings into a ring: $3$ ways ($\frac{(4-1)!}{2}$). Total $4 + 3 = 7$.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove a graph is bipartite iff it has no odd cycle (you may prove just the easy direction: bipartite ⟹ no odd cycle). <details class="sol"><summary>Solution</summary><div>In a bipartite graph with sides $A,B$, every edge crosses sides, so any closed walk alternates $A,B,A,B,\dots$ and must have even length to return to its start's side. Hence no odd cycles. (Converse: 2-color by parity of BFS distance from any root, per component; an edge within a level would create an odd cycle.)</div></details></li>
+  <li><span class="lvl h">HARD</span> The <em>girth</em> is the length of the shortest cycle. Show a graph with girth 5 and minimum degree $d$ has at least $d^2+1$ vertices. <details class="sol"><summary>Solution</summary><div>Fix $v$. Its $d$ neighbors are distinct; their other neighbors ($\ge d-1$ each) are all distinct from each other and from $N(v)\cup\{v\}$: a repeat among them would create a cycle of length $\le 4$, contradicting girth 5. Count: $1 + d + d(d-1) = d^2+1$. (Equality: Petersen graph, $d=3$, 10 vertices.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="connectivity">
+ <h2>Connectivity</h2>
+ <p>A graph is connected if you can walk between any two vertices. Connectivity partitions any graph into islands — connected components — and the finer question "how many failures until it disconnects?" measures a network's robustness.</p>
+ <div class="box def"><span class="label">Definition</span> $G$ is <em>connected</em> if every pair of vertices is joined by a path. The <em>connected components</em> are the equivalence classes of the relation "joined by a path" (an equivalence relation, Ch 4). A <em>cut vertex</em> / <em>bridge</em> is a vertex/edge whose removal increases the number of components; $G$ is <em>$k$-connected</em> if it stays connected after removing any $k-1$ vertices.</div>
+ <div class="box thm"><span class="label">Theorem</span> A connected graph on $n$ vertices has at least $n-1$ edges; a graph with $n$ vertices and $c$ components has at least $n - c$ edges and at most $\binom{n-c+1}{2}$ edges.</div>
+ <div class="box ex"><span class="label">Worked example</span> A graph on 10 vertices with 3 components needs $\ge 7$ edges. And the maximum edge count is achieved by making one component a clique on $10-3+1 = 8$ vertices plus two isolated vertices: $\binom82 = 28$ edges.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the edge probability $p$ in a random graph $G(n,p)$ and watch components merge; the giant component appears around $p = 1/n$ (average degree 1).</p>
+  <canvas id="cv-conn"></canvas>
+  <div class="ctl">
+   <label>n <input type="range" id="cn-n" min="10" max="120" step="5" value="60"></label>
+   <label>avg degree np <input type="range" id="cn-d" min="0" max="6" step="0.1" value="1"></label>
+   <button class="btn" id="cn-re">Resample</button>
+  </div>
+  <div class="out" id="cn-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> How many components does a graph with 8 vertices and 0 edges have? With 8 vertices, 7 edges, and no cycle? <details class="sol"><summary>Solution</summary><div>8 (all isolated); and 1 — a forest with $n - c$ edges has $c$ components, so $7 = 8 - c \Rightarrow c = 1$: a tree.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove: if $G$ on $n$ vertices has every vertex of degree $\ge (n-1)/2$, then $G$ is connected. <details class="sol"><summary>Solution</summary><div>Suppose not; take a smallest component, with $k \le n/2$ vertices. A vertex inside has degree $\le k-1 \le n/2 - 1 &lt; (n-1)/2$, contradiction.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show an edge is a bridge iff it lies on no cycle. <details class="sol"><summary>Solution</summary><div>If $e=\{u,v\}$ lies on a cycle, removing $e$ leaves the rest of the cycle as a $u$–$v$ path, so any walk that used $e$ can detour: still connected — not a bridge. If $e$ is on no cycle, removing it disconnects $u$ from $v$: a surviving $u$–$v$ path plus $e$ would be a cycle. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="trees">
+ <h2>Trees</h2>
+ <p>A tree is a connected graph with no cycles: the leanest possible connectivity, where every pair of vertices is joined by exactly one path. Trees are the skeletons of hierarchy — file systems, parse trees, decision trees, recursion traces — and every connected graph hides at least one spanning tree inside it.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>tree</em> is a connected acyclic graph. Equivalent characterizations for a graph on $n$ vertices: (i) connected with $n-1$ edges; (ii) acyclic with $n-1$ edges; (iii) a unique path joins every vertex pair; (iv) connected, and every edge is a bridge. A <em>rooted tree</em> distinguishes one vertex; a <em>leaf</em> is a vertex of degree 1 (or, when rooted, a node with no children).</div>
+ <div class="box thm"><span class="label">Theorem (Cayley)</span> The number of labeled trees on $n$ vertices is $n^{n-2}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $n=4$: Cayley says $4^2 = 16$ labeled trees. Check by shape: paths (choose the ordering: $4!/2 = 12$) and stars (choose the center: 4). $12 + 4 = 16$. ✓</div>
+ <div class="box link"><span class="label">Where this goes</span> Search trees organize Ch 26's algorithms; decision trees and random forests are Ch 19; parse trees underlie the grammars in the regular-languages section below.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A tree has 50 edges. How many vertices? <details class="sol"><summary>Solution</summary><div>51.</div></details></li>
+  <li><span class="lvl m">MED</span> Prove every tree with $\ge2$ vertices has at least 2 leaves. <details class="sol"><summary>Solution</summary><div>Take a longest path $v_0\dots v_k$ ($k\ge1$). Its endpoints are leaves: if $v_0$ had another neighbor, it would either extend the path (contradicting maximality) or close a cycle (contradicting acyclicity).</div></details></li>
+  <li><span class="lvl m">MED</span> A full binary tree has 21 leaves. How many nodes in total? <details class="sol"><summary>Solution</summary><div>Internal nodes $= \ell - 1 = 20$ (proved in structural induction above), so $41$ nodes.</div></details></li>
+  <li><span class="lvl h">HARD</span> A tree has degree sequence with $n_i$ vertices of degree $i$. Show $n_1 = 2 + \sum_{i\ge3}(i-2)\,n_i$. <details class="sol"><summary>Solution</summary><div>Handshake: $\sum_i i\,n_i = 2(n-1)$ where $n = \sum_i n_i$. So $\sum_i i\,n_i = 2\sum_i n_i - 2$, i.e. $\sum_i (i-2) n_i = -2$. Separate $i=1$: $-n_1 + 0\cdot n_2 + \sum_{i\ge3}(i-2)n_i = -2$, giving the claim. E.g. one degree-4 vertex forces $2 + 2 = 4$ leaves (the star $K_{1,4}$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="directed-graphs">
+ <h2>Directed graphs</h2>
+ <p>Give each edge an arrow and you get a directed graph (digraph): "follows" is not "is followed by," a one-way street is not a road. Direction splits degree into in and out, splits connectivity into weak and strong, and makes cycles a matter of consistent orientation.</p>
+ <div class="box def"><span class="label">Definition</span> A digraph $G = (V, E)$ has $E \subseteq V\times V$: ordered pairs $(u,v)$, drawn $u \to v$. In-degree $\deg^-(v)$ counts arrows in; out-degree $\deg^+(v)$ arrows out; $\sum_v \deg^+(v) = \sum_v \deg^-(v) = |E|$. $G$ is <em>strongly connected</em> if a directed path joins every ordered pair; <em>weakly connected</em> if the underlying undirected graph is connected.</div>
+ <div class="box ex"><span class="label">Worked example</span> $V=\{a,b,c\}$, $E = \{(a,b),(b,c),(c,a)\}$: a directed 3-cycle, strongly connected. Reverse one edge to $(a,c)$: now $E=\{(a,b),(b,c),(a,c)\}$ — still weakly connected, but nothing reaches $a$, so not strongly connected. In-degrees become $a{:}0, b{:}1, c{:}2$; out-degrees $a{:}2, b{:}1, c{:}0$; both sum to 3 = $|E|$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> The adjacency matrix of a digraph is generally <em>not</em> symmetric, and "connected" is ambiguous — always say weakly or strongly. Markov chain theory (Ch 12) calls strong connectivity of the transition graph <em>irreducibility</em>.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A digraph on $n$ vertices allows self-loops. How many possible edge sets are there? <details class="sol"><summary>Solution</summary><div>$n^2$ possible ordered pairs, so $2^{n^2}$ edge sets.</div></details></li>
+  <li><span class="lvl m">MED</span> A <em>tournament</em> orients every edge of $K_n$. Show it always has a Hamiltonian directed path (visiting all vertices) for $n = 3$ by cases, then sketch the induction. <details class="sol"><summary>Solution</summary><div>$n=3$: either it's a 3-cycle (any starting vertex gives a path) or one vertex beats both others, one loses to both: order them "beats-all → middle → loses-all". Induction: given a Hamiltonian path $v_1\to\dots\to v_{n-1}$, insert the new vertex $u$ before the first $v_i$ that $u$ beats (or at the end if none); the neighbors' arrows then line up: $v_{i-1}\to u \to v_i$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show: a digraph where every vertex has out-degree $\ge1$ contains a directed cycle. <details class="sol"><summary>Solution</summary><div>Start anywhere and keep following an outgoing edge; with finitely many vertices, some vertex repeats after at most $|V|$ steps. The segment between its two visits is a directed cycle. (Contrapositive: DAGs must have a sink.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="dags">
+ <h2>DAGs</h2>
+ <p>A directed acyclic graph is a digraph with no directed cycles: pure "before/after" with no time loops. Any dependency structure — build systems, course prerequisites, causal models, autodiff graphs — is a DAG, and DAGs are exactly the digraphs that can be scheduled.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>DAG</em> is a digraph containing no directed cycle. Equivalently: its vertices admit a <em>topological order</em> (next section). Reachability in a DAG is a partial order: reflexive (trivially), antisymmetric (a two-way reach would be a cycle), transitive.</div>
+ <div class="box thm"><span class="label">Theorem</span> Every finite DAG has at least one <em>source</em> (in-degree 0) and one <em>sink</em> (out-degree 0). Proof: follow edges backward from any vertex; no cycles means no repetition, so the walk stops — at a source. Forward similarly for a sink.</div>
+ <div class="box ex"><span class="label">Worked example</span> Courses: Calc → ML, LinAlg → ML, ML → DL, LinAlg → DL. Sources: Calc, LinAlg. Sink: DL. Longest path Calc→ML→DL or LinAlg→ML→DL has 3 courses: with unlimited parallelism you still need 3 semesters — the longest path ("critical path") is the schedule's lower bound.</div>
+ <div class="box link"><span class="label">Where this goes</span> Causal DAGs are the core object of Ch 27; reverse-mode autodiff (Ch 18) is a walk over a computational DAG; agent task decomposition uses DAG execution in Ch 31.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the maximum number of edges in a DAG on $n$ vertices? <details class="sol"><summary>Solution</summary><div>$\binom n2$: order the vertices and point every edge forward (a "transitive tournament"). More is impossible — two opposite edges make a 2-cycle.</div></details></li>
+  <li><span class="lvl m">MED</span> True or false: every DAG has exactly one topological order. <details class="sol"><summary>Solution</summary><div>False. Two isolated vertices admit both orders. Unique order iff the DAG has a Hamiltonian directed path (each consecutive pair forced).</div></details></li>
+  <li><span class="lvl h">HARD</span> Count longest paths by dynamic programming: in the DAG with edges $a\to b, a\to c, b\to d, c\to d, d\to e$, compute the longest path length ending at each vertex. <details class="sol"><summary>Solution</summary><div>Process in topological order $a,b,c,d,e$ with $L(v) = \max(0, \max_{u\to v} L(u)+1)$: $L(a)=0$, $L(b)=1$, $L(c)=1$, $L(d)=\max(L(b),L(c))+1=2$, $L(e)=3$. Longest path: $a\to b\to d\to e$ (or via $c$), length 3. DP over a topological order is why DAG problems are easy while general graph longest-path is NP-hard.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="topological-sorting">
+ <h2>Topological sorting</h2>
+ <p>A topological sort lines up a DAG's vertices so every arrow points left-to-right: a valid schedule respecting all dependencies. The algorithm is common sense made precise — repeatedly do a task with no unfinished prerequisites.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>topological order</em> of a digraph $G$ is a total order of $V$ such that $u$ precedes $v$ for every edge $(u,v)$. One exists iff $G$ is a DAG. <em>Kahn's algorithm:</em> maintain the set of in-degree-0 vertices; repeatedly output one, delete it (decrementing its successors' in-degrees). $O(n+m)$ time. If vertices remain but none has in-degree 0, a cycle exists.</div>
+ <div class="box ex"><span class="label">Worked example</span> Edges: $1\to3$, $2\to3$, $3\to4$, $2\to4$. In-degrees: $1{:}0, 2{:}0, 3{:}2, 4{:}2$. Kahn: output 1 (say), 3's in-degree → 1; output 2, in-degrees $3{:}0, 4{:}1$; output 3, $4{:}0$; output 4. Order: $1,2,3,4$. (Also valid: $2,1,3,4$.)</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Step Kahn's algorithm on a random DAG: press Step to remove the next in-degree-0 vertex; Reset resamples the DAG.</p>
+  <canvas id="cv-topo"></canvas>
+  <div class="ctl">
+   <button class="btn" id="tp-step">Step</button>
+   <button class="btn" id="tp-reset">New DAG</button>
+  </div>
+  <div class="out" id="tp-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> DFS-based topological sort must append a vertex on <em>finish</em> (post-order) and reverse at the end. Appending at discovery time is wrong: in $1\to3$, $2\to3$, a DFS starting at 1 discovers 3 before 2 is even seen.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Topologically sort: $a\to b$, $c\to b$, $b\to d$. List all valid orders. <details class="sol"><summary>Solution</summary><div>$a$ and $c$ can come in either order, then $b$, then $d$: $a,c,b,d$ and $c,a,b,d$.</div></details></li>
+  <li><span class="lvl m">MED</span> How many topological orders does the DAG with edges $1\to2, 1\to3$ (on vertices $\{1,2,3\}$) have? With no edges at all on $n$ vertices? <details class="sol"><summary>Solution</summary><div>1 must come first; 2 and 3 free: 2 orders. No edges: all $n!$ permutations.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove Kahn's algorithm outputs all $n$ vertices iff the graph is a DAG. <details class="sol"><summary>Solution</summary><div>(⇐) In a DAG, any nonempty remaining subgraph is itself a DAG and hence has a source (in-degree 0 within the subgraph), so the algorithm never stalls. (⇒) If a directed cycle exists, none of its vertices can ever reach in-degree 0 — each waits on its predecessor in the cycle — so they are never output. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="shortest-paths">
+ <h2>Shortest paths</h2>
+ <p>Given lengths on edges, the shortest path problem asks for the cheapest route. Unweighted: breadth-first search expands in rings of distance $1, 2, 3,\dots$ Weighted with nonnegative weights: Dijkstra's algorithm grows a frontier, always finalizing the closest unfinalized vertex — greedy, and provably correct because a cheaper detour would have to pass through something even closer that was already finalized.</p>
+ <div class="box def"><span class="label">Definition</span> <em>BFS</em> from $s$ computes $d(s,v)$ for unit weights in $O(n+m)$. <em>Dijkstra</em>: keep tentative distances $d[\cdot]$, $d[s]=0$, others $\infty$; repeat: pick unvisited $u$ minimizing $d[u]$, mark visited, and <em>relax</em> each edge $(u,v)$: $d[v] \leftarrow \min(d[v],\ d[u]+w(u,v))$. Correct for $w \ge 0$; with a binary heap, $O((n+m)\log n)$. Negative edges need Bellman–Ford ($O(nm)$), which also detects negative cycles.</div>
+ <div class="box ex"><span class="label">Worked example</span> Vertices $s,a,b,t$; edges $s\!\to\!a$ (1), $s\!\to\!b$ (4), $a\!\to\!b$ (2), $a\!\to\!t$ (6), $b\!\to\!t$ (1). Dijkstra: finalize $s$ (0); relax: $d[a]=1, d[b]=4$. Finalize $a$ (1); relax: $d[b]=\min(4,3)=3$, $d[t]=7$. Finalize $b$ (3); relax: $d[t]=\min(7,4)=4$. Finalize $t$ (4). Shortest path $s\to a\to b\to t$, length 4.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch BFS/Dijkstra flood a grid with random terrain costs; drag the wall density and press Run.</p>
+  <canvas id="cv-dijk"></canvas>
+  <div class="ctl">
+   <label>wall density <input type="range" id="dj-walls" min="0" max="0.45" step="0.05" value="0.25"></label>
+   <label>terrain cost spread <input type="range" id="dj-var" min="0" max="8" step="1" value="0"></label>
+   <button class="btn" id="dj-run">Run</button>
+  </div>
+  <div class="out" id="dj-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Dijkstra fails with negative edges: with $s\!\to\!a$ (2), $s\!\to\!b$ (3), $b\!\to\!a$ ($-2$), Dijkstra finalizes $a$ at 2, but the true distance is $1$ via $b$. Greedy finalization assumes distances only grow along paths.</div>
+ <div class="box link"><span class="label">Where this goes</span> A* in Ch 26 is Dijkstra plus a heuristic that steers the frontier toward the goal; value iteration in Ch 25 is Bellman relaxation generalized to expected costs.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Run BFS from corner $(0,0)$ of a $3\times3$ grid graph. What is $d((0,0),(2,2))$? <details class="sol"><summary>Solution</summary><div>Manhattan distance 4 (grid moves are unit steps right/down/left/up).</div></details></li>
+  <li><span class="lvl m">MED</span> Run Dijkstra from $s$: edges $s\!\to\!u$ (7), $s\!\to\!v$ (3), $v\!\to\!u$ (3), $u\!\to\!t$ (2), $v\!\to\!t$ (7). Give the finalization order and $d[t]$. <details class="sol"><summary>Solution</summary><div>Finalize $s$(0): $d[u]=7, d[v]=3$. Finalize $v$(3): $d[u]=\min(7,6)=6$, $d[t]=10$. Finalize $u$(6): $d[t]=\min(10,8)=8$. Finalize $t$(8). Order $s,v,u,t$; $d[t]=8$ via $s\to v\to u\to t$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove Dijkstra's correctness invariant: when $u$ is finalized, $d[u]$ equals the true distance $\delta(s,u)$ (assume $w\ge0$). <details class="sol"><summary>Solution</summary><div>Induction on finalization order. Suppose $u$ is the first vertex finalized with $d[u] &gt; \delta(s,u)$. A true shortest path $s \rightsquigarrow u$ must leave the finalized set somewhere: let $(x,y)$ be its first edge with $x$ finalized, $y$ not. By IH $d[x]=\delta(s,x)$; edge $(x,y)$ was relaxed when $x$ was finalized, so $d[y] \le \delta(s,x)+w(x,y) = \delta(s,y) \le \delta(s,u) &lt; d[u]$ (weights $\ge0$ make prefixes no longer than the whole). Then the algorithm would have picked $y$ before $u$ — contradiction. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="graph-coloring">
+ <h2>Graph coloring</h2>
+ <p>Color the vertices so no edge joins two like-colored ends. Colors are really resources: exam time slots, radio frequencies, CPU registers — coloring is conflict-free assignment, and the minimum number of colors measures how entangled the conflicts are.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>proper $k$-coloring</em> assigns each vertex one of $k$ colors with adjacent vertices differing. The <em>chromatic number</em> $\chi(G)$ is the least such $k$. Facts: $\chi(K_n) = n$; $\chi(G) = 2$ iff $G$ is bipartite with $\ge1$ edge; greedy coloring shows $\chi(G) \le \Delta(G)+1$ where $\Delta$ is the max degree; the Four Color Theorem: planar graphs have $\chi \le 4$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Exams: Math conflicts with Physics and CS; Physics conflicts with CS; History conflicts with CS only. The conflict graph contains the triangle {Math, Physics, CS}, so $\chi\ge3$. Three slots suffice: Math=1, Physics=2, CS=3, History=1 (History only conflicts with CS). $\chi = 3$: three exam slots.</div>
+ <div class="box think"><span class="label">Think first</span> Greedy coloring processes vertices in some order, giving each the smallest color unused by its already-colored neighbors. Can greedy ever use far more than $\chi$ colors? <details class="sol"><summary>Reveal</summary><div>Yes. On the "crown" bipartite graph ($\chi=2$: $a_i \sim b_j$ for $i\ne j$), the order $a_1,b_1,a_2,b_2,\dots$ forces color $i$ on both $a_i, b_i$ — greedy uses $n$ colors on a 2-colorable graph. Order matters enormously.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find $\chi$ of the cycle $C_5$ and of $C_6$. <details class="sol"><summary>Solution</summary><div>Even cycles are bipartite: $\chi(C_6)=2$. Odd cycles are not: $\chi(C_5)=3$ (alternate 1,2 around; the last vertex neighbors both colors).</div></details></li>
+  <li><span class="lvl m">MED</span> A graph contains $K_4$ as a subgraph. What lower bound on $\chi$ follows? Is $\chi(G) = $ (max clique size) always? <details class="sol"><summary>Solution</summary><div>$\chi \ge 4$: the clique's vertices need distinct colors. But no — $C_5$ has max clique 2 and $\chi=3$; the gap can be made arbitrarily large (triangle-free graphs of huge chromatic number exist, e.g. Mycielski's construction).</div></details></li>
+  <li><span class="lvl h">HARD</span> The chromatic polynomial $P(G,k)$ counts proper $k$-colorings. Compute $P(C_4, k)$. <details class="sol"><summary>Solution</summary><div>For cycles, $P(C_n,k) = (k-1)^n + (-1)^n (k-1)$ (by deletion–contraction: $P(C_n,k) = P(P_{n},k) - P(C_{n-1},k)$ where the path has $k(k-1)^{n-1}$ colorings; unrolls to the formula). So $P(C_4,k) = (k-1)^4 + (k-1)$. Check $k=2$: $1 + 1 = 2$ ✓ (the two alternating colorings).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">A graph has maximum degree 3. What does greedy coloring guarantee?</div><button class="opt">$\chi = 3$ exactly</button><button class="opt">A 3-coloring always exists</button><button class="opt">A 4-coloring always exists</button><div class="why" hidden>Greedy gives $\chi \le \Delta + 1 = 4$: each vertex has at most 3 colored neighbors, so one of 4 colors is free. $K_4$ shows 4 can be necessary ($\Delta=3$, $\chi=4$), so 3 is not guaranteed.</div></div>
+</section>
+
+<section class="topic" id="matching">
+ <h2>Matching</h2>
+ <p>A matching pairs up vertices using disjoint edges — no vertex used twice. Assigning workers to jobs, students to schools, GPUs to tasks: all matching. The deep results say exactly when everyone can be matched, and how to find the best matching efficiently.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>matching</em> $M \subseteq E$ is a set of edges with no shared endpoints. It is <em>maximum</em> if no matching has more edges; <em>perfect</em> if it covers every vertex. An <em>augmenting path</em> alternates non-matching/matching edges between two unmatched vertices; flipping it grows $M$ by one edge.</div>
+ <div class="box thm"><span class="label">Theorem (Hall's marriage theorem)</span> A bipartite graph with sides $A, B$ has a matching covering all of $A$ iff every subset $S \subseteq A$ satisfies $|N(S)| \ge |S|$ — every group of applicants collectively likes at least that many jobs. Berge: $M$ is maximum iff no augmenting path exists.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A = \{1,2,3\}$, $B = \{x,y,z\}$; $1\sim x,y$; $2\sim x$; $3\sim x$. Take $S = \{2,3\}$: $N(S) = \{x\}$, $|N(S)| = 1 &lt; 2$. Hall fails — no perfect matching: workers 2 and 3 both only qualify for job $x$. Maximum matching has 2 edges, e.g. $\{1y, 2x\}$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> A <em>maximal</em> matching (cannot add an edge) need not be <em>maximum</em>: on the path $a\text-b\text-c\text-d$, the single edge $\{b,c\}$ is maximal but the matching $\{ab, cd\}$ is bigger. Greedy gets within factor 2, no better.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the size of a maximum matching in the cycle $C_7$? <details class="sol"><summary>Solution</summary><div>3: seven vertices allow at most $\lfloor 7/2\rfloor = 3$ disjoint edges, and alternating around the cycle achieves it (one vertex left over).</div></details></li>
+  <li><span class="lvl m">MED</span> In $A=\{1,2,3\}$, $B=\{x,y,z\}$ with $1\sim x,y$; $2\sim y,z$; $3\sim x$ — find a perfect matching or a violating Hall set. <details class="sol"><summary>Solution</summary><div>Perfect matching exists: $3\to x$ (forced-ish), then $1\to y$, $2\to z$. Check Hall: every single vertex has $\ge1$ neighbor; pairs: $\{1,3\}\to\{x,y\}$, $\{2,3\}\to\{x,y,z\}$, $\{1,2\}\to\{x,y,z\}$; the triple sees all 3. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove the easy direction of Berge's theorem: if an augmenting path exists, $M$ is not maximum. <details class="sol"><summary>Solution</summary><div>Let $P$ be augmenting for $M$ with edges $e_1, e_2, \dots, e_{2k+1}$ alternating non-$M$, $M$, …, non-$M$ (odd count, one more non-$M$). The symmetric difference $M' = M \triangle P$ swaps membership along $P$: it is still a matching (endpoints of $P$ were unmatched; interior vertices keep exactly one incident matched edge) and $|M'| = |M| + 1$. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="state-machines">
+ <h2>State machines</h2>
+ <p>A state machine is a system with finitely many modes and rules for hopping between them on inputs: a turnstile (locked/unlocked), a traffic light, a protocol handshake, a game character's behavior. It is the smallest useful model of computation — memory bounded by a constant — and the direct precursor of everything from regex engines to RL environments.</p>
+ <div class="box def"><span class="label">Definition</span> A <em>deterministic finite automaton</em> (DFA) is $(Q, \Sigma, \delta, q_0, F)$: finite states $Q$, input alphabet $\Sigma$, transition function $\delta: Q\times\Sigma \to Q$, start state $q_0$, accepting states $F \subseteq Q$. It <em>accepts</em> a string if reading it symbol by symbol from $q_0$ ends in $F$. An NFA allows multiple (or zero) choices per symbol and accepts if <em>some</em> run does.</div>
+ <div class="box ex"><span class="label">Worked example</span> DFA over $\{0,1\}$ accepting strings with an even number of 1s: states $\{E, O\}$, start $E$, accept $\{E\}$; $\delta(E,1)=O$, $\delta(O,1)=E$, 0s loop in place. Read "1011": $E\to O\to O\to E\to O$. Three 1s — odd — ends in $O$: reject. ✓</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Feed symbols to the parity/mod-3 DFA and watch the state hop; the machine below accepts binary numbers divisible by 3 (state = value mod 3).</p>
+  <canvas id="cv-dfa"></canvas>
+  <div class="ctl">
+   <button class="btn" id="fa-0">Feed 0</button>
+   <button class="btn" id="fa-1">Feed 1</button>
+   <button class="btn" id="fa-reset">Reset</button>
+  </div>
+  <div class="out" id="fa-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Markov chains (Ch 12) are state machines with probabilistic transitions; MDPs (Ch 25) add actions and rewards; model checking (Ch 34) verifies properties of transition systems.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Design a DFA over $\{a,b\}$ accepting exactly the strings ending in $b$. <details class="sol"><summary>Solution</summary><div>Two states $q_a$ (last symbol not $b$; start) and $q_b$ (last symbol $b$; accepting): every $a$ goes to $q_a$, every $b$ to $q_b$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify the divisible-by-3 DFA (states $r\in\{0,1,2\}$ = value mod 3, transition on bit $x$: $r \mapsto (2r+x)\bmod 3$) on input 1001 (=9). <details class="sol"><summary>Solution</summary><div>Start 0. Bit 1: $(0{\cdot}2+1)=1$. Bit 0: $2{\cdot}1=2$. Bit 0: $2{\cdot}2=4\equiv1$. Bit 1: $2{\cdot}1+1=3\equiv0$. Ends in 0: accept, and indeed $9 = 3\cdot3$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Prove any DFA for "strings over $\{0,1\}$ whose last-but-two symbol is 1" needs $\ge 8$ states. <details class="sol"><summary>Solution</summary><div>The last three symbols determine acceptance of future extensions. The 8 strings $xyz \in \{0,1\}^3$ are pairwise distinguishable: if $u \ne v$ differ in position $i$ (from the right, $i\in\{1,2,3\}$), append $0^{i-1}$… precisely, append enough symbols to slide the differing bit into the third-from-last slot: $u\cdot w$ accepted, $v\cdot w$ rejected for $w = 0^{3-i}$. Distinguishable strings must sit in different states (Myhill–Nerode), so $\ge 2^3 = 8$ states. (An NFA needs only 4 — determinism costs exponentially here.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="regular-languages">
+ <h2>Regular languages</h2>
+ <p>The languages that finite automata can recognize are exactly the ones you can write as regular expressions — patterns built from single symbols using union, concatenation, and repetition. This equivalence (Kleene's theorem) is why "regex" engines exist. And the pumping lemma marks the boundary: bounded memory cannot count unboundedly, so ${a^nb^n}$ is beyond regular.</p>
+ <div class="box def"><span class="label">Definition</span> Regular expressions over $\Sigma$: $\varnothing$, $\varepsilon$, each $a\in\Sigma$ are regular; if $r, s$ are regular so are $r|s$ (union), $rs$ (concatenation), $r^*$ (zero or more repetitions). A language is <em>regular</em> iff some DFA (equivalently NFA, equivalently regex) recognizes it. Regular languages are closed under union, intersection, complement, concatenation, star and reversal.</div>
+ <div class="box thm"><span class="label">Theorem (Pumping lemma)</span> If $L$ is regular, there is $p\ge1$ such that every $w\in L$ with $|w|\ge p$ splits as $w = xyz$ with $|xy|\le p$, $|y|\ge 1$, and $xy^iz \in L$ for all $i \ge 0$. (A long string forces a repeated state; the loop $y$ can be pumped.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $L = \{a^n b^n : n \ge 0\}$ is not regular. Suppose it were, with pumping length $p$. Take $w = a^p b^p$. Since $|xy|\le p$, $y = a^k$ for some $k\ge1$. Then $xy^2z = a^{p+k}b^p \notin L$. Contradiction. Bounded memory can't hold the count of $a$s.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The pumping lemma is necessary, not sufficient: some non-regular languages satisfy it. To prove non-regularity you may also use closure properties or Myhill–Nerode (infinitely many distinguishable prefixes). Never use pumping to prove a language <em>is</em> regular.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write a regex for binary strings containing the substring 11. <details class="sol"><summary>Solution</summary><div>$(0|1)^*\,11\,(0|1)^*$.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $L = \{w : w$ has equal numbers of 01 and 10 substrings$\}$ regular? <details class="sol"><summary>Solution</summary><div>Yes, surprisingly: counts of 01 and 10 in a string differ by at most 1 and are equal iff first symbol = last symbol (each 01/10 is a "border crossing" between blocks; equal counts ⟺ same start and end block type). So $L = \varepsilon\,|\,0\,|\,1\,|\,0(0|1)^*0\,|\,1(0|1)^*1$: regular.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $L = \{a^{n^2} : n\ge0\}$ (square-length strings of $a$s) is not regular. <details class="sol"><summary>Solution</summary><div>Pump $w = a^{p^2}$: $y = a^k$, $1\le k\le p$. Then $xy^2z = a^{p^2+k}$ with $p^2 &lt; p^2 + k \le p^2 + p &lt; (p+1)^2$ — strictly between consecutive squares, so not in $L$. ∎ (Gaps between squares grow; a pumpable loop adds a fixed amount.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="turing-machines">
+ <h2>Turing machines</h2>
+ <p>A Turing machine is a finite state machine given an unbounded tape: it reads a cell, writes a cell, moves left or right, changes state. That tiny upgrade — unbounded rewritable memory — captures everything any digital computer can do. The Church–Turing thesis: "computable" means "computable by a Turing machine."</p>
+ <div class="box def"><span class="label">Definition</span> A Turing machine is $(Q, \Sigma, \Gamma, \delta, q_0, q_{acc}, q_{rej})$ with tape alphabet $\Gamma \supseteq \Sigma \cup \{\sqcup\}$ and $\delta: Q\times\Gamma \to Q\times\Gamma\times\{L,R\}$. On input $w$ it may <em>accept</em>, <em>reject</em>, or run forever. A language is <em>decidable</em> if some TM halts on every input with the right verdict; <em>recognizable</em> (r.e.) if some TM accepts exactly the members (possibly looping on non-members).</div>
+ <div class="box ex"><span class="label">Worked example</span> Deciding $\{a^nb^n\}$ — impossible for a DFA — is easy for a TM: repeatedly scan right, cross off the first uncrossed $a$, then the first uncrossed $b$; reject if one type runs out before the other; accept when all are crossed. Each pass is $O(n)$, with $O(n)$ passes: $O(n^2)$ time. The tape stores the count the DFA couldn't.</div>
+ <div class="box think"><span class="label">Think first</span> A "universal" Turing machine takes as input a description of another TM $M$ plus a string $w$ and simulates $M$ on $w$. Why is the existence of such a machine a big deal? <details class="sol"><summary>Reveal</summary><div>It means hardware need not be task-specific: one machine, programmed by data, runs all programs — the stored-program computer, and the reason software exists. It is also the engine of undecidability proofs: a machine that can talk about machines can be turned on itself (diagonalization, below).</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Complexity classes P and NP below are defined by TM time; undecidability sets absolute limits that no scaling law overcomes; Ch 36's AIXI idealizes agents as programs over a universal machine.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the three possible behaviors of a TM on an input, and which distinguishes deciders from recognizers? <details class="sol"><summary>Solution</summary><div>Accept, reject, or loop forever. Deciders never loop; recognizers may loop on strings outside the language.</div></details></li>
+  <li><span class="lvl m">MED</span> Sketch a TM deciding whether the input's length is a power of 2 (over unary alphabet $\{a\}$). <details class="sol"><summary>Solution</summary><div>Repeatedly sweep the tape, crossing off every second uncrossed $a$. If a sweep finds exactly one uncrossed $a$, accept. If a sweep finds an odd number ($&gt;1$) of uncrossed symbols, reject (a power of 2 halves evenly all the way to 1). Each sweep halves the count: $O(\log n)$ sweeps, $O(n\log n)$ time.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show: $L$ is decidable iff both $L$ and its complement are recognizable. <details class="sol"><summary>Solution</summary><div>(⇒) A decider for $L$ recognizes $L$; swap accept/reject to recognize $\bar L$. (⇐) Given recognizers $M_1$ for $L$ and $M_2$ for $\bar L$, run both in parallel (alternate steps). Every input is in $L$ or $\bar L$, so one of them eventually accepts; answer accordingly. This always halts: a decider. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="asymptotic-notation">
+ <h2>Asymptotic notation</h2>
+ <p>Asymptotic notation compares growth rates while ignoring constants and small inputs: $O$ is "grows no faster than," $\Omega$ "no slower," $\Theta$ "the same rate." It is the unit system of algorithm analysis — it survives changes of hardware, language, and compiler, which only move constants.</p>
+ <div class="box def"><span class="label">Definition</span> $f(n) = O(g(n))$ iff $\exists\, c&gt;0, n_0$ with $f(n) \le c\,g(n)$ for all $n \ge n_0$. $f = \Omega(g)$ iff $g = O(f)$. $f = \Theta(g)$ iff both. Strict versions: $f = o(g)$ iff $f(n)/g(n) \to 0$; $f = \omega(g)$ iff $f(n)/g(n)\to\infty$. Ladder: $1 \prec \log n \prec n^\epsilon \prec n \prec n\log n \prec n^2 \prec 2^n \prec n!$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(n) = 3n^2 + 50n + 7$ is $\Theta(n^2)$: for $n\ge50$, $50n \le n^2$ and $7\le n^2$, so $f(n) \le 5n^2$ (giving $O$), while $f(n) \ge 3n^2$ always (giving $\Omega$). Also $\log_2 n = \Theta(\log_{10} n)$: bases differ by the constant $\log_2 10$, so bases never matter inside $O$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Compare two growth functions on lin or log scale; find where the crossover hides.</p>
+  <canvas id="cv-asym"></canvas>
+  <div class="ctl">
+   <label>f <select id="as-f"><option value="0">100·n</option><option value="1" selected>8·n log₂n</option><option value="2">n²</option><option value="3">2ⁿ/1000</option></select></label>
+   <label>g <select id="as-g"><option value="0">100·n</option><option value="1">8·n log₂n</option><option value="2" selected>n²</option><option value="3">2ⁿ/1000</option></select></label>
+   <label>n max <input type="range" id="as-n" min="20" max="400" step="10" value="120"></label>
+   <label><input type="checkbox" id="as-log"> log y-scale</label>
+  </div>
+  <div class="out" id="as-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> $O$ is an upper bound, not an exact rate: bubble sort is $O(n^{10})$, technically true and useless. Say $\Theta$ when you mean tight. Also, asymptotics hide constants that matter at real sizes: $100n$ beats $8n\log_2 n$ only past $n \approx 5{,}800$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Order by growth: $n\log n,\ 2^n,\ n^{1.5},\ \log^2 n,\ n!$. <details class="sol"><summary>Solution</summary><div>$\log^2 n \prec n\log n \prec n^{1.5} \prec 2^n \prec n!$ (note $n\log n \prec n^{1.5}$ since $\log n = o(n^{0.5})$).</div></details></li>
+  <li><span class="lvl m">MED</span> True or false: $2^{n+1} = O(2^n)$; $2^{2n} = O(2^n)$; $(n+1)! = O(n!)$. <details class="sol"><summary>Solution</summary><div>$2^{n+1} = 2\cdot2^n$: true (constant 2). $2^{2n} = 4^n$: false — $4^n/2^n = 2^n \to\infty$. $(n+1)! = (n+1)\cdot n!$: false — the ratio $n+1$ is unbounded.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\log(n!) = \Theta(n\log n)$ without Stirling's full formula. <details class="sol"><summary>Solution</summary><div>Upper: $n! \le n^n$, so $\log n! \le n\log n$. Lower: the top half of the factors satisfy $n! \ge (n/2)^{n/2}$, so $\log n! \ge \frac n2\log\frac n2 = \frac n2\log n - \frac n2 \ge \frac n4 \log n$ for $n \ge 4$. Both bounds: $\Theta(n\log n)$. This is the information-theoretic $\Omega(n\log n)$ lower bound for comparison sorting: $\log_2(n!)$ bits to name a permutation.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="algorithmic-complexity">
+ <h2>Algorithmic complexity</h2>
+ <p>Complexity theory asks not "how fast is this algorithm" but "how fast can any algorithm be" — it studies problems, not programs. Time and space are the resources; a problem's complexity is the cost of the best possible algorithm, and complexity classes group problems by the resources they demand.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathrm{TIME}(f(n))$ = problems decidable by a TM in $O(f(n))$ steps on inputs of length $n$ (worst case). $\mathrm{P} = \bigcup_k \mathrm{TIME}(n^k)$: polynomial time, the standard formalization of "efficiently solvable." $\mathrm{PSPACE}$, $\mathrm{EXP}$ analogous for space and exponential time. Known: $\mathrm{P} \subseteq \mathrm{NP} \subseteq \mathrm{PSPACE} \subseteq \mathrm{EXP}$, and $\mathrm{P} \ne \mathrm{EXP}$ (time hierarchy theorem).</div>
+ <div class="box ex"><span class="label">Worked example</span> Worst vs average matters: quicksort with a fixed pivot rule runs $\Theta(n^2)$ worst case (sorted input) but $\Theta(n\log n)$ on average; with random pivots, <em>expected</em> $\Theta(n\log n)$ on every input. Complexity claims must state the model: worst case, average case, or expected over the algorithm's own randomness.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Input size is measured in <em>bits</em>. Trial division "factors $N$ in $O(\sqrt N)$ steps" — but $N$ has $n = \log_2 N$ bits, so $\sqrt N = 2^{n/2}$: exponential. Pseudo-polynomial ≠ polynomial; this confusion is the classic complexity error (knapsack's $O(nW)$ DP is the other standard example).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Binary search on a sorted array of $n$ items: time complexity, and how many comparisons for $n = 10^6$? <details class="sol"><summary>Solution</summary><div>$\Theta(\log n)$; $\lceil\log_2 10^6\rceil = 20$ comparisons.</div></details></li>
+  <li><span class="lvl m">MED</span> An algorithm on graphs runs in $O(2^k \cdot n)$ where $k$ is the solution size sought and $n$ the graph size. Is this polynomial? When is it practical? <details class="sol"><summary>Solution</summary><div>Not polynomial in the input in general — but for fixed or small $k$ ($k \le 30$, say) it is fine: this is <em>fixed-parameter tractability</em>. Complexity in two parameters is finer than one-number verdicts.</div></details></li>
+  <li><span class="lvl h">HARD</span> The time hierarchy theorem says $\mathrm{TIME}(n) \subsetneq \mathrm{TIME}(n^3)$. Sketch why, via diagonalization. <details class="sol"><summary>Solution</summary><div>Build $D$: on input $\langle M\rangle$ (a machine's code), simulate $M$ on $\langle M\rangle$ for $|\langle M\rangle|^2$ steps and output the opposite (accept if it rejected/timed out). $D$ runs in about $n^2\cdot\text{polylog}$ time $\subseteq \mathrm{TIME}(n^3)$. If some linear-time $M^*$ decided $D$'s language, then on input $\langle M^*\rangle$ (padded long enough that the $n^2$ budget covers $M^*$'s linear run), $D$ outputs the opposite of $M^*$'s answer — but they were supposed to agree. Contradiction: more time genuinely buys more problems. ∎</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="p-vs-np">
+ <h2>P vs NP</h2>
+ <p>P is the class of problems you can <em>solve</em> quickly; NP the class whose solutions you can <em>check</em> quickly. Sudoku: solving a hard grid may take ages, but verifying a filled one takes seconds. The P vs NP question asks whether checking-easy implies solving-easy — whether search can always be collapsed. Almost everyone believes not; nobody has proved it.</p>
+ <div class="box def"><span class="label">Definition</span> $L \in \mathrm{NP}$ iff there is a polynomial-time <em>verifier</em> $V$ and polynomial $p$ such that $x\in L \iff \exists\, w$ with $|w| \le p(|x|)$ and $V(x, w)$ accepts. $w$ is the <em>certificate</em> (witness). Equivalently: decidable in polynomial time by a nondeterministic TM. $\mathrm{P} \subseteq \mathrm{NP}$ (a solver ignores the certificate); whether $\mathrm{P} = \mathrm{NP}$ is open — a Millennium Prize problem.</div>
+ <div class="box ex"><span class="label">Worked example</span> Hamiltonian cycle ("does $G$ have a cycle through every vertex?") is in NP: the certificate is the vertex ordering; verify in $O(n)$ that consecutive pairs (and the wrap-around) are edges and all vertices appear once. No polynomial solver is known. Contrast: Eulerian circuit (every <em>edge</em> once) is in P — it exists iff the graph is connected (on edges) with all degrees even, checkable instantly.</div>
+ <div class="box think"><span class="label">Think first</span> Is factoring ("does $N$ have a factor between 2 and $k$?") in NP? Is it known to be NP-complete? <details class="sol"><summary>Reveal</summary><div>In NP: the factor is the certificate (division verifies). Also in co-NP (a prime factorization with primality certificates witnesses "no"), which is strong evidence it is <em>not</em> NP-complete — if it were, NP = co-NP would follow. It sits in the strange middle ground; quantum computers solve it (Shor), which says nothing about P vs NP.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Give the certificate and the verifier's check for: "graph $G$ has a clique of size $k$." <details class="sol"><summary>Solution</summary><div>Certificate: a set $S$ of $k$ vertices. Check: $|S| = k$ and all $\binom k2$ pairs are edges — $O(k^2)$ lookups: polynomial.</div></details></li>
+  <li><span class="lvl m">MED</span> Why does "certificate must have polynomial length" matter in the definition of NP? <details class="sol"><summary>Solution</summary><div>Otherwise every decidable problem (and worse) sneaks in: an exponential-length certificate could be a full computation transcript of an exponential-time algorithm, verified step by step in time polynomial in the certificate's (huge) length. Bounding $|w|$ by poly$(|x|)$ keeps NP = "short proofs, fast checking."</div></details></li>
+  <li><span class="lvl h">HARD</span> Show: if P = NP, then every NP problem's <em>search</em> version (output the certificate, not just yes/no) is also polynomial-time. Use SAT. <details class="sol"><summary>Solution</summary><div>Self-reduction. With a poly-time SAT decider: given satisfiable $\varphi$, ask if $\varphi[x_1{=}\text{true}]$ is satisfiable; fix $x_1$ to true if yes, false otherwise (one of the two must be satisfiable); recurse on $x_2,\dots,x_n$. $n$ decider calls on shrinking formulas yields a full satisfying assignment in polynomial time. Decision collapses search. ∎</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">Which statement is currently known to be TRUE?</div><button class="opt">P ≠ NP</button><button class="opt">P = NP</button><button class="opt">P ≠ EXP</button><div class="why" hidden>The time hierarchy theorem proves P ≠ EXP unconditionally. P vs NP is open in both directions — despite the strong consensus that they differ.</div></div>
+</section>
+
+<section class="topic" id="np-completeness">
+ <h2>NP-completeness</h2>
+ <p>NP-complete problems are the hardest problems in NP: every NP problem reduces to them, so a fast algorithm for any single one would give fast algorithms for all of NP. Thousands of natural problems — SAT, traveling salesman, graph coloring, knapsack — are NP-complete, which means they are all secretly the same problem wearing different costumes.</p>
+ <div class="box def"><span class="label">Definition</span> $A \le_p B$ ("$A$ reduces to $B$") iff a polynomial-time computable $f$ satisfies $x \in A \iff f(x) \in B$. $B$ is <em>NP-hard</em> if $A \le_p B$ for every $A \in \mathrm{NP}$; <em>NP-complete</em> if additionally $B \in \mathrm{NP}$. Cook–Levin theorem: SAT is NP-complete. To prove $B$ NP-complete: show $B\in\mathrm{NP}$, then reduce one known NP-complete problem <em>to</em> $B$.</div>
+ <div class="box ex"><span class="label">Worked example</span> 3-SAT $\le_p$ Independent Set. Given a 3-CNF with $m$ clauses, build a graph: one triangle per clause (vertices = its three literals), plus an edge between every literal and its negation across clauses. Claim: independent set of size $m$ ⟺ satisfiable. (⇐) Pick one true literal per clause: no two picked vertices are in a triangle together, and none are negations (both true is impossible) — independent, size $m$. (⇒) Size $m$ forces one vertex per triangle; no chosen literal conflicts with another's negation, so setting them all true is consistent and satisfies every clause. ∎</div>
+ <div class="box pit"><span class="label">Pitfall</span> Reduction direction: to prove $B$ hard, reduce the <em>known-hard</em> problem TO $B$ ("if you could solve $B$, you could solve SAT"). Students routinely reduce $B$ to SAT — which only shows $B\in$ easier-than-SAT territory, proving nothing. Also: NP-complete means worst case; real instances (SAT solvers below!) are often easy.</div>
+ <div class="box link"><span class="label">Where this goes</span> NP-hardness of exact planning motivates the heuristics and relaxations of Ch 26; verification tools (Ch 34) run on SAT/SMT engines that face NP-complete cores daily and win anyway.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Vertex Cover asks for $\le k$ vertices touching every edge. Given that Independent Set is NP-complete, show Vertex Cover is NP-hard. <details class="sol"><summary>Solution</summary><div>$S$ is independent iff $V\setminus S$ is a vertex cover (an uncovered edge would join two vertices of $S$). So $G$ has an independent set of size $\ge k$ iff it has a vertex cover of size $\le n-k$: map $(G,k)\mapsto(G,n-k)$ — a trivially polynomial reduction.</div></details></li>
+  <li><span class="lvl m">MED</span> Your boss asks you to solve an NP-complete scheduling problem exactly and efficiently for all inputs. Give three defensible responses. <details class="sol"><summary>Solution</summary><div>(1) Exact but possibly slow: branch-and-bound / SAT encoding — fine if instances are small or structured. (2) Fast but approximate: greedy/LP-rounding with a guarantee (e.g. 2-approximation). (3) Restrict the input class: many NP-complete problems are polynomial on trees, bounded treewidth, or fixed parameters. What you cannot promise is all three: exact, fast, fully general (unless P=NP).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show Subset-Sum ("does a subset of $\{a_1..a_n\}$ sum to $t$?") has a DP running in $O(nt)$, and reconcile with its NP-completeness. <details class="sol"><summary>Solution</summary><div>DP: reachable$[j]$ = can some subset of the first $i$ numbers sum to $j$; update reachable$'[j]$ = reachable$[j]$ ∨ reachable$[j - a_i]$ for $j = t..a_i$. $O(nt)$ time. No contradiction: $t$ is encoded in $\log t$ bits, so $O(nt)$ is exponential in input length — pseudo-polynomial. Hardness lives in instances with huge numbers.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="sat">
+ <h2>SAT</h2>
+ <p>Boolean satisfiability — given a formula over true/false variables, is there an assignment making it true? — is the original NP-complete problem and, paradoxically, one of computing's great practical success stories: modern solvers routinely dispatch industrial instances with millions of variables. Hardness in the worst case; astonishing tractability in the structured cases people actually have.</p>
+ <div class="box def"><span class="label">Definition</span> SAT: given a propositional formula $\varphi$ (usually in CNF: an AND of clauses, each an OR of literals — Ch 3), decide if some assignment satisfies it. 3-SAT (≤3 literals per clause) is NP-complete; 2-SAT is in P (via implication-graph strong connectivity); Horn-SAT (≤1 positive literal per clause) is in P. <em>DPLL/CDCL solvers</em>: unit propagation (a one-literal clause forces its literal), branching, and learning a new clause from each conflict.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\varphi = (x\vee y)\wedge(\neg x\vee y)\wedge(\neg y \vee z)\wedge(\neg z\vee\neg x)$. Try $y = \text{true}$: first two clauses satisfied; third forces $z=\text{true}$; fourth then forces $x = \text{false}$ — check clause 1: $x\vee y$ = true ✓. Assignment $(x,y,z) = (F,T,T)$ satisfies all four clauses: SAT. Note how unit propagation did most of the work after one guess.</div>
+ <div class="box think"><span class="label">Think first</span> Random 3-SAT with $n$ variables and $m$ clauses: when $m/n$ is small, almost surely satisfiable; large, almost surely not. Where would you guess the hard instances live? <details class="sol"><summary>Reveal</summary><div>At the phase transition, $m/n \approx 4.27$: instances near the threshold are the empirically hardest — under-constrained problems have many solutions (easy to find one), over-constrained ones have short refutations (easy to prove none). Criticality is where search suffers.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Is $(x\vee y)\wedge(\neg x)\wedge(\neg y)$ satisfiable? <details class="sol"><summary>Solution</summary><div>No: clauses 2, 3 force $x = y = F$, falsifying clause 1. (Unit propagation finds this instantly.)</div></details></li>
+  <li><span class="lvl m">MED</span> Solve the 2-SAT instance $(x\vee y)\wedge(\neg y\vee z)\wedge(\neg x\vee \neg z)\wedge(x \vee \neg z)$ or show UNSAT. <details class="sol"><summary>Solution</summary><div>Try $x = T$: clause 3 forces $z = F$; clause 2 forces $y = F$ — wait, $\neg y \vee z$ with $z=F$ forces $\neg y$, so $y = F$; clause 1 needs $x\vee y = T$ ✓; clause 4: $x\vee\neg z = T$ ✓. $(T,F,F)$ works: SAT.</div></details></li>
+  <li><span class="lvl h">HARD</span> Encode "at most one of $x_1,x_2,x_3$ is true" in CNF, and count clauses for the pairwise encoding with $n$ variables. <details class="sol"><summary>Solution</summary><div>Pairwise: $(\neg x_1\vee\neg x_2)\wedge(\neg x_1\vee\neg x_3)\wedge(\neg x_2\vee\neg x_3)$ — forbid every pair. Generally $\binom n2 = O(n^2)$ clauses. (Sequential/commander encodings get $O(n)$ clauses with $O(n)$ auxiliary variables — encoding choices decide whether the solver breathes or chokes.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="smt">
+ <h2>SMT</h2>
+ <p>SAT speaks only Boolean. Satisfiability Modulo Theories bolts on vocabularies with meaning — integers with arithmetic, arrays, bit-vectors, uninterpreted functions — and asks satisfiability of formulas mixing logic with theory facts. SMT solvers (Z3, CVC5) are the engines inside program verifiers, symbolic executors, and the tool-verified reasoning of later chapters.</p>
+ <div class="box def"><span class="label">Definition</span> An SMT instance is a first-order formula whose atoms are interpreted in fixed theories, e.g. linear integer arithmetic ($x + 2y \le 7$), equality with uninterpreted functions ($f(x) = f(y)$), arrays, bit-vectors. The standard architecture, <em>DPLL(T)</em>: a SAT solver handles the Boolean skeleton while theory solvers check whether each candidate set of atoms is consistent in the theory, feeding back conflict clauses.</div>
+ <div class="box ex"><span class="label">Worked example</span> Is $(x &gt; 2) \wedge (x &lt; 5) \wedge (x \ne 3) \wedge (x \ne 4)$ satisfiable over the <em>integers</em>? The Boolean skeleton is trivially satisfiable, but the theory solver for integer arithmetic finds the atoms jointly inconsistent: $x\in\{3,4\}$ is forced and both are excluded. UNSAT. Over the <em>reals</em>: SAT (e.g. $x = 3.5$) — the theory is part of the question.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 34 uses SMT for program verification (encode "a bug exists" as a formula; UNSAT = proof of safety) and Ch 30's tool-verified reasoning has LLMs call solvers to check their own claims.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Decide over integers: $x + y = 4 \wedge x - y = 1$. <details class="sol"><summary>Solution</summary><div>Adding: $2x = 5$, $x = 2.5\notin\mathbb Z$: UNSAT over integers (SAT over reals/rationals).</div></details></li>
+  <li><span class="lvl m">MED</span> Using equality + uninterpreted functions only: is $x = y \wedge f(x) \ne f(y)$ satisfiable? What about $f(x) = y \wedge f(y) = x \wedge x \ne y$? <details class="sol"><summary>Solution</summary><div>First: UNSAT — congruence forces $x=y \Rightarrow f(x)=f(y)$. Second: SAT — let the domain be $\{a, b\}$, $x=a$, $y=b$, $f$ swap them. Uninterpreted means any function is allowed.</div></details></li>
+  <li><span class="lvl h">HARD</span> Encode as SMT the check that <code>int mid = (lo + hi) / 2</code> can overflow 32-bit ints even when <code>0 &lt;= lo &lt;= hi &lt; 2^31</code>, and give a witness. <details class="sol"><summary>Solution</summary><div>Bit-vector theory: assert $0 \le lo \le hi \le 2^{31}-1$ and $lo + hi &gt; 2^{31}-1$ (the 32-bit signed add wraps). Witness: $lo = 1$, $hi = 2^{31}-1$: sum $= 2^{31}$, which overflows to $-2^{31}$, making mid negative. The verified fix: <code>mid = lo + (hi - lo)/2</code>. This exact bug lived in production binary searches for decades.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="undecidability">
+ <h2>Undecidability</h2>
+ <p>Some problems no algorithm can solve — not "we haven't found one," but provably none exists. The halting problem is the flagship: no program can decide, for all programs and inputs, whether execution terminates. The proof is a mirror trick: a supposed halting-decider can be fed a program built to do the opposite of whatever the decider predicts about it.</p>
+ <div class="box thm"><span class="label">Theorem (Turing, 1936)</span> $\mathrm{HALT} = \{\langle M, w\rangle : M \text{ halts on } w\}$ is undecidable. Proof: suppose decider $H$ exists. Define $D$: on input $\langle M\rangle$, run $H(\langle M, \langle M\rangle\rangle)$; if $H$ says "halts," loop forever; else halt. Now run $D$ on $\langle D\rangle$: it halts iff $H$ says it doesn't halt iff it doesn't halt. Contradiction. ∎</div>
+ <div class="box def"><span class="label">Definition</span> <em>Rice's theorem:</em> every nontrivial property of the <em>language</em> a program computes (not of its syntax) is undecidable — "does this program ever output 42," "is this function total," "are these two programs equivalent." Undecidability spreads by reduction: if deciding $B$ would let you decide HALT, $B$ is undecidable.</div>
+ <div class="box ex"><span class="label">Worked example</span> "Does program $P$ print <code>hello</code>?" is undecidable. Reduction from HALT: given $(M, w)$, build $P$ = "simulate $M$ on $w$; if the simulation finishes, print <code>hello</code>." $P$ prints hello iff $M$ halts on $w$. A decider for the printing question would decide halting. ∎ — Note the reduction <em>builds</em> $P$ but never runs it.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Undecidability is about <em>all</em> inputs, uniformly. Any single program either halts or doesn't (a fact, possibly hard to prove); specific programs are analyzed daily. And with bounded memory, halting IS decidable (finitely many states — detect a repeat). The theorem bites only for unbounded computation, and it caps every dream of a perfect universal verifier, optimizer, or malware detector.</div>
+ <div class="box link"><span class="label">Where this goes</span> Ch 34's verifiers dodge undecidability by restriction (finite models, loop invariants supplied by humans) or approximation (may answer "unknown"); Ch 36's AIXI is uncomputable for exactly these reasons — Kolmogorov complexity inherits halting's curse.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Your colleague claims a static analyzer that flags exactly the programs containing infinite loops, with no false positives or negatives. What do you tell them? <details class="sol"><summary>Solution</summary><div>Impossible in full generality: it would decide (non-)halting. Real analyzers are sound-but-incomplete (may say "possible loop" for fine code) or complete-but-unsound — never both exact.</div></details></li>
+  <li><span class="lvl m">MED</span> Show that "does $M$ halt on the empty input?" is undecidable, by reduction from HALT. <details class="sol"><summary>Solution</summary><div>Given $(M, w)$, construct $M_w$ = "ignore my input; write $w$ on the tape; run $M$." Then $M_w$ halts on empty input iff $M$ halts on $w$. A decider for empty-input halting decides HALT. ∎</div></details></li>
+  <li><span class="lvl h">HARD</span> Is HALT recognizable? Is its complement? Conclude something about the limits of "run it and see." <details class="sol"><summary>Solution</summary><div>HALT is recognizable: simulate $M$ on $w$; accept when it halts (loop forever otherwise). Its complement is NOT recognizable: if both were, HALT would be decidable (parallel-simulation argument from the Turing machine drill). So non-halting admits no verification-by-certificate at all: you can confirm "halts" by waiting, but no finite evidence can ever confirm "never halts" in general.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>The dependency compiler.</b> A build system has 6 targets with dependencies $A\to C$, $B\to C$, $B\to D$, $C\to E$, $D\to E$, $E\to F$ (arrow = "must build before"). (a) Verify the graph is a DAG and give a topological order. (b) With unlimited parallelism and each build taking 1 minute, what is the minimum total build time? (c) Now an intern adds $F\to B$. What happens, and how would Kahn's algorithm report it? <details class="sol"><summary>Solution</summary><div>(a) In-degrees: A:0, B:0, C:2, D:1, E:2, F:1. Kahn: A, B, then C, D, then E, then F — e.g. order A,B,C,D,E,F; no stall, so DAG. ✓ (b) Longest path: $A\to C\to E\to F$ (or $B\to\dots$): 4 vertices, so 4 minutes — level schedule: {A,B}, {C,D}, {E}, {F}. (c) $F\to B$ creates cycle $B\to C \to E\to F\to B$ (also via D). Kahn outputs A, then stalls with B,C,D,E,F all having in-degree $\ge1$: fewer than $n$ outputs = cycle detected; the stuck vertices contain the cycle.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Recurrences meet complexity.</b> You must choose between two algorithms for a problem of size $n$: Algorithm X with $T_X(n) = 2T_X(n/2) + n^2$, and Algorithm Y with $T_Y(n) = 7T_Y(n/2) + n^2$. (a) Solve both with the Master theorem. (b) For which is the root the bottleneck, and for which the leaves? (c) A third option Z satisfies $T_Z(n) = 4T_Z(n/2) + n^2\log n$ — solve it. (d) Rank all three asymptotically. <details class="sol"><summary>Solution</summary><div>(a) X: $c^* = \log_2 2 = 1 &lt; 2$; case 3 (regularity: $2(n/2)^2 = n^2/2 \le \frac12 n^2$ ✓): $T_X = \Theta(n^2)$. Y: $c^* = \log_2 7 \approx 2.807 &gt; 2$; case 1: $T_Y = \Theta(n^{\log_2 7})$. (b) X: root dominates (work shrinks going down: $n^2 \to n^2/2 \to \dots$); Y: leaves dominate ($7/4 &gt; 1$ growth per level). (c) Z: $c^* = \log_2 4 = 2$ and $f = \Theta(n^2\log n) = \Theta(n^{c^*}\log^1 n)$: case 2 with $k=1$: $T_Z = \Theta(n^2\log^2 n)$. (d) $T_X = \Theta(n^2) \prec T_Z = \Theta(n^2\log^2 n) \prec T_Y = \Theta(n^{2.807})$.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Reductions end to end.</b> The problem 3-COLOR ("is $\chi(G)\le3$?") is NP-complete. (a) Exhibit the certificate and verifier showing 3-COLOR ∈ NP. (b) Show 4-COLOR is NP-hard by reducing 3-COLOR to it. (c) Explain why part (b)'s reduction, run in reverse, does NOT show 3-COLOR ≤ 4-COLOR implies 4-COLOR is easy. (d) 2-COLOR is polynomial — what breaks if you try the same reduction trick to conclude 2-COLOR is NP-hard? <details class="sol"><summary>Solution</summary><div>(a) Certificate: the color assignment $c: V \to \{1,2,3\}$; verifier checks every edge bicolored in $O(m)$. (b) Given $G$, build $G'$ = $G$ plus one new vertex $u$ adjacent to all of $V$. Then $\chi(G') = \chi(G) + 1$, so $G$ is 3-colorable iff $G'$ is 4-colorable; the map is polynomial. Every NP problem reduces to 3-COLOR (known) and thence to 4-COLOR: NP-hard. (c) Reductions transfer hardness in the direction of the arrow only: 3-COLOR $\le_p$ 4-COLOR says 4-COLOR is at least as hard, and says nothing about being easy; an efficient 4-COLOR solver WOULD give one for 3-COLOR, which is why hardness flows forward. (d) You'd need to reduce 3-COLOR TO 2-COLOR — i.e. build $G'$ 2-colorable iff $G$ 3-colorable, in polynomial time. No such reduction is known (and none exists unless P = NP); the add-a-universal-vertex trick moves the wrong way (it increases $\chi$). The machinery only condemns problems you can smuggle a hard problem into.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p>Three builds: graph algorithms from scratch, a recurrence laboratory, and a tiny SAT solver.</p>
+ <p><b>Task 1 — BFS, DFS, and topological sort.</b> Implement a graph class with adjacency lists; BFS shortest paths from a source; and Kahn's algorithm with cycle detection. Verify on the capstone's build DAG.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>from collections import deque, defaultdict
+
+class Graph:
+    def __init__(self, directed=False):
+        self.adj = defaultdict(list); self.directed = directed
+    def add_edge(self, u, v):
+        self.adj[u].append(v)
+        if not self.directed: self.adj[v].append(u)
+        else: self.adj[v]  # ensure key exists
+
+    def bfs_dist(self, s):
+        dist = {s: 0}; q = deque([s])
+        while q:
+            u = q.popleft()
+            for v in self.adj[u]:
+                if v not in dist:
+                    dist[v] = dist[u] + 1; q.append(v)
+        return dist
+
+    def topo_sort(self):
+        indeg = {v: 0 for v in self.adj}
+        for u in self.adj:
+            for v in self.adj[u]: indeg[v] += 1
+        q = deque(v for v in indeg if indeg[v] == 0)
+        order = []
+        while q:
+            u = q.popleft(); order.append(u)
+            for v in self.adj[u]:
+                indeg[v] -= 1
+                if indeg[v] == 0: q.append(v)
+        if len(order) &lt; len(indeg):
+            raise ValueError("cycle detected")
+        return order
+
+g = Graph(directed=True)
+for u, v in [("A","C"),("B","C"),("B","D"),("C","E"),("D","E"),("E","F")]:
+    g.add_edge(u, v)
+print(g.topo_sort())          # e.g. ['A', 'B', 'C', 'D', 'E', 'F']
+g.add_edge("F", "B")
+try: g.topo_sort()
+except ValueError as e: print(e)   # cycle detected</code></pre></div></details>
+ <p><b>Task 2 — Recurrence lab.</b> Numerically verify the Master theorem: compute $T(n) = aT(\lceil n/b\rceil) + n^c$ (with $T(1)=1$) by memoized recursion and fit the growth exponent via $\log T(n) / \log n$ at large $n$. Test the three regimes.</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import math
+from functools import lru_cache
+
+def make_T(a, b, c):
+    @lru_cache(maxsize=None)
+    def T(n):
+        if n &lt;= 1: return 1.0
+        return a * T(math.ceil(n / b)) + n**c
+    return T
+
+for a, b, c, expect in [(4,2,1,"n^2 (leaves)"), (2,2,1,"n log n (balanced)"), (2,2,2,"n^2 (root)")]:
+    T = make_T(a, b, c)
+    n1, n2 = 2**14, 2**18
+    slope = (math.log(T(n2)) - math.log(T(n1))) / (math.log(n2) - math.log(n1))
+    print(f"a={a} b={b} c={c}: fitted exponent {slope:.3f}  expected {expect}")
+# ~2.0, ~1.07 (n log n looks like exponent slightly above 1), ~2.0</code></pre></div></details>
+ <p><b>Task 3 — A mini DPLL SAT solver.</b> Implement DPLL with unit propagation on CNF given as a list of lists of nonzero ints (DIMACS style: 3 means $x_3$, -3 means $\neg x_3$). Test on the worked example and on an unsatisfiable pigeonhole instance (3 pigeons, 2 holes).</p>
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>def dpll(clauses, assign=None):
+    assign = dict(assign or {})
+    # simplify + unit propagate to fixpoint
+    while True:
+        simplified, unit = [], None
+        for cl in clauses:
+            vals = [assign.get(abs(l), None) if l &gt; 0
+                    else (None if assign.get(abs(l)) is None else not assign[abs(l)])
+                    for l in cl]
+            if any(v is True for v in vals): continue        # clause satisfied
+            live = [l for l, v in zip(cl, vals) if v is None]
+            if not live: return None                          # conflict
+            if len(live) == 1 and unit is None: unit = live[0]
+            simplified.append(live)
+        if unit is None: break
+        assign[abs(unit)] = unit &gt; 0
+        clauses = simplified
+    if not clauses: return assign                             # all satisfied
+    v = abs(clauses[0][0])                                    # branch
+    for val in (True, False):
+        res = dpll(clauses, {**assign, v: val})
+        if res is not None: return res
+    return None
+
+# worked example: (x|y)(~x|y)(~y|z)(~z|~x)  with x=1,y=2,z=3
+print(dpll([[1,2],[-1,2],[-2,3],[-3,-1]]))   # e.g. {2: True, 3: True, 1: False}
+
+# pigeonhole PHP(3,2): p_ij = pigeon i in hole j; vars 1..6 (i*2-2+j)
+def v(i, j): return (i - 1) * 2 + j
+php = [[v(i,1), v(i,2)] for i in (1,2,3)]                     # each pigeon somewhere
+php += [[-v(i,j), -v(k,j)] for j in (1,2)
+        for i in (1,2,3) for k in (1,2,3) if i &lt; k]           # no shared hole
+print(dpll(php))                                              # None: UNSAT</code></pre></div></details>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/6-042j-mathematics-for-computer-science-spring-2015/">MIT OCW 6.042J Mathematics for Computer Science</a> — recursion, induction, graphs, asymptotics; the closest single course to this chapter.</li>
+  <li><a href="https://ocw.mit.edu/courses/6-006-introduction-to-algorithms-spring-2020/">MIT OCW 6.006 Introduction to Algorithms</a> — BFS/DFS, shortest paths, recurrences and the Master theorem, with lecture videos.</li>
+  <li><a href="https://jeffe.cs.illinois.edu/teaching/algorithms/">Jeff Erickson, <em>Algorithms</em> (free book)</a> — the best free rigorous treatment of recursion, graphs, and NP-hardness proofs.</li>
+  <li><a href="https://ocw.mit.edu/courses/18-404j-theory-of-computation-fall-2020/">MIT OCW 18.404J Theory of Computation (Sipser)</a> — automata, regular languages, Turing machines, undecidability, P vs NP, taught by Sipser himself.</li>
+  <li><a href="https://www.math.upenn.edu/~wilf/gfology2.pdf">Wilf, <em>generatingfunctionology</em> (free PDF)</a> — the classic on generating functions; chapter 1 alone repays the read.</li>
+  <li><a href="https://theory.cs.princeton.edu/complexity/book.pdf">Arora &amp; Barak, <em>Computational Complexity</em> (draft PDF)</a> — P, NP, NP-completeness, hierarchy theorems, in full depth.</li>
+  <li><a href="https://www.cs.cmu.edu/~mheule/publications/p01c02-hbsat.pdf">Biere et al., Handbook of Satisfiability ch. 2 (CDCL)</a> — how modern SAT solvers actually work.</li>
+  <li><a href="https://microsoft.github.io/z3guide/">Z3 online guide</a> — hands-on SMT: try the worked examples of this chapter in a live solver.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch16.html">← 16 · Information Theory</a>
+ <a class="btn" href="ch18.html">18 · Numerical Mathematics →</a>
+</div>
+
+ </main>
+</div>
+
+<script>
+(function(){
+'use strict';
+function on(id, ev, fn){ var el = document.getElementById(id); if(el) el.addEventListener(ev, fn); }
+function val(id){ var el = document.getElementById(id); return el ? parseFloat(el.value) : 0; }
+
+/* ---------- Master theorem explorer ---------- */
+(function(){
+ var c = document.getElementById('cv-master'); if(!c) return;
+ function draw(){
+  var s = setupCanvas(c, 280), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var a = val('ms-a'), b = val('ms-b'), cc = val('ms-c');
+  var cstar = Math.log(a)/Math.log(b);
+  var n = 4096, L = Math.round(Math.log(n)/Math.log(b));
+  // work per level i: a^i * (n/b^i)^c
+  var w = [], mx = 0, tot = 0;
+  for(var i=0;i<=L;i++){ var wi = Math.pow(a,i)*Math.pow(n/Math.pow(b,i), cc); w.push(wi); if(wi>mx)mx=wi; tot+=wi; }
+  var pad = 44, bw = (W-pad-16)/(L+1);
+  g.strokeStyle = cssVar('--rule'); g.beginPath(); g.moveTo(pad,10); g.lineTo(pad,H-30); g.lineTo(W-8,H-30); g.stroke();
+  g.fillStyle = cssVar('--ink-2'); g.font = '13px JetBrains Mono';
+  g.fillText('level of recursion tree →', pad+4, H-10);
+  g.save(); g.translate(14,H-40); g.rotate(-Math.PI/2); g.fillText('work per level', 0, 0); g.restore();
+  for(var i=0;i<=L;i++){
+   var h = (H-46)*(w[i]/mx);
+   g.fillStyle = cssVar('--cobalt');
+   g.fillRect(pad+4+i*bw, H-30-h, Math.max(2,bw-3), h);
+  }
+  var regime, col;
+  var eps = 1e-9;
+  if(Math.abs(cc - cstar) < 0.05){ regime = 'Case 2 (balanced): Θ(n^'+cstar.toFixed(2)+' · log n)'; col='--amber'; }
+  else if(cc < cstar - eps){ regime = 'Case 1 (leaves dominate): Θ(n^'+cstar.toFixed(2)+')'; col='--moss'; }
+  else { regime = 'Case 3 (root dominates): Θ(n^'+cc.toFixed(1)+')'; col='--rust'; }
+  var out = document.getElementById('ms-out');
+  if(out) out.innerHTML = 'T(n) = '+a+'·T(n/'+b+') + n^'+cc.toFixed(1)+' &nbsp;·&nbsp; log_b a = '+cstar.toFixed(3)+' &nbsp;·&nbsp; <b style="color:'+cssVar(col)+'">'+regime+'</b>';
+ }
+ ['ms-a','ms-b','ms-c'].forEach(function(id){ on(id,'input',draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Random graph connectivity ---------- */
+(function(){
+ var c = document.getElementById('cv-conn'); if(!c) return;
+ var pts = [], edges = [], seedn = -1;
+ function build(){
+  var n = Math.round(val('cn-n')), d = val('cn-d'), p = Math.min(1, d/Math.max(1,n-1));
+  var s = setupCanvas(c, 300), W = s.w, H = s.h;
+  if(pts.length !== n || seedn !== n){ pts = []; for(var i=0;i<n;i++) pts.push([20+Math.random()*(W-40), 20+Math.random()*(H-60)]); seedn = n; }
+  edges = [];
+  for(var i=0;i<n;i++) for(var j=i+1;j<n;j++) if(Math.random()<p) edges.push([i,j]);
+ }
+ function draw(rebuild){
+  if(rebuild) build();
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var n = pts.length;
+  // components via union-find
+  var pa = []; for(var i=0;i<n;i++) pa[i]=i;
+  function find(x){ while(pa[x]!==x){ pa[x]=pa[pa[x]]; x=pa[x]; } return x; }
+  edges.forEach(function(e){ var a=find(e[0]), b=find(e[1]); if(a!==b) pa[a]=b; });
+  var comp = {}, sizes = {};
+  for(var i=0;i<n;i++){ var r=find(i); if(!(r in comp)) comp[r]=Object.keys(comp).length; sizes[r]=(sizes[r]||0)+1; }
+  var ncomp = Object.keys(comp).length, giant = 0;
+  for(var k in sizes) if(sizes[k]>giant) giant = sizes[k];
+  var cols = ['--cobalt','--moss','--rust','--amber','--plum'];
+  g.strokeStyle = cssVar('--rule'); g.lineWidth = 1;
+  edges.forEach(function(e){ g.beginPath(); g.moveTo(pts[e[0]][0],pts[e[0]][1]); g.lineTo(pts[e[1]][0],pts[e[1]][1]); g.stroke(); });
+  for(var i=0;i<n;i++){
+   g.fillStyle = cssVar(cols[comp[find(i)] % cols.length]);
+   g.beginPath(); g.arc(pts[i][0], pts[i][1], 4, 0, 7); g.fill();
+  }
+  g.fillStyle = cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('avg degree '+val('cn-d').toFixed(1), 8, H-8);
+  var out = document.getElementById('cn-out');
+  if(out) out.textContent = ncomp+' components · giant component: '+giant+' / '+n+' vertices ('+Math.round(100*giant/n)+'%)';
+ }
+ on('cn-n','input',function(){draw(true);});
+ on('cn-d','input',function(){draw(true);});
+ on('cn-re','click',function(){ seedn=-1; draw(true); });
+ window.addEventListener('resize', function(){draw(false);});
+ draw(true);
+})();
+
+/* ---------- Kahn topological sort stepper ---------- */
+(function(){
+ var c = document.getElementById('cv-topo'); if(!c) return;
+ var N = 8, pos = [], adj = [], indeg = [], removed = [], order = [];
+ function newDag(){
+  var s = setupCanvas(c, 260), W = s.w, H = s.h;
+  pos = []; adj = []; order = []; removed = [];
+  for(var i=0;i<N;i++){ pos.push([40 + i*(W-80)/(N-1), 50 + ((i%2)? H-140 : 0) + Math.random()*60]); adj.push([]); }
+  for(var i=0;i<N;i++) for(var j=i+1;j<N;j++) if(Math.random()<0.32) adj[i].push(j); // forward edges only: DAG by construction
+  indeg = new Array(N).fill(0);
+  adj.forEach(function(a){ a.forEach(function(v){ indeg[v]++; }); });
+  removed = new Array(N).fill(false);
+ }
+ function step(){
+  for(var i=0;i<N;i++) if(!removed[i] && indeg[i]===0){
+   removed[i]=true; order.push(i);
+   adj[i].forEach(function(v){ indeg[v]--; });
+   return;
+  }
+ }
+ function draw(){
+  var s = setupCanvas(c, 260), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  g.lineWidth = 1.2;
+  for(var i=0;i<N;i++) adj[i].forEach(function(v){
+   g.strokeStyle = (removed[i]||removed[v]) ? cssVar('--rule') : cssVar('--ink-2');
+   var a = pos[i], b = pos[v];
+   g.beginPath(); g.moveTo(a[0],a[1]); g.lineTo(b[0],b[1]); g.stroke();
+   var dx=b[0]-a[0], dy=b[1]-a[1], L=Math.hypot(dx,dy), ux=dx/L, uy=dy/L;
+   var tx=b[0]-12*ux, ty=b[1]-12*uy;
+   g.beginPath(); g.moveTo(tx,ty); g.lineTo(tx-6*uy-4*ux, ty+6*ux-4*uy); g.lineTo(tx+6*uy-4*ux, ty-6*ux-4*uy); g.closePath();
+   g.fillStyle = g.strokeStyle; g.fill();
+  });
+  for(var i=0;i<N;i++){
+   var ready = !removed[i] && indeg[i]===0;
+   g.fillStyle = removed[i] ? cssVar('--rule') : (ready ? cssVar('--moss') : cssVar('--cobalt'));
+   g.beginPath(); g.arc(pos[i][0],pos[i][1],11,0,7); g.fill();
+   g.fillStyle = '#fff'; g.font='600 12px JetBrains Mono'; g.textAlign='center'; g.textBaseline='middle';
+   g.fillText(String(i), pos[i][0], pos[i][1]);
+  }
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  g.fillStyle = cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('green = in-degree 0 (ready)', 8, H-8);
+  var out = document.getElementById('tp-out');
+  if(out) out.textContent = 'output so far: [' + order.join(', ') + ']' + (order.length===N ? ' — done, valid topological order' : '');
+ }
+ on('tp-step','click',function(){ step(); draw(); });
+ on('tp-reset','click',function(){ newDag(); draw(); });
+ window.addEventListener('resize', draw);
+ newDag(); draw();
+})();
+
+/* ---------- Dijkstra / BFS grid flood ---------- */
+(function(){
+ var c = document.getElementById('cv-dijk'); if(!c) return;
+ var COLS = 34, ROWS = 20, cell = [], dist = [], frontier = [], running = false, raf = null;
+ function build(){
+  var walls = val('dj-walls'), spread = val('dj-var');
+  cell = []; dist = [];
+  for(var r=0;r<ROWS;r++){ cell.push([]); dist.push([]);
+   for(var q=0;q<COLS;q++){
+    var isWall = Math.random()<walls && !(r===0&&q===0) && !(r===ROWS-1&&q===COLS-1);
+    cell[r].push(isWall ? -1 : 1 + Math.floor(Math.random()*(spread+1)));
+    dist[r].push(Infinity);
+   }
+  }
+ }
+ function run(){
+  build(); dist[0][0]=0; frontier=[[0,0,0]]; running=true;
+  if(raf) cancelAnimationFrame(raf);
+  tick();
+ }
+ function tick(){
+  // pop a few lowest-dist frontier nodes per frame (lazy dijkstra)
+  for(var k=0;k<6 && frontier.length;k++){
+   frontier.sort(function(a,b){return a[2]-b[2];});
+   var cur = frontier.shift(), r=cur[0], q=cur[1], d=cur[2];
+   if(d>dist[r][q]) { k--; continue; }
+   [[1,0],[-1,0],[0,1],[0,-1]].forEach(function(dd){
+    var nr=r+dd[0], nq=q+dd[1];
+    if(nr<0||nq<0||nr>=ROWS||nq>=COLS||cell[nr][nq]<0) return;
+    var nd = d + cell[nr][nq];
+    if(nd < dist[nr][nq]){ dist[nr][nq]=nd; frontier.push([nr,nq,nd]); }
+   });
+  }
+  draw();
+  if(frontier.length && running) raf = requestAnimationFrame(tick);
+  else { running=false; draw(); }
+ }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var cw = W/COLS, ch = (H-24)/ROWS;
+  var mx = 1; for(var r=0;r<ROWS;r++)for(var q=0;q<COLS;q++) if(isFinite(dist[r][q])&&dist[r][q]>mx) mx=dist[r][q];
+  for(var r=0;r<ROWS;r++)for(var q=0;q<COLS;q++){
+   if(cell[r][q]<0){ g.fillStyle = cssVar('--ink'); }
+   else if(isFinite(dist[r][q])){
+    var t = dist[r][q]/mx;
+    g.fillStyle = t<0.5 ? cssVar('--moss') : (t<0.8 ? cssVar('--amber') : cssVar('--rust'));
+    g.globalAlpha = 0.35 + 0.65*(1-t);
+   } else g.fillStyle = cssVar('--paper-2');
+   g.fillRect(q*cw+0.5, r*ch+0.5, cw-1, ch-1);
+   g.globalAlpha = 1;
+  }
+  g.fillStyle = cssVar('--cobalt');
+  g.fillRect(0.5,0.5,cw-1,ch-1);
+  g.fillRect((COLS-1)*cw+0.5,(ROWS-1)*ch+0.5,cw-1,ch-1);
+  g.fillStyle = cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  var dt = dist.length ? dist[ROWS-1][COLS-1] : Infinity;
+  g.fillText('start top-left → goal bottom-right', 6, H-7);
+  var out = document.getElementById('dj-out');
+  if(out) out.textContent = isFinite(dt) ? ('distance to goal: '+dt+(frontier.length?' (still relaxing…)':' — final')) : (running?'flooding…':'goal unreachable (walled off) — press Run to resample');
+ }
+ on('dj-run','click',run);
+ window.addEventListener('resize', function(){ if(cell.length) draw(); });
+ build(); draw();
+})();
+
+/* ---------- DFA: binary mod 3 ---------- */
+(function(){
+ var c = document.getElementById('cv-dfa'); if(!c) return;
+ var state = 0, str = '';
+ function feed(bit){ state = (2*state + bit) % 3; str += bit; draw(); }
+ function draw(){
+  var s = setupCanvas(c, 240), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var cx = [W*0.2, W*0.5, W*0.8], cy = H*0.45, R = 26;
+  // edges (drawn as arcs with labels)
+  function arrow(x1,y1,x2,y2,label,bend){
+   g.strokeStyle = cssVar('--ink-2'); g.lineWidth=1.2;
+   var mx=(x1+x2)/2, my=(y1+y2)/2 + bend;
+   g.beginPath(); g.moveTo(x1,y1); g.quadraticCurveTo(mx,my,x2,y2); g.stroke();
+   // arrowhead at t≈0.95 of the quadratic
+   var t=0.92, qx=(1-t)*(1-t)*x1+2*(1-t)*t*mx+t*t*x2, qy=(1-t)*(1-t)*y1+2*(1-t)*t*my+t*t*y2;
+   var dx=x2-qx, dy=y2-qy, L=Math.hypot(dx,dy)||1;
+   g.beginPath(); g.moveTo(x2,y2); g.lineTo(x2-8*dx/L-4*dy/L, y2-8*dy/L+4*dx/L); g.lineTo(x2-8*dx/L+4*dy/L, y2-8*dy/L-4*dx/L); g.closePath();
+   g.fillStyle=cssVar('--ink-2'); g.fill();
+   g.fillStyle=cssVar('--ink-2'); g.font='12px JetBrains Mono'; g.fillText(label, mx-6, my + (bend>0? 14 : -6));
+  }
+  // transitions for r -> (2r+x)%3 : 0-0->0(loop),0-1->1 ; 1-0->2 ,1-1->0 ; 2-0->1, 2-1->2(loop)
+  // loops
+  function loop(i,label){ g.strokeStyle=cssVar('--ink-2'); g.beginPath(); g.arc(cx[i], cy-R-12, 12, 0.6, Math.PI*2-0.6); g.stroke(); g.fillStyle=cssVar('--ink-2'); g.font='12px JetBrains Mono'; g.fillText(label, cx[i]-8, cy-R-30); }
+  loop(0,'0'); loop(2,'1');
+  arrow(cx[0]+R, cy-6, cx[1]-R, cy-6, '1', -26);
+  arrow(cx[1]-R, cy+6, cx[0]+R, cy+6, '1', 26);
+  arrow(cx[1]+R, cy-6, cx[2]-R, cy-6, '0', -26);
+  arrow(cx[2]-R, cy+6, cx[1]+R, cy+6, '0', 26);
+  for(var i=0;i<3;i++){
+   g.beginPath(); g.arc(cx[i],cy,R,0,7);
+   g.fillStyle = (i===state) ? cssVar('--cobalt') : cssVar('--paper-2'); g.fill();
+   g.strokeStyle = cssVar('--ink-2'); g.stroke();
+   if(i===0){ g.beginPath(); g.arc(cx[i],cy,R-4,0,7); g.stroke(); } // accepting: double circle
+   g.fillStyle = (i===state) ? '#fff' : cssVar('--ink'); g.font='600 14px JetBrains Mono'; g.textAlign='center'; g.textBaseline='middle';
+   g.fillText('r='+i, cx[i], cy);
+  }
+  g.textAlign='left'; g.textBaseline='alphabetic';
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('double circle = accepting (divisible by 3)', 8, H-8);
+  var out = document.getElementById('fa-out');
+  var n = str.length ? parseInt(str,2) : 0;
+  if(out) out.textContent = 'input: "'+(str||'ε')+'" = '+n+' decimal · state r='+state+' · '+(state===0?'ACCEPT ('+n+' divisible by 3)':'reject ('+n+' mod 3 = '+state+')');
+ }
+ on('fa-0','click',function(){feed(0);});
+ on('fa-1','click',function(){feed(1);});
+ on('fa-reset','click',function(){state=0;str='';draw();});
+ window.addEventListener('resize', draw); draw();
+})();
+
+/* ---------- Asymptotic growth comparison ---------- */
+(function(){
+ var c = document.getElementById('cv-asym'); if(!c) return;
+ var fns = [
+  function(n){return 100*n;},
+  function(n){return n<2?0:8*n*Math.log2(n);},
+  function(n){return n*n;},
+  function(n){return Math.pow(2,n)/1000;}
+ ];
+ var names = ['100n','8n·log₂n','n²','2ⁿ/1000'];
+ function sel(id){ var el=document.getElementById(id); return el? parseInt(el.value):0; }
+ function draw(){
+  var s = setupCanvas(c, 300), g = s.g, W = s.w, H = s.h;
+  g.clearRect(0,0,W,H);
+  var fi = sel('as-f'), gi = sel('as-g'), N = val('as-n');
+  var logY = document.getElementById('as-log') && document.getElementById('as-log').checked;
+  var pad = 52;
+  var mx = 0;
+  for(var n=1;n<=N;n++){ var a=fns[fi](n), b=fns[gi](n); if(a>mx)mx=a; if(b>mx)mx=b; }
+  if(mx<=0) mx = 1;
+  function Y(v){
+   if(logY){ var lv = Math.log10(Math.max(v,0.1)), lm = Math.log10(Math.max(mx,1)); return H-30-(H-50)*( (lv-(-1)) / (lm+1) ); }
+   return H-30-(H-50)*(v/mx);
+  }
+  g.strokeStyle=cssVar('--rule'); g.beginPath(); g.moveTo(pad,10); g.lineTo(pad,H-30); g.lineTo(W-8,H-30); g.stroke();
+  g.fillStyle=cssVar('--ink-2'); g.font='13px JetBrains Mono';
+  g.fillText('n →', W-40, H-12);
+  g.fillText(logY? 'log₁₀ y' : 'y', 8, 20);
+  var cross = null, prev = null;
+  [[fi,'--cobalt'],[gi,'--rust']].forEach(function(pair, idx){
+   g.strokeStyle = cssVar(pair[1]); g.lineWidth = 2; g.beginPath();
+   for(var n=1;n<=N;n++){
+    var x = pad + (W-pad-12)*(n-1)/(N-1), y = Math.max(8,Y(fns[pair[0]](n)));
+    if(n===1) g.moveTo(x,y); else g.lineTo(x,y);
+   }
+   g.stroke();
+   g.fillStyle = cssVar(pair[1]); g.fillText(names[pair[0]], pad+8, 26+idx*18);
+  });
+  for(var n=2;n<=N;n++){
+   var d0 = fns[fi](n-1)-fns[gi](n-1), d1 = fns[fi](n)-fns[gi](n);
+   if(d0!==0 && d1!==0 && (d0<0)!==(d1<0)){ cross = n; break; }
+  }
+  var out = document.getElementById('as-out');
+  if(out) out.textContent = cross ? ('curves cross near n = '+cross+' — constants matter at small n, growth rate wins in the end') : (fi===gi? 'same function' : 'no crossing in this window — try a larger n max or log scale');
+ }
+ ['as-f','as-g','as-n','as-log'].forEach(function(id){ on(id,'input',draw); on(id,'change',draw); });
+ window.addEventListener('resize', draw); draw();
+})();
+})();
+</script>
+
+</body></html>

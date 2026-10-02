@@ -1,0 +1,857 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 09 Multivariable and Matrix Calculus</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','09')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">09</div><h1>Multivariable and Matrix Calculus</h1>
+   <p class="lede">Calculus in many dimensions, and the gradients that train networks.</p>
+   <div class="meta"><span class="chip">35 topics</span><span class="chip">needs: chapters 07, 08</span><span class="chip">feeds: chapters 10, 15, 18, 21</span></div>
+  </div>
+
+<section class="topic" id="functions-of-several-variables">
+ <h2>Functions of several variables</h2>
+ <p>A function of several variables takes a point in $\mathbb{R}^n$ and returns a number: $f(x,y)=x^2+y^2$ eats a location on a plane and returns a height. Picture a landscape: the input is where you stand, the output is the altitude. Every loss function in machine learning is exactly this — a landscape over millions of parameter dimensions.</p>
+ <div class="box def"><span class="label">Definition</span> A function $f:\mathbb{R}^n\to\mathbb{R}$ assigns to each vector $\mathbf{x}=(x_1,\dots,x_n)$ in its domain a single real number $f(\mathbf{x})$. Its <em>graph</em> is the set $\{(\mathbf{x},f(\mathbf{x}))\}\subset\mathbb{R}^{n+1}$; its <em>level set</em> at value $c$ is $\{\mathbf{x}: f(\mathbf{x})=c\}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Let $f(x,y)=x^2+4y^2$. Level set $f=4$: the ellipse $x^2+4y^2=4$, i.e. $\frac{x^2}{4}+y^2=1$, with semi-axes $2$ (in $x$) and $1$ (in $y$). Evaluate: $f(1,-1)=1+4=5$. The graph is an elliptic paraboloid — a bowl stretched twice as steep in the $y$ direction.</div>
+ <div class="box link"><span class="label">Where this goes</span> Loss surfaces $L(\theta)$ over parameters $\theta\in\mathbb{R}^n$ are the central object of Ch 15 (Optimization) and Ch 21 (Deep Learning).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $f(x,y)=xy$, compute $f(3,-2)$ and describe the level set $f=0$. <details class="sol"><summary>Solution</summary><div>$f(3,-2)=-6$. $xy=0$ means $x=0$ or $y=0$: the level set is the union of the two coordinate axes.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the domain of $f(x,y)=\ln(1-x^2-y^2)$. <details class="sol"><summary>Solution</summary><div>Need $1-x^2-y^2&gt;0$, i.e. $x^2+y^2&lt;1$: the open unit disk.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the level sets of $f(x,y)=\frac{y}{x^2}$ (for $x\neq0$) are parabolas through the origin (with the origin removed), and explain why infinitely many level sets "collide" near the origin. <details class="sol"><summary>Solution</summary><div>$f=c$ gives $y=cx^2$: a parabola for each $c$ (origin excluded since $x\neq0$). Every parabola $y=cx^2$ passes arbitrarily close to $(0,0)$, so points near the origin lie on level sets of every value $c$ — a preview of why the limit of $f$ at the origin fails to exist.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multivariable-limits">
+ <h2>Multivariable limits</h2>
+ <p>In one dimension you can approach a point only from the left or right. In the plane you can approach from infinitely many directions and along infinitely many curves — and the limit exists only if <em>every</em> approach gives the same value. That is what makes multivariable limits subtle: one bad path kills the limit.</p>
+ <div class="box def"><span class="label">Definition</span> $\lim_{\mathbf{x}\to\mathbf{a}} f(\mathbf{x})=L$ means: for every $\varepsilon&gt;0$ there is $\delta&gt;0$ such that $0&lt;\|\mathbf{x}-\mathbf{a}\|&lt;\delta$ implies $|f(\mathbf{x})-L|&lt;\varepsilon$. The value must not depend on the path of approach.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=\dfrac{xy}{x^2+y^2}$ at $(0,0)$. Along $y=0$: $f=0$. Along $y=x$: $f=\dfrac{x^2}{2x^2}=\dfrac12$. Two paths, two values ($0\neq\tfrac12$), so the limit does not exist. Contrast: $g(x,y)=\dfrac{x^2y}{x^2+y^2}$ satisfies $|g|\le|y|\to0$ (since $x^2\le x^2+y^2$), so $\lim_{(x,y)\to(0,0)}g=0$ by squeeze.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Checking straight lines is never enough. $f(x,y)=\dfrac{x^2y}{x^4+y^2}$ tends to $0$ along <em>every</em> straight line through the origin, yet along the parabola $y=x^2$ it equals $\dfrac{x^4}{2x^4}=\dfrac12$. No limit.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Evaluate $\lim_{(x,y)\to(1,2)} (x^2y+3y)$. <details class="sol"><summary>Solution</summary><div>Polynomials are continuous: plug in. $1\cdot2+6=8$.</div></details></li>
+  <li><span class="lvl m">MED</span> Does $\lim_{(x,y)\to(0,0)}\dfrac{x^2-y^2}{x^2+y^2}$ exist? <details class="sol"><summary>Solution</summary><div>Along $y=0$: $1$. Along $x=0$: $-1$. Different, so no.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\lim_{(x,y)\to(0,0)}\dfrac{x^3+y^3}{x^2+y^2}=0$. <details class="sol"><summary>Solution</summary><div>Polar: $x=r\cos\theta$, $y=r\sin\theta$ gives $\dfrac{r^3(\cos^3\theta+\sin^3\theta)}{r^2}=r(\cos^3\theta+\sin^3\theta)$, and $|{\cdot}|\le 2r\to0$ as $r\to0$, uniformly in $\theta$. So the limit is $0$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $f(x,y)=\dfrac{xy^2}{x^2+y^4}$, compute the limit along every line through the origin, then find a path giving a different value. <details class="sol"><summary>Solution</summary><div>Along $y=mx$: $\dfrac{x\cdot m^2x^2}{x^2+m^4x^4}=\dfrac{m^2x}{1+m^4x^2}\to0$; along $x=0$: $0$. But along $x=y^2$: $\dfrac{y^2\cdot y^2}{y^4+y^4}=\dfrac12$. Limit does not exist.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="continuity-in-several-variables">
+ <h2>Continuity in several variables</h2>
+ <p>Continuity means what it always meant: no jumps, no holes — the function value equals the limit. A continuous function of two variables is a landscape you could walk on without falling through. Sums, products, quotients (nonzero denominator) and compositions of continuous functions stay continuous, so most formulas are continuous wherever they are defined.</p>
+ <div class="box def"><span class="label">Definition</span> $f$ is continuous at $\mathbf{a}$ if $\lim_{\mathbf{x}\to\mathbf{a}} f(\mathbf{x})=f(\mathbf{a})$. It is continuous on a set if continuous at every point of the set.</div>
+ <div class="box ex"><span class="label">Worked example</span> Define $f(x,y)=\dfrac{x^2y}{x^2+y^2}$ for $(x,y)\neq(0,0)$ and $f(0,0)=0$. We showed $\lim_{(x,y)\to(0,0)}f=0=f(0,0)$, so $f$ is continuous everywhere. But $g(x,y)=\dfrac{xy}{x^2+y^2}$ with $g(0,0)=0$ is <em>not</em> continuous at the origin: the limit there does not exist, so no choice of $g(0,0)$ can repair it.</div>
+ <div class="box think"><span class="label">Think first</span> If $f(x,y)$ is continuous in $x$ for each fixed $y$, and continuous in $y$ for each fixed $x$, must it be continuous as a function of $(x,y)$? <details class="sol"><summary>Reveal</summary><div>No. $g(x,y)=\dfrac{xy}{x^2+y^2}$ (with $g(0,0)=0$) is continuous in each variable separately — fix $y=0$ and it is identically $0$; fix $y=b\neq0$ and it is a rational function with nonvanishing denominator — yet it is discontinuous at the origin (limit fails along $y=x$). Separate continuity is strictly weaker than joint continuity.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Where is $f(x,y)=\dfrac{x+y}{x-y}$ continuous? <details class="sol"><summary>Solution</summary><div>Everywhere except the line $x=y$, where the denominator vanishes.</div></details></li>
+  <li><span class="lvl m">MED</span> Can $f(x,y)=\dfrac{\sin(x^2+y^2)}{x^2+y^2}$ be extended continuously to $(0,0)$? <details class="sol"><summary>Solution</summary><div>Yes. With $r^2=x^2+y^2\to0$, $\dfrac{\sin r^2}{r^2}\to1$. Set $f(0,0)=1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A continuous $f:\mathbb{R}^2\to\mathbb{R}$ attains a maximum on the closed disk $x^2+y^2\le1$ — which theorem, and why does it matter for optimization? <details class="sol"><summary>Solution</summary><div>The Extreme Value Theorem: a continuous function on a compact (closed and bounded) set attains its max and min. This is what guarantees constrained optimization problems over compact feasible sets (Ch 15) have solutions at all.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="partial-derivatives">
+ <h2>Partial derivatives</h2>
+ <p>Stand on a hillside. Face due east and ask "how steep is it this way?" — that is $\partial f/\partial x$. Face due north — that is $\partial f/\partial y$. A partial derivative freezes every variable but one and takes the ordinary derivative. All the rules of Chapter 7 apply, treating the frozen variables as constants.</p>
+ <div class="box def"><span class="label">Definition</span> $$\frac{\partial f}{\partial x}(a,b)=\lim_{h\to0}\frac{f(a+h,b)-f(a,b)}{h},\qquad \frac{\partial f}{\partial y}(a,b)=\lim_{h\to0}\frac{f(a,b+h)-f(a,b)}{h}.$$ Also written $f_x$, $f_y$, or $\partial_x f$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^3y^2+e^{xy}+\sin y$. Then $f_x=3x^2y^2+ye^{xy}$ (treat $y$ as constant; chain rule on $e^{xy}$ gives factor $y$) and $f_y=2x^3y+xe^{xy}+\cos y$. At $(1,0)$: $f_x=0+0\cdot e^0=0$, $f_y=0+1\cdot1+\cos0=2$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Partial derivatives can exist at a point where the function is not even continuous. $g(x,y)=\frac{xy}{x^2+y^2}$, $g(0,0)=0$: both partials at the origin are $0$ (the function is $0$ on both axes), yet $g$ is discontinuous there. Existence of partials is weak; differentiability (below) is the strong notion.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x,y)=x^2y+y^3$. Find $f_x$ and $f_y$. <details class="sol"><summary>Solution</summary><div>$f_x=2xy$, $f_y=x^2+3y^2$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x,y,z)=\dfrac{xz}{y}+z\ln x$. Find all three partials. <details class="sol"><summary>Solution</summary><div>$f_x=\dfrac{z}{y}+\dfrac{z}{x}$, $f_y=-\dfrac{xz}{y^2}$, $f_z=\dfrac{x}{y}+\ln x$.</div></details></li>
+  <li><span class="lvl m">MED</span> The ideal gas law: $PV=nRT$ (with $n,R$ constant). Compute $\dfrac{\partial P}{\partial V}$ at constant $T$, and interpret its sign. <details class="sol"><summary>Solution</summary><div>$P=\dfrac{nRT}{V}$ so $\dfrac{\partial P}{\partial V}=-\dfrac{nRT}{V^2}&lt;0$: at fixed temperature, compressing the gas (smaller $V$) raises pressure.</div></details></li>
+  <li><span class="lvl h">HARD</span> Use the limit definition to compute $f_x(0,0)$ for $f(x,y)=\begin{cases}\dfrac{x^3}{x^2+y^2}&(x,y)\neq(0,0)\\ 0&(0,0)\end{cases}$. <details class="sol"><summary>Solution</summary><div>$f_x(0,0)=\lim_{h\to0}\dfrac{f(h,0)-0}{h}=\lim_{h\to0}\dfrac{h^3/h^2}{h}=\lim_{h\to0}\dfrac{h}{h}=1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="higher-partial-derivatives">
+ <h2>Higher partial derivatives</h2>
+ <p>Differentiate twice, possibly in different directions: $f_{xy}$ means "first the $x$-slope, then how that slope changes as you move in $y$." The miracle is Clairaut's theorem: for smooth functions the order does not matter, $f_{xy}=f_{yx}$ — which is exactly why the Hessian matrix (later this chapter) is symmetric.</p>
+ <div class="box def"><span class="label">Definition</span> $f_{xx}=\partial_x(\partial_x f)$, $f_{xy}=\partial_y(\partial_x f)$, etc. <span class="label" style="display:block;margin-top:8px">Theorem (Clairaut/Schwarz)</span> If $f_{xy}$ and $f_{yx}$ exist and are continuous near a point, then $f_{xy}=f_{yx}$ there.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^2e^{3y}$. $f_x=2xe^{3y}$, $f_y=3x^2e^{3y}$. Then $f_{xx}=2e^{3y}$, $f_{yy}=9x^2e^{3y}$, $f_{xy}=\partial_y(2xe^{3y})=6xe^{3y}$ and $f_{yx}=\partial_x(3x^2e^{3y})=6xe^{3y}$ — equal, as Clairaut promises.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x,y)=x^3y^2$. Compute $f_{xy}$ two ways. <details class="sol"><summary>Solution</summary><div>$f_x=3x^2y^2\Rightarrow f_{xy}=6x^2y$; $f_y=2x^3y\Rightarrow f_{yx}=6x^2y$. Same.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify that $u(x,t)=e^{-t}\sin x$ satisfies the heat equation $u_t=u_{xx}$. <details class="sol"><summary>Solution</summary><div>$u_t=-e^{-t}\sin x$; $u_x=e^{-t}\cos x$, $u_{xx}=-e^{-t}\sin x$. Equal. (The heat equation returns in Ch 10.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $u(x,y)=\ln(x^2+y^2)$ is harmonic ($u_{xx}+u_{yy}=0$) away from the origin. <details class="sol"><summary>Solution</summary><div>$u_x=\dfrac{2x}{x^2+y^2}$, $u_{xx}=\dfrac{2(x^2+y^2)-2x\cdot2x}{(x^2+y^2)^2}=\dfrac{2(y^2-x^2)}{(x^2+y^2)^2}$. By symmetry $u_{yy}=\dfrac{2(x^2-y^2)}{(x^2+y^2)^2}$. Sum $=0$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradient">
+ <h2>Gradient</h2>
+ <p>The gradient bundles all partial derivatives into one vector, and that vector has a beautiful geometric meaning: it points in the direction of steepest ascent, its length is the steepest slope, and it is perpendicular to level sets. "Go downhill" — the whole of gradient descent — means "step along $-\nabla f$."</p>
+ <div class="box def"><span class="label">Definition</span> $$\nabla f(\mathbf{x})=\left(\frac{\partial f}{\partial x_1},\dots,\frac{\partial f}{\partial x_n}\right).$$ Properties (for differentiable $f$): $\nabla f$ points in the direction of maximal increase; $\|\nabla f\|$ is the maximal rate of increase; $\nabla f(\mathbf{a})\perp$ the level set of $f$ through $\mathbf{a}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^2+4y^2$ at $(2,1)$: $\nabla f=(2x,8y)=(4,8)$. Steepest-ascent direction: $\frac{1}{\sqrt{80}}(4,8)$; maximal slope $\sqrt{80}=4\sqrt5\approx8.94$. The level ellipse through $(2,1)$ is $x^2+4y^2=8$; the tangent line there is $4(x-2)+8(y-1)=0$, i.e. $x+2y=4$ — and indeed $(4,8)$ is normal to it.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Drag the sliders to move the point on $f(x,y)=x^2+4y^2$. Watch the gradient arrow stay perpendicular to the level curve and grow with steepness.</p>
+  <canvas id="cv-grad"></canvas>
+  <div class="ctl"><label>x <input type="range" id="grad-x" min="-2.5" max="2.5" step="0.05" value="2"></label>
+  <label>y <input type="range" id="grad-y" min="-2.5" max="2.5" step="0.05" value="1"></label></div>
+  <div class="out" id="grad-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Gradient descent $\theta\leftarrow\theta-\eta\nabla L(\theta)$ is the master algorithm of Ch 15; backprop (this chapter) is how $\nabla L$ is computed.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x,y,z)=xy+z^2$. Find $\nabla f(1,2,3)$. <details class="sol"><summary>Solution</summary><div>$\nabla f=(y,x,2z)=(2,1,6)$.</div></details></li>
+  <li><span class="lvl m">MED</span> In which direction does $f(x,y)=xe^y$ decrease fastest at $(2,0)$, and at what rate? <details class="sol"><summary>Solution</summary><div>$\nabla f=(e^y,xe^y)=(1,2)$ at $(2,0)$. Fastest decrease along $-\nabla f/\|\nabla f\|=(-1,-2)/\sqrt5$, at rate $-\sqrt5$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find a normal vector to the curve $x^3+y^3=9$ at $(1,2)$. <details class="sol"><summary>Solution</summary><div>The curve is a level set of $f=x^3+y^3$; $\nabla f=(3x^2,3y^2)=(3,12)$ at $(1,2)$, so $(3,12)$ (or $(1,4)$) is normal.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $\nabla f(\mathbf{a})\neq\mathbf{0}$, then among all unit vectors $\mathbf{u}$ the rate of change $D_{\mathbf u}f(\mathbf a)$ is maximized uniquely by $\mathbf{u}=\nabla f(\mathbf a)/\|\nabla f(\mathbf a)\|$. <details class="sol"><summary>Solution</summary><div>$D_{\mathbf u}f=\nabla f\cdot\mathbf u=\|\nabla f\|\cos\theta$ where $\theta$ is the angle between $\mathbf u$ and $\nabla f$ (Cauchy–Schwarz, Ch 8). This is maximized iff $\cos\theta=1$, i.e. $\mathbf u$ is the unit vector along $\nabla f$; the maximum value is $\|\nabla f\|$ and it is unique because $\cos\theta=1$ forces $\theta=0$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">The gradient of $f$ at a point $\mathbf a$ on the level curve $f=c$ is…</div><button class="opt">tangent to the level curve</button><button class="opt">perpendicular to the level curve</button><button class="opt">always pointing at the origin</button><div class="why" hidden>Moving along the level curve keeps $f$ constant, so the rate of change along the tangent is $0=\nabla f\cdot\mathbf t$: the gradient is orthogonal to every tangent direction of the level set.</div></div>
+</section>
+
+<section class="topic" id="directional-derivative">
+ <h2>Directional derivative</h2>
+ <p>Partials only measure slope along the axes. The directional derivative measures slope along <em>any</em> direction $\mathbf u$: walk that way at unit speed and record how fast $f$ changes. For differentiable functions it is just a dot product with the gradient — the gradient contains all directional information.</p>
+ <div class="box def"><span class="label">Definition</span> For a unit vector $\mathbf u$, $$D_{\mathbf u}f(\mathbf a)=\lim_{h\to0}\frac{f(\mathbf a+h\mathbf u)-f(\mathbf a)}{h}.$$ If $f$ is differentiable at $\mathbf a$, then $D_{\mathbf u}f(\mathbf a)=\nabla f(\mathbf a)\cdot\mathbf u$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^2y$ at $(1,2)$ in the direction of $\mathbf v=(3,4)$. Unit vector: $\mathbf u=(3/5,4/5)$. $\nabla f=(2xy,x^2)=(4,1)$. So $D_{\mathbf u}f=4\cdot\frac35+1\cdot\frac45=\frac{12+4}{5}=\frac{16}{5}=3.2$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Two classic errors: forgetting to normalize $\mathbf v$ (the formula needs a <em>unit</em> vector), and using $\nabla f\cdot\mathbf u$ when $f$ is not differentiable — all directional derivatives can exist without the dot-product formula holding.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x,y)=3x-2y$ at any point, direction $\mathbf u=(\frac{1}{\sqrt2},\frac{1}{\sqrt2})$. Find $D_{\mathbf u}f$. <details class="sol"><summary>Solution</summary><div>$\nabla f=(3,-2)$, so $D_{\mathbf u}f=\frac{3-2}{\sqrt2}=\frac{1}{\sqrt2}$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x,y)=e^x\sin y$ at $(0,\pi/3)$, toward the point $(2,\pi/3)$. <details class="sol"><summary>Solution</summary><div>Direction $(2,0)-(0,0)... $ precisely: $(2,\pi/3)-(0,\pi/3)=(2,0)$, unit $\mathbf u=(1,0)$. $\nabla f=(e^x\sin y, e^x\cos y)=(\frac{\sqrt3}{2},\frac12)$. $D_{\mathbf u}f=\frac{\sqrt3}{2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> At a point, $D_{\mathbf u}f=5$ for $\mathbf u=(1,0)$ and $D_{\mathbf v}f=1$ for $\mathbf v=(0,1)$. Assuming differentiability, find the maximal directional derivative and its direction. <details class="sol"><summary>Solution</summary><div>$\nabla f=(5,1)$. Max rate $=\|\nabla f\|=\sqrt{26}$ in direction $(5,1)/\sqrt{26}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multivariable-chain-rule">
+ <h2>Multivariable chain rule</h2>
+ <p>When $f$ depends on intermediate variables that each depend on $t$, the rates multiply along each route and <em>add across routes</em>. Picture a graph of dependencies: total sensitivity = sum over all paths of the product of edge sensitivities. That single sentence is also the whole idea of backpropagation.</p>
+ <div class="box def"><span class="label">Definition</span> If $z=f(x,y)$ with $x=x(t)$, $y=y(t)$ differentiable, $$\frac{dz}{dt}=\frac{\partial f}{\partial x}\frac{dx}{dt}+\frac{\partial f}{\partial y}\frac{dy}{dt}.$$ More generally for $z=f(x(s,t),y(s,t))$: $\dfrac{\partial z}{\partial s}=f_x x_s+f_y y_s$ and likewise for $t$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $z=x^2y$ with $x=\cos t$, $y=\sin t$. $$\frac{dz}{dt}=2xy\cdot(-\sin t)+x^2\cdot\cos t=-2\cos t\sin^2 t+\cos^3 t.$$ Check at $t=0$: $x=1,y=0$; formula gives $0+1=1$. Directly, $z(t)=\cos^2t\sin t$, $z'(t)=-2\cos t\sin t\sin t+\cos^2t\cos t$, and $z'(0)=1$. ✓</div>
+ <div class="box link"><span class="label">Where this goes</span> The "sum over paths" form of the chain rule is literally backpropagation (this chapter) and reverse-mode autodiff (Ch 18).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $z=x^2+y^2$, $x=t$, $y=t^2$. Find $dz/dt$ at $t=1$. <details class="sol"><summary>Solution</summary><div>$dz/dt=2x\cdot1+2y\cdot2t=2t+4t^3$; at $t=1$: $6$.</div></details></li>
+  <li><span class="lvl m">MED</span> $z=e^{xy}$, $x=s+t$, $y=st$. Find $\partial z/\partial s$. <details class="sol"><summary>Solution</summary><div>$z_s=ye^{xy}\cdot1+xe^{xy}\cdot t=e^{xy}(y+xt)=e^{(s+t)st}\,(st+(s+t)t)$.</div></details></li>
+  <li><span class="lvl m">MED</span> The radius of a cylinder grows at $2$ cm/s while its height shrinks at $3$ cm/s. How fast is the volume changing when $r=4$, $h=10$? <details class="sol"><summary>Solution</summary><div>$V=\pi r^2h$; $\dot V=2\pi rh\,\dot r+\pi r^2\dot h=2\pi\cdot4\cdot10\cdot2+\pi\cdot16\cdot(-3)=160\pi-48\pi=112\pi\approx351.9$ cm³/s.</div></details></li>
+  <li><span class="lvl h">HARD</span> Suppose $w=f(u,v)$ with $u=x+y$, $v=x-y$. Show $\dfrac{\partial w}{\partial x}\dfrac{\partial w}{\partial y}=\left(\dfrac{\partial f}{\partial u}\right)^2-\left(\dfrac{\partial f}{\partial v}\right)^2$. <details class="sol"><summary>Solution</summary><div>$w_x=f_u+f_v$, $w_y=f_u-f_v$ (since $u_x=u_y=1$, $v_x=1$, $v_y=-1$). Product: $(f_u+f_v)(f_u-f_v)=f_u^2-f_v^2$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="total-derivative">
+ <h2>Total derivative</h2>
+ <p>The <em>right</em> notion of "differentiable" in many variables: $f$ is differentiable at $\mathbf a$ if a linear map approximates it to first order — the change in $f$ is a linear function of the change in input, plus an error that vanishes faster than the step. The total derivative is that linear map; for scalar $f$ its matrix is the row vector $\nabla f^\top$.</p>
+ <div class="box def"><span class="label">Definition</span> $f:\mathbb{R}^n\to\mathbb{R}^m$ is differentiable at $\mathbf a$ if there is a linear map $Df(\mathbf a):\mathbb{R}^n\to\mathbb{R}^m$ with $$\lim_{\mathbf h\to\mathbf 0}\frac{\|f(\mathbf a+\mathbf h)-f(\mathbf a)-Df(\mathbf a)\mathbf h\|}{\|\mathbf h\|}=0.$$ Then $Df(\mathbf a)$ is the total derivative; its matrix is the Jacobian. If all partials exist and are continuous near $\mathbf a$, $f$ is differentiable there.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^2+y^2$ at $(1,2)$: $Df(1,2)=(2,4)$ as a row. The claim is $f(1+h,2+k)\approx f(1,2)+2h+4k=5+2h+4k$. Exactly: $f(1+h,2+k)=5+2h+4k+h^2+k^2$, and the error $h^2+k^2=\|(h,k)\|^2$ indeed vanishes faster than $\|(h,k)\|$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> "All partials exist" $\ne$ "differentiable." $f(x,y)=\frac{xy}{x^2+y^2}$ (0 at origin) has both partials at $(0,0)$ but is not even continuous there, hence not differentiable. Continuity of the partials is the standard sufficient condition.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the total derivative (as a row vector) of $f(x,y,z)=xyz$ at $(1,2,3)$. <details class="sol"><summary>Solution</summary><div>$(yz,xz,xy)=(6,3,2)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Use the total derivative of $f(x,y)=\sqrt{x^2+y^2}$ at $(3,4)$ to estimate $f(3.1,3.9)$. <details class="sol"><summary>Solution</summary><div>$\nabla f=(x/r,y/r)=(3/5,4/5)$ with $r=5$. Estimate $5+0.6(0.1)+0.8(-0.1)=5+0.06-0.08=4.98$. (True value $\sqrt{9.61+15.21}=\sqrt{24.82}\approx4.9820$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Show directly from the definition that $f(x,y)=xy$ is differentiable at every $(a,b)$ with $Df(a,b)=(b,a)$. <details class="sol"><summary>Solution</summary><div>$f(a+h,b+k)-f(a,b)-(bh+ak)=(a+h)(b+k)-ab-bh-ak=hk$. And $\dfrac{|hk|}{\|(h,k)\|}\le\dfrac{\|(h,k)\|^2/2}{\|(h,k)\|}\to0$ (using $|hk|\le\frac{h^2+k^2}{2}$). So the definition holds.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="jacobian-matrix">
+ <h2>Jacobian matrix</h2>
+ <p>For a vector-valued map $f:\mathbb{R}^n\to\mathbb{R}^m$, stack the gradients of each output component as rows: that $m\times n$ matrix is the Jacobian. It is the best linear approximation of the map — near a point, $f$ acts like the linear map of Ch 8 given by its Jacobian. Compositions of maps multiply their Jacobians; that is the chain rule in matrix form.</p>
+ <div class="box def"><span class="label">Definition</span> For $f=(f_1,\dots,f_m):\mathbb{R}^n\to\mathbb{R}^m$, $$J_f=\frac{\partial(f_1,\dots,f_m)}{\partial(x_1,\dots,x_n)}=\begin{pmatrix}\frac{\partial f_1}{\partial x_1}&\cdots&\frac{\partial f_1}{\partial x_n}\\ \vdots&&\vdots\\ \frac{\partial f_m}{\partial x_1}&\cdots&\frac{\partial f_m}{\partial x_n}\end{pmatrix}.$$ Chain rule: $J_{g\circ f}(\mathbf x)=J_g(f(\mathbf x))\,J_f(\mathbf x)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Polar coordinates $f(r,\theta)=(r\cos\theta,\;r\sin\theta)$: $$J_f=\begin{pmatrix}\cos\theta&-r\sin\theta\\ \sin\theta&r\cos\theta\end{pmatrix},\qquad \det J_f=r\cos^2\theta+r\sin^2\theta=r.$$ At $(r,\theta)=(2,\pi/2)$: $J=\begin{pmatrix}0&-2\\1&0\end{pmatrix}$ — locally the map rotates by $90°$ and stretches the $\theta$ direction by $2$.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\det J$ rescales volume in change of variables (this chapter), in normalizing flows (Ch 22), and in the change-of-variables formula for densities (Ch 11).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(x,y)=(x+2y,\;3xy)$. Find $J_f(1,1)$. <details class="sol"><summary>Solution</summary><div>$J_f=\begin{pmatrix}1&2\\3y&3x\end{pmatrix}=\begin{pmatrix}1&2\\3&3\end{pmatrix}$ at $(1,1)$.</div></details></li>
+  <li><span class="lvl m">MED</span> $f(x,y)=(e^x\cos y, e^x\sin y)$. Compute $J_f$ and $\det J_f$. <details class="sol"><summary>Solution</summary><div>$J_f=\begin{pmatrix}e^x\cos y&-e^x\sin y\\ e^x\sin y&e^x\cos y\end{pmatrix}$, $\det=e^{2x}(\cos^2y+\sin^2y)=e^{2x}$. (Never zero: the map is locally invertible everywhere.)</div></details></li>
+  <li><span class="lvl h">HARD</span> Let $f(x,y)=(x^2-y^2,\,2xy)$ and $g(u,v)=(u+v,\,uv)$. Compute $J_{g\circ f}$ at $(1,1)$ using the chain rule. <details class="sol"><summary>Solution</summary><div>$f(1,1)=(0,2)$. $J_f=\begin{pmatrix}2x&-2y\\2y&2x\end{pmatrix}=\begin{pmatrix}2&-2\\2&2\end{pmatrix}$ at $(1,1)$. $J_g=\begin{pmatrix}1&1\\v&u\end{pmatrix}=\begin{pmatrix}1&1\\2&0\end{pmatrix}$ at $(u,v)=(0,2)$. Product: $J_gJ_f=\begin{pmatrix}1&1\\2&0\end{pmatrix}\begin{pmatrix}2&-2\\2&2\end{pmatrix}=\begin{pmatrix}4&0\\4&-4\end{pmatrix}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="hessian-matrix">
+ <h2>Hessian matrix</h2>
+ <p>The Hessian is the matrix of second partials — the "curvature machine" of a scalar function. Its eigenvalues tell you how the landscape bends in each principal direction: all positive means a bowl (local min), all negative a dome (local max), mixed signs a saddle. Optimizers care about it constantly, even when they never form it explicitly.</p>
+ <div class="box def"><span class="label">Definition</span> $$H_f(\mathbf x)=\nabla^2 f(\mathbf x)=\left[\frac{\partial^2 f}{\partial x_i\,\partial x_j}\right]_{ij}.$$ For $f$ with continuous second partials, $H$ is symmetric (Clairaut), hence has real eigenvalues and orthogonal eigenvectors (spectral theorem, Ch 8).</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^3-3xy^2$ (the "monkey saddle" relative: here a standard example). $f_x=3x^2-3y^2$, $f_y=-6xy$. $$H=\begin{pmatrix}6x&-6y\\-6y&-6x\end{pmatrix}.$$ At $(1,0)$: $H=\begin{pmatrix}6&0\\0&-6\end{pmatrix}$, eigenvalues $6,-6$: a saddle — curving up along $x$, down along $y$.</div>
+ <div class="box think"><span class="label">Think first</span> For $f(x,y)=x^2+10y^2$, gradient descent zig-zags. What about the Hessian explains this? <details class="sol"><summary>Reveal</summary><div>$H=\mathrm{diag}(2,20)$: eigenvalue ratio (condition number) $10$. The bowl is a narrow valley — steep across, shallow along. Gradients point mostly across the valley, so steps overshoot side-to-side while creeping along the floor. Ill-conditioned Hessians are exactly why plain gradient descent is slow (Ch 15).</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the Hessian of $f(x,y)=x^2+3xy+5y^2$. <details class="sol"><summary>Solution</summary><div>$H=\begin{pmatrix}2&3\\3&10\end{pmatrix}$ (constant, since $f$ is quadratic).</div></details></li>
+  <li><span class="lvl m">MED</span> For the quadratic $f(\mathbf x)=\frac12\mathbf x^\top A\mathbf x+\mathbf b^\top\mathbf x$ with $A$ symmetric, show $\nabla f=A\mathbf x+\mathbf b$ and $H=A$. <details class="sol"><summary>Solution</summary><div>$f=\frac12\sum_{ij}A_{ij}x_ix_j+\sum_ib_ix_i$. $\partial_{x_k}f=\frac12\big(\sum_jA_{kj}x_j+\sum_iA_{ik}x_i\big)+b_k=\sum_jA_{kj}x_j+b_k$ using $A_{ik}=A_{ki}$. So $\nabla f=A\mathbf x+\mathbf b$; differentiating again, $H=A$.</div></details></li>
+  <li><span class="lvl h">HARD</span> $f(x,y)=e^{x}\cos y$. Find the Hessian at $(0,0)$ and classify the point $(0,0)$ for the function $g=f-x$ (i.e. is $(0,0)$ a min/max/saddle of $g$?). <details class="sol"><summary>Solution</summary><div>$g=e^x\cos y-x$: $g_x=e^x\cos y-1$, $g_y=-e^x\sin y$; both vanish at $(0,0)$ — a critical point. $g_{xx}=e^x\cos y=1$, $g_{yy}=-e^x\cos y=-1$, $g_{xy}=-e^x\sin y=0$ there. $H=\mathrm{diag}(1,-1)$: eigenvalues of opposite sign, so $(0,0)$ is a saddle.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="tangent-planes">
+ <h2>Tangent planes</h2>
+ <p>Zoom in on a smooth surface and it flattens into a plane — the tangent plane, the 2-D analogue of the tangent line. Its slopes in the $x$ and $y$ directions are exactly the partial derivatives. Everything "local" about a surface lives in this plane.</p>
+ <div class="box def"><span class="label">Definition</span> The tangent plane to $z=f(x,y)$ at $(a,b)$ is $$z=f(a,b)+f_x(a,b)(x-a)+f_y(a,b)(y-b).$$ For a level surface $F(x,y,z)=c$, the tangent plane at $\mathbf p$ is $\nabla F(\mathbf p)\cdot(\mathbf x-\mathbf p)=0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Surface $z=x^2+4y^2$ at $(2,1,8)$: $f_x=2x=4$, $f_y=8y=8$, so $z=8+4(x-2)+8(y-1)$, i.e. $z=4x+8y-8$. As a level-surface check: $F=x^2+4y^2-z=0$, $\nabla F=(4,8,-1)$ at the point; plane $4(x-2)+8(y-1)-(z-8)=0$ — the same.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Tangent plane to $z=xy$ at $(1,2,2)$. <details class="sol"><summary>Solution</summary><div>$f_x=y=2$, $f_y=x=1$: $z=2+2(x-1)+1(y-2)=2x+y-2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Tangent plane to the sphere $x^2+y^2+z^2=14$ at $(1,2,3)$. <details class="sol"><summary>Solution</summary><div>$\nabla F=(2x,2y,2z)=(2,4,6)$. Plane: $2(x-1)+4(y-2)+6(z-3)=0$, i.e. $x+2y+3z=14$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find all points on $z=x^2-y^2$ where the tangent plane is parallel to the plane $2x+4y-z=0$. <details class="sol"><summary>Solution</summary><div>Tangent plane normal is $(f_x,f_y,-1)=(2x,-2y,-1)$; parallel to given plane means proportional to $(2,4,-1)$. Matching the $z$ components (both $-1$) forces $2x=2,\,-2y=4$: $x=1$, $y=-2$, $z=1-4=-3$. Single point $(1,-2,-3)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="linearization">
+ <h2>Linearization</h2>
+ <p>The tangent plane, used as a calculator: near a base point, replace the function by its first-order approximation. It is the multivariable version of $f(x)\approx f(a)+f'(a)(x-a)$ and the reason deep nets can be analyzed locally as linear maps.</p>
+ <div class="box def"><span class="label">Definition</span> The linearization of $f$ at $\mathbf a$ is $$L(\mathbf x)=f(\mathbf a)+\nabla f(\mathbf a)\cdot(\mathbf x-\mathbf a),$$ with error $f(\mathbf x)-L(\mathbf x)=O(\|\mathbf x-\mathbf a\|^2)$ for twice continuously differentiable $f$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Estimate $\sqrt{(3.02)^2+(3.97)^2}$. Take $f(x,y)=\sqrt{x^2+y^2}$ at $(3,4)$: $f=5$, $\nabla f=(3/5,4/5)$. $L=5+0.6(0.02)+0.8(-0.03)=5+0.012-0.024=4.988$. (True: $\sqrt{9.1204+15.7609}=\sqrt{24.8813}\approx4.98812$.)</div>
+ <div class="box link"><span class="label">Where this goes</span> Linearizing dynamics near an equilibrium (Ch 10, Ch 28) turns nonlinear systems into eigenvalue problems; Newton's method (Ch 15, 18) is linearization of $\nabla f$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Linearize $f(x,y)=x^2y$ at $(1,1)$ and estimate $f(1.1,0.9)$. <details class="sol"><summary>Solution</summary><div>$\nabla f=(2xy,x^2)=(2,1)$; $L=1+2(0.1)+1(-0.1)=1.1$. (True: $1.21\cdot0.9=1.089$.)</div></details></li>
+  <li><span class="lvl m">MED</span> Use linearization to estimate $(0.99)^3(2.01)^2$. <details class="sol"><summary>Solution</summary><div>$f(x,y)=x^3y^2$ at $(1,2)$: $f=4$, $f_x=3x^2y^2=12$, $f_y=2x^3y=4$. $L=4+12(-0.01)+4(0.01)=4-0.12+0.04=3.92$. (True $\approx3.9209$.)</div></details></li>
+  <li><span class="lvl h">HARD</span> A neural net layer computes $\sigma(w x)$ with $\sigma(u)=\frac{1}{1+e^{-u}}$. Linearize the output in $(w,x)$ around $w=0,x=1$. <details class="sol"><summary>Solution</summary><div>Let $f(w,x)=\sigma(wx)$. At $(0,1)$: $\sigma(0)=\frac12$; $\sigma'(0)=\frac14$. $f_w=\sigma'(wx)\,x=\frac14$, $f_x=\sigma'(wx)\,w=0$. So $f\approx\frac12+\frac14 w$: near zero weights the layer is linear in $w$ with slope $\sigma'(0)x$ — why initialization scales (Ch 21) are chosen to keep pre-activations in this near-linear regime.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multivariable-taylor-expansion">
+ <h2>Multivariable Taylor expansion</h2>
+ <p>One more order beyond linearization: value + gradient·step + ½ step·Hessian·step. The quadratic term is where curvature enters, and it is the workhorse of optimization theory — every convergence proof for gradient descent starts by Taylor-expanding the loss to second order.</p>
+ <div class="box def"><span class="label">Definition</span> For $f$ twice continuously differentiable at $\mathbf a$: $$f(\mathbf a+\mathbf h)=f(\mathbf a)+\nabla f(\mathbf a)^\top\mathbf h+\tfrac12\,\mathbf h^\top H_f(\mathbf a)\,\mathbf h+o(\|\mathbf h\|^2).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Expand $f(x,y)=e^{x}\sin y$ to second order at $(0,0)$. $f(0,0)=0$. $\nabla f=(e^x\sin y, e^x\cos y)=(0,1)$. Second partials at origin: $f_{xx}=e^x\sin y=0$, $f_{xy}=e^x\cos y=1$, $f_{yy}=-e^x\sin y=0$. So $$f\approx 0+y+\tfrac12(0\cdot x^2+2\cdot1\cdot xy+0\cdot y^2)=y+xy.$$ Sanity check by multiplying series: $e^x\sin y=(1+x+\dots)(y-\dots)=y+xy+\dots$ ✓</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Write the second-order Taylor expansion of $f(x,y)=x^2+3xy+y^2$ about $(0,0)$. <details class="sol"><summary>Solution</summary><div>The function is its own expansion: $f=x^2+3xy+y^2$ exactly (gradient $0$ at origin, Hessian $\begin{pmatrix}2&3\\3&2\end{pmatrix}$).</div></details></li>
+  <li><span class="lvl m">MED</span> Second-order expansion of $f(x,y)=\ln(1+x+2y)$ at $(0,0)$. <details class="sol"><summary>Solution</summary><div>With $u=x+2y$: $\ln(1+u)=u-\frac{u^2}{2}+\dots$, so $f\approx x+2y-\tfrac12(x+2y)^2=x+2y-\tfrac{x^2}{2}-2xy-2y^2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Using $f(\theta+\mathbf h)\approx f(\theta)-\eta\|\nabla f\|^2+\frac{\eta^2}{2}\nabla f^\top H\nabla f$ for a gradient step $\mathbf h=-\eta\nabla f$, show the loss decreases whenever $0&lt;\eta&lt;2/\lambda_{\max}(H)$ (assume $H$ constant positive definite). <details class="sol"><summary>Solution</summary><div>Decrease requires $-\eta\|\nabla f\|^2+\frac{\eta^2}{2}\nabla f^\top H\nabla f&lt;0$, i.e. $\eta\,\dfrac{\nabla f^\top H\nabla f}{\|\nabla f\|^2}&lt;2$. The Rayleigh quotient is at most $\lambda_{\max}$, so $\eta\lambda_{\max}&lt;2$ suffices: $\eta&lt;2/\lambda_{\max}$. This is the classic step-size bound of Ch 15.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="multivariable-optimization">
+ <h2>Multivariable optimization</h2>
+ <p>Flat spots first, curvature second. Interior extrema occur where the gradient vanishes; the Hessian then classifies each flat spot as bowl, dome or saddle. On a closed bounded region you must also patrol the boundary — the top of the hill may be on the fence.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf a$ is a <em>critical point</em> if $\nabla f(\mathbf a)=\mathbf 0$. <em>Second derivative test</em> (two variables): let $D=f_{xx}f_{yy}-f_{xy}^2$ at $\mathbf a$. $D&gt;0, f_{xx}&gt;0$: local min. $D&gt;0, f_{xx}&lt;0$: local max. $D&lt;0$: saddle. $D=0$: inconclusive. In general: $H\succ0$ min, $H\prec0$ max, indefinite $H$ saddle.</div>
+ <div class="box ex"><span class="label">Worked example</span> $f(x,y)=x^3-3x+y^2$. $\nabla f=(3x^2-3,\,2y)=\mathbf0$ gives $x=\pm1$, $y=0$. $H=\begin{pmatrix}6x&0\\0&2\end{pmatrix}$. At $(1,0)$: $H=\mathrm{diag}(6,2)\succ0$ — local min, $f=1-3=-2$. At $(-1,0)$: $H=\mathrm{diag}(-6,2)$ indefinite — saddle. No global min: $f\to-\infty$ as $x\to-\infty$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Run gradient descent on $f(x,y)=x^2+ay^2$. Raise the curvature ratio $a$ and the learning rate and watch the path zig-zag or diverge.</p>
+  <canvas id="cv-gd"></canvas>
+  <div class="ctl"><label>a (curvature ratio) <input type="range" id="gd-a" min="1" max="20" step="0.5" value="10"></label>
+  <label>learning rate η <input type="range" id="gd-lr" min="0.005" max="0.11" step="0.005" value="0.08"></label>
+  <button class="btn" id="gd-run">Run / Reset</button></div>
+  <div class="out" id="gd-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> $\nabla f=\mathbf0$ is necessary for interior extrema, not sufficient — and in high dimensions saddles vastly outnumber minima. A random symmetric Hessian almost never has all eigenvalues of one sign when $n$ is large.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find and classify the critical points of $f(x,y)=x^2+y^2-4x+6y$. <details class="sol"><summary>Solution</summary><div>$\nabla f=(2x-4,2y+6)=\mathbf0\Rightarrow(2,-3)$. $H=\mathrm{diag}(2,2)\succ0$: local (indeed global) min, $f(2,-3)=4+9-8-18=-13$.</div></details></li>
+  <li><span class="lvl m">MED</span> Classify all critical points of $f(x,y)=xy(3-x-y)$. <details class="sol"><summary>Solution</summary><div>$f=3xy-x^2y-xy^2$. $f_x=3y-2xy-y^2=y(3-2x-y)$, $f_y=x(3-x-2y)$. Critical points: $(0,0)$, $(3,0)$, $(0,3)$, and solving $3-2x-y=0,3-x-2y=0$: $(1,1)$. $f_{xx}=-2y$, $f_{yy}=-2x$, $f_{xy}=3-2x-2y$. At $(1,1)$: $D=(-2)(-2)-(-1)^2=3&gt;0$, $f_{xx}=-2&lt;0$: local max ($f=1$). At $(0,0)$: $D=0-9&lt;0$ saddle; similarly $(3,0)$ and $(0,3)$: $D=0-(3-6)^2=-9&lt;0$, saddles.</div></details></li>
+  <li><span class="lvl h">HARD</span> Find the extreme values of $f(x,y)=x^2+2y^2$ on the closed disk $x^2+y^2\le1$. <details class="sol"><summary>Solution</summary><div>Interior: $\nabla f=(2x,4y)=\mathbf0$ only at $(0,0)$, $f=0$. Boundary $x^2+y^2=1$: $f=x^2+2(1-x^2)=2-x^2$ with $x\in[-1,1]$, max $2$ at $x=0$ ($(0,\pm1)$), min $1$ at $x=\pm1$ ($(\pm1,0)$). Global min $0$ at origin, global max $2$ at $(0,\pm1)$.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">At a critical point the Hessian has eigenvalues $3$ and $-0.2$. The point is a…</div><button class="opt">local minimum</button><button class="opt">local maximum</button><button class="opt">saddle point</button><div class="why" hidden>Mixed-sign eigenvalues: the function curves up along one eigenvector and down along the other — a saddle.</div></div>
+</section>
+
+<section class="topic" id="lagrange-multipliers">
+ <h2>Lagrange multipliers</h2>
+ <p>To optimize $f$ while staying on a constraint surface $g=c$: at the best point you cannot improve by sliding along the surface, so the gradient of $f$ must have no component along it — $\nabla f$ must be parallel to $\nabla g$. The proportionality constant $\lambda$ is the multiplier, and it prices the constraint: how much the optimum improves per unit of relaxation.</p>
+ <div class="box def"><span class="label">Definition</span> To find extrema of $f(\mathbf x)$ subject to $g(\mathbf x)=c$ (with $\nabla g\neq\mathbf0$ on the constraint), solve $$\nabla f=\lambda\nabla g,\qquad g(\mathbf x)=c.$$ Equivalently, critical points of the Lagrangian $\mathcal L(\mathbf x,\lambda)=f(\mathbf x)-\lambda\,(g(\mathbf x)-c)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Maximize $f(x,y)=xy$ on the circle $x^2+y^2=2$. Equations: $y=\lambda\,2x$, $x=\lambda\,2y$, $x^2+y^2=2$. Multiply: $xy=4\lambda^2xy$; if $xy\neq0$, $\lambda=\pm\frac12$. $\lambda=\frac12$: $y=x$, so $2x^2=2$, $x=\pm1$: points $(1,1),(-1,-1)$ with $f=1$ (max). $\lambda=-\frac12$: $y=-x$, points $(1,-1),(-1,1)$, $f=-1$ (min). ($xy=0$ points give $f=0$, not extreme… in fact $x=0\Rightarrow y=\lambda\cdot0=0$, off the circle, so excluded.)</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide the level value of $f(x,y)=xy$ and watch its hyperbola-shaped level curve grow until it just kisses the constraint circle — tangency is where $\nabla f\parallel\nabla g$.</p>
+  <canvas id="cv-lag"></canvas>
+  <div class="ctl"><label>level c of xy <input type="range" id="lag-c" min="-1.4" max="1.4" step="0.02" value="0.5"></label></div>
+  <div class="out" id="lag-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> KKT conditions and duality (Ch 15) generalize this to inequality constraints; the multiplier reappears as the dual variable and as "shadow price."</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Minimize $f(x,y)=x^2+y^2$ subject to $x+y=4$. <details class="sol"><summary>Solution</summary><div>$(2x,2y)=\lambda(1,1)\Rightarrow x=y$; $x+y=4\Rightarrow x=y=2$. Min value $8$ (closest point of the line to origin).</div></details></li>
+  <li><span class="lvl m">MED</span> Find the extrema of $f(x,y)=3x+4y$ on $x^2+y^2=25$. <details class="sol"><summary>Solution</summary><div>$(3,4)=\lambda(2x,2y)$: $x=\frac{3}{2\lambda},y=\frac{4}{2\lambda}$. Constraint: $\frac{9+16}{4\lambda^2}=25\Rightarrow\lambda=\pm\frac12$. Points $(3,4)$ (max, $f=25$) and $(-3,-4)$ (min, $f=-25$).</div></details></li>
+  <li><span class="lvl h">HARD</span> A box with no top must have volume $32$. Minimize the surface area. <details class="sol"><summary>Solution</summary><div>Minimize $S=xy+2xz+2yz$ s.t. $xyz=32$. $\nabla S=\lambda\nabla(xyz)$: $y+2z=\lambda yz$, $x+2z=\lambda xz$, $2x+2y=\lambda xy$. Subtract first two: $(y-x)=\lambda z(y-x)$, so $x=y$ (or $\lambda z=1$, which substituted into the first equation gives $y+2z=yz\lambda z\cdot\frac{1}{z}\cdot z$… take the symmetric branch $x=y$). With $x=y$: third equation $4x=\lambda x^2\Rightarrow\lambda=4/x$; first: $x+2z=\frac{4}{x}xz=4z\Rightarrow x=2z$. Then $xyz=(2z)(2z)z=4z^3=32\Rightarrow z=2$, $x=y=4$. $S=16+16+16=48$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Maximize the entropy $H=-\sum_{i=1}^n p_i\ln p_i$ subject to $\sum_i p_i=1$. <details class="sol"><summary>Solution</summary><div>$\mathcal L=-\sum p_i\ln p_i-\lambda(\sum p_i-1)$. $\partial_{p_i}\mathcal L=-\ln p_i-1-\lambda=0\Rightarrow p_i=e^{-1-\lambda}$: all equal. Normalization gives $p_i=1/n$; the uniform distribution maximizes entropy at $H=\ln n$ ($H$ is concave, so this critical point is the max). Preview of Ch 16.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-calculus-notation">
+ <h2>Matrix calculus notation</h2>
+ <p>Once inputs and outputs are vectors and matrices, we need conventions for what "the derivative" is shaped like. This book uses the <em>denominator layout</em> for gradients — $\nabla_{\mathbf x}f$ has the same shape as $\mathbf x$ — which is what deep-learning frameworks return. Keep shapes explicit and half the errors vanish.</p>
+ <div class="box def"><span class="label">Definition</span> For scalar $f$ and $\mathbf x\in\mathbb{R}^n$: $\nabla_{\mathbf x}f=\dfrac{\partial f}{\partial\mathbf x}\in\mathbb{R}^n$ (column), with $(\nabla_{\mathbf x}f)_i=\partial f/\partial x_i$. For $\mathbf f:\mathbb{R}^n\to\mathbb{R}^m$: the Jacobian $\dfrac{\partial\mathbf f}{\partial\mathbf x}\in\mathbb{R}^{m\times n}$. For scalar $f$ of a matrix $W\in\mathbb{R}^{m\times n}$: $\nabla_W f\in\mathbb{R}^{m\times n}$ with $(\nabla_Wf)_{ij}=\partial f/\partial W_{ij}$. First-order change: $df=\nabla_{\mathbf x}f^\top d\mathbf x$, $df=\mathrm{tr}(\nabla_Wf^\top\,dW)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Shape bookkeeping for a linear layer $\mathbf y=W\mathbf x$, $W\in\mathbb{R}^{m\times n}$, $\mathbf x\in\mathbb{R}^n$, scalar loss $L(\mathbf y)$. Then $\nabla_{\mathbf y}L\in\mathbb{R}^m$; the Jacobian $\partial\mathbf y/\partial\mathbf x=W\in\mathbb{R}^{m\times n}$; and $\nabla_{\mathbf x}L=W^\top\nabla_{\mathbf y}L\in\mathbb{R}^n$ — shapes force the transpose: $(n\times m)(m\times1)=(n\times1)$. ✓</div>
+ <div class="box pit"><span class="label">Pitfall</span> Numerator vs denominator layout differ by a transpose, and textbooks mix them silently. Always check a formula on shapes: if the shapes don't compose, a transpose is missing.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(\mathbf x)=\mathbf a^\top\mathbf x$. What is $\nabla_{\mathbf x}f$ and its shape? <details class="sol"><summary>Solution</summary><div>$\nabla_{\mathbf x}f=\mathbf a\in\mathbb{R}^n$: same shape as $\mathbf x$, entries $\partial f/\partial x_i=a_i$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $\mathbf f(\mathbf x)=A\mathbf x$ ($A\in\mathbb{R}^{m\times n}$), give the Jacobian and verify shapes in the chain rule for $L(\mathbf f(\mathbf x))$. <details class="sol"><summary>Solution</summary><div>$\partial\mathbf f/\partial\mathbf x=A$. $\nabla_{\mathbf x}L=\left(\frac{\partial\mathbf f}{\partial\mathbf x}\right)^{\!\top}\nabla_{\mathbf f}L=A^\top\nabla_{\mathbf f}L$: $(n\times m)(m\times1)=n\times1$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> Using the differential rule $df=\mathrm{tr}(G^\top dW)\Rightarrow\nabla_Wf=G$, find $\nabla_W\,\mathrm{tr}(AW)$ for $A\in\mathbb{R}^{n\times m}$, $W\in\mathbb{R}^{m\times n}$. <details class="sol"><summary>Solution</summary><div>$d\,\mathrm{tr}(AW)=\mathrm{tr}(A\,dW)=\mathrm{tr}((A^\top)^\top dW)$, so $\nabla_W\mathrm{tr}(AW)=A^\top$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradients-of-vector-expressions">
+ <h2>Gradients of vector expressions</h2>
+ <p>A small vocabulary of vector-in, scalar-out gradients covers most of machine learning: linear forms, quadratic forms, and norms. Learn these three and derive the rest by the product and chain rules — or by writing everything in indices once and never again.</p>
+ <div class="box def"><span class="label">Definition</span> Core identities ($\mathbf a$ constant, $A$ constant matrix): $$\nabla_{\mathbf x}(\mathbf a^\top\mathbf x)=\mathbf a,\qquad \nabla_{\mathbf x}(\mathbf x^\top A\mathbf x)=(A+A^\top)\mathbf x,\qquad \nabla_{\mathbf x}\|\mathbf x\|^2=2\mathbf x,$$ $$\nabla_{\mathbf x}\|A\mathbf x-\mathbf b\|^2=2A^\top(A\mathbf x-\mathbf b).$$ If $A$ is symmetric, $\nabla_{\mathbf x}(\mathbf x^\top A\mathbf x)=2A\mathbf x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Least squares: $L(\mathbf w)=\|X\mathbf w-\mathbf y\|^2$. Expand: $L=\mathbf w^\top X^\top X\mathbf w-2\mathbf y^\top X\mathbf w+\mathbf y^\top\mathbf y$. Gradient: $\nabla L=2X^\top X\mathbf w-2X^\top\mathbf y$. Setting it to zero gives the normal equations $X^\top X\mathbf w=X^\top\mathbf y$ — the closed form of linear regression (Ch 13, 19). Numeric check with $X=\begin{pmatrix}1&0\\0&2\end{pmatrix}$, $\mathbf y=(1,2)^\top$, $\mathbf w=(0,0)^\top$: $\nabla L=-2X^\top\mathbf y=(-2,-8)^\top$; finite differences on $L=(w_1-1)^2+(2w_2-2)^2$ agree: $\partial_{w_1}L=2(w_1-1)=-2$, $\partial_{w_2}L=4(2w_2-2)=-8$. ✓</div>
+ <div class="box think"><span class="label">Think first</span> Why does $\nabla_{\mathbf x}(\mathbf x^\top A\mathbf x)$ have both $A$ and $A^\top$? Try $n=2$, $A=\begin{pmatrix}0&1\\0&0\end{pmatrix}$. <details class="sol"><summary>Reveal</summary><div>$\mathbf x^\top A\mathbf x=x_1x_2$. Gradient $(x_2,x_1)^\top$. And $(A+A^\top)\mathbf x=\begin{pmatrix}0&1\\1&0\end{pmatrix}\mathbf x=(x_2,x_1)^\top$ ✓, while $2A\mathbf x=(2x_2,0)^\top$ ✗. Each $x_i$ appears in the quadratic form both via rows and via columns of $A$; the product rule collects both, giving $A+A^\top$.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $f(\mathbf x)=\|\mathbf x\|^2+\mathbf b^\top\mathbf x$. Find $\nabla f$ and the minimizer. <details class="sol"><summary>Solution</summary><div>$\nabla f=2\mathbf x+\mathbf b=\mathbf0\Rightarrow\mathbf x^\star=-\mathbf b/2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\nabla_{\mathbf x}\,(\mathbf x^\top A\mathbf x)$ by indices for general $A$. <details class="sol"><summary>Solution</summary><div>$f=\sum_{ij}A_{ij}x_ix_j$. $\partial_{x_k}f=\sum_jA_{kj}x_j+\sum_iA_{ik}x_i=(A\mathbf x)_k+(A^\top\mathbf x)_k$. So $\nabla f=(A+A^\top)\mathbf x$.</div></details></li>
+  <li><span class="lvl m">MED</span> Ridge regression: $L(\mathbf w)=\|X\mathbf w-\mathbf y\|^2+\lambda\|\mathbf w\|^2$. Derive the minimizer. <details class="sol"><summary>Solution</summary><div>$\nabla L=2X^\top(X\mathbf w-\mathbf y)+2\lambda\mathbf w=\mathbf0\Rightarrow(X^\top X+\lambda I)\mathbf w=X^\top\mathbf y$, so $\mathbf w^\star=(X^\top X+\lambda I)^{-1}X^\top\mathbf y$ (invertible for $\lambda&gt;0$ since $X^\top X\succeq0$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Softmax–cross-entropy: with logits $\mathbf z$, $p_i=\dfrac{e^{z_i}}{\sum_je^{z_j}}$ and loss $L=-\ln p_c$ for true class $c$. Show $\nabla_{\mathbf z}L=\mathbf p-\mathbf e_c$. <details class="sol"><summary>Solution</summary><div>$L=-z_c+\ln\sum_je^{z_j}$. $\partial_{z_k}L=-[k=c]+\dfrac{e^{z_k}}{\sum_je^{z_j}}=p_k-[k=c]$. Stack: $\nabla L=\mathbf p-\mathbf e_c$ — the famous "prediction minus target" gradient used throughout Ch 21–23.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="gradients-with-respect-to-matrices">
+ <h2>Gradients with respect to matrices</h2>
+ <p>In a neural network the unknowns are weight <em>matrices</em>, so we need $\partial L/\partial W$: a matrix of the same shape as $W$, each entry the sensitivity of the loss to that weight. The clean tool is the differential: expand $dL$ and read the gradient off $dL=\mathrm{tr}(G^\top dW)$.</p>
+ <div class="box def"><span class="label">Definition</span> For scalar $L(W)$, $\nabla_WL\in\mathbb{R}^{m\times n}$ with entries $\partial L/\partial W_{ij}$, characterized by $dL=\mathrm{tr}\!\big((\nabla_WL)^\top dW\big)$. Trace tools: $\mathrm{tr}(AB)=\mathrm{tr}(BA)$, $\mathrm{tr}(A^\top)=\mathrm{tr}(A)$, and $d(\mathrm{tr}\,X)=\mathrm{tr}(dX)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Linear layer with loss: $L=\tfrac12\|W\mathbf x-\mathbf y\|^2$. Let $\mathbf r=W\mathbf x-\mathbf y$. Then $dL=\mathbf r^\top d(W\mathbf x)=\mathbf r^\top(dW)\mathbf x=\mathrm{tr}(\mathbf x\mathbf r^\top dW)=\mathrm{tr}\big((\mathbf r\mathbf x^\top)^\top dW\big)$. So $$\nabla_WL=\mathbf r\,\mathbf x^\top=(W\mathbf x-\mathbf y)\,\mathbf x^\top,$$ an outer product: (output error) × (input)ᵀ — exactly what backprop computes for every dense layer. Shapes: $(m\times1)(1\times n)=m\times n$ ✓.</div>
+ <div class="box link"><span class="label">Where this goes</span> $\nabla_WL=\boldsymbol\delta\,\mathbf x^\top$ is the update rule inside every framework; see backpropagation below and Ch 21.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> $L=\mathbf a^\top W\mathbf b$. Find $\nabla_WL$. <details class="sol"><summary>Solution</summary><div>$dL=\mathbf a^\top(dW)\mathbf b=\mathrm{tr}(\mathbf b\mathbf a^\top dW)$, so $\nabla_WL=\mathbf a\mathbf b^\top$.</div></details></li>
+  <li><span class="lvl m">MED</span> $L=\tfrac12\|W\|_F^2=\tfrac12\mathrm{tr}(W^\top W)$. Find $\nabla_WL$ and connect to weight decay. <details class="sol"><summary>Solution</summary><div>$dL=\tfrac12\mathrm{tr}(dW^\top W+W^\top dW)=\mathrm{tr}(W^\top dW)$, so $\nabla_WL=W$. Adding $\frac{\lambda}{2}\|W\|_F^2$ to a loss adds $\lambda W$ to the gradient — L2 regularization shrinks weights toward zero (Ch 15, 21).</div></details></li>
+  <li><span class="lvl h">HARD</span> Batch version: $L=\tfrac{1}{2}\|WX-Y\|_F^2$ with $X\in\mathbb{R}^{n\times B}$. Show $\nabla_WL=(WX-Y)X^\top$. <details class="sol"><summary>Solution</summary><div>Let $R=WX-Y$. $dL=\mathrm{tr}(R^\top dW\,X)=\mathrm{tr}(XR^\top dW)=\mathrm{tr}\big((RX^\top)^\top dW\big)$, hence $\nabla_WL=RX^\top$ — the batch outer-product sum $\sum_b\mathbf r_b\mathbf x_b^\top$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="useful-matrix-derivative-identities">
+ <h2>Useful matrix derivative identities</h2>
+ <p>A short table you will use for the rest of the book. Each can be derived with differentials, but memorizing these saves hours: derivatives of traces, determinants, inverses and log-determinants — the last two power Gaussian likelihoods and normalizing flows.</p>
+ <div class="box def"><span class="label">Definition</span> Key identities (all derivable via $dL=\mathrm{tr}(G^\top dW)$):
+ $$\nabla_X\,\mathrm{tr}(AX)=A^\top\qquad \nabla_X\,\mathrm{tr}(X^\top AX)=(A+A^\top)X$$
+ $$\nabla_X\ln\det X=(X^{-1})^\top\qquad d(X^{-1})=-X^{-1}(dX)X^{-1}$$
+ $$\nabla_{\mathbf x}\|\mathbf x\|_2=\frac{\mathbf x}{\|\mathbf x\|_2}\ (\mathbf x\neq\mathbf0),\qquad \nabla_X\,\mathrm{tr}(X^\top X)=2X.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Gradient of a Gaussian log-likelihood in the precision matrix $\Lambda=\Sigma^{-1}$ (symmetric positive definite): $$\ell(\Lambda)=\tfrac12\ln\det\Lambda-\tfrac12\mathbf x^\top\Lambda\mathbf x+\text{const}.$$ Using the table: $\nabla_\Lambda\ln\det\Lambda=\Lambda^{-1}$ (symmetric, so transpose drops) and $\nabla_\Lambda(\mathbf x^\top\Lambda\mathbf x)=\nabla_\Lambda\mathrm{tr}(\Lambda\mathbf x\mathbf x^\top)=\mathbf x\mathbf x^\top$. So $\nabla_\Lambda\ell=\tfrac12\Sigma-\tfrac12\mathbf x\mathbf x^\top$: the MLE sets $\Sigma=$ average of $\mathbf x\mathbf x^\top$ — the sample covariance (Ch 13).</div>
+ <div class="box pit"><span class="label">Pitfall</span> $\nabla_X\ln\det X=(X^{-1})^\top$, not $X^{-1}$ — they agree only for symmetric $X$. And $\det$ requires $X$ square and (for $\ln\det$) positive determinant.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify $\nabla_X\ln\det X=(X^{-1})^\top$ for diagonal $X=\mathrm{diag}(x_1,\dots,x_n)$, $x_i&gt;0$. <details class="sol"><summary>Solution</summary><div>$\ln\det X=\sum_i\ln x_i$; the derivative in $x_i$ is $1/x_i$, so the gradient is $\mathrm{diag}(1/x_i)=X^{-1}=(X^{-1})^\top$ (diagonal is symmetric). ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Derive $d(X^{-1})=-X^{-1}(dX)X^{-1}$. <details class="sol"><summary>Solution</summary><div>Differentiate $XX^{-1}=I$: $(dX)X^{-1}+X\,d(X^{-1})=0$, so $d(X^{-1})=-X^{-1}(dX)X^{-1}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show $\nabla_X\,\mathrm{tr}(AX^{-1})=-(X^{-1}AX^{-1})^\top$. <details class="sol"><summary>Solution</summary><div>$d\,\mathrm{tr}(AX^{-1})=\mathrm{tr}(A\,d(X^{-1}))=-\mathrm{tr}(AX^{-1}(dX)X^{-1})=-\mathrm{tr}(X^{-1}AX^{-1}dX)$, so the gradient is $-(X^{-1}AX^{-1})^\top$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="backpropagation-as-the-chain-rule">
+ <h2>Backpropagation as the chain rule</h2>
+ <p>A deep network is a composition $L=\ell(f_k(\cdots f_2(f_1(\mathbf x))))$. The chain rule says the derivative is a product of Jacobians. Backpropagation is just the observation that multiplying them <em>right-to-left</em> — starting from the scalar loss — means every intermediate product is a vector, never a matrix. One forward pass, one backward pass, and you have the gradient with respect to every parameter at roughly twice the cost of evaluating the loss.</p>
+ <div class="box def"><span class="label">Definition</span> Let $\mathbf h_0=\mathbf x$, $\mathbf h_i=f_i(\mathbf h_{i-1};\theta_i)$, $L=\ell(\mathbf h_k)$. Define the <em>adjoint</em> $\boldsymbol\delta_i=\nabla_{\mathbf h_i}L$. Then $$\boldsymbol\delta_k=\nabla_{\mathbf h_k}\ell,\qquad \boldsymbol\delta_{i-1}=\Big(\frac{\partial\mathbf h_i}{\partial\mathbf h_{i-1}}\Big)^{\!\top}\boldsymbol\delta_i,\qquad \nabla_{\theta_i}L=\Big(\frac{\partial\mathbf h_i}{\partial\theta_i}\Big)^{\!\top}\boldsymbol\delta_i.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Two-layer net, all numbers concrete. $\mathbf x=(1,2)^\top$, $W_1=\begin{pmatrix}1&0\\-1&1\end{pmatrix}$, ReLU, $\mathbf w_2=(1,1)^\top$, loss $L=\tfrac12(y-t)^2$ with target $t=2$.<br>
+ <b>Forward:</b> $\mathbf z=W_1\mathbf x=(1,1)^\top$; $\mathbf h=\mathrm{ReLU}(\mathbf z)=(1,1)^\top$; $y=\mathbf w_2^\top\mathbf h=2$… let's make it interesting: take $t=3$, so $L=\tfrac12(2-3)^2=\tfrac12$.<br>
+ <b>Backward:</b> $\dfrac{\partial L}{\partial y}=y-t=-1$. $\nabla_{\mathbf w_2}L=(y-t)\,\mathbf h=(-1,-1)^\top$. $\nabla_{\mathbf h}L=(y-t)\,\mathbf w_2=(-1,-1)^\top$. Through ReLU (both $z_i=1&gt;0$, derivative 1): $\nabla_{\mathbf z}L=(-1,-1)^\top$. $\nabla_{W_1}L=\nabla_{\mathbf z}L\,\mathbf x^\top=\begin{pmatrix}-1&-2\\-1&-2\end{pmatrix}$. Check one entry by hand: nudge $(W_1)_{11}$ by $\epsilon$: $z_1=1+\epsilon$, $h_1=1+\epsilon$, $y=2+\epsilon$, $L=\tfrac12(\epsilon-1)^2\approx\tfrac12-\epsilon$: slope $-1$ ✓.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>A 3-node chain $x\to u=wx\to h=\tanh u\to L=\frac12(h-t)^2$. Slide the weight and watch forward values (top) and backward adjoints (bottom) flow through the graph.</p>
+  <canvas id="cv-bp"></canvas>
+  <div class="ctl"><label>w <input type="range" id="bp-w" min="-3" max="3" step="0.05" value="1"></label>
+  <label>x <input type="range" id="bp-x" min="-2" max="2" step="0.05" value="1"></label>
+  <label>target t <input type="range" id="bp-t" min="-1" max="1" step="0.05" value="0.5"></label></div>
+  <div class="out" id="bp-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Backprop is not numerical differentiation (no $\epsilon$, exact up to float error) and not symbolic differentiation (no formula blow-up). It is the chain rule evaluated at numbers, cached on a graph. Also: adjoints are multiplied by $J^\top$, not $J$ — forward-mode uses $J$ (Ch 18).</div>
+ <div class="box link"><span class="label">Where this goes</span> Reverse-mode autodiff and computational graphs get a full treatment in Ch 18; vanishing/exploding products of Jacobians drive architecture design in Ch 21.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $L=\tfrac12(wx-t)^2$, compute $\partial L/\partial w$ by chain rule with $w=2,x=3,t=5$. <details class="sol"><summary>Solution</summary><div>$y=6$, $\partial L/\partial y=y-t=1$, $\partial y/\partial w=x=3$: $\partial L/\partial w=3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Chain $y=\sigma(w_2\sigma(w_1x))$ with $\sigma$ the logistic, $\sigma'(u)=\sigma(u)(1-\sigma(u))$. With $x=1$, $w_1=0$, $w_2=4$, compute $\partial y/\partial w_1$. <details class="sol"><summary>Solution</summary><div>$u_1=0$, $h=\sigma(0)=\frac12$, $u_2=4\cdot\frac12=2$, $y=\sigma(2)\approx0.8808$. Backward: $\frac{\partial y}{\partial u_2}=\sigma(2)(1-\sigma(2))\approx0.1050$; $\frac{\partial u_2}{\partial h}=w_2=4$; $\frac{\partial h}{\partial u_1}=\sigma'(0)=\frac14$; $\frac{\partial u_1}{\partial w_1}=x=1$. Product: $0.1050\times4\times0.25\times1\approx0.105$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A chain of $k$ layers each with Jacobian a scalar $a$. Show the input adjoint is $a^k$ times the output adjoint, and state the condition for gradients neither to vanish nor to explode as $k\to\infty$. <details class="sol"><summary>Solution</summary><div>Each backward step multiplies by $a$, so $\delta_0=a^k\delta_k$. $|a|&lt;1\Rightarrow a^k\to0$ (vanishing); $|a|&gt;1\Rightarrow$ explosion. Only $|a|=1$ preserves scale — the motivation for careful initialization, normalization layers and residual connections (Ch 21), whose Jacobian is $I+\text{small}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Explain why reverse mode costs $O(1)$ backward passes for a scalar loss with $n$ parameters, while forward mode would cost $O(n)$. <details class="sol"><summary>Solution</summary><div>Reverse mode propagates one adjoint vector from the single output back through the graph: one pass yields $\partial L/\partial\theta$ for <em>all</em> $\theta$ simultaneously. Forward mode propagates one directional derivative per input direction, so covering $n$ parameters needs $n$ passes. With $n$ in the billions and one loss, reverse mode wins; forward mode wins for few inputs, many outputs (Ch 18).</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">In backprop, the adjoint at layer $i-1$ equals the adjoint at layer $i$ multiplied by…</div><button class="opt">the transpose of the layer's Jacobian</button><button class="opt">the layer's Jacobian</button><button class="opt">the inverse of the layer's Jacobian</button><div class="why" hidden>$\boldsymbol\delta_{i-1}=J_i^\top\boldsymbol\delta_i$: gradients pull back through the transpose (the adjoint map). Forward-mode pushes tangents forward with $J_i$ itself.</div></div>
+</section>
+
+<section class="topic" id="multiple-integrals">
+ <h2>Multiple integrals</h2>
+ <p>A single integral sums $f(x)\,dx$ over a line segment; a multiple integral sums $f\,dA$ or $f\,dV$ over a region of the plane or space. Picture tiling the region with tiny rectangles, weighting each tile by the function value, and adding up. Total probability, total mass, expected values — all are multiple integrals.</p>
+ <div class="box def"><span class="label">Definition</span> For $f$ continuous on a bounded region $R\subset\mathbb{R}^2$, $$\iint_R f\,dA=\lim_{\|\Delta\|\to0}\sum_{ij} f(x_{ij},y_{ij})\,\Delta A_{ij}.$$ <em>Fubini's theorem:</em> over a rectangle $[a,b]\times[c,d]$, the double integral equals either iterated integral: $\int_a^b\!\!\int_c^d f\,dy\,dx=\int_c^d\!\!\int_a^b f\,dx\,dy$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\displaystyle\iint_{[0,1]\times[0,2]}(x+y^2)\,dA=\int_0^1\!\!\int_0^2(x+y^2)\,dy\,dx=\int_0^1\Big[xy+\tfrac{y^3}{3}\Big]_0^2dx=\int_0^1\Big(2x+\tfrac83\Big)dx=1+\tfrac83=\tfrac{11}{3}.$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\iint_R xy\,dA$ over $R=[0,2]\times[0,3]$. <details class="sol"><summary>Solution</summary><div>$\int_0^2x\,dx\int_0^3y\,dy=2\cdot\frac92=9$ (product of separated integrals).</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\iint_R e^{x+y}dA$ over $[0,1]^2$. <details class="sol"><summary>Solution</summary><div>$\left(\int_0^1e^xdx\right)^2=(e-1)^2\approx2.952$.</div></details></li>
+  <li><span class="lvl h">HARD</span> A joint density is $f(x,y)=cxy$ on $[0,1]^2$ (0 outside). Find $c$ and $P(X+Y\le1)$. <details class="sol"><summary>Solution</summary><div>$c\int_0^1\!\int_0^1xy\,dxdy=c\cdot\frac14=1\Rightarrow c=4$. $P=4\int_0^1\!\int_0^{1-x}xy\,dy\,dx=4\int_0^1x\frac{(1-x)^2}{2}dx=2\int_0^1(x-2x^2+x^3)dx=2(\tfrac12-\tfrac23+\tfrac14)=2\cdot\tfrac{1}{12}=\tfrac16$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="double-integrals">
+ <h2>Double integrals</h2>
+ <p>The practical craft: turn a 2-D region into iterated 1-D integrals with the right limits. For non-rectangular regions the inner limits depend on the outer variable, and sometimes swapping the order turns an impossible integral into an easy one.</p>
+ <div class="box def"><span class="label">Definition</span> If $R=\{(x,y): a\le x\le b,\ g_1(x)\le y\le g_2(x)\}$ (type I), then $$\iint_Rf\,dA=\int_a^b\!\!\int_{g_1(x)}^{g_2(x)}f(x,y)\,dy\,dx.$$ Type II regions swap the roles of $x$ and $y$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\displaystyle\int_0^1\!\!\int_x^1 e^{y^2}\,dy\,dx$ is stuck — $e^{y^2}$ has no elementary antiderivative. Swap the order: the region is $0\le x\le y\le1$, so $$\int_0^1\!\!\int_0^y e^{y^2}\,dx\,dy=\int_0^1 y\,e^{y^2}dy=\Big[\tfrac12e^{y^2}\Big]_0^1=\tfrac{e-1}{2}.$$</div>
+ <div class="box pit"><span class="label">Pitfall</span> When you swap the order of integration, you must redraw the region and rederive the limits — never just swap the symbols $dx\,dy$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Integrate $f=1$ over the triangle with vertices $(0,0),(1,0),(1,1)$. <details class="sol"><summary>Solution</summary><div>$\int_0^1\!\int_0^x dy\,dx=\int_0^1x\,dx=\frac12$ — the triangle's area. ✓</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\iint_R (x+y)\,dA$ where $R$ is bounded by $y=x^2$ and $y=x$. <details class="sol"><summary>Solution</summary><div>Curves meet at $x=0,1$; $x^2\le y\le x$ on $[0,1]$. $\int_0^1\!\int_{x^2}^{x}(x+y)dy\,dx=\int_0^1\Big[xy+\tfrac{y^2}{2}\Big]_{x^2}^{x}dx=\int_0^1\big(x^2+\tfrac{x^2}{2}-x^3-\tfrac{x^4}{2}\big)dx=\tfrac12+\tfrac16-\tfrac14-\tfrac1{10}=\tfrac{3}{10}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Evaluate $\int_0^1\!\!\int_{\sqrt{y}}^{1}\sin(x^3)\,dx\,dy$ by reversing the order. <details class="sol"><summary>Solution</summary><div>Region: $\sqrt y\le x\le1$, $0\le y\le1$ ⟺ $0\le y\le x^2$, $0\le x\le1$. So $\int_0^1\!\int_0^{x^2}\sin(x^3)dy\,dx=\int_0^1x^2\sin(x^3)dx=\Big[-\tfrac13\cos(x^3)\Big]_0^1=\tfrac{1-\cos1}{3}\approx0.1533$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="triple-integrals">
+ <h2>Triple integrals</h2>
+ <p>Same idea, one more dimension: chop a solid into boxes, weight, sum. Choosing the right coordinate system (Cartesian, cylindrical, spherical) is most of the battle; the integrand and region symmetry tell you which.</p>
+ <div class="box def"><span class="label">Definition</span> $\displaystyle\iiint_E f\,dV=\int\!\!\int\!\!\int f(x,y,z)\,dz\,dy\,dx$ over a solid $E$, iterated in any convenient order. Cylindrical: $dV=r\,dz\,dr\,d\theta$. Spherical: $dV=\rho^2\sin\phi\,d\rho\,d\phi\,d\theta$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Volume of the ball of radius $a$: $$\int_0^{2\pi}\!\!\int_0^{\pi}\!\!\int_0^{a}\rho^2\sin\phi\,d\rho\,d\phi\,d\theta=2\pi\cdot\Big[-\cos\phi\Big]_0^\pi\cdot\frac{a^3}{3}=2\pi\cdot2\cdot\frac{a^3}{3}=\frac{4}{3}\pi a^3.$$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\iiint_E dV$ for the box $[0,1]\times[0,2]\times[0,3]$. <details class="sol"><summary>Solution</summary><div>$1\cdot2\cdot3=6$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the volume under $z=4-x^2-y^2$ above the $xy$-plane. <details class="sol"><summary>Solution</summary><div>Cylindrical: $z=4-r^2\ge0$ for $r\le2$. $V=\int_0^{2\pi}\!\int_0^2(4-r^2)r\,dr\,d\theta=2\pi\Big[2r^2-\tfrac{r^4}{4}\Big]_0^2=2\pi(8-4)=8\pi$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\iiint_E z\,dV$ where $E$ is the upper half-ball $x^2+y^2+z^2\le1$, $z\ge0$. <details class="sol"><summary>Solution</summary><div>Spherical with $z=\rho\cos\phi$: $\int_0^{2\pi}\!\int_0^{\pi/2}\!\int_0^1\rho\cos\phi\,\rho^2\sin\phi\,d\rho\,d\phi\,d\theta=2\pi\cdot\frac14\cdot\int_0^{\pi/2}\sin\phi\cos\phi\,d\phi=2\pi\cdot\frac14\cdot\frac12=\frac{\pi}{4}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="change-of-variables">
+ <h2>Change of variables</h2>
+ <p>Substitution in many dimensions: warp the region into a simpler one via a map $T$, and pay for the warping with the absolute value of the Jacobian determinant — the local area/volume stretch factor. Polar, cylindrical and spherical coordinates are all special cases.</p>
+ <div class="box def"><span class="label">Definition</span> If $T:(u,v)\mapsto(x,y)$ is one-to-one and continuously differentiable on a region $S$ with image $R$, then $$\iint_R f(x,y)\,dx\,dy=\iint_S f(T(u,v))\,\left|\det\frac{\partial(x,y)}{\partial(u,v)}\right|\,du\,dv.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> The Gaussian integral $I=\int_{-\infty}^{\infty}e^{-x^2}dx$. Square it and go polar: $$I^2=\iint_{\mathbb{R}^2}e^{-(x^2+y^2)}dA=\int_0^{2\pi}\!\!\int_0^{\infty}e^{-r^2}\,r\,dr\,d\theta=2\pi\cdot\Big[-\tfrac12e^{-r^2}\Big]_0^\infty=\pi.$$ So $I=\sqrt\pi$ — the normalizing constant of the Gaussian distribution (Ch 11) in one line, courtesy of the Jacobian factor $r$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Use polar coordinates to compute $\iint_{x^2+y^2\le4}(x^2+y^2)\,dA$. <details class="sol"><summary>Solution</summary><div>$\int_0^{2\pi}\!\int_0^2r^2\cdot r\,dr\,d\theta=2\pi\cdot\frac{16}{4}=8\pi$.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate $\iint_R(x-y)^2\,dA$ over the square with vertices $(1,0),(0,1),(-1,0),(0,-1)$ using $u=x+y$, $v=x-y$. <details class="sol"><summary>Solution</summary><div>The square is $|u|\le1,|v|\le1$. $x=\frac{u+v}{2},y=\frac{u-v}{2}$, $\det\frac{\partial(x,y)}{\partial(u,v)}=\begin{vmatrix}1/2&1/2\\1/2&-1/2\end{vmatrix}=-\tfrac12$, so $dA=\frac12du\,dv$. Integral $=\frac12\int_{-1}^1\!\int_{-1}^1v^2du\,dv=\frac12\cdot2\cdot\frac23=\frac23$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that if $\mathbf y=A\mathbf x$ with invertible $A$, the uniform density on a set $S$ maps to a density scaled by $1/|\det A|$ on $AS$ — and connect to the change-of-variables formula for probability densities. <details class="sol"><summary>Solution</summary><div>Volumes scale by $|\det A|$: $\mathrm{vol}(AS)=|\det A|\,\mathrm{vol}(S)$. Probability mass is conserved, so density $=$ mass/volume must shrink by $|\det A|$: $p_Y(\mathbf y)=p_X(A^{-1}\mathbf y)/|\det A|$. In general for $\mathbf y=g(\mathbf x)$: $p_Y(\mathbf y)=p_X(g^{-1}(\mathbf y))\,|\det J_{g^{-1}}(\mathbf y)|$ — the identity behind normalizing flows (Ch 22).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="jacobian-determinant">
+ <h2>Jacobian determinant</h2>
+ <p>The determinant of the Jacobian is a single number with a vivid meaning: how much the map stretches area (2-D) or volume ($n$-D) near a point, with sign recording orientation flip. $|\det J|&gt;1$ expands, $&lt;1$ compresses, $=0$ flattens — where the map is not locally invertible.</p>
+ <div class="box def"><span class="label">Definition</span> For $T:\mathbb{R}^n\to\mathbb{R}^n$ differentiable, the Jacobian determinant at $\mathbf u$ is $\det J_T(\mathbf u)$. A small region of volume $dV$ near $\mathbf u$ maps to a region of volume $|\det J_T(\mathbf u)|\,dV$. <em>Inverse function theorem:</em> if $\det J_T(\mathbf u)\neq0$ and $T$ is continuously differentiable, $T$ is locally invertible near $\mathbf u$, with $J_{T^{-1}}=(J_T)^{-1}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Spherical coordinates $x=\rho\sin\phi\cos\theta$, $y=\rho\sin\phi\sin\theta$, $z=\rho\cos\phi$: expanding the $3\times3$ determinant gives $\det J=\rho^2\sin\phi$ — the factor in every spherical integral. Check dimensions: $\rho^2\sin\phi\,d\rho\,d\phi\,d\theta$ has units of volume ✓, and it vanishes on the $z$-axis ($\phi=0,\pi$) where spherical coordinates degenerate.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>The linear map $\begin{pmatrix}a&b\\c&d\end{pmatrix}$ sends the unit square to a parallelogram. Slide the entries; the shaded area is $|\det|$, and it collapses when the columns align.</p>
+  <canvas id="cv-jac"></canvas>
+  <div class="ctl"><label>a <input type="range" id="jac-a" min="-2" max="2" step="0.1" value="1.5"></label>
+  <label>b <input type="range" id="jac-b" min="-2" max="2" step="0.1" value="0.5"></label>
+  <label>c <input type="range" id="jac-c" min="-2" max="2" step="0.1" value="0.3"></label>
+  <label>d <input type="range" id="jac-d" min="-2" max="2" step="0.1" value="1"></label></div>
+  <div class="out" id="jac-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> $\ln|\det J|$ is the exact log-density correction in normalizing flows (Ch 22) and in the change-of-variables formula for densities (Ch 11).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute the Jacobian determinant of $T(u,v)=(3u, u+2v)$. What does it mean? <details class="sol"><summary>Solution</summary><div>$J=\begin{pmatrix}3&0\\1&2\end{pmatrix}$, $\det=6$: every small area is magnified 6×.</div></details></li>
+  <li><span class="lvl m">MED</span> Where does $T(x,y)=(x^2-y^2,\,2xy)$ fail to be locally invertible? <details class="sol"><summary>Solution</summary><div>$\det J=\begin{vmatrix}2x&-2y\\2y&2x\end{vmatrix}=4(x^2+y^2)$, zero only at the origin — the one point where the complex squaring map $z\mapsto z^2$ folds the plane.</div></details></li>
+  <li><span class="lvl h">HARD</span> For an invertible linear layer $\mathbf y=A\mathbf x$ in a normalizing flow, the log-density transforms as $\ln p_Y(\mathbf y)=\ln p_X(\mathbf x)-\ln|\det A|$. Verify total probability is conserved for $n=1$, $y=2x$, $p_X$ standard Gaussian. <details class="sol"><summary>Solution</summary><div>$p_Y(y)=p_X(y/2)\cdot\frac12$. $\int p_Y(y)dy=\int p_X(y/2)\tfrac12dy\overset{u=y/2}{=}\int p_X(u)du=1$ ✓. The $\frac12=1/|\det A|$ factor is exactly what keeps mass normalized.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="vector-fields">
+ <h2>Vector fields</h2>
+ <p>A vector field attaches an arrow to every point: wind on a weather map, gradients on a loss surface, flow of a differential equation. Two big questions about any field: does it swirl (curl), and does it spread (divergence)? And is it secretly the gradient of some potential function?</p>
+ <div class="box def"><span class="label">Definition</span> A vector field on $\mathbb{R}^n$ is a map $\mathbf F:\mathbb{R}^n\to\mathbb{R}^n$, written $\mathbf F=(P,Q)$ in 2-D or $(P,Q,R)$ in 3-D. $\mathbf F$ is <em>conservative</em> if $\mathbf F=\nabla f$ for a scalar potential $f$; in 2-D on a simply connected domain this holds iff $\partial P/\partial y=\partial Q/\partial x$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Is $\mathbf F=(2xy+3,\;x^2+4y)$ conservative? $\partial_y(2xy+3)=2x$ and $\partial_x(x^2+4y)=2x$ — equal on all of $\mathbb{R}^2$, so yes. Find $f$: $f_x=2xy+3\Rightarrow f=x^2y+3x+g(y)$; then $f_y=x^2+g'(y)=x^2+4y\Rightarrow g=2y^2$. Potential: $f=x^2y+3x+2y^2$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Blend a purely rotating field with a purely expanding one. The readouts show curl and divergence; watch the arrows change character.</p>
+  <canvas id="cv-vf"></canvas>
+  <div class="ctl"><label>rotation ω <input type="range" id="vf-rot" min="-1" max="1" step="0.05" value="0.6"></label>
+  <label>expansion s <input type="range" id="vf-div" min="-1" max="1" step="0.05" value="0.2"></label></div>
+  <div class="out" id="vf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Sketch/describe the field $\mathbf F(x,y)=(-y,x)$. <details class="sol"><summary>Solution</summary><div>At each point the arrow is perpendicular to the position vector, length $=$ distance from origin: rigid counterclockwise rotation.</div></details></li>
+  <li><span class="lvl m">MED</span> Is $\mathbf F=(-y,x)$ conservative? <details class="sol"><summary>Solution</summary><div>$\partial_y(-y)=-1\neq1=\partial_x(x)$. No — a rotating field cannot be a gradient (gradients have zero circulation on loops).</div></details></li>
+  <li><span class="lvl h">HARD</span> $\mathbf F=\left(\dfrac{-y}{x^2+y^2},\dfrac{x}{x^2+y^2}\right)$ satisfies $P_y=Q_x$ away from the origin, yet its circulation around the unit circle is $2\pi\neq0$. Reconcile. <details class="sol"><summary>Solution</summary><div>Compute: $P_y=\frac{-(x^2+y^2)+2y^2}{(x^2+y^2)^2}=\frac{y^2-x^2}{(x^2+y^2)^2}=Q_x$. But the domain $\mathbb{R}^2\setminus\{0\}$ is not simply connected — the equality of crossed partials only guarantees a potential on domains without holes. Locally $\mathbf F=\nabla\theta$ (the angle), but $\theta$ cannot be defined continuously around the origin; each loop gains $2\pi$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="line-integrals">
+ <h2>Line integrals</h2>
+ <p>Integrate along a curve instead of an interval: either a scalar (mass of a wire, $\int f\,ds$) or the tangential component of a field (work done by a force, $\int\mathbf F\cdot d\mathbf r$). For conservative fields, work depends only on endpoints — the fundamental theorem of calculus, upgraded to curves.</p>
+ <div class="box def"><span class="label">Definition</span> For a curve $C$ parametrized by $\mathbf r(t)$, $t\in[a,b]$: $$\int_C f\,ds=\int_a^b f(\mathbf r(t))\,\|\mathbf r'(t)\|\,dt,\qquad \int_C\mathbf F\cdot d\mathbf r=\int_a^b\mathbf F(\mathbf r(t))\cdot\mathbf r'(t)\,dt.$$ <em>Fundamental theorem for line integrals:</em> if $\mathbf F=\nabla f$, then $\int_C\mathbf F\cdot d\mathbf r=f(\mathbf r(b))-f(\mathbf r(a))$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Work by $\mathbf F=(y,\,x^2)$ along $\mathbf r(t)=(t,t^2)$, $t\in[0,1]$: $\mathbf r'=(1,2t)$, $\mathbf F(\mathbf r)=(t^2,t^2)$. $$W=\int_0^1(t^2\cdot1+t^2\cdot2t)\,dt=\int_0^1(t^2+2t^3)dt=\tfrac13+\tfrac12=\tfrac56.$$</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\int_C x\,ds$ where $C$ is the segment from $(0,0)$ to $(3,4)$. <details class="sol"><summary>Solution</summary><div>$\mathbf r(t)=(3t,4t)$, $\|\mathbf r'\|=5$. $\int_0^13t\cdot5\,dt=\frac{15}{2}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $\int_C\mathbf F\cdot d\mathbf r$ for the conservative $\mathbf F=(2xy+3,\,x^2+4y)$ from $(0,0)$ to $(1,2)$ (any path). <details class="sol"><summary>Solution</summary><div>Potential $f=x^2y+3x+2y^2$ (from the vector-fields example). $W=f(1,2)-f(0,0)=2+3+8=13$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute the circulation of $\mathbf F=(-y,x)$ around the circle $x^2+y^2=R^2$ (counterclockwise) and interpret. <details class="sol"><summary>Solution</summary><div>$\mathbf r=(R\cos t,R\sin t)$, $\mathbf r'=(-R\sin t,R\cos t)$, $\mathbf F\cdot\mathbf r'=R^2\sin^2t+R^2\cos^2t=R^2$. Circulation $=\int_0^{2\pi}R^2dt=2\pi R^2$ — twice the enclosed area times the field's rotation rate; consistent with curl $=2$ over area $\pi R^2$ via Green's theorem.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="surface-integrals">
+ <h2>Surface integrals</h2>
+ <p>Now integrate over a curved 2-D surface sitting in 3-D: total of a scalar over the surface ($\iint f\,dS$), or the flux of a field through it ($\iint\mathbf F\cdot d\mathbf S$) — how much of the field pokes through per unit time. Flux through closed surfaces is the star of the divergence theorem.</p>
+ <div class="box def"><span class="label">Definition</span> For a surface parametrized by $\mathbf r(u,v)$ on domain $D$: $$\iint_S f\,dS=\iint_D f(\mathbf r)\,\|\mathbf r_u\times\mathbf r_v\|\,du\,dv,\qquad \iint_S\mathbf F\cdot d\mathbf S=\iint_D\mathbf F(\mathbf r)\cdot(\mathbf r_u\times\mathbf r_v)\,du\,dv,$$ orientation chosen by the direction of $\mathbf r_u\times\mathbf r_v$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Flux of $\mathbf F=(0,0,z)$ up through the disk $x^2+y^2\le1$, $z=1$? Parametrize $\mathbf r(u,v)=(u,v,1)$ over the unit disk; $\mathbf r_u\times\mathbf r_v=(0,0,1)$. $\mathbf F=(0,0,1)$ on the disk. Flux $=\iint_D1\,dA=\pi$. Now flux of the same field out of the sphere $x^2+y^2+z^2=1$: by symmetry use the divergence theorem preview — $\nabla\cdot\mathbf F=1$, so flux $=\mathrm{vol}=\frac43\pi$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\iint_S dS$ for the cylinder side $x^2+y^2=4$, $0\le z\le3$. <details class="sol"><summary>Solution</summary><div>Lateral area $=2\pi r h=2\pi\cdot2\cdot3=12\pi$.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the flux of $\mathbf F=(x,y,0)$ out through the cylinder side above. <details class="sol"><summary>Solution</summary><div>Outward normal on the side is $(x,y,0)/2$. $\mathbf F\cdot\hat{\mathbf n}=\frac{x^2+y^2}{2}=2$. Flux $=2\times12\pi=24\pi$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute $\iint_S z^2\,dS$ over the unit sphere. <details class="sol"><summary>Solution</summary><div>By symmetry $\iint x^2=\iint y^2=\iint z^2$ and their sum is $\iint(x^2+y^2+z^2)dS=\iint1\,dS=4\pi$. So $\iint z^2dS=\frac{4\pi}{3}$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="divergence">
+ <h2>Divergence</h2>
+ <p>Put a tiny box at a point: divergence measures net outflow per unit volume. Positive = source (field spreads out), negative = sink, zero = incompressible flow. It converts a vector field into a scalar field of "spreadiness."</p>
+ <div class="box def"><span class="label">Definition</span> $$\nabla\cdot\mathbf F=\frac{\partial P}{\partial x}+\frac{\partial Q}{\partial y}+\frac{\partial R}{\partial z}.$$ Equivalently $\nabla\cdot\mathbf F(\mathbf p)=\lim_{V\to0}\frac{1}{|V|}\oint_{\partial V}\mathbf F\cdot d\mathbf S$ over shrinking volumes around $\mathbf p$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf F=(x,y,z)$ (radial explosion): $\nabla\cdot\mathbf F=1+1+1=3$ everywhere — a uniform source. $\mathbf F=(-y,x,0)$ (rotation): $\nabla\cdot\mathbf F=0+0+0=0$ — spinning flow neither creates nor destroys volume.</div>
+ <div class="box link"><span class="label">Where this goes</span> The divergence of a probability flow appears in the Fokker–Planck equation (Ch 12) and in the continuity equation behind diffusion models (Ch 22); $\mathrm{tr}(J)=\nabla\cdot\mathbf f$ gives the volume growth of ODE flows (Ch 10).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\nabla\cdot\mathbf F$ for $\mathbf F=(x^2,\,xy,\,z^3)$. <details class="sol"><summary>Solution</summary><div>$2x+x+3z^2=3x+3z^2$.</div></details></li>
+  <li><span class="lvl m">MED</span> Show $\nabla\cdot(\nabla f)=\nabla^2f=f_{xx}+f_{yy}+f_{zz}$ (the Laplacian) for $f=x^2y+z^2$. <details class="sol"><summary>Solution</summary><div>$\nabla f=(2xy,x^2,2z)$; divergence $=2y+0+2=2y+2$. Directly: $f_{xx}=2y$, $f_{yy}=0$, $f_{zz}=2$. ✓</div></details></li>
+  <li><span class="lvl h">HARD</span> For the inverse-square field $\mathbf F=\dfrac{\mathbf r}{\|\mathbf r\|^3}$ ($\mathbf r=(x,y,z)$), show $\nabla\cdot\mathbf F=0$ for $\mathbf r\neq\mathbf0$. <details class="sol"><summary>Solution</summary><div>With $r=\|\mathbf r\|$: $\partial_x\!\left(\dfrac{x}{r^3}\right)=\dfrac{1}{r^3}-\dfrac{3x^2}{r^5}$. Summing over $x,y,z$: $\dfrac{3}{r^3}-\dfrac{3(x^2+y^2+z^2)}{r^5}=\dfrac{3}{r^3}-\dfrac{3}{r^3}=0$. All the "source" of gravity/Coulomb fields is concentrated at the origin.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="curl">
+ <h2>Curl</h2>
+ <p>Drop a tiny paddle wheel into the flow: curl measures how fast it spins, and about which axis. It converts a 3-D field into another 3-D field of local rotation. Zero curl (plus a hole-free domain) means the field is a gradient — no swirl, pure descent/ascent.</p>
+ <div class="box def"><span class="label">Definition</span> $$\nabla\times\mathbf F=\begin{vmatrix}\hat{\mathbf i}&\hat{\mathbf j}&\hat{\mathbf k}\\ \partial_x&\partial_y&\partial_z\\ P&Q&R\end{vmatrix}=\big(R_y-Q_z,\;P_z-R_x,\;Q_x-P_y\big).$$ In 2-D the scalar curl is $Q_x-P_y$. Identities: $\nabla\times(\nabla f)=\mathbf0$ and $\nabla\cdot(\nabla\times\mathbf F)=0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf F=(-y,x,0)$: $\nabla\times\mathbf F=(0-0,\;0-0,\;1-(-1))=(0,0,2)$ — uniform rotation about the $z$-axis at angular rate $1$, curl magnitude twice the angular velocity. And $\mathbf F=\nabla(x^2+y^2)=(2x,2y,0)$: curl $=(0,0,0)$ — gradients never swirl.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Curl-free implies conservative only on simply connected domains — recall the punctured-plane field whose loop integral is $2\pi$ despite zero curl everywhere it is defined.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $\nabla\times\mathbf F$ for $\mathbf F=(yz,\,xz,\,xy)$. <details class="sol"><summary>Solution</summary><div>$(\partial_y(xy)-\partial_z(xz),\ \partial_z(yz)-\partial_x(xy),\ \partial_x(xz)-\partial_y(yz))=(x-x,\,y-y,\,z-z)=\mathbf0$. Indeed $\mathbf F=\nabla(xyz)$.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $\nabla\cdot(\nabla\times\mathbf F)=0$ for $\mathbf F=(x^2y,\,z^3,\,xy)$. <details class="sol"><summary>Solution</summary><div>$\nabla\times\mathbf F=(\partial_y(xy)-\partial_z(z^3),\ \partial_z(x^2y)-\partial_x(xy),\ \partial_x(z^3)-\partial_y(x^2y))=(x-3z^2,\,-y,\,-x^2)$. Divergence: $\partial_x(x-3z^2)+\partial_y(-y)+\partial_z(-x^2)=1-1+0=0$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> A 2-D field $\mathbf F=(P,Q)$ has scalar curl $c(x,y)=Q_x-P_y$. Show the circulation around a tiny square of side $h$ centered at $\mathbf p$ is $\approx c(\mathbf p)h^2$. <details class="sol"><summary>Solution</summary><div>Sum the four sides. Bottom ($y-\frac h2$, rightward) and top ($y+\frac h2$, leftward) contribute $\approx h[P(x,y-\frac h2)-P(x,y+\frac h2)]\approx-h^2P_y$. Right and left similarly give $h[Q(x+\frac h2,y)-Q(x-\frac h2,y)]\approx h^2Q_x$. Total $\approx(Q_x-P_y)h^2$ — the differential statement of Green's theorem.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="greens-theorem">
+ <h2>Green's theorem</h2>
+ <p>Circulation around a closed loop equals the total curl inside it. All the internal swirling cancels along shared edges of tiny cells; only the boundary survives. It is the 2-D member of the great boundary-equals-interior family.</p>
+ <div class="box thm"><span class="label">Theorem (Green)</span> For a positively oriented, piecewise-smooth simple closed curve $C$ bounding a region $D$, with $P,Q$ continuously differentiable on an open set containing $D$: $$\oint_C P\,dx+Q\,dy=\iint_D\Big(\frac{\partial Q}{\partial x}-\frac{\partial P}{\partial y}\Big)\,dA.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> $\oint_C(x^2-y)\,dx+(x+y^2)\,dy$ around the unit circle. $Q_x-P_y=1-(-1)=2$, so the integral is $2\times\pi=2\pi$ — no parametrization needed. Bonus: taking $P=-y/2$, $Q=x/2$ gives the area formula $A=\frac12\oint x\,dy-y\,dx$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Use Green's theorem to evaluate $\oint_C -y\,dx+x\,dy$ around any simple closed curve enclosing area $A$. <details class="sol"><summary>Solution</summary><div>$Q_x-P_y=1+1=2$: integral $=2A$.</div></details></li>
+  <li><span class="lvl m">MED</span> Evaluate $\oint_C y^2dx+3xy\,dy$ around the boundary of the upper half-disk $x^2+y^2\le1,y\ge0$. <details class="sol"><summary>Solution</summary><div>$Q_x-P_y=3y-2y=y$. $\iint_D y\,dA=\int_0^\pi\!\int_0^1 r\sin\theta\,r\,dr\,d\theta=\frac13\cdot2=\frac23$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Compute the area of the ellipse $x=a\cos t$, $y=b\sin t$ via $A=\frac12\oint x\,dy-y\,dx$. <details class="sol"><summary>Solution</summary><div>$x\,dy-y\,dx=a\cos t\cdot b\cos t\,dt-b\sin t\cdot(-a\sin t)\,dt=ab\,dt$. $A=\frac12\int_0^{2\pi}ab\,dt=\pi ab$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="stokes-theorem">
+ <h2>Stokes' theorem</h2>
+ <p>Green's theorem lifted into 3-D: the circulation of a field around the rim of a surface equals the flux of its curl through the surface — any surface with that rim. Swirl inside cancels; the boundary keeps the score.</p>
+ <div class="box thm"><span class="label">Theorem (Stokes)</span> For an oriented piecewise-smooth surface $S$ with boundary curve $\partial S$ (oriented compatibly, right-hand rule): $$\oint_{\partial S}\mathbf F\cdot d\mathbf r=\iint_S(\nabla\times\mathbf F)\cdot d\mathbf S.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> $\mathbf F=(-y,x,z^2)$, $S$ the upper unit hemisphere, boundary the unit circle in the plane $z=0$. $\nabla\times\mathbf F=(0,0,2)$. Easiest surface with the same rim: the flat disk. Flux of $(0,0,2)$ up through the disk $=2\pi$. Check by direct circulation: on the rim, $\mathbf F\cdot d\mathbf r$ reduces to the 2-D rotation computation $=2\pi$ ✓. Freedom to swap surfaces is the practical power of the theorem.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> If $\nabla\times\mathbf F=\mathbf 0$ everywhere, what is $\oint_C\mathbf F\cdot d\mathbf r$ around any closed curve bounding a surface? <details class="sol"><summary>Solution</summary><div>Zero, by Stokes — curl-free fields have no circulation on contractible loops.</div></details></li>
+  <li><span class="lvl m">MED</span> Use Stokes to evaluate $\oint_C\mathbf F\cdot d\mathbf r$ for $\mathbf F=(z,x,y)$ around the triangle $(1,0,0)\to(0,1,0)\to(0,0,1)\to(1,0,0)$. <details class="sol"><summary>Solution</summary><div>$\nabla\times\mathbf F=(\partial_yy-\partial_zx,\ \partial_zz-\partial_xy,\ \partial_xx-\partial_yz)=(1,1,1)$. The triangle lies in $x+y+z=1$ with unit normal $(1,1,1)/\sqrt3$ and area $\frac{\sqrt3}{2}$. Flux $=(1,1,1)\cdot\frac{(1,1,1)}{\sqrt3}\cdot\frac{\sqrt3}{2}=\frac{3}{2}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Two different surfaces $S_1,S_2$ share the same boundary curve. Show $\iint_{S_1}(\nabla\times\mathbf F)\cdot d\mathbf S=\iint_{S_2}(\nabla\times\mathbf F)\cdot d\mathbf S$ two ways. <details class="sol"><summary>Solution</summary><div>(1) Both equal the boundary circulation by Stokes. (2) $S_1\cup(-S_2)$ is a closed surface; by the divergence theorem its total flux of $\nabla\times\mathbf F$ is $\iiint\nabla\cdot(\nabla\times\mathbf F)\,dV=0$ since div curl $=0$; hence the two fluxes agree.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="divergence-theorem">
+ <h2>Divergence theorem</h2>
+ <p>Total outflow through a closed surface equals total source strength inside. Sum the microscopic outflows (divergence) over the volume; interior flows cancel across shared faces, leaving only flux through the skin. Conservation laws — of mass, heat, charge, probability — are all this theorem in action.</p>
+ <div class="box thm"><span class="label">Theorem (Gauss/divergence)</span> For a solid region $E$ with outward-oriented boundary surface $\partial E$: $$\oiint_{\partial E}\mathbf F\cdot d\mathbf S=\iiint_E\nabla\cdot\mathbf F\,dV.$$</div>
+ <div class="box ex"><span class="label">Worked example</span> Flux of $\mathbf F=(x^3,y^3,z^3)$ out of the unit sphere. $\nabla\cdot\mathbf F=3(x^2+y^2+z^2)=3\rho^2$. $$\iiint_E3\rho^2\,dV=3\int_0^{2\pi}\!\!\int_0^\pi\!\!\int_0^1\rho^2\cdot\rho^2\sin\phi\,d\rho\,d\phi\,d\theta=3\cdot2\pi\cdot2\cdot\tfrac15=\tfrac{12\pi}{5}.$$ Direct surface computation would be painful; the theorem makes it three lines.</div>
+ <div class="box link"><span class="label">Where this goes</span> Applied to probability flux, this is how the Fokker–Planck equation (Ch 12) conserves total probability, and how the continuity equation underlies the probability-flow ODE of diffusion models (Ch 22).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Flux of $\mathbf F=(x,y,z)$ out of any region of volume $V$? <details class="sol"><summary>Solution</summary><div>$\nabla\cdot\mathbf F=3$, so flux $=3V$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute the flux of $\mathbf F=(xy,\,y z,\,zx)$ out of the unit cube $[0,1]^3$. <details class="sol"><summary>Solution</summary><div>$\nabla\cdot\mathbf F=y+z+x$. $\iiint_{[0,1]^3}(x+y+z)dV=3\cdot\frac12=\frac32$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Heat with density $u(\mathbf x,t)$ flows with flux $\mathbf q=-k\nabla u$. Use the divergence theorem on an arbitrary region to derive the heat equation $u_t=k\nabla^2u$. <details class="sol"><summary>Solution</summary><div>Energy in region $E$: $\frac{d}{dt}\iiint_Eu\,dV=-\oiint_{\partial E}\mathbf q\cdot d\mathbf S$ (outflow decreases energy) $=-\iiint_E\nabla\cdot\mathbf q\,dV=\iiint_Ek\nabla^2u\,dV$. Since $E$ is arbitrary and the integrands continuous, $u_t=k\nabla^2u$ pointwise — the PDE of Ch 10.</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="1"><div class="q">Green's, Stokes' and the divergence theorem all say the same kind of thing. Which?</div><button class="opt">derivatives commute for smooth functions</button><button class="opt">the integral of a derivative over a region equals an integral over the region's boundary</button><button class="opt">every field is the gradient of a potential</button><div class="why" hidden>Each is a case of the generalized Stokes theorem: $\int_{\Omega}d\omega=\int_{\partial\Omega}\omega$ — interior accumulation of a derivative shows up entirely on the boundary, just like the fundamental theorem of calculus.</div></div>
+</section>
+
+<section class="topic" id="manifolds-and-the-manifold-hypothesis">
+ <h2>Manifolds and the manifold hypothesis</h2>
+ <p>A manifold is a shape that looks flat if you zoom in far enough — a curve is a 1-D manifold, a sphere's surface a 2-D manifold living in 3-D. The manifold hypothesis says real data (images, speech, text embeddings) lives near a low-dimensional manifold inside its huge ambient space: a million-pixel face image has maybe a few hundred true degrees of freedom (pose, lighting, identity). This is why learning is possible at all in high dimensions — and why moving "along the data manifold" (interpolating faces) differs from moving randomly in pixel space (producing noise).</p>
+ <div class="box def"><span class="label">Definition</span> A $k$-dimensional manifold $M\subset\mathbb{R}^n$ is a set that is locally diffeomorphic to $\mathbb{R}^k$: every point has a neighborhood on $M$ parametrized smoothly and invertibly by $k$ coordinates (a <em>chart</em>). The <em>tangent space</em> $T_pM$ at $p$ is the $k$-dimensional linear space of velocity vectors of curves through $p$ on $M$; for a level set $M=\{F=c\}$ with $\nabla F\neq0$, $T_pM=\{\mathbf v:\nabla F(p)\cdot\mathbf v=0\}$. <em>Manifold hypothesis:</em> natural high-dimensional data concentrates near a manifold with $k\ll n$.</div>
+ <div class="box ex"><span class="label">Worked example</span> The unit circle $S^1=\{(x,y):x^2+y^2=1\}$ is a 1-D manifold in $\mathbb{R}^2$. Charts: $\theta\mapsto(\cos\theta,\sin\theta)$ on overlapping arcs (no single chart covers it all — a global angle is discontinuous somewhere). Tangent space at $p=(\frac{\sqrt2}{2},\frac{\sqrt2}{2})$: vectors orthogonal to $\nabla(x^2+y^2)=2p$, i.e. multiples of $(-1,1)$. Data version: grayscale $64\times64$ images of a clock face showing different times live in $\mathbb{R}^{4096}$ but form (approximately) a 1-D manifold parametrized by the time.</div>
+ <div class="box think"><span class="label">Think first</span> Take two natural images and average them pixel by pixel. Why does the result look like a ghostly double exposure rather than a natural image? <details class="sol"><summary>Reveal</summary><div>The straight line between two points of a curved manifold leaves the manifold. Natural images occupy a thin curved set in pixel space; chords cut through the off-manifold interior. Generative models (Ch 22) fix this by interpolating in a learned latent space, where the decoder maps straight latent lines to curves along the data manifold.</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Latent spaces of VAEs and diffusion models (Ch 22), representation learning (Ch 21), and latent world models (Ch 29) are all attempts to find coordinates (charts) for data manifolds.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the dimension of the manifold of $2\times2$ rotation matrices $\begin{pmatrix}\cos\theta&-\sin\theta\\ \sin\theta&\cos\theta\end{pmatrix}$ inside $\mathbb{R}^4$? <details class="sol"><summary>Solution</summary><div>One parameter $\theta$: a 1-D manifold (a circle) in 4-D space.</div></details></li>
+  <li><span class="lvl m">MED</span> Find the tangent space to the sphere $x^2+y^2+z^2=9$ at $(2,2,1)$. <details class="sol"><summary>Solution</summary><div>Orthogonal complement of $\nabla F=(4,4,2)$, i.e. $\{(u,v,w):2u+2v+w=0\}$ — a 2-D plane, as expected for a 2-D manifold.</div></details></li>
+  <li><span class="lvl h">HARD</span> Images of a rigid object under all 3-D rotations and translations, at fixed lighting, form approximately a manifold of what dimension? What does this predict about the number of latent variables needed to model them? <details class="sol"><summary>Solution</summary><div>Rigid motions have $3$ rotational $+$ $3$ translational $=6$ degrees of freedom, so a 6-D manifold (whatever the pixel count). A generative model should need only ~6 latent coordinates to traverse this family — the manifold hypothesis quantified. Real data adds dimensions for lighting, deformation, texture, but still $k\ll n$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Gauss–Newton warm-up.</b> Let $L(\mathbf w)=\tfrac12\|X\mathbf w-\mathbf y\|^2$ with $X=\begin{pmatrix}1&1\\1&2\\1&3\end{pmatrix}$, $\mathbf y=(1,2,2)^\top$. (a) Compute $\nabla L$ and the Hessian. (b) Solve for the minimizer. (c) Starting at $\mathbf w=\mathbf 0$, show one Newton step lands exactly at the minimizer. <details class="sol"><summary>Solution</summary><div>(a) $\nabla L=X^\top(X\mathbf w-\mathbf y)$, $H=X^\top X=\begin{pmatrix}3&6\\6&14\end{pmatrix}$; $X^\top\mathbf y=(5,11)^\top$. (b) Solve $H\mathbf w=X^\top\mathbf y$: $\det H=42-36=6$; $\mathbf w=\frac16\begin{pmatrix}14&-6\\-6&3\end{pmatrix}\begin{pmatrix}5\\11\end{pmatrix}=\frac16\begin{pmatrix}70-66\\-30+33\end{pmatrix}=\begin{pmatrix}2/3\\1/2\end{pmatrix}$. (c) Newton from $\mathbf0$: $\mathbf w_1=\mathbf0-H^{-1}\nabla L(\mathbf0)=H^{-1}X^\top\mathbf y$, which is exactly the minimizer — Newton solves quadratics in one step because the second-order Taylor expansion is exact.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Constrained least squares by Lagrange.</b> Minimize $\|\mathbf x\|^2$ subject to $A\mathbf x=\mathbf b$, $A=\begin{pmatrix}1&1&1\end{pmatrix}$, $\mathbf b=3$. Then state the general formula $\mathbf x^\star=A^\top(AA^\top)^{-1}\mathbf b$ and verify it on this instance. <details class="sol"><summary>Solution</summary><div>Lagrangian $\mathcal L=\|\mathbf x\|^2-\lambda(A\mathbf x-b)$: $2\mathbf x=\lambda A^\top\Rightarrow\mathbf x=\frac{\lambda}{2}A^\top$. Constraint: $\frac{\lambda}{2}AA^\top=b$, $AA^\top=3$, so $\lambda=2$, $\mathbf x=(1,1,1)^\top$, norm² $=3$. General: from $\mathbf x=\frac{\lambda}{2}A^\top$ and $A\mathbf x=\mathbf b$: $\frac{\lambda}{2}=(AA^\top)^{-1}\mathbf b$ hence $\mathbf x^\star=A^\top(AA^\top)^{-1}\mathbf b$ — the minimum-norm solution / pseudoinverse (Ch 8). Here: $A^\top\cdot\frac13\cdot3=(1,1,1)^\top$ ✓.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Backprop through a full layer, by hand.</b> A network computes $\mathbf z=W\mathbf x+\mathbf b$, $\mathbf h=\mathrm{ReLU}(\mathbf z)$, $L=\tfrac12\|\mathbf h-\mathbf t\|^2$, with $W=\begin{pmatrix}1&-1\\0&2\end{pmatrix}$, $\mathbf b=(0,-1)^\top$, $\mathbf x=(1,1)^\top$, $\mathbf t=(1,0)^\top$. Compute $L$, $\nabla_WL$, $\nabla_{\mathbf b}L$, $\nabla_{\mathbf x}L$. <details class="sol"><summary>Solution</summary><div><b>Forward:</b> $W\mathbf x=(1-1,\,0+2)^\top=(0,2)^\top$; $\mathbf z=(0,1)^\top$; $\mathbf h=(0,1)^\top$; $\mathbf h-\mathbf t=(-1,1)^\top$; $L=\tfrac12(1+1)=1$.<br><b>Backward:</b> $\nabla_{\mathbf h}L=(-1,1)^\top$. ReLU mask: $z_1=0$ (subgradient — take $0$), $z_2=1&gt;0$ (pass). $\nabla_{\mathbf z}L=(0,1)^\top$. Then $\nabla_WL=\nabla_{\mathbf z}L\,\mathbf x^\top=\begin{pmatrix}0&0\\1&1\end{pmatrix}$, $\nabla_{\mathbf b}L=(0,1)^\top$, $\nabla_{\mathbf x}L=W^\top\nabla_{\mathbf z}L=\begin{pmatrix}1&0\\-1&2\end{pmatrix}(0,1)^\top=(0,2)^\top$. Check $(W)_{21}$: nudging it by $\epsilon$ changes $z_2$ by $\epsilon x_1=\epsilon$, $h_2$ by $\epsilon$, $L$ by $(h_2-t_2)\epsilon=\epsilon$ — slope $1$ ✓.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p class="lede">NumPy throughout; PyTorch for the autograd check.</p>
+ <div class="box ex"><span class="label">Task 1 — Gradient checking</span> Implement analytic gradients for $L(\mathbf w)=\tfrac12\|X\mathbf w-\mathbf y\|^2$ and verify them against central finite differences to ~8 significant digits.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(0)
+X, y = rng.normal(size=(50, 8)), rng.normal(size=50)
+
+def loss(w):   return 0.5 * np.sum((X @ w - y) ** 2)
+def grad(w):   return X.T @ (X @ w - y)
+
+w = rng.normal(size=8)
+g = grad(w)
+eps = 1e-6
+g_num = np.array([(loss(w + eps*e) - loss(w - eps*e)) / (2*eps)
+                  for e in np.eye(8)])
+rel = np.abs(g - g_num) / (np.abs(g) + np.abs(g_num) + 1e-12)
+print("max relative error:", rel.max())   # ~1e-9
+assert rel.max() &lt; 1e-6</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Backprop for a 2-layer MLP from scratch</span> Implement forward and backward passes for $\mathbf h=\mathrm{ReLU}(W_1\mathbf x+\mathbf b_1)$, $\hat y=W_2\mathbf h+\mathbf b_2$, MSE loss, and check against PyTorch autograd.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np, torch
+rng = np.random.default_rng(1)
+W1, b1 = rng.normal(size=(16, 4)), rng.normal(size=16)
+W2, b2 = rng.normal(size=(1, 16)), rng.normal(size=1)
+x, t = rng.normal(size=4), np.array([0.7])
+
+# forward
+z = W1 @ x + b1
+h = np.maximum(z, 0)
+yhat = W2 @ h + b2
+L = 0.5 * np.sum((yhat - t) ** 2)
+
+# backward (chain rule, right to left)
+d_yhat = yhat - t                    # dL/dyhat
+dW2 = np.outer(d_yhat, h)
+db2 = d_yhat
+d_h = W2.T @ d_yhat
+d_z = d_h * (z &gt; 0)                  # ReLU mask
+dW1 = np.outer(d_z, x)
+db1 = d_z
+
+# autograd check
+tp = lambda a: torch.tensor(a, requires_grad=True, dtype=torch.float64)
+TW1, Tb1, TW2, Tb2 = map(tp, (W1, b1, W2, b2))
+tx, tt = torch.tensor(x), torch.tensor(t)
+Th = torch.relu(TW1 @ tx + Tb1)
+TL = 0.5 * torch.sum((TW2 @ Th + Tb2 - tt) ** 2)
+TL.backward()
+for ours, theirs in [(dW1, TW1.grad), (db1, Tb1.grad),
+                     (dW2, TW2.grad), (db2, Tb2.grad)]:
+    assert np.allclose(ours, theirs.numpy(), atol=1e-10)
+print("backprop matches autograd; L =", L)</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — Monte Carlo change of variables</span> Sample uniformly from the unit square, push samples through $T(u,v)=(u+0.5v,\ v)$ (a shear) and through polar coordinates, and confirm empirically that densities scale by $1/|\det J|$.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+rng = np.random.default_rng(2)
+N = 1_000_000
+u, v = rng.uniform(size=N), rng.uniform(size=N)
+
+# shear: det J = 1 -&gt; area preserved
+x, y = u + 0.5 * v, v
+box = (x &gt; 0.5) &amp; (x &lt; 0.6) &amp; (y &gt; 0.2) &amp; (y &lt; 0.3)
+print("shear density in box:", box.mean() / 0.01)   # ~1.0
+
+# polar-like map: x = r cos(theta), r = u, theta = 2 pi v
+r, th = u, 2 * np.pi * v
+x, y = r * np.cos(th), r * np.sin(th)
+# density of (x, y) should be 1 / (2 pi r): check via annulus counts
+for r0 in (0.2, 0.5, 0.8):
+    ann = (np.hypot(x, y) &gt; r0) &amp; (np.hypot(x, y) &lt; r0 + 0.05)
+    area = np.pi * ((r0 + 0.05) ** 2 - r0 ** 2)
+    print(f"r={r0}: density {ann.mean()/area:.3f}, "
+          f"predicted {1/(2*np.pi*(r0+0.025)):.3f}")</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/18-02sc-multivariable-calculus-fall-2010/">MIT OCW 18.02SC Multivariable Calculus</a> — full course with videos and problem sets covering partials through the divergence theorem.</li>
+  <li><a href="https://www.khanacademy.org/math/multivariable-calculus">Khan Academy Multivariable Calculus</a> — Grant Sanderson's visual unit on gradients, divergence, curl and the big theorems.</li>
+  <li><a href="https://www.3blue1brown.com/topics/calculus">3Blue1Brown, Essence of Calculus &amp; multivariable videos</a> — the pictures behind gradients and the chain rule.</li>
+  <li><a href="https://explained.ai/matrix-calculus/">Parr &amp; Howard, "The Matrix Calculus You Need for Deep Learning"</a> — a gentle, complete tutorial on Jacobians, layouts and the shapes of gradients.</li>
+  <li><a href="https://www.math.uwaterloo.ca/~hwolkowi/matrixcookbook.pdf">Petersen &amp; Pedersen, The Matrix Cookbook</a> — the standard reference table of matrix derivative identities.</li>
+  <li><a href="https://arxiv.org/abs/1502.05767">Baydin et al., "Automatic Differentiation in Machine Learning: a Survey" (arXiv:1502.05767)</a> — how backprop generalizes to reverse-mode autodiff.</li>
+  <li><a href="https://www.deeplearningbook.org/contents/numerical.html">Goodfellow, Bengio &amp; Courville, Deep Learning, Ch 4</a> — gradient-based optimization and numerical computation, free online.</li>
+  <li><a href="https://openstax.org/details/books/calculus-volume-3">OpenStax Calculus Volume 3</a> — free textbook for multiple integrals, vector fields, Green/Stokes/divergence.</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch08.html">← 08 · Linear Algebra</a>
+ <a class="btn" href="ch10.html">10 · Differential Equations →</a>
+</div>
+
+ </main>
+</div>
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
+function val(id){var el=document.getElementById(id);return el?parseFloat(el.value):0;}
+function axes(g,w,h,x0,y0){g.strokeStyle=cssVar('--rule');g.lineWidth=1;g.beginPath();g.moveTo(0,y0);g.lineTo(w,y0);g.moveTo(x0,0);g.lineTo(x0,h);g.stroke();}
+
+/* ---- Explorer 1: gradient & level curves of x^2+4y^2 ---- */
+(function(){
+ var c=document.getElementById('cv-grad');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var scale=Math.min(w,h)/6.5, x0=w/2, y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  axes(g,w,h,x0,y0);
+  var px=val('grad-x'), py=val('grad-y');
+  var fp=px*px+4*py*py;
+  // level curves: ellipses x^2+4y^2=c
+  for(var c2=1;c2<=9;c2+=2){
+   g.strokeStyle=cssVar('--rule');g.beginPath();
+   g.ellipse(x0,y0,Math.sqrt(c2)*scale,Math.sqrt(c2)/2*scale,0,0,2*Math.PI);g.stroke();
+  }
+  // level curve through point
+  if(fp>0.01){g.strokeStyle=cssVar('--amber');g.lineWidth=2;g.beginPath();
+   g.ellipse(x0,y0,Math.sqrt(fp)*scale,Math.sqrt(fp)/2*scale,0,0,2*Math.PI);g.stroke();g.lineWidth=1;}
+  // gradient arrow (2x, 8y), drawn at 0.12 visual scale
+  var gx=2*px, gy=8*py, k=0.12;
+  g.strokeStyle=cssVar('--cobalt');g.fillStyle=cssVar('--cobalt');g.lineWidth=2.5;
+  g.beginPath();g.moveTo(X(px),Y(py));g.lineTo(X(px+gx*k),Y(py+gy*k));g.stroke();g.lineWidth=1;
+  var ang=Math.atan2(-(gy*k)*scale,(gx*k)*scale);
+  g.save();g.translate(X(px+gx*k),Y(py+gy*k));g.rotate(ang);
+  g.beginPath();g.moveTo(0,0);g.lineTo(-8,-4);g.lineTo(-8,4);g.closePath();g.fill();g.restore();
+  g.fillStyle=cssVar('--ink');g.beginPath();g.arc(X(px),Y(py),4,0,2*Math.PI);g.fill();
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('level curves of f = x²+4y²',10,18);
+  var out=document.getElementById('grad-out');
+  if(out)out.textContent='f = '+fp.toFixed(2)+'   ∇f = ('+gx.toFixed(2)+', '+gy.toFixed(2)+')   |∇f| = '+Math.hypot(gx,gy).toFixed(2);
+ }
+ on('grad-x','input',draw);on('grad-y','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 2: gradient descent on x^2 + a y^2 ---- */
+(function(){
+ var c=document.getElementById('cv-gd');if(!c)return;
+ var path=[];
+ function run(){
+  var a=val('gd-a'), lr=val('gd-lr');
+  var x=2.4, y=1.2; path=[[x,y]];
+  for(var i=0;i<60;i++){
+   var gx=2*x, gy=2*a*y;
+   x-=lr*gx; y-=lr*gy; path.push([x,y]);
+   if(Math.abs(x)>50||Math.abs(y)>50)break;
+  }
+  draw();
+ }
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var a=val('gd-a'), lr=val('gd-lr');
+  var scale=Math.min(w,h)/6.5, x0=w/2, y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  axes(g,w,h,x0,y0);
+  for(var c2=0.5;c2<=8;c2*=2){
+   g.strokeStyle=cssVar('--rule');g.beginPath();
+   g.ellipse(x0,y0,Math.sqrt(c2)*scale,Math.sqrt(c2/a)*scale,0,0,2*Math.PI);g.stroke();
+  }
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+  path.forEach(function(p,i){var px=X(p[0]),py=Y(p[1]);if(i===0)g.moveTo(px,py);else g.lineTo(px,py);});
+  g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--amber');
+  path.forEach(function(p){g.beginPath();g.arc(X(p[0]),Y(p[1]),2.5,0,2*Math.PI);g.fill();});
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('f = x² + '+a.toFixed(1)+'y²   η = '+lr.toFixed(3),10,18);
+  var last=path[path.length-1];
+  var out=document.getElementById('gd-out');
+  var diverged=Math.abs(last[0])>40||Math.abs(last[1])>40;
+  var crit=(1/a).toFixed(3);
+  if(out)out.textContent=(diverged?'DIVERGED — η exceeds 2/(2a) = '+crit:'after '+(path.length-1)+' steps: f = '+(last[0]*last[0]+a*last[1]*last[1]).toExponential(2))+'   (stable iff η < 1/a = '+crit+')';
+ }
+ on('gd-run','click',run);on('gd-a','input',run);on('gd-lr','input',run);
+ window.addEventListener('resize',draw);run();
+})();
+
+/* ---- Explorer 3: Lagrange tangency of xy = c with circle x^2+y^2 = 2 ---- */
+(function(){
+ var c=document.getElementById('cv-lag');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var scale=Math.min(w,h)/5, x0=w/2, y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  axes(g,w,h,x0,y0);
+  // constraint circle radius sqrt(2)
+  g.strokeStyle=cssVar('--ink');g.lineWidth=2;g.beginPath();
+  g.arc(x0,y0,Math.SQRT2*scale,0,2*Math.PI);g.stroke();g.lineWidth=1;
+  var cv=val('lag-c');
+  // hyperbola xy = c (two branches), plot param
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;
+  if(Math.abs(cv)>0.02){
+   [1,-1].forEach(function(sg){
+    g.beginPath();var first=true;
+    for(var x=0.05;x<=2.6;x+=0.02){
+     var xx=sg*x, yy=cv/xx;
+     if(Math.abs(yy)>2.6){first=true;continue;}
+     if(first){g.moveTo(X(xx),Y(yy));first=false;}else g.lineTo(X(xx),Y(yy));
+    }
+    g.stroke();
+   });
+  }else{g.beginPath();g.moveTo(0,y0);g.lineTo(w,y0);g.moveTo(x0,0);g.lineTo(x0,h);g.stroke();}
+  g.lineWidth=1;
+  // tangency points at c=±1
+  if(Math.abs(Math.abs(cv)-1)<0.03){
+   g.fillStyle=cssVar('--amber');
+   var pts=cv>0?[[1,1],[-1,-1]]:[[1,-1],[-1,1]];
+   pts.forEach(function(p){g.beginPath();g.arc(X(p[0]),Y(p[1]),5,0,2*Math.PI);g.fill();});
+  }
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('circle x²+y²=2 (black)  ·  level xy='+cv.toFixed(2)+' (blue)',10,18);
+  var out=document.getElementById('lag-out');
+  var touches=Math.abs(cv)<=1.001;
+  if(out)out.textContent=Math.abs(Math.abs(cv)-1)<0.03?'TANGENT — constrained extremum: |c| = 1 at (±1,±1), ∇f ∥ ∇g':(touches?'level curve crosses the circle — can still slide along it to improve f':'level curve misses the circle — infeasible value of f');
+ }
+ on('lag-c','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 4: unit square under a linear map, det as area ---- */
+(function(){
+ var c=document.getElementById('cv-jac');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var a=val('jac-a'),b=val('jac-b'),cc=val('jac-c'),d=val('jac-d');
+  var scale=Math.min(w,h)/6, x0=w/2, y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  axes(g,w,h,x0,y0);
+  // unit square (ghost)
+  g.strokeStyle=cssVar('--rule');g.strokeRect(X(0),Y(1),scale,scale);
+  // image parallelogram: columns (a,c) and (b,d)
+  var det=a*d-b*cc;
+  g.fillStyle=cssVar('--cobalt-soft');g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;
+  g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(a),Y(cc));g.lineTo(X(a+b),Y(cc+d));g.lineTo(X(b),Y(d));
+  g.closePath();g.fill();g.stroke();g.lineWidth=1;
+  // column vectors
+  g.strokeStyle=cssVar('--amber');g.lineWidth=2.5;
+  g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(a),Y(cc));g.stroke();
+  g.beginPath();g.moveTo(X(0),Y(0));g.lineTo(X(b),Y(d));g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('unit square → parallelogram of columns',10,18);
+  var out=document.getElementById('jac-out');
+  if(out)out.textContent='det = '+a.toFixed(1)+'·'+d.toFixed(1)+' − '+b.toFixed(1)+'·'+cc.toFixed(1)+' = '+det.toFixed(2)+'   area = |det| = '+Math.abs(det).toFixed(2)+(det<0?'   (orientation flipped)':'')+(Math.abs(det)<0.05?'   — SINGULAR: plane collapses to a line':'');
+ }
+ ['jac-a','jac-b','jac-c','jac-d'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 5: vector field rotation + expansion ---- */
+(function(){
+ var c=document.getElementById('cv-vf');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var rot=val('vf-rot'), dv=val('vf-div');
+  var scale=Math.min(w,h)/6, x0=w/2, y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  axes(g,w,h,x0,y0);
+  g.strokeStyle=cssVar('--cobalt');g.fillStyle=cssVar('--cobalt');
+  for(var i=-2;i<=2;i++)for(var j=-2;j<=2;j++){
+   var px=i*0.9,py=j*0.9;
+   var fx=dv*px-rot*py, fy=rot*px+dv*py;
+   var k=0.55;
+   var x1=X(px),y1=Y(py),x2=X(px+fx*k),y2=Y(py+fy*k);
+   g.beginPath();g.moveTo(x1,y1);g.lineTo(x2,y2);g.stroke();
+   var ang=Math.atan2(y2-y1,x2-x1),L=Math.hypot(x2-x1,y2-y1);
+   if(L>3){g.save();g.translate(x2,y2);g.rotate(ang);
+    g.beginPath();g.moveTo(0,0);g.lineTo(-6,-3);g.lineTo(-6,3);g.closePath();g.fill();g.restore();}
+  }
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('F(x,y) = (sx−ωy, ωx+sy)',10,18);
+  var out=document.getElementById('vf-out');
+  if(out)out.textContent='curl (Qx−Py) = 2ω = '+(2*rot).toFixed(2)+'   div (Px+Qy) = 2s = '+(2*dv).toFixed(2);
+ }
+ on('vf-rot','input',draw);on('vf-div','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 6: backprop on chain x -> u=wx -> h=tanh u -> L ---- */
+(function(){
+ var c=document.getElementById('cv-bp');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,240),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var W=val('bp-w'), x=val('bp-x'), t=val('bp-t');
+  var u=W*x, hh=Math.tanh(u), L=0.5*(hh-t)*(hh-t);
+  var dh=hh-t, du=dh*(1-hh*hh), dw=du*x, dx=du*W;
+  var nodes=[['x',x],['u=wx',u],['h=tanh u',hh],['L',L]];
+  var adjoints=[dx,du,dh,1];
+  var n=nodes.length, gap=w/(n+0.2), y1=h*0.36, y2=h*0.72, r=26;
+  g.font='13px JetBrains Mono';
+  for(var i=0;i<n;i++){
+   var cx=gap*(i+0.6);
+   if(i<n-1){g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(cx+r,y1);g.lineTo(cx+gap-r,y1);g.stroke();
+    g.strokeStyle=cssVar('--amber');g.beginPath();g.moveTo(cx+gap-r,y2);g.lineTo(cx+r,y2);g.stroke();
+    g.fillStyle=cssVar('--amber');g.save();g.translate(cx+r,y2);
+    g.beginPath();g.moveTo(0,0);g.lineTo(7,-4);g.lineTo(7,4);g.closePath();g.fill();g.restore();}
+   g.fillStyle=cssVar('--cobalt-soft');g.strokeStyle=cssVar('--cobalt');
+   g.beginPath();g.arc(cx,y1,r,0,2*Math.PI);g.fill();g.stroke();
+   g.fillStyle=cssVar('--ink');g.textAlign='center';
+   g.fillText(nodes[i][0],cx,y1-r-6);
+   g.fillText(nodes[i][1].toFixed(2),cx,y1+4);
+   g.fillStyle=cssVar('--amber');
+   g.fillText('δ='+adjoints[i].toFixed(3),cx,y2+18);
+   g.textAlign='left';
+  }
+  g.fillStyle=cssVar('--ink-2');
+  g.fillText('forward →',10,y1-r-24);
+  g.fillText('← backward (adjoints)',10,y2+36);
+  var out=document.getElementById('bp-out');
+  if(out)out.textContent='L = '+L.toFixed(4)+'   ∂L/∂w = δu·x = '+dw.toFixed(4)+'   ∂L/∂x = δu·w = '+dx.toFixed(4)+(Math.abs(u)>2.5?'   — tanh saturated: 1−h² = '+(1-hh*hh).toFixed(4)+' kills the gradient':'');
+ }
+ ['bp-w','bp-x','bp-t'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+})();
+</script>
+
+</body></html>

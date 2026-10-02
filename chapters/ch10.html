@@ -1,0 +1,697 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>ULTIMATUM · 10 Differential Equations</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&family=Source+Serif+4:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="../book.css">
+<script src="../book.js"></script>
+<script>document.addEventListener('DOMContentLoaded',function(){document.body.setAttribute('data-chapter','10')});</script>
+<header class="topbar"><div class="in">
+ <a class="brand" href="../index.html">ULTI<b>MATUM</b></a>
+ <nav><a class="btn" href="../index.html">Contents</a><button class="btn" data-theme-toggle>Theme</button></nav>
+ <div class="progressbar"></div></div></header>
+<div class="wrap">
+ <aside class="toc"><div class="label">In this chapter</div><ol></ol></aside>
+ <main class="main">
+  <div class="chap-head">
+   <div class="num">10</div><h1>Differential Equations</h1>
+   <p class="lede">Laws of change written as equations.</p>
+   <div class="meta"><span class="chip">22 topics</span><span class="chip">needs: chapters 07, 08, 09</span><span class="chip">feeds: chapters 12, 22, 28</span></div>
+  </div>
+
+<section class="topic" id="what-a-differential-equation-is">
+ <h2>What a differential equation is</h2>
+ <p>An ordinary equation asks "which number makes this true?" A differential equation asks "which <em>function</em> makes this true?" — it relates a function to its own derivatives. Nature rarely tells you a quantity directly; it tells you how the quantity changes: cooling, growth, motion, learning dynamics. Solving the equation reconstructs the trajectory from the law.</p>
+ <div class="box def"><span class="label">Definition</span> An ordinary differential equation (ODE) of order $n$ relates $t$, $y(t)$ and derivatives up to $y^{(n)}$: $F(t,y,y',\dots,y^{(n)})=0$. A <em>solution</em> is a function satisfying it on an interval. An <em>initial value problem</em> (IVP) adds conditions $y(t_0)=y_0,\dots$ pinning down one solution from the general family.</div>
+ <div class="box ex"><span class="label">Worked example</span> Verify $y(t)=3e^{2t}-\tfrac12$ solves $y'=2y+1$ with $y(0)=\tfrac52$. Left side: $y'=6e^{2t}$. Right side: $2(3e^{2t}-\tfrac12)+1=6e^{2t}-1+1=6e^{2t}$ ✓. Initial condition: $y(0)=3-\tfrac12=\tfrac52$ ✓. The general solution is $y=Ce^{2t}-\tfrac12$: one constant per order.</div>
+ <div class="box link"><span class="label">Where this goes</span> Gradient flow $\dot\theta=-\nabla L(\theta)$ is the continuous-time limit of gradient descent (Ch 15); neural ODEs (this chapter) make the network itself an ODE.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What are the order and unknown of $y''+ty'=\sin t$? Verify $y=t$ is NOT a solution. <details class="sol"><summary>Solution</summary><div>Order 2; unknown is the function $y(t)$. For $y=t$: $y''=0$, $ty'=t$, so LHS $=t\neq\sin t$ in general. Not a solution.</div></details></li>
+  <li><span class="lvl m">MED</span> Find all constants $r$ such that $y=e^{rt}$ solves $y''-y'-6y=0$. <details class="sol"><summary>Solution</summary><div>Substitute: $(r^2-r-6)e^{rt}=0\Rightarrow r^2-r-6=0\Rightarrow(r-3)(r+2)=0$: $r=3$ or $r=-2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the IVP $y'=3y^{2/3}$, $y(0)=0$ has at least two solutions, and name what fails. <details class="sol"><summary>Solution</summary><div>$y\equiv0$ works. Also $y=t^3$: $y'=3t^2=3(t^3)^{2/3}$ ✓ (for $t\ge0$), $y(0)=0$ ✓. Uniqueness fails because $f(y)=3y^{2/3}$ is not Lipschitz in $y$ at $0$ ($f'(y)=2y^{-1/3}\to\infty$) — see Existence and uniqueness below.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="slope-fields">
+ <h2>Slope fields</h2>
+ <p>A first-order ODE $y'=f(t,y)$ assigns a slope to every point of the plane. Draw a tiny dash with that slope at a grid of points and you can <em>see</em> every solution at once: solutions are the curves that flow with the dashes, like iron filings following a magnetic field.</p>
+ <div class="box def"><span class="label">Definition</span> The slope field of $y'=f(t,y)$ is the assignment of direction $\big(1,f(t,y)\big)$ to each point $(t,y)$. Solution curves are everywhere tangent to the field. Points where $f=0$ trace <em>nullclines</em>, where solutions run horizontally.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'=y-t$. Along the line $y=t$ the slope is $0$ (nullcline). Above it, slopes are positive and grow; below, negative. Guess a particular solution of the form $y=at+b$: then $a=at+b-t$ for all $t$ forces $a=1$, $b=1$: $y=t+1$ is a straight-line solution, and the general solution $y=t+1+Ce^{t}$ peels away from it exponentially — visible in the field as curves hugging then leaving the line.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Choose an equation and drag the initial condition; the blue curve threads the slope field.</p>
+  <canvas id="cv-sf"></canvas>
+  <div class="ctl">
+   <label>equation <select id="sf-eq" class="btn"><option value="0">y' = y − t</option><option value="1">y' = −ty</option><option value="2">y' = sin t · y</option><option value="3">y' = y(1−y)</option></select></label>
+   <label>y(−3) <input type="range" id="sf-y0" min="-2.8" max="2.8" step="0.05" value="1"></label>
+  </div>
+  <div class="out" id="sf-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $y'=-y$, describe the slope field and the behavior of every solution. <details class="sol"><summary>Solution</summary><div>Slopes point toward the $t$-axis: negative above, positive below, zero on it. All solutions $y=Ce^{-t}$ decay to $0$.</div></details></li>
+  <li><span class="lvl m">MED</span> Where are the nullclines of $y'=y^2-t$, and what do solutions do there? <details class="sol"><summary>Solution</summary><div>Nullcline: the parabola $t=y^2$. Crossing it, solutions have horizontal tangents — local maxima/minima of $y(t)$ occur exactly on the parabola.</div></details></li>
+  <li><span class="lvl h">HARD</span> Without solving, argue from the slope field that solutions of $y'=y(1-y)$ with $0&lt;y(0)&lt;1$ increase and approach $1$. <details class="sol"><summary>Solution</summary><div>For $0&lt;y&lt;1$, $f(y)=y(1-y)&gt;0$: slopes strictly positive, so $y$ increases. $y=1$ is a solution (slope 0); by uniqueness trajectories cannot cross it, so $y$ stays below 1, increasing and bounded ⇒ converges; the limit must be an equilibrium, hence $1$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="separable-equations">
+ <h2>Separable equations</h2>
+ <p>If the rate factors into (function of $y$)×(function of $t$), you can herd all the $y$'s to one side, all the $t$'s to the other, and integrate both sides separately. It is the workhorse first technique — and it already solves growth, decay, cooling and the logistic equation.</p>
+ <div class="box def"><span class="label">Definition</span> $y'=g(t)\,h(y)$ is <em>separable</em>. Where $h(y)\neq0$: $$\int\frac{dy}{h(y)}=\int g(t)\,dt+C.$$ Constant solutions come from roots of $h(y)=0$ and must be checked separately.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'=ty^2$, $y(0)=1$. Separate: $\dfrac{dy}{y^2}=t\,dt$. Integrate: $-\dfrac1y=\dfrac{t^2}{2}+C$. At $(0,1)$: $-1=C$. So $y=\dfrac{1}{1-t^2/2}=\dfrac{2}{2-t^2}$. Note the solution blows up at $t=\sqrt2$ — finite-time blow-up from an innocent-looking equation.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Dividing by $h(y)$ silently discards equilibrium solutions. $y'=y^2$ has the family $y=\frac{-1}{t+C}$ <em>and</em> $y\equiv0$, which the division threw away.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $y'=\dfrac{t}{y}$, $y(0)=2$. <details class="sol"><summary>Solution</summary><div>$y\,dy=t\,dt\Rightarrow\frac{y^2}{2}=\frac{t^2}{2}+C$; $y(0)=2\Rightarrow C=2$. $y=\sqrt{t^2+4}$ (positive branch by the initial condition).</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $y'=e^{t-y}$ with $y(0)=0$. <details class="sol"><summary>Solution</summary><div>$e^y\,dy=e^t\,dt\Rightarrow e^y=e^t+C$; $1=1+C\Rightarrow C=0$. $y=t$. (Check: $y'=1$ and $e^{t-y}=e^0=1$ ✓.)</div></details></li>
+  <li><span class="lvl m">MED</span> Newton's cooling: $T'=-k(T-20)$, $T(0)=90$, $T(10)=60$. Find $k$ and $T(20)$. <details class="sol"><summary>Solution</summary><div>$T=20+70e^{-kt}$. $60=20+70e^{-10k}\Rightarrow e^{-10k}=\frac{4}{7}$, $k=\frac{\ln(7/4)}{10}\approx0.05596$. $T(20)=20+70e^{-20k}=20+70\cdot\left(\frac47\right)^2=20+70\cdot\frac{16}{49}=20+\frac{160}{7}\approx42.86°$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $y'=\dfrac{y^2-1}{2}$ with $y(0)=0$ and give the interval of validity. <details class="sol"><summary>Solution</summary><div>$\int\frac{2\,dy}{(y-1)(y+1)}=\int dt$. Partial fractions: $\frac{2}{(y-1)(y+1)}=\frac{1}{y-1}-\frac{1}{y+1}$, so $\ln\left|\frac{y-1}{y+1}\right|=t+C$. At $(0,0)$: $\ln1=C=0$. With $-1&lt;y&lt;1$, $\frac{1-y}{1+y}=e^{t}$, solving: $y=\frac{1-e^{t}}{1+e^{t}}=-\tanh(t/2)$. Check: $y'=-\frac12\mathrm{sech}^2(t/2)$ and $\frac{y^2-1}{2}=\frac{\tanh^2-1}{2}=-\frac12\mathrm{sech}^2$ ✓. Valid for all $t$ ($y\to\mp1$ as $t\to\pm\infty$).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="first-order-linear-equations">
+ <h2>First-order linear equations</h2>
+ <p>Linear means $y$ and $y'$ appear to the first power, never multiplied together: $y'+p(t)y=q(t)$. Think of a bank account with time-varying interest $-p$ and deposits $q$. These are the only first-order equations with a complete, formulaic solution theory — via the integrating factor.</p>
+ <div class="box def"><span class="label">Definition</span> The standard form is $y'+p(t)\,y=q(t)$. It is <em>homogeneous</em> if $q\equiv0$ (solution $y=Ce^{-\int p}$). The general solution is (particular solution) $+$ (general homogeneous solution) — superposition, the fingerprint of linearity.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'+2y=e^{-t}$. Homogeneous: $y_h=Ce^{-2t}$. Particular: try $y_p=Ae^{-t}$: $-Ae^{-t}+2Ae^{-t}=Ae^{-t}=e^{-t}\Rightarrow A=1$. General: $y=e^{-t}+Ce^{-2t}$. With $y(0)=3$: $C=2$, so $y=e^{-t}+2e^{-2t}$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $y'=3y$ with $y(0)=5$. <details class="sol"><summary>Solution</summary><div>$y=5e^{3t}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Put $ty'+2y=t^3$ ($t&gt;0$) into standard form and identify $p,q$. <details class="sol"><summary>Solution</summary><div>$y'+\frac{2}{t}y=t^2$: $p=\frac2t$, $q=t^2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the difference of any two solutions of $y'+p(t)y=q(t)$ solves the homogeneous equation, and explain why this makes the "particular + homogeneous" structure inevitable. <details class="sol"><summary>Solution</summary><div>If $y_1'+py_1=q$ and $y_2'+py_2=q$, subtract: $(y_1-y_2)'+p(y_1-y_2)=0$. So every solution differs from a fixed particular one by a homogeneous solution, and conversely adding a homogeneous solution preserves the equation: solution set $=y_p+\{\text{homogeneous solutions}\}$ — an affine subspace, exactly like $A\mathbf x=\mathbf b$ in Ch 8.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="integrating-factors">
+ <h2>Integrating factors</h2>
+ <p>Multiply $y'+py=q$ by the cunning factor $\mu=e^{\int p\,dt}$ and the left side collapses into the derivative of a single product, $(\mu y)'$. Then just integrate. It feels like a trick; it is really "undoing the product rule."</p>
+ <div class="box def"><span class="label">Definition</span> For $y'+p(t)y=q(t)$, the integrating factor is $\mu(t)=e^{\int p(t)\,dt}$. Then $(\mu y)'=\mu q$ and $$y=\frac{1}{\mu(t)}\left(\int\mu(t)\,q(t)\,dt+C\right).$$</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'+\dfrac{2}{t}y=t^2$ ($t&gt;0$). $\mu=e^{\int 2/t\,dt}=e^{2\ln t}=t^2$. Then $(t^2y)'=t^4$, so $t^2y=\dfrac{t^5}{5}+C$ and $y=\dfrac{t^3}{5}+\dfrac{C}{t^2}$. Check with $C=0$: $y'=\frac{3t^2}{5}$, $\frac{2}{t}\cdot\frac{t^3}{5}=\frac{2t^2}{5}$, sum $=t^2$ ✓.</div>
+ <div class="box pit"><span class="label">Pitfall</span> The equation must be in standard form first — coefficient of $y'$ equal to 1 — or $\mu$ comes out wrong. And $\int p\,dt$ needs no constant: any antiderivative works.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $y'+y=2$ with the integrating factor. <details class="sol"><summary>Solution</summary><div>$\mu=e^t$: $(e^ty)'=2e^t\Rightarrow e^ty=2e^t+C\Rightarrow y=2+Ce^{-t}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $y'-2ty=t$, $y(0)=0$. <details class="sol"><summary>Solution</summary><div>$\mu=e^{-t^2}$: $(e^{-t^2}y)'=te^{-t^2}\Rightarrow e^{-t^2}y=-\tfrac12e^{-t^2}+C$. $y(0)=0\Rightarrow C=\tfrac12$. $y=\tfrac12(e^{t^2}-1)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $ty'+(t+1)y=e^{-t}$ for $t&gt;0$. <details class="sol"><summary>Solution</summary><div>Standard form: $y'+\frac{t+1}{t}y=\frac{e^{-t}}{t}$. $\mu=e^{\int(1+1/t)dt}=e^{t+\ln t}=te^{t}$. $(te^ty)'=te^t\cdot\frac{e^{-t}}{t}=1$, so $te^ty=t+C$, $y=e^{-t}\left(1+\frac{C}{t}\right)$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="exponential-growth-and-decay">
+ <h2>Exponential growth and decay</h2>
+ <p>The simplest law of change — "the rate is proportional to the amount" — produces the most consequential function in mathematics. Populations, radioactivity, compound interest, and unregularized gradient dynamics all obey $y'=ky$: growth for $k&gt;0$, decay for $k&lt;0$, with a fixed doubling time or half-life.</p>
+ <div class="box def"><span class="label">Definition</span> $y'=ky\iff y(t)=y_0e^{kt}$. Doubling time ($k&gt;0$): $t_2=\dfrac{\ln2}{k}$. Half-life ($k&lt;0$): $t_{1/2}=\dfrac{\ln2}{|k|}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> Carbon-14 has half-life $5730$ years, so $k=-\frac{\ln2}{5730}$. A bone retains $35\%$ of its original C-14. Age: $0.35=e^{kt}\Rightarrow t=\dfrac{\ln0.35}{k}=\dfrac{\ln(1/0.35)}{\ln2}\cdot5730=\dfrac{1.0498}{0.6931}\cdot5730\approx8680$ years.</div>
+ <div class="box think"><span class="label">Think first</span> Money grows at 5% per year, compounded continuously. Roughly how long to double — and where does the folk "rule of 72" come from? <details class="sol"><summary>Reveal</summary><div>$t_2=\ln2/0.05\approx13.9$ years. Since $\ln2\approx0.693$, continuous compounding gives a "rule of 69.3": $t_2\approx69.3/(\text{percent rate})$. The traditional 72 adjusts upward for annual (discrete) compounding and easier mental division.</div></details></div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> A culture triples every 4 hours. Find $k$. <details class="sol"><summary>Solution</summary><div>$3=e^{4k}\Rightarrow k=\frac{\ln3}{4}\approx0.2747$ per hour.</div></details></li>
+  <li><span class="lvl m">MED</span> With $y'=ky$ and $y(2)=8$, $y(5)=64$, find $y(0)$. <details class="sol"><summary>Solution</summary><div>$\frac{y(5)}{y(2)}=e^{3k}=8\Rightarrow k=\ln2$. $y(0)=y(2)e^{-2k}=8\cdot\frac14=2$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve the decay-with-inflow model $y'=-ky+r$ ($k,r&gt;0$ constant) and show every solution tends to $r/k$. <details class="sol"><summary>Solution</summary><div>Integrating factor $e^{kt}$: $(e^{kt}y)'=re^{kt}\Rightarrow y=\frac{r}{k}+Ce^{-kt}$. As $t\to\infty$, $Ce^{-kt}\to0$: all solutions converge to the equilibrium $r/k$ — inflow balances decay. (This is also the mean of an Ornstein–Uhlenbeck process, Ch 12.)</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="logistic-equation">
+ <h2>Logistic equation</h2>
+ <p>Exponential growth can't last: resources saturate. The logistic law multiplies the growth rate by "room remaining," $1-y/K$. Solutions form the S-curve: exponential take-off, inflection at half capacity, saturation at $K$. The same curve is the sigmoid of logistic regression (Ch 19) — probability saturating instead of population.</p>
+ <div class="box def"><span class="label">Definition</span> $$y'=ry\Big(1-\frac{y}{K}\Big),\qquad y(0)=y_0\ \Rightarrow\ y(t)=\frac{K}{1+\Big(\frac{K-y_0}{y_0}\Big)e^{-rt}}.$$ Equilibria: $y=0$ (unstable) and $y=K$ (stable). The inflection point is at $y=K/2$, where growth is fastest.</div>
+ <div class="box ex"><span class="label">Worked example</span> $r=1$, $K=100$, $y_0=10$: $y(t)=\dfrac{100}{1+9e^{-t}}$. When does $y=50$? $1+9e^{-t}=2\Rightarrow e^{-t}=\frac19\Rightarrow t=\ln9\approx2.197$. Growth rate there: $y'=1\cdot50(1-\tfrac12)=25$ per unit time — the maximum, as promised at $K/2$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Slide $r$, $K$ and $y_0$; the S-curve and its inflection line $y=K/2$ update. Start above $K$ to see decay toward capacity.</p>
+  <canvas id="cv-logi"></canvas>
+  <div class="ctl"><label>r <input type="range" id="logi-r" min="0.2" max="3" step="0.05" value="1"></label>
+  <label>K <input type="range" id="logi-k" min="20" max="100" step="1" value="80"></label>
+  <label>y₀ <input type="range" id="logi-y0" min="2" max="120" step="1" value="8"></label></div>
+  <div class="out" id="logi-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $y'=2y(1-y/50)$, list the equilibria and their stability. <details class="sol"><summary>Solution</summary><div>$y=0$ unstable (small populations grow), $y=50$ stable (perturbations decay back).</div></details></li>
+  <li><span class="lvl m">MED</span> Derive the logistic solution by separation and partial fractions. <details class="sol"><summary>Solution</summary><div>$\int\frac{K\,dy}{y(K-y)}=\int r\,dt$. Since $\frac{K}{y(K-y)}=\frac1y+\frac{1}{K-y}$: $\ln\frac{y}{K-y}=rt+C$. Exponentiate and solve: $\frac{y}{K-y}=Ae^{rt}$ with $A=\frac{y_0}{K-y_0}$, giving $y=\frac{K}{1+\frac{K-y_0}{y_0}e^{-rt}}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that $u=1/y$ turns the logistic equation into a linear one, and re-derive the solution. <details class="sol"><summary>Solution</summary><div>$u'=-y'/y^2=-\frac{r}{y}+\frac{r}{K}=-ru+\frac{r}{K}$: linear! Solution $u=\frac1K+Ce^{-rt}$; with $u_0=1/y_0$, $C=\frac1{y_0}-\frac1K$. Invert: $y=\Big(\frac1K+\big(\frac{1}{y_0}-\frac1K\big)e^{-rt}\Big)^{-1}$ — algebraically identical to the standard form. (This substitution trick is a Bernoulli equation with $n=2$.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="2"><div class="q">On a logistic curve, the population grows fastest when…</div><button class="opt">it is smallest</button><button class="opt">it reaches capacity K</button><button class="opt">it equals K/2</button><div class="why" hidden>$y'=ry(1-y/K)$ is a downward parabola in $y$, maximized at $y=K/2$ — the S-curve's inflection point.</div></div>
+</section>
+
+<section class="topic" id="existence-and-uniqueness">
+ <h2>Existence and uniqueness</h2>
+ <p>Before trusting a model — or a numerical solver — ask: does a solution exist, and is it the only one? The Picard–Lindelöf theorem says yes to both, locally, provided the right-hand side is continuous and doesn't change too violently in $y$ (Lipschitz). Uniqueness is what makes trajectories deterministic: through each point passes exactly one solution, so trajectories never cross.</p>
+ <div class="box thm"><span class="label">Theorem (Picard–Lindelöf)</span> If $f(t,y)$ is continuous in a rectangle around $(t_0,y_0)$ and Lipschitz in $y$ there — $|f(t,y_1)-f(t,y_2)|\le L|y_1-y_2|$ — then the IVP $y'=f(t,y)$, $y(t_0)=y_0$ has exactly one solution on some interval around $t_0$. (Continuity of $\partial f/\partial y$ suffices for the Lipschitz condition.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'=3y^{2/3}$, $y(0)=0$: here $\partial f/\partial y=2y^{-1/3}$ blows up at $y=0$ — not Lipschitz — and indeed $y\equiv0$ and $y=t^3$ both solve it. But $y'=y^2$, $y(0)=1$ is Lipschitz near $y=1$ and has the unique solution $y=\frac{1}{1-t}$… which exists only for $t&lt;1$: the theorem is <em>local</em>, and solutions can escape to infinity in finite time.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Existence-uniqueness is local. Global existence needs more (e.g. linear growth of $f$ in $y$). Blow-up in finite time — $y'=y^2$ — is the standard counterexample to naive extrapolation.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Does $y'=\sin(ty)+t^2$, $y(0)=1$ have a unique local solution? <details class="sol"><summary>Solution</summary><div>Yes: $f$ is smooth everywhere ($\partial f/\partial y=t\cos(ty)$ continuous), so Picard–Lindelöf applies.</div></details></li>
+  <li><span class="lvl m">MED</span> For $y'=\sqrt{|y|}$, $y(0)=0$, exhibit two distinct solutions. <details class="sol"><summary>Solution</summary><div>$y\equiv0$; and $y=t^2/4$ for $t\ge0$ (with $y=0$ for $t&lt;0$): $y'=t/2=\sqrt{t^2/4}$ ✓. Square-root right-hand sides at their zero are the classic uniqueness failure.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show solutions of $y'=y^2$, $y(0)=y_0&gt;0$ blow up at $t=1/y_0$, and explain why no Lipschitz bound on all of $\mathbb{R}$ exists for $f(y)=y^2$. <details class="sol"><summary>Solution</summary><div>Separate: $-1/y=t+C$, $C=-1/y_0$: $y=\frac{y_0}{1-y_0t}\to\infty$ as $t\to1/y_0^-$. Globally, $|y_1^2-y_2^2|=|y_1+y_2||y_1-y_2|$ and $|y_1+y_2|$ is unbounded, so no single $L$ works on all of $\mathbb{R}$ — Lipschitz holds only on bounded sets, so the theorem gives only local solutions, honestly matching the blow-up.</div></details></li>
+ </ol></div>
+</section>
+
+
+<section class="topic" id="second-order-linear-equations">
+ <h2>Second-order linear equations</h2>
+ <p>Newton's law $F=ma$ makes physics second-order: acceleration, the second derivative, responds to position and velocity. Constant-coefficient linear equations $ay''+by'+cy=0$ are completely solvable, and their solution space is a 2-dimensional vector space — pick two independent solutions and every solution is a combination.</p>
+ <div class="box def"><span class="label">Definition</span> $ay''+by'+cy=g(t)$ with $a\neq0$. Homogeneous ($g=0$): solutions form a 2-D vector space; a <em>fundamental set</em> $\{y_1,y_2\}$ is any linearly independent pair, and the general solution is $c_1y_1+c_2y_2$. Nonhomogeneous: general solution $=y_p+c_1y_1+c_2y_2$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y''-y=0$: try $e^{rt}$: $r^2=1$, $r=\pm1$. General solution $y=c_1e^{t}+c_2e^{-t}$. IVP $y(0)=2$, $y'(0)=0$: $c_1+c_2=2$, $c_1-c_2=0$ so $c_1=c_2=1$: $y=e^t+e^{-t}=2\cosh t$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Verify $y_1=\cos2t$ and $y_2=\sin2t$ solve $y''+4y=0$ and write the general solution. <details class="sol"><summary>Solution</summary><div>$y_1''=-4\cos2t=-4y_1$ ✓, same for $y_2$. General: $y=c_1\cos2t+c_2\sin2t$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $y''+4y=8t$ with $y(0)=0,y'(0)=0$. <details class="sol"><summary>Solution</summary><div>Particular: try $y_p=At$: $4At=8t$, $A=2$. General $y=2t+c_1\cos2t+c_2\sin2t$. $y(0)=c_1=0$; $y'=2+2c_2\cos2t$, $y'(0)=2+2c_2=0$, $c_2=-1$. $y=2t-\sin2t$.</div></details></li>
+  <li><span class="lvl h">HARD</span> The Wronskian is $W(t)=y_1y_2'-y_2y_1'$. Show for $y''+py'+qy=0$ that $W'=-pW$ (Abel's identity), and conclude $W$ is either always zero or never zero. <details class="sol"><summary>Solution</summary><div>$W'=y_1y_2''-y_2y_1''=y_1(-py_2'-qy_2)-y_2(-py_1'-qy_1)=-p(y_1y_2'-y_2y_1')=-pW$. So $W=W(t_0)e^{-\int p}$; the exponential never vanishes, so $W$ keeps the character of its initial value — independence of solutions is an all-or-nothing property.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="characteristic-equation">
+ <h2>Characteristic equation</h2>
+ <p>Guess $y=e^{rt}$ and the differential equation collapses to a quadratic in $r$ — the characteristic equation. Its roots dictate everything: two real roots give two exponentials, complex roots give oscillation wrapped in an exponential envelope, a repeated root sprouts a factor of $t$.</p>
+ <div class="box def"><span class="label">Definition</span> For $ay''+by'+cy=0$, the characteristic equation is $ar^2+br+c=0$ with roots $r_{1,2}=\frac{-b\pm\sqrt{b^2-4ac}}{2a}$.<br>• Distinct real $r_1\neq r_2$: $y=c_1e^{r_1t}+c_2e^{r_2t}$.<br>• Repeated $r$: $y=(c_1+c_2t)e^{rt}$.<br>• Complex $r=\alpha\pm i\beta$: $y=e^{\alpha t}(c_1\cos\beta t+c_2\sin\beta t)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y''+2y'+5y=0$: $r^2+2r+5=0$, $r=\frac{-2\pm\sqrt{4-20}}{2}=-1\pm2i$. Solution $y=e^{-t}(c_1\cos2t+c_2\sin2t)$: oscillation at angular frequency 2 inside a decaying envelope $e^{-t}$ — a damped vibration. With $y(0)=1,y'(0)=1$: $c_1=1$; $y'=e^{-t}((-c_1+2c_2)\cos2t+(-c_2-2c_1)\sin2t)$ so $-1+2c_2=1$, $c_2=1$. $y=e^{-t}(\cos2t+\sin2t)$.</div>
+ <div class="box pit"><span class="label">Pitfall</span> For the repeated root, the fundamental pair is $e^{rt}$ and $te^{rt}$ — forgetting the $t$ leaves you one dimension short of the solution space. The $t$ arises as the limit of $\frac{e^{r_2t}-e^{r_1t}}{r_2-r_1}$ as roots merge.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Solve $y''-5y'+6y=0$. <details class="sol"><summary>Solution</summary><div>$r^2-5r+6=(r-2)(r-3)$: $y=c_1e^{2t}+c_2e^{3t}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $y''+6y'+9y=0$, $y(0)=1$, $y'(0)=0$. <details class="sol"><summary>Solution</summary><div>$(r+3)^2=0$: $y=(c_1+c_2t)e^{-3t}$. $c_1=1$; $y'=(c_2-3c_1-3c_2t)e^{-3t}$, $y'(0)=c_2-3=0$, $c_2=3$. $y=(1+3t)e^{-3t}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> For $y''+by'+y=0$, describe how the solution type changes as $b$ increases from $0$ to $3$, naming the transition value. <details class="sol"><summary>Solution</summary><div>Roots $r=\frac{-b\pm\sqrt{b^2-4}}{2}$. $b=0$: pure oscillation ($\pm i$). $0&lt;b&lt;2$: complex with negative real part — decaying oscillation (underdamped). $b=2$: repeated root $-1$ (critical damping). $b&gt;2$: two negative real roots — monotone decay (overdamped). The transition at $b=2$ is where $b^2=4ac$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="harmonic-oscillator">
+ <h2>Harmonic oscillator</h2>
+ <p>A mass on a spring, a pendulum at small angle, a circuit with inductance and capacitance — all reduce to $y''+\omega^2y=0$, the harmonic oscillator, physics' favorite equation. Solutions circle forever in phase space, trading position for velocity like kinetic and potential energy.</p>
+ <div class="box def"><span class="label">Definition</span> $my''+ky=0$, i.e. $y''+\omega_0^2y=0$ with natural frequency $\omega_0=\sqrt{k/m}$. General solution $y=A\cos(\omega_0t)+B\sin(\omega_0t)=R\cos(\omega_0t-\varphi)$ with amplitude $R=\sqrt{A^2+B^2}$, phase $\varphi=\operatorname{atan2}(B,A)$. Energy $E=\frac12m\dot y^2+\frac12ky^2$ is conserved.</div>
+ <div class="box ex"><span class="label">Worked example</span> $m=1$, $k=4$ ($\omega_0=2$), released from rest at $y=3$: $y(0)=3,\ y'(0)=0\Rightarrow A=3,B=0$: $y=3\cos2t$. Velocity $y'=-6\sin2t$ peaks at $6$ when $y=0$. Energy check: $\frac12(6)^2=18$ at the center; $\frac12\cdot4\cdot3^2=18$ at the extremes ✓ — the same energy sloshing between forms.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> What is the period of $y''+9y=0$? <details class="sol"><summary>Solution</summary><div>$\omega_0=3$, period $T=2\pi/3$.</div></details></li>
+  <li><span class="lvl m">MED</span> Write $y=3\cos5t+4\sin5t$ in amplitude-phase form. <details class="sol"><summary>Solution</summary><div>$R=\sqrt{9+16}=5$, $\varphi=\operatorname{atan2}(4,3)\approx0.9273$: $y=5\cos(5t-0.9273)$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Differentiate the energy $E(t)=\frac12\dot y^2+\frac{\omega_0^2}{2}y^2$ along solutions and show it is constant; deduce trajectories in the $(y,\dot y)$ plane are ellipses. <details class="sol"><summary>Solution</summary><div>$\dot E=\dot y\ddot y+\omega_0^2y\dot y=\dot y(\ddot y+\omega_0^2y)=0$ by the equation. So $\frac{\dot y^2}{2E}+\frac{y^2}{2E/\omega_0^2}=1$: an ellipse with semi-axes $\sqrt{2E}$ (velocity) and $\sqrt{2E}/\omega_0$ (position); each energy level is one closed orbit.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="damping-and-resonance">
+ <h2>Damping and resonance</h2>
+ <p>Add friction and the oscillator loses energy: underdamped (spirals down through ever-smaller swings), critically damped (fastest return, no overshoot — how door closers are tuned), overdamped (sluggish crawl). Drive it periodically and the response peaks when the driving frequency matches the natural one: resonance, the reason soldiers break step on bridges.</p>
+ <div class="box def"><span class="label">Definition</span> Damped: $y''+2\zeta\omega_0y'+\omega_0^2y=0$ with damping ratio $\zeta$. $\zeta&lt;1$: underdamped, $y=e^{-\zeta\omega_0t}R\cos(\omega_dt-\varphi)$, $\omega_d=\omega_0\sqrt{1-\zeta^2}$. $\zeta=1$: critical. $\zeta&gt;1$: overdamped. Driven: $y''+2\zeta\omega_0y'+\omega_0^2y=F\cos\omega t$ has steady-state amplitude $$R(\omega)=\frac{F}{\sqrt{(\omega_0^2-\omega^2)^2+(2\zeta\omega_0\omega)^2}},$$ maximized near $\omega\approx\omega_0$ for small $\zeta$ (peak $\approx F/(2\zeta\omega_0^2)$).</div>
+ <div class="box ex"><span class="label">Worked example</span> $y''+y'+25y=0$: $\omega_0=5$, $2\zeta\omega_0=1$ so $\zeta=0.1$ — underdamped. $\omega_d=5\sqrt{1-0.01}\approx4.975$. The envelope decays like $e^{-0.5t}$. Driven at $\omega=5$ with $F=1$: $R=\frac{1}{\sqrt{0+(1\cdot5)^2}}=\frac15$ — versus static response $1/25$: resonance amplifies 5×, exactly $1/(2\zeta)$.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch $y''+2\zeta\omega_0 y'+\omega_0^2y=0$ evolve from $y(0)=1$. Slide the damping ratio through underdamped, critical ($\zeta=1$) and overdamped, and drag the drive frequency to trace the resonance curve.</p>
+  <canvas id="cv-damp"></canvas>
+  <div class="ctl"><label>ζ (damping) <input type="range" id="damp-z" min="0" max="2" step="0.02" value="0.15"></label>
+  <label>drive ω/ω₀ <input type="range" id="damp-w" min="0.2" max="2" step="0.02" value="1"></label></div>
+  <div class="out" id="damp-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify $y''+10y'+25y=0$. <details class="sol"><summary>Solution</summary><div>$\omega_0=5$, $2\zeta\omega_0=10\Rightarrow\zeta=1$: critically damped, $y=(c_1+c_2t)e^{-5t}$.</div></details></li>
+  <li><span class="lvl m">MED</span> For $\zeta\ll1$, at resonance ($\omega=\omega_0$) show the steady amplitude is $F/(2\zeta\omega_0^2)$ and interpret $1/(2\zeta)$ as a quality factor. <details class="sol"><summary>Solution</summary><div>Plug $\omega=\omega_0$: $R=\frac{F}{2\zeta\omega_0\cdot\omega_0}=\frac{F}{2\zeta\omega_0^2}$. Static deflection is $F/\omega_0^2$, so resonance multiplies it by $Q=1/(2\zeta)$: low damping ⇒ huge, narrow peak.</div></details></li>
+  <li><span class="lvl h">HARD</span> Undamped resonance: solve $y''+\omega_0^2y=F\cos\omega_0t$, $y(0)=y'(0)=0$, and show the amplitude grows linearly in time. <details class="sol"><summary>Solution</summary><div>Resonant forcing needs $y_p=t(A\cos\omega_0t+B\sin\omega_0t)$. Substituting: $y_p''+\omega_0^2y_p=-2A\omega_0\sin\omega_0t+2B\omega_0\cos\omega_0t=F\cos\omega_0t$, so $A=0$, $B=\frac{F}{2\omega_0}$. With zero initial data, $y=\frac{F}{2\omega_0}t\sin\omega_0t$: swings grow without bound — the catastrophe damping prevents.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="systems-of-odes">
+ <h2>Systems of ODEs</h2>
+ <p>Real systems have many interacting variables: predator and prey, positions and velocities, all the units of a recurrent network. Stack them into a vector $\mathbf x(t)$ and the law of motion becomes $\dot{\mathbf x}=f(\mathbf x)$ — one arrow field on state space. Any higher-order ODE converts to a first-order system, so systems are the universal format (and what every numerical solver actually consumes).</p>
+ <div class="box def"><span class="label">Definition</span> A first-order system: $\dot{\mathbf x}=f(t,\mathbf x)$, $\mathbf x\in\mathbb{R}^n$. Linear constant-coefficient case: $\dot{\mathbf x}=A\mathbf x$; if $A\mathbf v=\lambda\mathbf v$ then $\mathbf x(t)=e^{\lambda t}\mathbf v$ is a solution, and with a basis of eigenvectors the general solution is $\sum_ic_ie^{\lambda_it}\mathbf v_i$. Conversion: $y''=g(y,y')$ becomes $\dot x_1=x_2$, $\dot x_2=g(x_1,x_2)$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $\dot{\mathbf x}=A\mathbf x$, $A=\begin{pmatrix}0&1\\-2&-3\end{pmatrix}$ (this is $y''+3y'+2y=0$ in disguise). Eigenvalues: $\det(A-\lambda I)=\lambda^2+3\lambda+2=(\lambda+1)(\lambda+2)$: $\lambda=-1,-2$. Eigenvectors: $\lambda=-1$: $(1,-1)^\top$; $\lambda=-2$: $(1,-2)^\top$. General solution $$\mathbf x(t)=c_1e^{-t}\begin{pmatrix}1\\-1\end{pmatrix}+c_2e^{-2t}\begin{pmatrix}1\\-2\end{pmatrix},$$ every trajectory sliding into the origin along the slow ($\lambda=-1$) eigendirection.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Convert $y''+4y'-y=0$ to a first-order system. <details class="sol"><summary>Solution</summary><div>$x_1=y$, $x_2=y'$: $y''=y-4y'$, so $\dot x_1=x_2$, $\dot x_2=x_1-4x_2$; $A=\begin{pmatrix}0&1\\1&-4\end{pmatrix}$.</div></details></li>
+  <li><span class="lvl m">MED</span> Solve $\dot{\mathbf x}=\begin{pmatrix}3&0\\0&-1\end{pmatrix}\mathbf x$ with $\mathbf x(0)=(2,5)^\top$ and describe the trajectory. <details class="sol"><summary>Solution</summary><div>Decoupled: $\mathbf x=(2e^{3t},\,5e^{-t})^\top$: explodes along $x_1$, decays along $x_2$ — a saddle; the trajectory follows the curve $x_2=5(x_1/2)^{-1/3}$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Solve $\dot{\mathbf x}=\begin{pmatrix}1&1\\4&1\end{pmatrix}\mathbf x$, $\mathbf x(0)=(1,0)^\top$. <details class="sol"><summary>Solution</summary><div>$\det(A-\lambda I)=(1-\lambda)^2-4=0\Rightarrow\lambda=3,-1$. Eigenvectors: $\lambda=3$: $(1,2)^\top$; $\lambda=-1$: $(1,-2)^\top$. $\mathbf x(0)=a(1,2)+b(1,-2)=(1,0)$: $a+b=1$, $2a-2b=0$ so $a=b=\tfrac12$. $\mathbf x(t)=\tfrac12e^{3t}(1,2)^\top+\tfrac12e^{-t}(1,-2)^\top$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="matrix-exponential">
+ <h2>Matrix exponential</h2>
+ <p>For scalars, $\dot x=ax$ gives $x=e^{at}x_0$. For systems, exactly the same — once you define $e^{At}$ by the power series. The matrix exponential is the flow map of a linear system: it advances any initial state by time $t$, and eigendecomposition computes it by exponentiating eigenvalues.</p>
+ <div class="box def"><span class="label">Definition</span> $$e^{At}=\sum_{k=0}^{\infty}\frac{(At)^k}{k!}=I+At+\frac{A^2t^2}{2!}+\cdots$$ (always converges). Then $\mathbf x(t)=e^{At}\mathbf x_0$ solves $\dot{\mathbf x}=A\mathbf x$, $\mathbf x(0)=\mathbf x_0$. If $A=V\Lambda V^{-1}$, then $e^{At}=Ve^{\Lambda t}V^{-1}$ with $e^{\Lambda t}=\mathrm{diag}(e^{\lambda_it})$. Properties: $e^{A(t+s)}=e^{At}e^{As}$; $\frac{d}{dt}e^{At}=Ae^{At}$; $\det e^{At}=e^{\operatorname{tr}(A)t}$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A=\begin{pmatrix}0&-1\\1&0\end{pmatrix}$ (rotation generator). Powers cycle: $A^2=-I$, $A^3=-A$, $A^4=I$. Series: $$e^{At}=I\Big(1-\frac{t^2}{2!}+\cdots\Big)+A\Big(t-\frac{t^3}{3!}+\cdots\Big)=\begin{pmatrix}\cos t&-\sin t\\ \sin t&\cos t\end{pmatrix}$$ — rotation by angle $t$: the linear system $\dot{\mathbf x}=A\mathbf x$ spins states in circles, matching the harmonic oscillator's phase-space orbits.</div>
+ <div class="box pit"><span class="label">Pitfall</span> $e^{A+B}=e^Ae^B$ only when $AB=BA$. Noncommuting matrices break it — the root of operator-splitting errors in numerical methods.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Compute $e^{At}$ for $A=\mathrm{diag}(2,-3)$. <details class="sol"><summary>Solution</summary><div>$\mathrm{diag}(e^{2t},e^{-3t})$.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute $e^{At}$ for the nilpotent $A=\begin{pmatrix}0&1\\0&0\end{pmatrix}$ and interpret. <details class="sol"><summary>Solution</summary><div>$A^2=0$, series stops: $e^{At}=I+At=\begin{pmatrix}1&t\\0&1\end{pmatrix}$ — a shear that grows linearly in time (the repeated-root $t$-factor in matrix clothes).</div></details></li>
+  <li><span class="lvl h">HARD</span> Using $A=V\Lambda V^{-1}$ with $A=\begin{pmatrix}1&1\\4&1\end{pmatrix}$ (eigenpairs $\lambda=3,(1,2)$; $\lambda=-1,(1,-2)$), compute $e^{At}\begin{pmatrix}1\\0\end{pmatrix}$ and confirm the previous drill's answer. <details class="sol"><summary>Solution</summary><div>$V=\begin{pmatrix}1&1\\2&-2\end{pmatrix}$, $V^{-1}=\begin{pmatrix}1/2&1/4\\1/2&-1/4\end{pmatrix}$. $V^{-1}(1,0)^\top=(\tfrac12,\tfrac12)^\top$. Scale by $e^{3t},e^{-t}$: $(\tfrac12e^{3t},\tfrac12e^{-t})^\top$. Times $V$: $\big(\tfrac12e^{3t}+\tfrac12e^{-t},\ e^{3t}-e^{-t}\big)^\top$ — identical to the eigenvector-expansion solution. ✓</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="phase-portraits">
+ <h2>Phase portraits</h2>
+ <p>Forget time; draw state space and let trajectories paint the dynamics. For planar linear systems the whole zoo is classified by the eigenvalues of $A$: nodes (both same sign), saddles (opposite signs), spirals (complex with nonzero real part), centers (pure imaginary). One glance at a phase portrait tells you the fate of every initial condition.</p>
+ <div class="box def"><span class="label">Definition</span> The phase portrait of $\dot{\mathbf x}=f(\mathbf x)$ in $\mathbb{R}^2$ is the family of solution curves in the $(x_1,x_2)$ plane. For $\dot{\mathbf x}=A\mathbf x$ with eigenvalues $\lambda_{1,2}$: real, same sign — node (stable if negative); real, opposite — saddle; $\alpha\pm i\beta$, $\alpha&lt;0$ — stable spiral; $\alpha&gt;0$ — unstable spiral; $\alpha=0$ — center. Trace-determinant shortcut: the $\lambda$'s are roots of $\lambda^2-\operatorname{tr}(A)\lambda+\det A=0$.</div>
+ <div class="box ex"><span class="label">Worked example</span> $A=\begin{pmatrix}-1&2\\-2&-1\end{pmatrix}$: $\operatorname{tr}=-2$, $\det=1+4=5$, discriminant $4-20&lt;0$: complex $\lambda=-1\pm2i$. Stable spiral, rotating clockwise (at $(1,0)$, $\dot{\mathbf x}=(-1,-2)$ points down) and contracting by $e^{-t}$ per unit time.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Set the matrix entries; the explorer draws trajectories from a ring of initial conditions and names the equilibrium type from the eigenvalues.</p>
+  <canvas id="cv-pp"></canvas>
+  <div class="ctl"><label>a₁₁ <input type="range" id="pp-a" min="-2" max="2" step="0.1" value="-1"></label>
+  <label>a₁₂ <input type="range" id="pp-b" min="-2" max="2" step="0.1" value="2"></label>
+  <label>a₂₁ <input type="range" id="pp-c" min="-2" max="2" step="0.1" value="-2"></label>
+  <label>a₂₂ <input type="range" id="pp-d" min="-2" max="2" step="0.1" value="-1"></label></div>
+  <div class="out" id="pp-out"></div>
+ </div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify the origin for $A=\mathrm{diag}(-2,-5)$. <details class="sol"><summary>Solution</summary><div>Both eigenvalues real and negative: stable node (trajectories approach tangent to the slow direction, $\lambda=-2$).</div></details></li>
+  <li><span class="lvl m">MED</span> Classify $A=\begin{pmatrix}0&1\\-4&0\end{pmatrix}$ and describe the orbits. <details class="sol"><summary>Solution</summary><div>$\operatorname{tr}=0$, $\det=4$: $\lambda=\pm2i$ — a center; orbits are ellipses $4x_1^2+x_2^2=$ const traversed forever (the $\omega_0=2$ oscillator).</div></details></li>
+  <li><span class="lvl h">HARD</span> Using trace and determinant only, give conditions for asymptotic stability (all trajectories → 0), and prove them for real eigenvalues. <details class="sol"><summary>Solution</summary><div>Need both eigenvalues with negative real part ⟺ $\operatorname{tr}A&lt;0$ and $\det A&gt;0$. Real case: $\lambda_1\lambda_2=\det&gt;0$ means same sign; $\lambda_1+\lambda_2=\operatorname{tr}&lt;0$ then forces both negative. (Complex case: $\lambda=\alpha\pm i\beta$, $\operatorname{tr}=2\alpha&lt;0\Rightarrow\alpha&lt;0$, $\det=\alpha^2+\beta^2&gt;0$ automatically.)</div></details></li>
+ </ol></div>
+ <div class="quiz" data-answer="0"><div class="q">$A$ has eigenvalues $2$ and $-3$. The origin of $\dot{\mathbf x}=A\mathbf x$ is a…</div><button class="opt">saddle</button><button class="opt">stable node</button><button class="opt">center</button><div class="why" hidden>Opposite-sign real eigenvalues: trajectories approach along the $\lambda=-3$ eigendirection and flee along $\lambda=2$ — a saddle, unstable for almost every initial condition.</div></div>
+</section>
+
+<section class="topic" id="equilibria-and-linearization">
+ <h2>Equilibria and linearization</h2>
+ <p>Nonlinear systems are hard, but near a resting point they behave like their linearization: replace $f$ by its Jacobian at the equilibrium (Ch 9) and read stability off the eigenvalues. This local-linear lens is how we understand pendulums, epidemics, lasers — and the fixed points of recurrent networks and training dynamics.</p>
+ <div class="box def"><span class="label">Definition</span> $\mathbf x^\star$ is an equilibrium of $\dot{\mathbf x}=f(\mathbf x)$ if $f(\mathbf x^\star)=\mathbf0$. <em>Hartman–Grobman:</em> if the Jacobian $J=Df(\mathbf x^\star)$ has no eigenvalue with zero real part (hyperbolic case), the nonlinear flow near $\mathbf x^\star$ is topologically the same as $\dot{\mathbf u}=J\mathbf u$. All eigenvalues with negative real part ⇒ asymptotically stable; any positive real part ⇒ unstable.</div>
+ <div class="box ex"><span class="label">Worked example</span> Pendulum: $\dot\theta=v$, $\dot v=-\sin\theta$. Equilibria: $(\theta,v)=(0,0)$ (hanging) and $(\pi,0)$ (inverted). Jacobian $J=\begin{pmatrix}0&1\\-\cos\theta&0\end{pmatrix}$. At $(0,0)$: $\begin{pmatrix}0&1\\-1&0\end{pmatrix}$, $\lambda=\pm i$ — a center (non-hyperbolic; energy conservation confirms closed orbits). At $(\pi,0)$: $\begin{pmatrix}0&1\\1&0\end{pmatrix}$, $\lambda=\pm1$ — a saddle: the inverted pendulum falls along the unstable eigendirection.</div>
+ <div class="box link"><span class="label">Where this goes</span> Lyapunov functions and stability theory (Ch 28); linearizing RNN dynamics around fixed points explains memory and vanishing gradients (Ch 21).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Find the equilibria of $\dot x=x(1-x)$ and their stability by linearization. <details class="sol"><summary>Solution</summary><div>$x^\star=0$: $f'(0)=1&gt;0$ unstable. $x^\star=1$: $f'(1)=-1&lt;0$ stable.</div></details></li>
+  <li><span class="lvl m">MED</span> For the system $\dot x=y$, $\dot y=x-x^3$ find all equilibria and classify each by the Jacobian. <details class="sol"><summary>Solution</summary><div>$y=0$ and $x-x^3=0$: $(0,0),(\pm1,0)$. $J=\begin{pmatrix}0&1\\1-3x^2&0\end{pmatrix}$. At $(0,0)$: $\lambda^2=1$, $\lambda=\pm1$ — saddle. At $(\pm1,0)$: $\lambda^2=-2$, $\lambda=\pm i\sqrt2$ — centers of the linearization (nonlinear: closed orbits, by the conserved energy $\frac{y^2}{2}-\frac{x^2}{2}+\frac{x^4}{4}$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Lotka–Volterra: $\dot x=x(3-y)$, $\dot y=y(x-2)$. Find the coexistence equilibrium and its linearized behavior. <details class="sol"><summary>Solution</summary><div>Coexistence: $y=3$, $x=2$. $J=\begin{pmatrix}3-y&-x\\y&x-2\end{pmatrix}=\begin{pmatrix}0&-2\\3&0\end{pmatrix}$ at $(2,3)$. $\lambda^2=-6$: $\lambda=\pm i\sqrt6$ — a center: predator and prey populations cycle around $(2,3)$ with angular frequency $\sqrt6$ (in the linear approximation; the full system also cycles, by its conserved quantity).</div></details></li>
+ </ol></div>
+</section>
+<section class="topic" id="eulers-method">
+ <h2>Euler's method</h2>
+ <p>When no formula solves the ODE, walk it: at your current point, read the slope, step a little way along it, repeat. That is Euler's method — crude, intuitive, and the conceptual seed of every fancier solver. Its error shrinks only linearly with the step size, which is why we rarely use it raw. Gradient descent is exactly Euler's method applied to gradient flow.</p>
+ <div class="box def"><span class="label">Definition</span> For $y'=f(t,y)$, $y(t_0)=y_0$, with step $h$: $$y_{n+1}=y_n+h\,f(t_n,y_n),\qquad t_{n+1}=t_n+h.$$ Local (per-step) error $O(h^2)$; global error over a fixed interval $O(h)$ — a first-order method.</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'=y$, $y(0)=1$, $h=0.5$, two steps to $t=1$: $y_1=1+0.5(1)=1.5$; $y_2=1.5+0.5(1.5)=2.25$. True $e\approx2.71828$: error $0.468$. Halve to $h=0.25$ (four steps): $y_4=(1.25)^4=2.4414$, error $0.277$ — roughly halved, as first order predicts. In general Euler on $y'=y$ gives $(1+h)^{1/h}\to e$: compound interest rediscovered.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Integrate $y'=\cos t\cdot y$ (exact: $e^{\sin t}$). Shrink $h$ and compare Euler (amber) and RK4 (blue) against the exact curve; the readout shows final errors.</p>
+  <canvas id="cv-euler"></canvas>
+  <div class="ctl"><label>step h <input type="range" id="eu-h" min="0.05" max="1.2" step="0.05" value="0.6"></label></div>
+  <div class="out" id="eu-out"></div>
+ </div>
+ <div class="box pit"><span class="label">Pitfall</span> Stability, not just accuracy: for $y'=-\lambda y$ ($\lambda&gt;0$), Euler gives $y_{n+1}=(1-h\lambda)y_n$, which <em>oscillates and diverges</em> when $h&gt;2/\lambda$ even though the true solution decays. Step size limits are stability limits.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> One Euler step for $y'=t+y$, $y(0)=1$, $h=0.1$. <details class="sol"><summary>Solution</summary><div>$y_1=1+0.1(0+1)=1.1$ at $t=0.1$.</div></details></li>
+  <li><span class="lvl m">MED</span> Take two Euler steps for $y'=-2y$, $y(0)=1$, $h=0.6$, and compare with the exact solution. Comment. <details class="sol"><summary>Solution</summary><div>Factor per step: $1-1.2=-0.2$. $y_1=-0.2$, $y_2=0.04$. Exact: $e^{-2.4}\approx0.0907$. The iterate overshoots through zero and alternates sign — inside the stability window ($h&lt;1$) but badly inaccurate; accuracy needs $h\lambda\ll1$.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that Euler's method applied to gradient flow $\dot\theta=-\nabla L(\theta)$ is exactly gradient descent, and that the stability bound for quadratic $L$ with Hessian eigenvalue $\lambda_{\max}$ is $h&lt;2/\lambda_{\max}$. <details class="sol"><summary>Solution</summary><div>Euler: $\theta_{n+1}=\theta_n-h\nabla L(\theta_n)$ — the gradient descent update with learning rate $h$. For $L=\frac12\theta^\top H\theta$, the update matrix is $I-hH$, with eigenvalues $1-h\lambda_i$; convergence needs $|1-h\lambda_i|&lt;1$ for all $i$, i.e. $h&lt;2/\lambda_{\max}$ — the same bound met in Ch 9's Taylor drill and Ch 15.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="runge-kutta-methods">
+ <h2>Runge-Kutta methods</h2>
+ <p>Euler trusts the slope at the start of the step; Runge–Kutta methods sample the slope at several trial points inside the step and blend them, cancelling error terms order by order. The classic RK4 uses four evaluations for fourth-order accuracy — halving $h$ cuts the error 16-fold — and has been the default workhorse for a century.</p>
+ <div class="box def"><span class="label">Definition</span> RK4 for $y'=f(t,y)$: $$k_1=f(t_n,y_n),\quad k_2=f\big(t_n+\tfrac h2,\,y_n+\tfrac h2k_1\big),\quad k_3=f\big(t_n+\tfrac h2,\,y_n+\tfrac h2k_2\big),\quad k_4=f(t_n+h,\,y_n+hk_3),$$ $$y_{n+1}=y_n+\frac h6\,(k_1+2k_2+2k_3+k_4).$$ Global error $O(h^4)$. (Midpoint/RK2, $y_{n+1}=y_n+hf(t_n+\frac h2,y_n+\frac h2k_1)$, is the order-2 sibling.)</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'=y$, $y(0)=1$, one RK4 step with $h=1$: $k_1=1$, $k_2=1+\tfrac12=1.5$, $k_3=1+0.75=1.75$, $k_4=1+1.75=2.75$. $y_1=1+\frac{1+3+3.5+2.75}{6}=1+\frac{10.25}{6}=2.7083$. True $e=2.71828$: error $0.010$ from a single step spanning the whole interval — versus Euler's $0.72$. The blend $\frac16(1,2,2,1)$ reproduces the Taylor series of $e^h$ through $h^4/24$.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> RK4 has global error $O(h^4)$. If halving $h$ once reduces the error by ~16×, how much does reducing $h$ tenfold gain? <details class="sol"><summary>Solution</summary><div>Error scales as $h^4$: a factor $10^4=10{,}000$ improvement (for 10× more work — why higher order pays).</div></details></li>
+  <li><span class="lvl m">MED</span> Take one midpoint (RK2) step for $y'=-2ty$, $y(0)=1$, $h=0.4$, and compare to the exact $e^{-t^2}$. <details class="sol"><summary>Solution</summary><div>$k_1=f(0,1)=0$. Midpoint: $t=0.2$, $y=1+0.2\cdot0=1$; $k_2=f(0.2,1)=-0.4$. $y_1=1+0.4(-0.4)=0.84$. Exact $e^{-0.16}=0.8521$: error $0.012$; Euler would give $1.0$ (error $0.15$).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that for $y'=\lambda y$, one RK4 step multiplies $y_n$ by $R(z)=1+z+\frac{z^2}{2}+\frac{z^3}{6}+\frac{z^4}{24}$ with $z=h\lambda$, and interpret $R$ as a Taylor approximation of $e^{z}$. <details class="sol"><summary>Solution</summary><div>$k_1=\lambda y_n$; $k_2=\lambda(1+\frac z2)y_n$; $k_3=\lambda(1+\frac z2+\frac{z^2}{4})y_n$; $k_4=\lambda(1+z+\frac{z^2}{2}+\frac{z^3}{4})y_n$. Blend: $1+\frac z6\big[1+2(1+\frac z2)+2(1+\frac z2+\frac{z^2}4)+(1+z+\frac{z^2}2+\frac{z^3}4)\big]=1+z+\frac{z^2}{2}+\frac{z^3}{6}+\frac{z^4}{24}$. That is $e^z$ truncated after the $z^4$ term — the algebraic content of "fourth order." The stability region is $|R(z)|\le1$; on the negative real axis it reaches $z\approx-2.785$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="stiff-equations">
+ <h2>Stiff equations</h2>
+ <p>A stiff system mixes very fast and very slow time scales: the fast part dies out almost instantly, yet explicit solvers must keep taking microscopic steps to avoid instability long after the fast transient is irrelevant. The cure is implicit methods, which solve for the new point instead of extrapolating — unconditionally stable, at the price of solving an equation per step.</p>
+ <div class="box def"><span class="label">Definition</span> A linear system $\dot{\mathbf x}=A\mathbf x$ is <em>stiff</em> when the stiffness ratio $\max|\mathrm{Re}\,\lambda_i|/\min|\mathrm{Re}\,\lambda_i|$ is large. <em>Backward (implicit) Euler:</em> $$y_{n+1}=y_n+h\,f(t_{n+1},y_{n+1}),$$ requiring a (generally nonlinear) solve for $y_{n+1}$. For $y'=\lambda y$ it gives $y_{n+1}=\frac{y_n}{1-h\lambda}$, stable for every $h&gt;0$ whenever $\mathrm{Re}\,\lambda&lt;0$ (A-stability).</div>
+ <div class="box ex"><span class="label">Worked example</span> $y'=-1000(y-\cos t)-\sin t$, $y(0)=1$: exact solution $y=\cos t$ (check: $y'=-\sin t$ and the bracket vanishes). The $-1000$ makes it stiff: forward Euler needs $h&lt;2/1000=0.002$ to avoid explosion even though the solution is a lazy cosine. Backward Euler with $h=0.1$: $y_{n+1}=\frac{y_n+h(1000\cos t_{n+1}-\sin t_{n+1})}{1+1000h}$ — the huge coefficient now sits harmlessly in the denominator, and 63 steps cross $t=2\pi$ where forward Euler needed 3200.</div>
+ <div class="box pit"><span class="label">Pitfall</span> Stiffness is a property of the <em>solver-equation pair</em>, not of solution roughness: the exact solution above is perfectly smooth. If shrinking the step is the only thing keeping an explicit solver alive, suspect stiffness and switch to an implicit method (or an exponential integrator).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $y'=-50y$, what step sizes keep forward Euler stable? Backward Euler? <details class="sol"><summary>Solution</summary><div>Forward: $|1-50h|&lt;1\Rightarrow h&lt;0.04$. Backward: $\left|\frac{1}{1+50h}\right|&lt;1$ for all $h&gt;0$ — unconditional.</div></details></li>
+  <li><span class="lvl m">MED</span> Compute two backward-Euler steps for $y'=-100y$, $y(0)=1$, $h=0.1$, and compare with forward Euler. <details class="sol"><summary>Solution</summary><div>Backward: factor $\frac{1}{1+10}=\frac{1}{11}$: $y_1\approx0.0909$, $y_2\approx0.00826$ — smooth decay (exact $e^{-10}\approx4.5\times10^{-5}$; inaccurate but stable). Forward: factor $1-10=-9$: $y_1=-9$, $y_2=81$ — explosion.</div></details></li>
+  <li><span class="lvl h">HARD</span> The system $\dot{\mathbf x}=\mathrm{diag}(-1,-10^4)\mathbf x$ must be integrated to $t=5$ with error tolerance dominated by the slow mode. Compare the number of steps forward Euler needs against backward Euler with $h=0.01$, and explain why the fast mode does not need resolving. <details class="sol"><summary>Solution</summary><div>Forward Euler stability requires $h&lt;2\times10^{-4}$: at least $25{,}000$ steps. Backward Euler with $h=0.01$: $500$ steps — 50× fewer. The fast mode decays to $e^{-100}\approx10^{-44}$ within $t=0.01$; after that it carries no information, so resolving it is pure waste. Implicit methods damp it without resolving it; explicit ones go unstable unless they resolve it forever.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="partial-differential-equations">
+ <h2>Partial differential equations</h2>
+ <p>When the unknown is a function of several variables — temperature over space <em>and</em> time, a probability density evolving over states — the law of change involves partial derivatives: a PDE. The big three linear archetypes are diffusion (heat equation), waves (wave equation), and equilibrium (Laplace's equation), and an enormous amount of science is variations on them.</p>
+ <div class="box def"><span class="label">Definition</span> A PDE relates an unknown $u(x_1,\dots,x_n)$ and its partial derivatives. Canonical second-order examples: heat $u_t=\alpha u_{xx}$ (parabolic), wave $u_{tt}=c^2u_{xx}$ (hyperbolic), Laplace $u_{xx}+u_{yy}=0$ (elliptic). A <em>well-posed</em> problem couples the PDE with initial and/or boundary conditions so a unique solution depends continuously on the data.</div>
+ <div class="box ex"><span class="label">Worked example</span> Check that $u(x,t)=f(x-ct)+g(x+ct)$ solves the wave equation $u_{tt}=c^2u_{xx}$ for any twice-differentiable $f,g$: $u_{tt}=c^2f''(x-ct)+c^2g''(x+ct)$ and $u_{xx}=f''+g''$, so $u_{tt}=c^2u_{xx}$ ✓ — every 1-D wave is a right-mover plus a left-mover at speed $c$ (d'Alembert). Contrast the heat equation, whose solutions smooth out instead of translating.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Classify each as ODE or PDE, and give the order: (a) $u_t=u_{xx}$, (b) $y''+y=0$, (c) $u_{xx}+u_{yy}+u_{zz}=0$. <details class="sol"><summary>Solution</summary><div>(a) PDE, order 2; (b) ODE, order 2; (c) PDE (Laplace in 3-D), order 2.</div></details></li>
+  <li><span class="lvl m">MED</span> Verify $u(x,y)=e^x\sin y$ solves Laplace's equation. <details class="sol"><summary>Solution</summary><div>$u_{xx}=e^x\sin y$, $u_{yy}=-e^x\sin y$; sum $=0$ ✓ (real part machinery of Ch 6's Euler formula: $e^z$ is holomorphic).</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that the transport equation $u_t+cu_x=0$ with $u(x,0)=\phi(x)$ has solution $u=\phi(x-ct)$, and connect to the method of characteristics. <details class="sol"><summary>Solution</summary><div>Chain rule: $u_t=-c\phi'$, $u_x=\phi'$: $u_t+cu_x=0$ ✓, and $u(x,0)=\phi(x)$ ✓. Along the characteristic lines $x=x_0+ct$, $\frac{d}{dt}u(x_0+ct,t)=u_t+cu_x=0$: the solution is constant along them — PDEs of this type reduce to ODEs along characteristic curves, the initial profile rigidly transported at speed $c$.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="heat-equation">
+ <h2>Heat equation</h2>
+ <p>Heat flows from hot to cold at a rate set by curvature: where the temperature profile is concave (a hot bump), it falls; where convex (a cold dip), it rises. Peaks melt, valleys fill, everything smooths toward the average. The same equation governs any diffusing quantity — ink, probability, noise in a diffusion model.</p>
+ <div class="box def"><span class="label">Definition</span> $$u_t=\alpha\,u_{xx}$$ on a rod $0\le x\le L$, with e.g. $u(0,t)=u(L,t)=0$ and $u(x,0)=\phi(x)$. Separated solutions: $u_n=e^{-\alpha(n\pi/L)^2t}\sin\frac{n\pi x}{L}$; the general solution is $u=\sum_nb_nu_n$ with $b_n$ the Fourier sine coefficients of $\phi$ (Ch 14). On all of $\mathbb{R}$, the <em>heat kernel</em> solves it: $u(x,t)=\frac{1}{\sqrt{4\pi\alpha t}}e^{-x^2/(4\alpha t)}$ — a Gaussian of variance $2\alpha t$ spreading in time.</div>
+ <div class="box ex"><span class="label">Worked example</span> Rod of length $L=\pi$, $\alpha=1$, $u(x,0)=\sin x+\tfrac12\sin 3x$, ends held at 0. Each mode decays at rate $n^2$: $$u(x,t)=e^{-t}\sin x+\tfrac12e^{-9t}\sin3x.$$ At $t=0.5$: coefficients $0.607$ and $0.0056$ — the wiggly mode is already 100× more suppressed. High frequencies die as $e^{-n^2t}$: diffusion is a ruthless low-pass filter, which is why an old temperature profile looks like a single smooth arch.</div>
+ <div class="box explore"><span class="label">Explore</span>
+  <p>Watch an initial profile (two bumps) diffuse. Press Run; higher α smooths faster. The curve is the exact Fourier solution, drawn to scale.</p>
+  <canvas id="cv-heat"></canvas>
+  <div class="ctl"><label>α <input type="range" id="heat-a" min="0.1" max="2" step="0.05" value="0.5"></label>
+  <button class="btn" id="heat-run">Run / Reset</button></div>
+  <div class="out" id="heat-out"></div>
+ </div>
+ <div class="box link"><span class="label">Where this goes</span> Adding noise to data in a diffusion model runs a heat-type equation on the data density; sampling runs it backwards (Ch 12 Fokker–Planck, Ch 22 diffusion models).</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> For $u_t=u_{xx}$ with $u(x,0)=\sin 2x$ on $[0,\pi]$, zero ends, write the solution. <details class="sol"><summary>Solution</summary><div>Single mode $n=2$: $u=e^{-4t}\sin2x$.</div></details></li>
+  <li><span class="lvl m">MED</span> A hot spot is described by the heat kernel with $\alpha=1$. How does its peak height and width scale with $t$? <details class="sol"><summary>Solution</summary><div>Peak $=\frac{1}{\sqrt{4\pi t}}\propto t^{-1/2}$; standard deviation $=\sqrt{2t}\propto t^{1/2}$. Area (total heat) stays 1: it spreads, never disappears.</div></details></li>
+  <li><span class="lvl h">HARD</span> Show that $E(t)=\int_0^L u^2\,dx$ is nonincreasing for solutions with zero boundary values, and interpret. <details class="sol"><summary>Solution</summary><div>$E'(t)=\int 2uu_t\,dx=2\alpha\int uu_{xx}\,dx=2\alpha\Big([uu_x]_0^L-\int u_x^2dx\Big)=-2\alpha\int_0^Lu_x^2\,dx\le0$ (boundary term vanishes). The "energy" decays until $u_x\equiv0$, i.e. $u\equiv0$: diffusion dissipates every gradient. This also proves uniqueness: the difference of two solutions has $E(0)=0$, hence stays 0.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="neural-odes">
+ <h2>Neural ODEs</h2>
+ <p>A residual network computes $\mathbf h_{k+1}=\mathbf h_k+f(\mathbf h_k;\theta)$ — which is Euler's method with step 1. Take the limit of infinitely many, infinitely small layers and the network <em>becomes</em> an ODE: $\dot{\mathbf h}(t)=f(\mathbf h(t),t;\theta)$, with depth as continuous time. Inference is solving the ODE; training differentiates through the solver — or, more elegantly, solves a second ODE backwards for the gradients.</p>
+ <div class="box def"><span class="label">Definition</span> A neural ODE maps input $\mathbf h(0)=\mathbf x$ to output $\mathbf h(T)=\mathbf h(0)+\int_0^Tf(\mathbf h(t),t;\theta)\,dt$, with $f$ a neural network. <em>Adjoint method:</em> the gradient flows backward via $\mathbf a(t)=\partial L/\partial\mathbf h(t)$ satisfying $$\dot{\mathbf a}=-\Big(\frac{\partial f}{\partial\mathbf h}\Big)^{\!\top}\mathbf a,\qquad \nabla_\theta L=\int_T^0-\,\mathbf a(t)^\top\frac{\partial f}{\partial\theta}\,dt,$$ solved by any ODE solver in $O(1)$ memory — the continuous-time twin of backpropagation (Ch 9).</div>
+ <div class="box ex"><span class="label">Worked example</span> Take the linear "network" $f(h)=ah$, scalar. Then $h(T)=e^{aT}h_0$. Loss $L=\frac12(h(T)-y)^2$. Adjoint: $\dot a_{\!dj}=-a\,a_{dj}$ backwards from $a_{dj}(T)=h(T)-y$, so $a_{dj}(t)=(h(T)-y)e^{a(T-t)}$. Parameter gradient: $\nabla_aL=\int_0^Ta_{dj}(t)\,h(t)\,dt=(h(T)-y)h_0\int_0^Te^{a(T-t)}e^{at}dt=(h(T)-y)\,h_0\,Te^{aT}$. Direct check: $\partial_a\frac12(e^{aT}h_0-y)^2=(e^{aT}h_0-y)\cdot Te^{aT}h_0$ — identical ✓.</div>
+ <div class="box think"><span class="label">Think first</span> A ResNet block computes $\mathbf h+f(\mathbf h)$. What ODE property explains why very deep ResNets train when plain deep nets don't? <details class="sol"><summary>Reveal</summary><div>The block's Jacobian is $I+\partial f/\partial\mathbf h$: near the identity. Backprop multiplies these Jacobians; products of near-identity matrices neither vanish nor explode (they approximate the well-conditioned flow map $e^{\int J\,dt}$ of a smooth ODE), whereas products of arbitrary layer Jacobians decay or blow up exponentially in depth (Ch 21).</div></details></div>
+ <div class="box link"><span class="label">Where this goes</span> Continuous normalizing flows use $\frac{d}{dt}\ln p=-\nabla\cdot f$ (Ch 9's divergence!) to track densities; the probability-flow ODE of diffusion models (Ch 22) is a neural ODE. Ch 12's SDEs add noise to this picture.</div>
+ <div class="drill"><span class="label">Drill</span><ol>
+  <li><span class="lvl e">EASY</span> Show a ResNet update $\mathbf h_{k+1}=\mathbf h_k+hf(\mathbf h_k)$ is one Euler step of $\dot{\mathbf h}=f(\mathbf h)$. <details class="sol"><summary>Solution</summary><div>Euler for $\dot{\mathbf h}=f$: $\mathbf h_{k+1}=\mathbf h_k+h\,f(\mathbf h_k)$ — identical, with layer index as time and step $h$ (ResNets take $h=1$).</div></details></li>
+  <li><span class="lvl m">MED</span> Why does the adjoint method use $O(1)$ memory while ordinary backprop through $k$ solver steps uses $O(k)$? What does it trade away? <details class="sol"><summary>Solution</summary><div>Backprop must store every intermediate activation to multiply Jacobians later. The adjoint method instead re-generates states on the fly by integrating $\mathbf h$ backwards in time alongside $\mathbf a$, storing only the current values. Trade-off: extra compute (a second backward solve) and possible error if the backward pass of a non-reversible/unstable dynamics doesn't reproduce the forward states exactly.</div></details></li>
+  <li><span class="lvl h">HARD</span> For the linear neural ODE $\dot{\mathbf h}=A\mathbf h$, show the adjoint equation $\dot{\mathbf a}=-A^\top\mathbf a$ preserves the inner product $\mathbf a(t)^\top\mathbf h(t)$, and interpret. <details class="sol"><summary>Solution</summary><div>$\frac{d}{dt}(\mathbf a^\top\mathbf h)=\dot{\mathbf a}^\top\mathbf h+\mathbf a^\top\dot{\mathbf h}=-\mathbf a^\top A\mathbf h+\mathbf a^\top A\mathbf h=0$. The pairing between gradients and state perturbations is conserved in time — the continuous version of the chain-rule bookkeeping $\delta_{i-1}^\top d\mathbf h_{i-1}=\delta_i^\top d\mathbf h_i$ that makes backprop exact (Ch 9).</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="capstone">
+ <h2>Capstone</h2>
+ <div class="drill"><span class="label">Problems</span><ol>
+  <li><span class="lvl m">MED</span> <b>Mixing tank.</b> A 100 L tank starts with 5 kg of salt dissolved. Brine at 0.2 kg/L flows in at 5 L/min; the well-mixed solution drains at 5 L/min. Model, solve, and find the salt content after 20 minutes and as $t\to\infty$. <details class="sol"><summary>Solution</summary><div>$S'=\text{in}-\text{out}=5(0.2)-5\frac{S}{100}=1-\frac{S}{20}$. Linear: $S=20+Ce^{-t/20}$; $S(0)=5\Rightarrow C=-15$: $S(t)=20-15e^{-t/20}$. $S(20)=20-15e^{-1}\approx14.48$ kg. Long run: $S\to20$ kg (concentration matches the inflow, $0.2\times100$).</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Full portrait of a damped oscillator.</b> For $\ddot y+2\dot y+5y=0$: (a) solve with $y(0)=1,\dot y(0)=0$; (b) convert to a system and classify the origin; (c) compute the times of the first three zero crossings; (d) show the trajectory's phase-space spiral shrinks by the factor $e^{-\pi}$ per half-turn... precisely, compute the ratio of successive extrema of $y(t)$. <details class="sol"><summary>Solution</summary><div>(a) $r^2+2r+5=0$: $r=-1\pm2i$: $y=e^{-t}(c_1\cos2t+c_2\sin2t)$; $c_1=1$, $\dot y(0)=-c_1+2c_2=0\Rightarrow c_2=\frac12$: $y=e^{-t}(\cos2t+\tfrac12\sin2t)$. (b) $\dot{\mathbf x}=\begin{pmatrix}0&1\\-5&-2\end{pmatrix}\mathbf x$; eigenvalues $-1\pm2i$: stable spiral. (c) $y=0$ when $\tan2t=-2$: $2t=\pi-\arctan2+k\pi$, so $t_k=\frac{\pi-\arctan 2}{2}+\frac{k\pi}{2}\approx0.417,\,1.988,\,3.559$. (d) Extrema occur where $\dot y=0$, spaced by the half-period $\Delta t=\pi/2$ of the $\omega_d=2$ oscillation; successive extrema ratio $=-e^{-\Delta t}=-e^{-\pi/2}\approx-0.208$: each swing is 20.8% of the previous, opposite side.</div></details></li>
+  <li><span class="lvl h">HARD</span> <b>Solver design.</b> You must integrate the linear system $\dot{\mathbf x}=A\mathbf x$, $A=\begin{pmatrix}-1&0\\0&-500\end{pmatrix}$, from $\mathbf x(0)=(1,1)^\top$ to $t=10$ with a relative accuracy of about $10^{-3}$ on the slow component. (a) What step does forward Euler need for stability, and how many steps? (b) Show backward Euler with $h=0.02$ is stable and estimate its slow-mode accuracy. (c) Explain which solver you'd choose and why the fast mode's accuracy is irrelevant after $t\approx0.01$. <details class="sol"><summary>Solution</summary><div>(a) Stability needs $h&lt;2/500=0.004$: at least $2500$ steps, all wasted resolving a mode that is dead after $t\approx0.01$ ($e^{-5}\approx0.7\%$). (b) Backward Euler factors: slow $\frac{1}{1+0.02}$, fast $\frac{1}{1+10}$ — both in $(0,1)$: stable. Slow mode after $n=500$ steps: $(1.02)^{-500}=e^{-500\ln1.02}=e^{-9.901}$ vs exact $e^{-10}$: relative error $e^{0.099}-1\approx10.4\%$ — too big, so take $h=0.002$ ($5000$ steps): $(1.002)^{-5000}=e^{-5000\ln 1.002}=e^{-9.995}$, relative error $\approx0.5\%$ ✓, or better, use the trapezoidal rule/RK with larger $h$. (c) Choose an implicit (or exponential) method: stability decoupled from the fast scale lets accuracy alone set $h$; the fast component is $\approx0$ for essentially the whole interval, so representing it accurately buys nothing.</div></details></li>
+ </ol></div>
+</section>
+
+<section class="topic" id="lab">
+ <h2>Coding lab</h2>
+ <p class="lede">NumPy; a Neural-ODE taste in pure Python.</p>
+ <div class="box ex"><span class="label">Task 1 — Euler vs RK4 convergence</span> Integrate $y'=\cos(t)\,y$, $y(0)=1$ (exact $y=e^{\sin t}$) to $t=6$ with both methods across step sizes; verify the empirical orders (slopes ≈ 1 and 4 on a log-log plot).
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+f = lambda t, y: np.cos(t) * y
+exact = lambda t: np.exp(np.sin(t))
+
+def euler(h, T=6.0):
+    n = int(round(T / h)); t, y = 0.0, 1.0
+    for _ in range(n):
+        y += h * f(t, y); t += h
+    return y
+
+def rk4(h, T=6.0):
+    n = int(round(T / h)); t, y = 0.0, 1.0
+    for _ in range(n):
+        k1 = f(t, y); k2 = f(t + h/2, y + h/2*k1)
+        k3 = f(t + h/2, y + h/2*k2); k4 = f(t + h, y + h*k3)
+        y += h/6 * (k1 + 2*k2 + 2*k3 + k4); t += h
+    return y
+
+hs = np.array([0.2, 0.1, 0.05, 0.025, 0.0125])
+eE = np.array([abs(euler(h) - exact(6)) for h in hs])
+eR = np.array([abs(rk4(h)  - exact(6)) for h in hs])
+pE = np.polyfit(np.log(hs), np.log(eE), 1)[0]
+pR = np.polyfit(np.log(hs), np.log(eR), 1)[0]
+print(f"Euler order ~ {pE:.2f}  RK4 order ~ {pR:.2f}")  # ~1 and ~4</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 2 — Phase portrait &amp; stiffness demo</span> Simulate the damped pendulum $\dot\theta=v$, $\dot v=-\sin\theta-0.3v$ from several initial conditions with RK4, then demonstrate forward-Euler instability on the stiff scalar $y'=-200(y-\sin t)+\cos t$.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def rk4_sys(f, x0, h, n):
+    xs = [np.asarray(x0, float)]
+    t = 0.0
+    for _ in range(n):
+        x = xs[-1]
+        k1 = f(t, x); k2 = f(t + h/2, x + h/2*k1)
+        k3 = f(t + h/2, x + h/2*k2); k4 = f(t + h, x + h*k3)
+        xs.append(x + h/6*(k1 + 2*k2 + 2*k3 + k4)); t += h
+    return np.array(xs)
+
+pend = lambda t, x: np.array([x[1], -np.sin(x[0]) - 0.3*x[1]])
+for th0 in (0.5, 2.0, 3.0):
+    traj = rk4_sys(pend, [th0, 0.0], 0.05, 400)
+    print(f"theta0={th0}: final (theta, v) = {traj[-1].round(4)}")
+    # all spiral into (0, 0)
+
+# stiffness: y' = -200 (y - sin t) + cos t, exact solution y = sin t (with y0=0)
+g = lambda t, y: -200*(y - np.sin(t)) + np.cos(t)
+for h in (0.011, 0.009, 0.001):        # stability threshold h = 2/200 = 0.01
+    y, t = 0.0, 0.0
+    for _ in range(int(2/h)):
+        y += h * g(t, y); t += h
+    print(f"h={h}: y(2) = {y:.4f}  (exact {np.sin(2):.4f})")
+    # h=0.011 explodes; h=0.009 survives; h=0.001 accurate</code></pre></div></details></div>
+ <div class="box ex"><span class="label">Task 3 — Train a tiny neural ODE</span> Fit $\dot h=\theta_1\tanh(\theta_2 h)$ so that $h(1)\approx2$ from $h(0)=1$: integrate with RK4 and differentiate the solver by finite differences (honest, simple), then gradient-descend the parameters.
+ <details class="sol"><summary>Reference solution</summary><div><pre><code>import numpy as np
+
+def flow(theta, h0=1.0, T=1.0, n=50):
+    a, b = theta
+    f = lambda h: a * np.tanh(b * h)
+    h, dt = h0, T / n
+    for _ in range(n):
+        k1 = f(h); k2 = f(h + dt/2*k1)
+        k3 = f(h + dt/2*k2); k4 = f(h + dt*k3)
+        h += dt/6*(k1 + 2*k2 + 2*k3 + k4)
+    return h
+
+def loss(theta): return 0.5 * (flow(theta) - 2.0) ** 2
+
+theta = np.array([0.5, 0.5])
+for it in range(300):
+    eps, g = 1e-6, np.zeros(2)
+    for i in range(2):                       # finite-difference gradient
+        e = np.zeros(2); e[i] = eps
+        g[i] = (loss(theta + e) - loss(theta - e)) / (2 * eps)
+    theta -= 0.5 * g
+print("theta =", theta.round(4), " h(1) =", round(flow(theta), 5))
+# h(1) converges to 2.0: the ODE's vector field has been *learned*</code></pre></div></details></div>
+</section>
+
+<section class="topic sources" id="sources">
+ <h2>Sources</h2>
+ <ul>
+  <li><a href="https://ocw.mit.edu/courses/18-03sc-differential-equations-fall-2011/">MIT OCW 18.03SC Differential Equations</a> — the complete classic course: first/second order, systems, Laplace methods.</li>
+  <li><a href="https://www.youtube.com/playlist?list=PLZHQObOWTQDNPOjrT6KVlfJuKtYTftqH6">3Blue1Brown, "Differential Equations" series</a> — phase space, the pendulum and the heat equation, drawn beautifully.</li>
+  <li><a href="https://tutorial.math.lamar.edu/Classes/DE/DE.aspx">Paul's Online Notes: Differential Equations</a> — free, thorough worked-problem coverage of every method in this chapter.</li>
+  <li><a href="https://www.khanacademy.org/math/differential-equations">Khan Academy Differential Equations</a> — slope fields, separable and linear equations with practice.</li>
+  <li><a href="https://arxiv.org/abs/1806.07366">Chen, Rubanova, Bettencourt &amp; Duvenaud, "Neural Ordinary Differential Equations" (arXiv:1806.07366)</a> — the NeurIPS 2018 paper introducing neural ODEs and the adjoint method.</li>
+  <li><a href="https://arxiv.org/abs/2202.02435">Kidger, "On Neural Differential Equations" (arXiv:2202.02435)</a> — a free book-length survey of neural ODEs/SDEs and solvers.</li>
+  <li><a href="https://openstax.org/books/calculus-volume-2/pages/4-introduction">OpenStax Calculus Vol 2, Ch 4</a> — gentle introduction to first-order ODEs, slope fields, Euler's method.</li>
+  <li><a href="https://underactuated.mit.edu/">Tedrake, Underactuated Robotics (free online)</a> — dynamical systems, stability and phase portraits pointed at control (feeds Ch 28).</li>
+ </ul>
+</section>
+
+<div class="pager">
+ <a class="btn" href="ch09.html">← 09 · Multivariable and Matrix Calculus</a>
+ <a class="btn" href="ch11.html">11 · Probability →</a>
+</div>
+
+ </main>
+</div>
+<script>
+(function(){
+'use strict';
+function on(id,ev,fn){var el=document.getElementById(id);if(el)el.addEventListener(ev,fn);}
+function val(id){var el=document.getElementById(id);return el?parseFloat(el.value):0;}
+
+/* ---- Explorer 1: slope field with threaded solution ---- */
+(function(){
+ var c=document.getElementById('cv-sf');if(!c)return;
+ var eqs=[function(t,y){return y-t},function(t,y){return -t*y},function(t,y){return Math.sin(t)*y},function(t,y){return y*(1-y)}];
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var sel=document.getElementById('sf-eq');var f=eqs[sel?parseInt(sel.value):0];
+  var T0=-3,T1=3,Y0=-3,Y1=3;
+  function X(t){return (t-T0)/(T1-T0)*w} function Y(y){return h-(y-Y0)/(Y1-Y0)*h}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.moveTo(X(0),0);g.lineTo(X(0),h);g.stroke();
+  // dashes
+  g.strokeStyle=cssVar('--ink-2');
+  for(var i=0;i<=16;i++)for(var j=0;j<=12;j++){
+   var t=T0+i*(T1-T0)/16, y=Y0+j*(Y1-Y0)/12;
+   var m=f(t,y), ang=Math.atan(m*( (w/(T1-T0))/(h/(Y1-Y0)) )); // slope in px space
+   var L=7;
+   g.beginPath();g.moveTo(X(t)-L*Math.cos(ang),Y(y)+L*Math.sin(ang));
+   g.lineTo(X(t)+L*Math.cos(ang),Y(y)-L*Math.sin(ang));g.stroke();
+  }
+  // RK4 solution from (T0, y0)
+  var y=val('sf-y0'),t=T0,dt=0.02;
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();g.moveTo(X(t),Y(y));
+  while(t<T1&&Math.abs(y)<20){
+   var k1=f(t,y),k2=f(t+dt/2,y+dt/2*k1),k3=f(t+dt/2,y+dt/2*k2),k4=f(t+dt,y+dt*k3);
+   y+=dt/6*(k1+2*k2+2*k3+k4);t+=dt;
+   if(Math.abs(y)<3.2)g.lineTo(X(t),Y(y));else{g.stroke();g.beginPath();g.moveTo(X(t),Y(Math.max(Math.min(y,3.2),-3.2)));}
+  }
+  g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('slope field · blue curve = solution through (−3, y₀)',10,18);
+  var out=document.getElementById('sf-out');
+  if(out)out.textContent='y(3) ≈ '+(Math.abs(y)<1e6?y.toFixed(3):'blow-up');
+ }
+ on('sf-eq','change',draw);on('sf-y0','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 2: logistic curve ---- */
+(function(){
+ var c=document.getElementById('cv-logi');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var r=val('logi-r'),K=val('logi-k'),y0=val('logi-y0');
+  var T=10,YM=130;
+  function X(t){return t/T*w} function Y(y){return h-y/YM*(h-24)-4}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  // K and K/2 lines
+  g.strokeStyle=cssVar('--amber');g.setLineDash([5,4]);
+  g.beginPath();g.moveTo(0,Y(K));g.lineTo(w,Y(K));g.stroke();
+  g.setLineDash([2,4]);g.beginPath();g.moveTo(0,Y(K/2));g.lineTo(w,Y(K/2));g.stroke();g.setLineDash([]);
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('K',6,Y(K)-4);g.fillText('K/2',6,Y(K/2)-4);
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();
+  for(var t=0;t<=T;t+=0.02){
+   var y=K/(1+((K-y0)/y0)*Math.exp(-r*t));
+   if(t===0)g.moveTo(X(t),Y(y));else g.lineTo(X(t),Y(y));
+  }
+  g.stroke();g.lineWidth=1;
+  var out=document.getElementById('logi-out');
+  var tf=(y0<K&&y0<K/2)?(Math.log((K-y0)/y0)/r).toFixed(2):null;
+  if(out)out.textContent='y(t) = K/(1+((K−y₀)/y₀)e^{−rt})'+(tf?'   inflection (y=K/2) at t = '+tf:'   (starts above K/2: no rising inflection)');
+ }
+ ['logi-r','logi-k','logi-y0'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 3: damping + resonance ---- */
+(function(){
+ var c=document.getElementById('cv-damp');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var z=val('damp-z'),wr=val('damp-w'),w0=2;
+  var T=12;
+  function X(t){return t/T*w*0.62} function Y(y){return h/2-y*h*0.30}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w*0.62,Y(0));g.stroke();
+  // free response y(0)=1, y'(0)=0 via RK4 on system
+  var y=1,v=0,t=0,dt=0.01;
+  function acc(y,v){return -2*z*w0*v-w0*w0*y}
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();g.moveTo(X(0),Y(1));
+  while(t<T){
+   var k1y=v,k1v=acc(y,v);
+   var k2y=v+dt/2*k1v,k2v=acc(y+dt/2*k1y,v+dt/2*k1v);
+   var k3y=v+dt/2*k2v,k3v=acc(y+dt/2*k2y,v+dt/2*k2v);
+   var k4y=v+dt*k3v,k4v=acc(y+dt*k3y,v+dt*k3v);
+   y+=dt/6*(k1y+2*k2y+2*k3y+k4y);v+=dt/6*(k1v+2*k2v+2*k3v+k4v);t+=dt;
+   g.lineTo(X(t),Y(y));
+  }
+  g.stroke();
+  // envelope if underdamped
+  if(z<1&&z>0){g.strokeStyle=cssVar('--amber');g.setLineDash([4,4]);g.beginPath();
+   for(t=0;t<=T;t+=0.05){var e=Math.exp(-z*w0*t);if(t===0)g.moveTo(X(t),Y(e));else g.lineTo(X(t),Y(e));}
+   g.stroke();g.setLineDash([]);}
+  // resonance curve on the right
+  var rx=w*0.68,rw=w*0.30;
+  g.strokeStyle=cssVar('--rule');g.strokeRect(rx,20,rw,h-50);
+  function R(om){return 1/Math.sqrt(Math.pow(w0*w0-om*om,2)+Math.pow(2*Math.max(z,0.02)*w0*om,2));}
+  var Rmax=R(w0*Math.max(Math.sqrt(Math.max(1-2*z*z,0.0001)),0.05));
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2;g.beginPath();
+  for(var i=0;i<=100;i++){var om=(0.2+1.8*i/100)*w0;var yy=20+(h-50)*(1-R(om)/Rmax);
+   if(i===0)g.moveTo(rx+rw*i/100,yy);else g.lineTo(rx+rw*i/100,yy);}
+  g.stroke();g.lineWidth=1;
+  var omd=wr*w0, yy=20+(h-50)*(1-R(omd)/Rmax), xx=rx+rw*(omd/w0-0.2)/1.8;
+  g.fillStyle=cssVar('--amber');g.beginPath();g.arc(xx,yy,5,0,2*Math.PI);g.fill();
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('free response y(t)',10,16);g.fillText('amplitude vs drive ω',rx+4,16);
+  var out=document.getElementById('damp-out');
+  var regime=z===0?'undamped':(z<1?'underdamped':(z===1?'critically damped':'overdamped'));
+  if(out)out.textContent='ζ = '+z.toFixed(2)+' ('+regime+')   steady amplitude at ω = '+(wr*w0).toFixed(2)+': R = '+R(omd).toFixed(3)+' (static R(0) = '+R(0).toFixed(3)+')';
+ }
+ on('damp-z','input',draw);on('damp-w','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 4: phase portrait of 2x2 linear system ---- */
+(function(){
+ var c=document.getElementById('cv-pp');if(!c)return;
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var a=val('pp-a'),b=val('pp-b'),cc=val('pp-c'),d=val('pp-d');
+  var scale=Math.min(w,h)/6,x0=w/2,y0=h/2;
+  function X(x){return x0+x*scale} function Y(y){return y0-y*scale}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,y0);g.lineTo(w,y0);g.moveTo(x0,0);g.lineTo(x0,h);g.stroke();
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=1.5;
+  for(var k=0;k<12;k++){
+   var th=k/12*2*Math.PI,x=2.2*Math.cos(th),y=2.2*Math.sin(th),t=0,dt=0.02;
+   g.beginPath();g.moveTo(X(x),Y(y));
+   for(var i=0;i<400;i++){
+    var vx=a*x+b*y,vy=cc*x+d*y;
+    var k1x=vx,k1y=vy;
+    var x2=x+dt/2*k1x,y2=y+dt/2*k1y;var k2x=a*x2+b*y2,k2y=cc*x2+d*y2;
+    x2=x+dt/2*k2x;y2=y+dt/2*k2y;var k3x=a*x2+b*y2,k3y=cc*x2+d*y2;
+    x2=x+dt*k3x;y2=y+dt*k3y;var k4x=a*x2+b*y2,k4y=cc*x2+d*y2;
+    x+=dt/6*(k1x+2*k2x+2*k3x+k4x);y+=dt/6*(k1y+2*k2y+2*k3y+k4y);
+    if(Math.abs(x)>3.5||Math.abs(y)>3.5)break;
+    g.lineTo(X(x),Y(y));
+   }
+   g.stroke();
+  }
+  g.lineWidth=1;
+  var tr=a+d,det=a*d-b*cc,disc=tr*tr-4*det,type;
+  if(Math.abs(det)<1e-9)type='degenerate (det = 0)';
+  else if(det<0)type='saddle';
+  else if(disc>=0)type=(tr<0?'stable':'unstable')+' node';
+  else if(Math.abs(tr)<1e-9)type='center';
+  else type=(tr<0?'stable':'unstable')+' spiral';
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('trajectories from a ring of starts',10,18);
+  var out=document.getElementById('pp-out');
+  var lam=disc>=0?(((tr+Math.sqrt(disc))/2).toFixed(2)+', '+((tr-Math.sqrt(disc))/2).toFixed(2)):((tr/2).toFixed(2)+' ± '+(Math.sqrt(-disc)/2).toFixed(2)+'i');
+  if(out)out.textContent='tr = '+tr.toFixed(2)+'  det = '+det.toFixed(2)+'  λ = '+lam+'  →  '+type.toUpperCase();
+ }
+ ['pp-a','pp-b','pp-c','pp-d'].forEach(function(id){on(id,'input',draw);});
+ window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 5: Euler vs RK4 vs exact on y' = cos(t) y ---- */
+(function(){
+ var c=document.getElementById('cv-euler');if(!c)return;
+ function f(t,y){return Math.cos(t)*y}
+ function draw(){
+  var s=setupCanvas(c,300),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var hh=val('eu-h'),T=6,YM=3.2;
+  function X(t){return t/T*w} function Y(y){return h-6-y/YM*(h-30)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  // exact
+  g.strokeStyle=cssVar('--ink-2');g.lineWidth=2;g.beginPath();
+  for(var t=0;t<=T;t+=0.02){var y=Math.exp(Math.sin(t));if(t===0)g.moveTo(X(t),Y(y));else g.lineTo(X(t),Y(y));}
+  g.stroke();
+  // Euler
+  var y=1,t=0,ef;g.strokeStyle=cssVar('--amber');g.beginPath();g.moveTo(X(0),Y(1));
+  while(t<T-1e-9){y+=hh*f(t,y);t+=hh;g.lineTo(X(Math.min(t,T)),Y(y));}
+  ef=y;g.stroke();
+  // RK4
+  y=1;t=0;var rf;g.strokeStyle=cssVar('--cobalt');g.beginPath();g.moveTo(X(0),Y(1));
+  while(t<T-1e-9){
+   var k1=f(t,y),k2=f(t+hh/2,y+hh/2*k1),k3=f(t+hh/2,y+hh/2*k2),k4=f(t+hh,y+hh*k3);
+   y+=hh/6*(k1+2*k2+2*k3+k4);t+=hh;g.lineTo(X(Math.min(t,T)),Y(y));
+  }
+  rf=y;g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('gray exact · amber Euler · blue RK4',10,16);
+  var ex=Math.exp(Math.sin(T));
+  var out=document.getElementById('eu-out');
+  if(out)out.textContent='errors at t=6:  Euler '+Math.abs(ef-ex).toExponential(2)+'   RK4 '+Math.abs(rf-ex).toExponential(2);
+ }
+ on('eu-h','input',draw);window.addEventListener('resize',draw);draw();
+})();
+
+/* ---- Explorer 6: heat equation (Fourier solution, animated) ---- */
+(function(){
+ var c=document.getElementById('cv-heat');if(!c)return;
+ var L=Math.PI,N=40,bn=[],time=0,anim=null;
+ // initial condition: two bumps; compute sine coefficients numerically
+ function phi(x){return Math.exp(-18*Math.pow(x-1.0,2))+0.7*Math.exp(-18*Math.pow(x-2.3,2));}
+ (function(){
+  var M=400;
+  for(var n=1;n<=N;n++){
+   var sum=0;
+   for(var i=0;i<M;i++){var x=(i+0.5)*L/M;sum+=phi(x)*Math.sin(n*x)*L/M;}
+   bn.push(2/L*sum);
+  }
+ })();
+ function u(x,t,al){var s2=0;for(var n=1;n<=N;n++)s2+=bn[n-1]*Math.exp(-al*n*n*t)*Math.sin(n*x);return s2;}
+ function draw(){
+  var s=setupCanvas(c,280),g=s.g,w=s.w,h=s.h;
+  g.clearRect(0,0,w,h);
+  var al=val('heat-a');
+  function X(x){return x/L*w} function Y(y){return h-10-y*(h-40)}
+  g.strokeStyle=cssVar('--rule');g.beginPath();g.moveTo(0,Y(0));g.lineTo(w,Y(0));g.stroke();
+  g.strokeStyle=cssVar('--rule');g.setLineDash([3,4]);g.beginPath();
+  for(var x=0;x<=L;x+=0.01){var y=phi(x);if(x===0)g.moveTo(X(x),Y(y));else g.lineTo(X(x),Y(y));}
+  g.stroke();g.setLineDash([]);
+  g.strokeStyle=cssVar('--cobalt');g.lineWidth=2.5;g.beginPath();
+  for(x=0;x<=L;x+=0.01){var yv=u(x,time,al);if(x===0)g.moveTo(X(x),Y(yv));else g.lineTo(X(x),Y(yv));}
+  g.stroke();g.lineWidth=1;
+  g.fillStyle=cssVar('--ink-2');g.font='13px JetBrains Mono';
+  g.fillText('t = '+time.toFixed(2)+'   (dashed: t = 0)',10,16);
+  var out=document.getElementById('heat-out');
+  if(out)out.textContent='mode n decays like e^{−α n² t}: at t='+time.toFixed(2)+', mode 1 × '+Math.exp(-al*time).toFixed(3)+', mode 5 × '+Math.exp(-al*25*time).toExponential(2);
+ }
+ function run(){
+  if(anim)cancelAnimationFrame(anim);
+  time=0;
+  (function step(){time+=0.006;draw();if(time<1.5)anim=requestAnimationFrame(step);})();
+ }
+ on('heat-run','click',run);on('heat-a','input',draw);window.addEventListener('resize',draw);draw();
+})();
+})();
+</script>
+
+</body></html>
